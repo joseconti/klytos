@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="{{page_lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}} — {{site_name}}</title>
+  <meta name="description" content="{{meta_description}}">
+  <meta property="og:title" content="{{page_title}}">
+  <meta property="og:description" content="{{meta_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <meta property="og:type" content="article">
+  <link rel="canonical" href="{{site_url}}{{page_slug}}.html">
+  {{hreflang_tags}}
+  <link rel="sitemap" type="application/xml" href="{{sitemap_url}}">
+  <link rel="stylesheet" href="{{base_path}}css/style.css">
+  <style>
+    .blog-article {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 0;
+    }
+    .blog-article h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .blog-meta {
+      color: var(--klytos-text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--klytos-border);
+    }
+    .blog-content {
+      font-size: 1.1rem;
+      line-height: 1.8;
+    }
+    .blog-content img {
+      border-radius: var(--klytos-radius);
+      margin: 2rem 0;
+    }
+    .blog-content h2 { margin-top: 2rem; }
+    .blog-content h3 { margin-top: 1.5rem; }
+    .blog-content ul, .blog-content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+    .blog-content li { margin-bottom: 0.5rem; }
+    @media (max-width: 768px) {
+      .blog-article h1 { font-size: 1.8rem; }
+      .blog-content { font-size: 1rem; }
+    }
+  </style>
+  {{custom_css}}
+  {{head_scripts}}
+</head>
+<body>
+
+  <header class="klytos-header sticky">
+    <div class="klytos-container">
+      <a href="{{base_path}}" class="klytos-logo">{{site_name}}</a>
+      <nav class="klytos-nav">
+        {{menu_html}}
+      </nav>
+    </div>
+  </header>
+
+  <main class="klytos-main">
+    <div class="klytos-container">
+      <article class="blog-article">
+        <h1>{{page_title}}</h1>
+        <div class="blog-meta">
+          {{site_name}}
+        </div>
+        <div class="blog-content">
+          {{page_content}}
+        </div>
+      </article>
+    </div>
+  </main>
+
+  {{footer_html}}
+
+  {{custom_js}}
+  {{body_scripts}}
+</body>
+</html>

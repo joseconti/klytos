@@ -1,0 +1,50 @@
+# ─── Git Attributes ───────────────────────────────────────────
+# Controls what gets included in GitHub release archives (ZIP/tar.gz).
+# Files marked with `export-ignore` are excluded from `git archive`
+# and GitHub's "Download ZIP" / release asset generation.
+
+# ─── Documentation (not needed in production) ────────────────
+docs/                       export-ignore
+*.md                        export-ignore
+LICENSE                     -export-ignore
+PRIVACY.md                  -export-ignore
+
+# ─── Development Files ───────────────────────────────────────
+.github/                    export-ignore
+.claude/                    export-ignore
+tests/                      export-ignore
+phpunit.xml                 export-ignore
+phpstan.neon                export-ignore
+.editorconfig               export-ignore
+.gitignore                  export-ignore
+.gitattributes              export-ignore
+
+# ─── IDE / Config ────────────────────────────────────────────
+.idea/                      export-ignore
+.vscode/                    export-ignore
+
+# ─── Normalize Line Endings ──────────────────────────────────
+*.php   text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+*.xml   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# ─── Binary Files (don't diff) ──────────────────────────────
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.svg   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.zip   binary
+*.tar.gz binary

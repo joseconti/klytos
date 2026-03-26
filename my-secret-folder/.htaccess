@@ -1,0 +1,45 @@
+# ─── Klytos CMS — Admin Directory .htaccess ──────────────────
+# Routes MCP, OAuth, and other API requests to the front controller.
+# Also protects sensitive directories (data/, config/, core/).
+#
+# @license    Elastic License 2.0 (ELv2)
+# @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+
+RewriteEngine On
+
+# ─── Security: Block access to sensitive directories ─────────
+RewriteRule ^data/ - [F,L]
+RewriteRule ^config/ - [F,L]
+RewriteRule ^core/ - [F,L]
+RewriteRule ^backups/ - [F,L]
+RewriteRule ^plugins/.*\.php$ - [F,L]
+RewriteRule ^\.  - [F,L]
+
+# ─── Pass PHP_AUTH to environment (some hosts strip it) ──────
+# This ensures HTTP Basic Auth credentials are available in PHP
+# even on hosts that use CGI/FastCGI and strip the Authorization header.
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+# ─── Existing files: serve directly ──────────────────────────
+# Admin PHP pages (admin/*.php), static assets, etc.
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# ─── Route API endpoints through front controller ────────────
+# These routes don't have physical files — they need the router.
+# Matches: /mcp, /oauth/authorize, /oauth/token,
+#          /.well-known/oauth-authorization-server, /t, /install
+RewriteRule ^mcp$ index.php?route=mcp [L,QSA]
+RewriteRule ^oauth/authorize$ index.php?route=oauth/authorize [L,QSA]
+RewriteRule ^oauth/token$ index.php?route=oauth/token [L,QSA]
+RewriteRule ^\.well-known/oauth-authorization-server$ index.php?route=.well-known/oauth-authorization-server [L,QSA]
+RewriteRule ^t$ index.php?route=t [L,QSA]
+RewriteRule ^install$ index.php?route=install [L,QSA]
+
+# ─── Public site routes ──────────────────────────────────────
+# Everything else that doesn't match a file goes to the router.
+# This serves the static site pages and handles 404s.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?route=$1 [L,QSA]

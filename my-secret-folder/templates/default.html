@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="{{page_lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}} — {{site_name}}</title>
+  <meta name="description" content="{{meta_description}}">
+  <meta property="og:title" content="{{page_title}} — {{site_name}}">
+  <meta property="og:description" content="{{meta_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="{{site_url}}{{page_slug}}.html">
+  {{hreflang_tags}}
+  <link rel="sitemap" type="application/xml" href="{{sitemap_url}}">
+  <link rel="stylesheet" href="{{base_path}}css/style.css">
+  {{custom_css}}
+  {{head_scripts}}
+</head>
+<body>
+
+  <header class="klytos-header sticky">
+    <div class="klytos-container">
+      <a href="{{base_path}}" class="klytos-logo">{{site_name}}</a>
+      <nav class="klytos-nav">
+        {{menu_html}}
+      </nav>
+    </div>
+  </header>
+
+  <main class="klytos-main">
+    <div class="klytos-container">
+      {{page_content}}
+    </div>
+  </main>
+
+  {{footer_html}}
+
+  {{custom_js}}
+  {{body_scripts}}
+</body>
+</html>

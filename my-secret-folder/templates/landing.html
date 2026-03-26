@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="{{page_lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}} — {{site_name}}</title>
+  <meta name="description" content="{{meta_description}}">
+  <meta property="og:title" content="{{page_title}} — {{site_name}}">
+  <meta property="og:description" content="{{meta_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="{{site_url}}{{page_slug}}.html">
+  {{hreflang_tags}}
+  <link rel="sitemap" type="application/xml" href="{{sitemap_url}}">
+  <link rel="stylesheet" href="{{base_path}}css/style.css">
+  <style>
+    .landing-hero {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(135deg, var(--klytos-primary), var(--klytos-secondary));
+      color: #fff;
+      padding: 4rem 2rem;
+    }
+    .landing-hero h1 { color: #fff; font-size: 3rem; margin-bottom: 1rem; }
+    .landing-hero p { font-size: 1.25rem; opacity: 0.9; max-width: 600px; margin: 0 auto 2rem; }
+    .landing-cta {
+      display: inline-block;
+      padding: 0.875rem 2rem;
+      background: #fff;
+      color: var(--klytos-primary);
+      border-radius: var(--klytos-radius);
+      font-weight: 600;
+      font-size: 1.1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .landing-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); text-decoration: none; }
+    .landing-sections { padding: 4rem 0; }
+    .landing-section { padding: 4rem 0; }
+    .landing-section:nth-child(even) { background: var(--klytos-surface); }
+    @media (max-width: 768px) {
+      .landing-hero h1 { font-size: 2rem; }
+      .landing-hero { min-height: 60vh; }
+    }
+  </style>
+  {{custom_css}}
+  {{head_scripts}}
+</head>
+<body>
+
+  <header class="klytos-header">
+    <div class="klytos-container">
+      <a href="{{base_path}}" class="klytos-logo">{{site_name}}</a>
+      <nav class="klytos-nav">
+        {{menu_html}}
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {{page_content}}
+  </main>
+
+  {{footer_html}}
+
+  {{custom_js}}
+  {{body_scripts}}
+</body>
+</html>

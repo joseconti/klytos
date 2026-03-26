@@ -1,0 +1,8 @@
+Order deny,allow
+Deny from all
+
+# Allow access to plugin assets (CSS, JS, images)
+<FilesMatch "\.(css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>

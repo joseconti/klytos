@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="{{page_lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}} — {{site_name}}</title>
+  <meta name="description" content="{{meta_description}}">
+  <meta property="og:title" content="{{page_title}} — {{site_name}}">
+  <meta property="og:description" content="{{meta_description}}">
+  <meta property="og:image" content="{{og_image}}">
+  <link rel="canonical" href="{{site_url}}{{page_slug}}.html">
+  {{hreflang_tags}}
+  <link rel="stylesheet" href="{{base_path}}css/style.css">
+  {{custom_css}}
+  {{head_scripts}}
+</head>
+<body>
+  {{page_content}}
+  {{custom_js}}
+  {{body_scripts}}
+</body>
+</html>

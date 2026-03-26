@@ -1,0 +1,44 @@
+# ─── Klytos CMS — Root .htaccess ──────────────────────────────
+# This file sits at the web root and handles:
+# 1. Serving static HTML pages with clean URLs (/about/ → /about/index.html).
+# 2. Serving assets (CSS, JS, images, fonts) from /assets/.
+# 3. Serving SEO files (sitemap.xml, robots.txt, llms.txt).
+# 4. Routing to the admin panel (secret directory name).
+#
+# IMPORTANT: The admin directory name is SECRET.
+# This .htaccess NEVER references the admin directory directly.
+# All admin routing is handled by the admin's own .htaccess.
+#
+# @license    Elastic License 2.0 (ELv2)
+# @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+
+RewriteEngine On
+
+# ─── Security: Block hidden files (.env, .git, etc.) ─────────
+RewriteRule ^\. - [F,L]
+
+# ─── Existing files and directories: serve directly ──────────
+# If the file or directory exists, serve it as-is.
+# This handles: /assets/css/style.css, /assets/images/*, /sitemap.xml, etc.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ─── Clean URL: /about/ → /about/index.html ──────────────────
+# Pages are stored as /slug/index.html (directory-based clean URLs).
+# Handles: /servicios/ → /servicios/index.html
+# Handles: /servicios/marketing/ → /servicios/marketing/index.html
+RewriteCond %{REQUEST_FILENAME}/index.html -f
+RewriteRule ^(.+)/$ $1/index.html [L]
+
+# ─── Trailing slash redirect ─────────────────────────────────
+# If someone requests /about (no slash), redirect to /about/ (with slash).
+# This ensures canonical URLs always end with /.
+# Exceptions: files with extensions and the homepage.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_URI} !\.
+RewriteCond %{REQUEST_URI} !/$
+RewriteRule ^(.+)$ /$1/ [R=301,L]
+
+# ─── Homepage: / → /index.html ───────────────────────────────
+RewriteRule ^$ index.html [L]
