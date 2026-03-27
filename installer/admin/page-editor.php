@@ -336,11 +336,11 @@ include __DIR__ . '/templates/sidebar.php';
 
     tinymce.init( {
         selector: '#tinymce-editor',
-        height: 500,
+        height: 700,
         menubar: 'file edit view insert format tools table',
         plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
         toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | forecolor backcolor | removeformat | code fullscreen',
-        content_style: 'body { font-family: Inter, sans-serif; font-size: 16px; max-width: 800px; margin: 0 auto; padding: 1rem; }',
+        content_style: 'body { font-family: Inter, sans-serif; font-size: 16px; padding: 1.5rem; }',
         promotion: false,
         branding: false,
         license_key: 'gpl',
