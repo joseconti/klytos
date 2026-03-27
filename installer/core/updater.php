@@ -737,8 +737,7 @@ class Updater
             CURLOPT_TIMEOUT        => 300,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_HTTPHEADER     => [
-                'Accept: application/octet-stream',
-                'User-Agent: Klytos-CMS/' . $this->getCurrentVersion(),
+                'User-Agent: Klytos-CMS/' . KLYTOS_VERSION,
             ],
         ] );
 

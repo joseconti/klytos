@@ -13,7 +13,7 @@
 $currentPage = 'pages';
 require __DIR__ . '/bootstrap.php';
 
-$editorType = $app->getSiteConfig()->get('editor', 'gutenberg');
+$editorType = $app->getSiteConfig()->getValue('editor', 'gutenberg');
 $auth = $app->getAuth();
 $csrf = $auth->getCsrfToken();
 $pm   = $app->getPages();
@@ -366,8 +366,8 @@ include __DIR__ . '/templates/sidebar.php';
 
 <?php } else { ?>
 <!-- React (required by Gutenberg) -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="assets/vendor/gutenberg/react.production.min.js"></script>
+<script src="assets/vendor/gutenberg/react-dom.production.min.js"></script>
 
 <!-- Gutenberg vendor files (NEVER modify these) -->
 <link rel="stylesheet" href="assets/vendor/gutenberg/core.css">
