@@ -276,15 +276,10 @@
     overflow-y: auto !important;
 }
 
-/* Block inspector sidebar: fixed width, beside canvas. */
+/* Gutenberg's sidebar slot — hidden by default; Klytos sidebar replaces it.
+   When "Bloque" tab is active, CSS positions it over our block panel area. */
 #klytos-editor-container .interface-interface-skeleton__sidebar {
-    width: 280px !important;
-    min-width: 280px !important;
-    max-width: 280px !important;
-    overflow-y: auto !important;
-    border-left: 1px solid #e0e0e0 !important;
-    flex-shrink: 0 !important;
-    background: #fff !important;
+    display: none !important;
 }
 
 /* The visual editor inside the content area — subtle background. */
@@ -336,9 +331,15 @@
     z-index: 5;
 }
 
-/* Hide Gutenberg's save/publish buttons — we have our own in the Klytos header. */
+/* Hide Gutenberg's settings area visually but keep it in the DOM
+   so we can programmatically click the Settings button. */
 #klytos-editor-container .editor-header__settings {
-    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
 }
 
 /* Hide Gutenberg's back button and center title — we have our own. */
@@ -347,8 +348,43 @@
     display: none !important;
 }
 
-/* Collapse the block toolbar into a single row. Hide the separate
-   collapsible block toolbar — the contextual toolbar appears inline. */
+/* ─── Toolbar: merge into a single row ─── */
+
+/* Force the toolbar wrapper to lay out children in a single horizontal row. */
+#klytos-editor-container .editor-header__toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+
+/* Document tools (inserter, undo, redo, list view) — don't shrink. */
+#klytos-editor-container .editor-document-tools {
+    flex-shrink: 0 !important;
+}
+
+/* Block toolbar sits inline after document tools. */
+#klytos-editor-container .editor-collapsible-block-toolbar {
+    flex: 1 !important;
+    min-width: 0 !important;
+    border-top: none !important;
+}
+
+/* Separator between document tools and block tools. */
+#klytos-editor-container .editor-collapsible-block-toolbar::before {
+    content: '';
+    display: inline-block;
+    width: 1px;
+    height: 24px;
+    background: #e0e0e0;
+    margin: 0 4px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Hide the "Hide block tools" toggle — not needed in single-row mode. */
 #klytos-editor-container .edit-post-header__block-tools-toggle {
     display: none !important;
 }
@@ -364,17 +400,31 @@
 }
 
 /* ============================================================
- * PAGE SETTINGS — injected into Gutenberg's unified sidebar
+ * KLYTOS SIDEBAR — own sidebar outside Gutenberg
  * ============================================================ */
 
-/* Tablist inside Gutenberg's complementary-area header */
-.klytos-sidebar-tablist {
+.klytos-sidebar {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    flex-shrink: 0;
     display: flex;
-    flex: 1;
-    gap: 0;
+    flex-direction: column;
+    border-left: 1px solid #e0e0e0;
+    background: #fff;
+    overflow: hidden;
 }
 
-.klytos-sidebar-tab {
+.klytos-sidebar__header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.klytos-sidebar__tabs {
+    display: flex;
+}
+
+.klytos-sidebar__tab {
     flex: 1;
     padding: 0.7rem 0.5rem;
     font-size: 0.8125rem;
@@ -388,20 +438,73 @@
     transition: all 0.15s;
 }
 
-.klytos-sidebar-tab:hover {
+.klytos-sidebar__tab:hover {
     color: #1e1e1e;
 }
 
-.klytos-sidebar-tab[aria-selected="true"],
-.klytos-sidebar-tab.is-active {
+.klytos-sidebar__tab[aria-selected="true"],
+.klytos-sidebar__tab.is-active {
     color: #3858e9;
     border-bottom-color: #3858e9;
 }
 
-/* Page settings panel inside Gutenberg's sidebar */
-.klytos-sidebar-page-panel {
-    overflow-y: auto;
+.klytos-sidebar__body {
     flex: 1;
+    overflow-y: auto;
+    position: relative;
+}
+
+.klytos-sidebar__panel {
+    min-height: 0;
+}
+
+.klytos-sidebar__empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #757575;
+    font-size: 0.8125rem;
+}
+
+/* ─── "Bloque" tab active: show Gutenberg's sidebar via position:fixed ─── */
+
+/* Make our sidebar body transparent to pointer events so the fixed
+   Gutenberg sidebar underneath can receive clicks. */
+body.klytos-block-tab-active .klytos-sidebar__body {
+    pointer-events: none !important;
+}
+
+/* Hide the placeholder text when Gutenberg inspector is shown. */
+body.klytos-block-tab-active #klytos-panel-block .klytos-sidebar__empty {
+    display: none !important;
+}
+
+/* Keep tabs clickable. */
+body.klytos-block-tab-active .klytos-sidebar__header {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 110;
+}
+
+body.klytos-block-tab-active #klytos-editor-container .interface-interface-skeleton__sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    position: fixed !important;
+    /* 56px Klytos header + ~44px tab bar = 100px from top */
+    top: 100px !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    z-index: 105 !important;
+    border-left: 1px solid #e0e0e0 !important;
+    background: #fff !important;
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+}
+
+/* Hide Gutenberg's own sidebar header (close button, tab buttons) when
+   it's shown inside our sidebar — our tabs handle navigation. */
+body.klytos-block-tab-active .interface-complementary-area-header {
+    display: none !important;
 }
 
 #klytos-page-panel {
@@ -619,6 +722,16 @@
 
     .klytos-editor-body {
         height: calc( 100vh - 48px );
+    }
+
+    .klytos-sidebar {
+        display: none;
+    }
+
+    /* Adjust Gutenberg sidebar overlay for mobile header. */
+    body.klytos-block-tab-active #klytos-editor-container .interface-interface-skeleton__sidebar {
+        top: 48px !important;
+        width: 100% !important;
     }
 
 }

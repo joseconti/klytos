@@ -193,6 +193,9 @@ include __DIR__ . '/templates/sidebar.php';
                     </div>
 
                     <div class="klytos-editor-header__right">
+                        <button type="button" class="klytos-editor-header__btn klytos-editor-header__btn--icon active" id="klytos-sidebar-toggle" aria-pressed="true" title="Settings">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.289 4.836A1 1 0 0111.275 4h1.306a1 1 0 01.987.836l.244 1.466c.787.26 1.503.679 2.108 1.218l1.393-.522a1 1 0 011.216.437l.653 1.13a1 1 0 01-.23 1.273l-1.148.944a6.025 6.025 0 010 2.435l1.149.946a1 1 0 01.23 1.272l-.653 1.13a1 1 0 01-1.216.437l-1.394-.522c-.605.54-1.32.958-2.108 1.218l-.244 1.466a1 1 0 01-.987.836h-1.306a1 1 0 01-.986-.836l-.244-1.466a5.995 5.995 0 01-2.108-1.218l-1.394.522a1 1 0 01-1.217-.436l-.653-1.131a1 1 0 01.23-1.272l1.149-.946a6.026 6.026 0 010-2.435l-1.148-.944a1 1 0 01-.23-1.272l.653-1.131a1 1 0 011.217-.437l1.393.522a5.994 5.994 0 012.108-1.218l.244-1.466zM14.929 12a3 3 0 11-6 0 3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                        </button>
                         <?php if ( $isEditing ): ?>
                         <a href="../<?php echo htmlspecialchars( $slug ); ?>/" target="_blank" class="klytos-editor-header__btn klytos-editor-header__btn--ghost">
                             <?php echo __( 'common.preview' ); ?>
@@ -215,9 +218,17 @@ include __DIR__ . '/templates/sidebar.php';
                         <div id="klytos-editor-container"></div>
                     </div>
 
-                    <!-- Page settings (will be injected into Gutenberg's sidebar by JS) -->
-                    <div id="klytos-page-settings-source" style="display:none;">
-                        <div class="klytos-page-panel" id="klytos-page-panel">
+                    <!-- ─── Klytos Sidebar ─── -->
+                    <div class="klytos-sidebar" id="klytos-sidebar">
+                        <div class="klytos-sidebar__header">
+                            <div class="klytos-sidebar__tabs" role="tablist">
+                                <button class="klytos-sidebar__tab is-active" role="tab" aria-selected="true" data-tab="page" type="button"><?php echo __( 'pages.title' ); ?></button>
+                                <button class="klytos-sidebar__tab" role="tab" aria-selected="false" data-tab="block" type="button">Bloque</button>
+                            </div>
+                        </div>
+                        <div class="klytos-sidebar__body">
+                            <div class="klytos-sidebar__panel" id="klytos-panel-page" role="tabpanel">
+                                <div class="klytos-page-panel" id="klytos-page-panel">
 
                             <!-- Status & Template -->
                             <div class="klytos-editor-settings__section">
@@ -314,6 +325,13 @@ include __DIR__ . '/templates/sidebar.php';
                                 </div>
                             </div>
 
+                                </div>
+                            </div>
+                            <div class="klytos-sidebar__panel" id="klytos-panel-block" role="tabpanel" style="display:none;">
+                                <div class="klytos-sidebar__empty">
+                                    <p>Select a block to see its settings.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -502,186 +520,154 @@ include __DIR__ . '/templates/sidebar.php';
 } )();
 </script>
 
-<!-- Inject page settings into Gutenberg's unified sidebar -->
+<!-- Klytos Sidebar: tab switching + Gutenberg inspector integration -->
 <script nonce="<?php echo $cspNonce; ?>">
 ( function() {
     'use strict';
 
-    var SOURCE_ID  = 'klytos-page-settings-source';
-    var PANEL_ID   = 'klytos-page-panel';
-    var TAB_LABEL  = '<?php echo __( 'pages.title' ); ?>';
-    var injected   = false;
+    var sidebar      = document.getElementById( 'klytos-sidebar' );
+    var toggle       = document.getElementById( 'klytos-sidebar-toggle' );
+    var pageTab      = sidebar.querySelector( '[data-tab="page"]' );
+    var blockTab     = sidebar.querySelector( '[data-tab="block"]' );
+    var pagePanel    = document.getElementById( 'klytos-panel-page' );
+    var blockPanel   = document.getElementById( 'klytos-panel-block' );
+
+    if ( ! sidebar || ! pageTab || ! blockTab ) return;
+
+    // ─── Gutenberg inspector helpers ─────────────────────────
 
     /**
-     * Inject a "Pagina" tab + page-settings panel into Gutenberg's
-     * complementary-area sidebar, producing a unified two-tab sidebar
-     * identical in structure to WordPress (Entrada / Bloque).
+     * Open the Gutenberg block inspector sidebar.
+     *
+     * isolated-block-editor uses the "isolated/editor" store
+     * (NOT "core/edit-post" like WordPress core).
      */
-    function injectPageTab() {
-        if ( injected ) return;
+    function openGutenbergInspector() {
+        if ( window.wp && window.wp.data ) {
+            // Primary: isolated/editor store.
+            try {
+                var iso = window.wp.data.dispatch( 'isolated/editor' );
+                if ( iso && iso.openGeneralSidebar ) {
+                    iso.openGeneralSidebar( 'edit-post/block' );
+                    return;
+                }
+            } catch ( e ) { /* fall through */ }
 
-        // Gutenberg's sidebar wrapper — try multiple selectors.
-        var sidebar = document.querySelector(
-            '#klytos-editor-container .interface-interface-skeleton__sidebar'
+            // Secondary: core/edit-post (in case a future version uses it).
+            try {
+                var ep = window.wp.data.dispatch( 'core/edit-post' );
+                if ( ep && ep.openGeneralSidebar ) {
+                    ep.openGeneralSidebar( 'edit-post/block' );
+                    return;
+                }
+            } catch ( e ) { /* fall through */ }
+        }
+
+        // Last resort: click the Settings button directly.
+        var btn = document.querySelector(
+            '#klytos-editor-container .editor-header__settings button[aria-label="Settings"]'
         );
-        if ( ! sidebar ) return;
-
-        // The complementary area may be nested or have a fill wrapper.
-        var compArea = sidebar.querySelector( '.interface-complementary-area' )
-                    || sidebar.querySelector( '[class*="complementary-area"]' )
-                    || sidebar;
-
-        // Find the header that holds the tab buttons.
-        var header = compArea.querySelector( '.interface-complementary-area-header' )
-                  || compArea.querySelector( '.components-panel__header' )
-                  || compArea.querySelector( '[class*="header"]' );
-        if ( ! header ) return;
-
-        // Look for an existing tablist (role="tablist") or the first button group.
-        var tablist = header.querySelector( '[role="tablist"]' );
-        var closeBtn = header.querySelector( 'button[aria-label]' );
-
-        // ─── Create "Pagina" tab button ──────────────────────
-        var pageTab = document.createElement( 'button' );
-        pageTab.type = 'button';
-        pageTab.className = 'components-button klytos-sidebar-tab klytos-sidebar-tab--page';
-        pageTab.setAttribute( 'role', 'tab' );
-        pageTab.setAttribute( 'aria-selected', 'true' );
-        pageTab.textContent = TAB_LABEL;
-
-        // ─── Find or create a "Block" tab reference ──────────
-        // Gutenberg may render a single tab labelled "Block" or "Settings".
-        var existingTabs = header.querySelectorAll( '[role="tab"]' );
-        var blockTab = null;
-
-        if ( tablist ) {
-            // Insert our tab at the beginning of the tablist.
-            tablist.insertBefore( pageTab, tablist.firstChild );
-            blockTab = tablist.querySelector( '[role="tab"]:not(.klytos-sidebar-tab--page)' );
-        } else {
-            // No tablist — create one.
-            var newTablist = document.createElement( 'div' );
-            newTablist.setAttribute( 'role', 'tablist' );
-            newTablist.className = 'klytos-sidebar-tablist';
-            newTablist.appendChild( pageTab );
-
-            // Wrap existing buttons as "Block" tab.
-            var existingBtn = header.querySelector( 'button:not([aria-label])' );
-            if ( existingBtn ) {
-                existingBtn.classList.add( 'klytos-sidebar-tab', 'klytos-sidebar-tab--block' );
-                existingBtn.setAttribute( 'role', 'tab' );
-                existingBtn.setAttribute( 'aria-selected', 'false' );
-                newTablist.appendChild( existingBtn );
-                blockTab = existingBtn;
-            } else {
-                // Create a synthetic Block tab.
-                blockTab = document.createElement( 'button' );
-                blockTab.type = 'button';
-                blockTab.className = 'components-button klytos-sidebar-tab klytos-sidebar-tab--block';
-                blockTab.setAttribute( 'role', 'tab' );
-                blockTab.setAttribute( 'aria-selected', 'false' );
-                blockTab.textContent = 'Block';
-                newTablist.appendChild( blockTab );
-            }
-
-            // Insert tablist before the close button (or at the start).
-            if ( closeBtn ) {
-                header.insertBefore( newTablist, closeBtn );
-            } else {
-                header.insertBefore( newTablist, header.firstChild );
-            }
+        if ( btn && btn.getAttribute( 'aria-pressed' ) !== 'true' ) {
+            btn.click();
         }
-
-        // ─── Create page-settings panel inside sidebar ───────
-        var source = document.getElementById( SOURCE_ID );
-        var pagePanel = document.createElement( 'div' );
-        pagePanel.id = 'klytos-sidebar-page-panel';
-        pagePanel.className = 'klytos-sidebar-page-panel';
-        pagePanel.setAttribute( 'role', 'tabpanel' );
-
-        if ( source ) {
-            // Move the content from the hidden source div.
-            var inner = source.querySelector( '#' + PANEL_ID );
-            if ( inner ) {
-                pagePanel.appendChild( inner );
-                inner.style.display = '';
-            }
-            source.parentNode.removeChild( source );
-        }
-
-        // Find the block inspector panel (the main content area of the sidebar).
-        var blockPanel = compArea.querySelector( '.edit-post-sidebar, .components-panel' );
-        if ( ! blockPanel ) {
-            blockPanel = compArea.querySelector( '[class*="sidebar"]' ) || compArea.lastElementChild;
-        }
-
-        // Insert page panel before the block panel.
-        if ( blockPanel && blockPanel.parentNode === compArea ) {
-            compArea.insertBefore( pagePanel, blockPanel );
-        } else {
-            compArea.appendChild( pagePanel );
-        }
-
-        // ─── Tab switching logic ─────────────────────────────
-        function activatePageTab() {
-            pageTab.setAttribute( 'aria-selected', 'true' );
-            pageTab.classList.add( 'is-active' );
-            if ( blockTab ) {
-                blockTab.setAttribute( 'aria-selected', 'false' );
-                blockTab.classList.remove( 'is-active' );
-            }
-            pagePanel.style.display = '';
-            if ( blockPanel ) blockPanel.style.display = 'none';
-        }
-
-        function activateBlockTab() {
-            pageTab.setAttribute( 'aria-selected', 'false' );
-            pageTab.classList.remove( 'is-active' );
-            if ( blockTab ) {
-                blockTab.setAttribute( 'aria-selected', 'true' );
-                blockTab.classList.add( 'is-active' );
-            }
-            pagePanel.style.display = 'none';
-            if ( blockPanel ) blockPanel.style.display = '';
-        }
-
-        pageTab.addEventListener( 'click', function( e ) {
-            e.preventDefault();
-            e.stopPropagation();
-            activatePageTab();
-        } );
-
-        if ( blockTab ) {
-            blockTab.addEventListener( 'click', function() {
-                activateBlockTab();
-            } );
-        }
-
-        // Start with the page tab active.
-        activatePageTab();
-
-        injected = true;
     }
 
-    // ─── Wait for Gutenberg to render, then inject ───────────
-    var container = document.getElementById( 'klytos-editor-container' );
-    if ( ! container ) return;
+    function closeGutenbergInspector() {
+        if ( window.wp && window.wp.data ) {
+            try {
+                var iso = window.wp.data.dispatch( 'isolated/editor' );
+                if ( iso && iso.closeGeneralSidebar ) {
+                    iso.closeGeneralSidebar();
+                    return;
+                }
+            } catch ( e ) { /* fall through */ }
 
-    var observer = new MutationObserver( function( mutations, obs ) {
-        var sidebar = container.querySelector( '.interface-interface-skeleton__sidebar' );
-        if ( sidebar ) {
-            // Give Gutenberg a tick to finish rendering the sidebar internals.
-            setTimeout( function() {
-                injectPageTab();
-                obs.disconnect();
-            }, 200 );
+            try {
+                var ep = window.wp.data.dispatch( 'core/edit-post' );
+                if ( ep && ep.closeGeneralSidebar ) {
+                    ep.closeGeneralSidebar();
+                    return;
+                }
+            } catch ( e ) { /* fall through */ }
         }
+
+        var btn = document.querySelector(
+            '#klytos-editor-container .editor-header__settings button[aria-label="Settings"]'
+        );
+        if ( btn && btn.getAttribute( 'aria-pressed' ) === 'true' ) {
+            btn.click();
+        }
+    }
+
+    // ─── Tab switching ───────────────────────────────────────
+
+    function activatePageTab() {
+        pageTab.setAttribute( 'aria-selected', 'true' );
+        pageTab.classList.add( 'is-active' );
+        blockTab.setAttribute( 'aria-selected', 'false' );
+        blockTab.classList.remove( 'is-active' );
+        pagePanel.style.display = '';
+        blockPanel.style.display = 'none';
+        document.body.classList.remove( 'klytos-block-tab-active' );
+        closeGutenbergInspector();
+    }
+
+    function activateBlockTab() {
+        blockTab.setAttribute( 'aria-selected', 'true' );
+        blockTab.classList.add( 'is-active' );
+        pageTab.setAttribute( 'aria-selected', 'false' );
+        pageTab.classList.remove( 'is-active' );
+        pagePanel.style.display = 'none';
+        blockPanel.style.display = '';
+        document.body.classList.add( 'klytos-block-tab-active' );
+        openGutenbergInspector();
+    }
+
+    pageTab.addEventListener( 'click', function( e ) {
+        e.preventDefault();
+        activatePageTab();
     } );
 
-    observer.observe( container, { childList: true, subtree: true } );
+    blockTab.addEventListener( 'click', function( e ) {
+        e.preventDefault();
+        activateBlockTab();
+    } );
 
-    // Also try immediately in case the sidebar is already there.
-    setTimeout( injectPageTab, 500 );
+    // ─── Sidebar toggle (gear button) ────────────────────────
+
+    if ( toggle ) {
+        toggle.addEventListener( 'click', function( e ) {
+            e.preventDefault();
+            var isOpen = sidebar.style.display !== 'none';
+            sidebar.style.display = isOpen ? 'none' : '';
+            toggle.classList.toggle( 'active', ! isOpen );
+            toggle.setAttribute( 'aria-pressed', String( ! isOpen ) );
+            if ( isOpen ) {
+                document.body.classList.remove( 'klytos-block-tab-active' );
+                closeGutenbergInspector();
+            }
+        } );
+    }
+
+    // ─── Intercept Gutenberg's own close button ──────────────
+    // When Gutenberg closes its sidebar (via store), keep our sidebar in sync.
+
+    if ( window.wp && window.wp.data && window.wp.data.subscribe ) {
+        var prevOpen = false;
+        window.wp.data.subscribe( function() {
+            try {
+                var select = window.wp.data.select( 'core/edit-post' );
+                if ( ! select ) return;
+                var active = select.getActiveGeneralSidebarName();
+                var isOpen = !! active;
+                if ( prevOpen && ! isOpen && document.body.classList.contains( 'klytos-block-tab-active' ) ) {
+                    // Gutenberg closed its sidebar — switch to Page tab.
+                    activatePageTab();
+                }
+                prevOpen = isOpen;
+            } catch ( e ) { /* ignore */ }
+        } );
+    }
 
 } )();
 </script>
