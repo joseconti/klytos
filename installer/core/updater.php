@@ -667,7 +667,7 @@ class Updater
         if ( count( $entries ) === 1 ) {
             $first = $tmpDir . '/' . reset( $entries );
             if ( is_dir( $first ) ) {
-                // Check if this directory contains 'my-secret-folder' (repo structure).
+                // Check if this directory contains 'installer' (repo structure).
                 $innerEntries = array_diff( scandir( $first ), [ '.', '..' ] );
                 foreach ( $innerEntries as $entry ) {
                     $innerPath = $first . '/' . $entry;

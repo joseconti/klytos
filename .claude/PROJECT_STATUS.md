@@ -13,7 +13,7 @@ CMS AI-First controlado por MCP (Model Context Protocol). El core es gratuito ba
 klytos/
 ├── .htaccess                          ← Root: sirve web estática pública
 ├── LICENSE                            ← Elastic License 2.0
-├── my-secret-folder/                  ← Directorio admin (nombre configurable)
+├── installer/                  ← Directorio admin (nombre configurable)
 │   ├── .htaccess                      ← Enruta /mcp, /oauth/*, protege /data, /config, /core
 │   ├── index.php                      ← Front controller (router)
 │   ├── install.php                    ← Instalador web

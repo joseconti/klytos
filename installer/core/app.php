@@ -500,7 +500,7 @@ class App
     /**
      * Get the base URL path (auto-detected from the HTTP request).
      *
-     * @return string e.g. '/my-secret-folder'
+     * @return string e.g. '/installer'
      */
     public function getBasePath(): string
     {
@@ -510,7 +510,7 @@ class App
     /**
      * Get the full site URL.
      *
-     * @return string e.g. 'https://example.com/my-secret-folder'
+     * @return string e.g. 'https://example.com/installer'
      */
     public function getSiteUrl(): string
     {
