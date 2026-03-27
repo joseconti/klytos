@@ -58,7 +58,7 @@ class SiteConfig
         $topLevel = [
             'site_name', 'tagline', 'default_language',
             'description', 'favicon_url', 'logo_url',
-            'indexing_enabled',
+            'indexing_enabled', 'editor',
         ];
 
         foreach ($topLevel as $field) {
@@ -139,6 +139,7 @@ class SiteConfig
             'favicon_url'      => '',
             'logo_url'         => '',
             'indexing_enabled' => false,
+            'editor'           => 'gutenberg',
             'social'           => [
                 'twitter'   => '',
                 'github'    => '',

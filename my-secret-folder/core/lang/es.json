@@ -328,6 +328,13 @@
     "disable_all_button": "Desactivar todo 2FA",
     "confirm_disable_all": "¿Estas seguro? Tu cuenta perdera la proteccion de doble factor."
   },
+  "editor": {
+    "title": "Editor de contenido",
+    "choose": "Elige tu editor de paginas",
+    "gutenberg_desc": "Bloques visuales de arrastrar y soltar. Opciones avanzadas de diseno (columnas, medios, botones). Contenido estructurado, ideal para paginas generadas por IA. Interfaz mas pesada.",
+    "tinymce_desc": "Interfaz clasica tipo procesador de texto. Ligero y rapido. Salida HTML simple, facil de personalizar. Sin estructura de bloques, menos control de diseno.",
+    "change_later": "Puedes cambiar esto mas tarde en Ajustes."
+  },
   "install": {
     "title": "Instalación de Klytos",
     "step_config": "Configuración",

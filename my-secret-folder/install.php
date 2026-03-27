@@ -148,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $adminLang     = $_POST['admin_language'] ?? 'en';
         $description   = trim($_POST['description'] ?? '');
         $colorPreset   = $_POST['color_preset'] ?? 'blue';
+        $editorChoice  = $_POST['editor'] ?? 'gutenberg';
         $storageDriver = $_POST['storage_driver'] ?? 'file';
         $adminDirName  = trim($_POST['admin_dir_name'] ?? '');
 
@@ -271,6 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'favicon_url'      => '',
                     'logo_url'         => '',
                     'indexing_enabled' => false,
+                    'editor'           => $editorChoice,
                     'social'           => [],
                     'analytics'        => [],
                     'seo'              => [],
@@ -720,6 +722,49 @@ function getColorPreset(string $name): array
                     </label>
                 </div>
             </div>
+
+            <!-- ── Content Editor ── -->
+            <h3>Content Editor</h3>
+
+            <div class="form-group">
+                <label>Choose your page editor</label>
+                <div class="storage-toggle">
+                    <label>
+                        <input type="radio" name="editor" value="gutenberg"
+                               <?php echo ($_POST['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?>
+                               id="editor_gutenberg">
+                        <span>Gutenberg</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="editor" value="tinymce"
+                               <?php echo ($_POST['editor'] ?? '') === 'tinymce' ? 'checked' : ''; ?>
+                               id="editor_tinymce">
+                        <span>TinyMCE</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="editorInfo" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+                <div style="padding:0.75rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:0.85rem;">
+                    <strong style="color:#2563eb;">Gutenberg (Block Editor)</strong>
+                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#1e40af;">
+                        <li>Visual drag-and-drop blocks</li>
+                        <li>Rich layout options (columns, media, buttons...)</li>
+                        <li>Structured content — ideal for AI-generated pages</li>
+                        <li>Heavier interface — loads more resources</li>
+                    </ul>
+                </div>
+                <div style="padding:0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.85rem;">
+                    <strong style="color:#16a34a;">TinyMCE (Classic Editor)</strong>
+                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#14532d;">
+                        <li>Familiar word-processor interface</li>
+                        <li>Lightweight and fast</li>
+                        <li>Simple HTML output — easy to style</li>
+                        <li>No block structure — less layout control</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="small">You can change this later in Settings.</p>
 
             <!-- ── Security: Admin Directory Name ── -->
             <h3>Security</h3>

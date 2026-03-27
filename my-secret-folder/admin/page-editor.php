@@ -1,10 +1,10 @@
 <?php
 /**
- * Klytos Admin — Page Editor (Gutenberg)
+ * Klytos Admin — Page Editor (Gutenberg / TinyMCE)
  *
- * Visual block editor powered by @automattic/isolated-block-editor.
- * The editor is wrapped by KlytosEditor API (klytos-editor.js).
- * Vendor files in assets/vendor/gutenberg/ are NEVER modified.
+ * Supports two editors, selectable in Settings:
+ * - Gutenberg: block editor via @automattic/isolated-block-editor.
+ * - TinyMCE: classic WYSIWYG editor (self-hosted or CDN).
  *
  * @copyright 2024-2026 José Conti. All rights reserved.
  * @license   Elastic License 2.0 (ELv2)
@@ -13,6 +13,7 @@
 $currentPage = 'pages';
 require __DIR__ . '/bootstrap.php';
 
+$editorType = $app->getSiteConfig()->get('editor', 'gutenberg');
 $auth = $app->getAuth();
 $csrf = $auth->getCsrfToken();
 $pm   = $app->getPageManager();
@@ -317,6 +318,50 @@ include __DIR__ . '/templates/sidebar.php';
     </div>
 </div>
 
+<?php if ($editorType === 'tinymce'): ?>
+<!-- TinyMCE Editor -->
+<link rel="stylesheet" href="assets/css/klytos-editor.css">
+<script src="assets/vendor/tinymce/tinymce.min.js"></script>
+
+<script nonce="<?php echo $cspNonce; ?>">
+( function() {
+    'use strict';
+
+    var container = document.getElementById( 'klytos-editor-container' );
+    var textarea = document.createElement( 'textarea' );
+    textarea.id = 'tinymce-editor';
+    textarea.style.width = '100%';
+    textarea.style.minHeight = '500px';
+    container.appendChild( textarea );
+
+    tinymce.init( {
+        selector: '#tinymce-editor',
+        height: 500,
+        menubar: 'file edit view insert format tools table',
+        plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table help wordcount',
+        toolbar: 'undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | forecolor backcolor | removeformat | code fullscreen',
+        content_style: 'body { font-family: Inter, sans-serif; font-size: 16px; max-width: 800px; margin: 0 auto; padding: 1rem; }',
+        promotion: false,
+        branding: false,
+        license_key: 'gpl',
+        setup: function( editor ) {
+            editor.on( 'init', function() {
+                editor.setContent( <?php echo json_encode( $pageContent ); ?> );
+            } );
+            editor.on( 'change keyup', function() {
+                document.getElementById( 'editor-status' ).textContent = 'Unsaved changes';
+                document.getElementById( 'editor-status' ).className = 'klytos-page-editor__status dirty';
+            } );
+        }
+    } );
+
+    document.getElementById( 'page-editor-form' ).addEventListener( 'submit', function() {
+        var content = tinymce.get( 'tinymce-editor' ).getContent();
+        document.getElementById( 'content-html-field' ).value = content;
+        document.getElementById( 'content-blocks-field' ).value = '';
+    } );
+
+<?php else: ?>
 <!-- Gutenberg vendor files (NEVER modify these) -->
 <link rel="stylesheet" href="assets/vendor/gutenberg/core.css">
 <link rel="stylesheet" href="assets/vendor/gutenberg/isolated-block-editor.css">
@@ -363,6 +408,7 @@ include __DIR__ . '/templates/sidebar.php';
         document.getElementById( 'content-html-field' ).value = KlytosEditor.getContent();
         document.getElementById( 'content-blocks-field' ).value = JSON.stringify( KlytosEditor.getBlocks() );
     } );
+<?php endif; ?>
 
     // ─── SEO Preview & Quality Indicator ─────────────────
     var titleField   = document.querySelector( 'input[name="title"]' );

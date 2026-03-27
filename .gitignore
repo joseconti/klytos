@@ -66,7 +66,8 @@ my-secret-folder/plugins/*/
 my-secret-folder/.install.done.php
 
 # ─── PHP Dependencies ────────────────────────────────────────
-vendor/
+# Only exclude root-level vendor/ (Composer). Admin vendor assets are tracked.
+/vendor/
 composer.lock
 
 # ─── Node.js (if used for build tools) ───────────────────────

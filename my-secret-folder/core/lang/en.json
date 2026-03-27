@@ -328,6 +328,13 @@
     "disable_all_button": "Disable all 2FA",
     "confirm_disable_all": "Are you sure? Your account will lose two-factor protection."
   },
+  "editor": {
+    "title": "Content Editor",
+    "choose": "Choose your page editor",
+    "gutenberg_desc": "Visual drag-and-drop blocks. Rich layout options (columns, media, buttons). Structured content, ideal for AI-generated pages. Heavier interface.",
+    "tinymce_desc": "Classic word-processor interface. Lightweight and fast. Simple HTML output, easy to style. No block structure, less layout control.",
+    "change_later": "You can change this later in Settings."
+  },
   "install": {
     "title": "Klytos Installation",
     "step_config": "Configuration",
