@@ -336,7 +336,22 @@
     z-index: 5;
 }
 
-/* Show Gutenberg's settings button (needed for unified sidebar). */
+/* Hide Gutenberg's save/publish buttons — we have our own in the Klytos header. */
+#klytos-editor-container .editor-header__settings {
+    display: none !important;
+}
+
+/* Hide Gutenberg's back button and center title — we have our own. */
+#klytos-editor-container .editor-header__back-button,
+#klytos-editor-container .editor-header__center {
+    display: none !important;
+}
+
+/* Collapse the block toolbar into a single row. Hide the separate
+   collapsible block toolbar — the contextual toolbar appears inline. */
+#klytos-editor-container .edit-post-header__block-tools-toggle {
+    display: none !important;
+}
 
 /* Gutenberg primary button color override. */
 #klytos-editor-container .components-button.is-primary {

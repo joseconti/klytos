@@ -520,22 +520,26 @@ include __DIR__ . '/templates/sidebar.php';
     function injectPageTab() {
         if ( injected ) return;
 
-        // Gutenberg's sidebar wrapper.
+        // Gutenberg's sidebar wrapper — try multiple selectors.
         var sidebar = document.querySelector(
             '#klytos-editor-container .interface-interface-skeleton__sidebar'
         );
         if ( ! sidebar ) return;
 
-        var compArea = sidebar.querySelector( '.interface-complementary-area' );
-        if ( ! compArea ) return;
+        // The complementary area may be nested or have a fill wrapper.
+        var compArea = sidebar.querySelector( '.interface-complementary-area' )
+                    || sidebar.querySelector( '[class*="complementary-area"]' )
+                    || sidebar;
 
         // Find the header that holds the tab buttons.
-        var header = compArea.querySelector( '.interface-complementary-area-header' );
+        var header = compArea.querySelector( '.interface-complementary-area-header' )
+                  || compArea.querySelector( '.components-panel__header' )
+                  || compArea.querySelector( '[class*="header"]' );
         if ( ! header ) return;
 
         // Look for an existing tablist (role="tablist") or the first button group.
         var tablist = header.querySelector( '[role="tablist"]' );
-        var closeBtn = header.querySelector( 'button[aria-label="Close Settings"], button[aria-label="Close settings"], button.interface-complementary-area-header__small' );
+        var closeBtn = header.querySelector( 'button[aria-label]' );
 
         // ─── Create "Pagina" tab button ──────────────────────
         var pageTab = document.createElement( 'button' );

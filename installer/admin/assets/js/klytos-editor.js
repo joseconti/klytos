@@ -93,6 +93,9 @@
                         editor: true,
                         fullscreen: false,
                         topToolbar: true
+                    },
+                    defaultPreferences: {
+                        fixedToolbar: true
                     }
                 }
             } );
