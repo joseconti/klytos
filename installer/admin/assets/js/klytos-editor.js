@@ -74,7 +74,28 @@
             self._container.appendChild( self._textarea );
 
             // Attach the isolated block editor to the textarea.
-            wp.attachEditor( self._textarea );
+            // Enable the inspector sidebar and full toolbar for a WP-like experience.
+            wp.attachEditor( self._textarea, {
+                iso: {
+                    toolbar: {
+                        inserter: true,
+                        undo: true,
+                        inspector: true,
+                        navigation: true,
+                        selectorTool: true,
+                        toc: true
+                    },
+                    sidebar: {
+                        inspector: true,
+                        inserter: true
+                    },
+                    moreMenu: {
+                        editor: true,
+                        fullscreen: false,
+                        topToolbar: true
+                    }
+                }
+            } );
 
             // Start autosave if enabled.
             if ( self._config.autosaveInterval > 0 ) {

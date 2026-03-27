@@ -136,11 +136,11 @@ include __DIR__ . '/templates/sidebar.php';
 ?>
 
         <?php if ( isset( $success ) ): ?>
-            <div class="alert alert-success"><?php echo __( 'common.success' ); ?></div>
+            <div class="alert alert-success" style="margin-bottom:0;"><?php echo __( 'common.success' ); ?></div>
         <?php endif; ?>
 
         <?php if ( isset( $error ) ): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+            <div class="alert alert-error" style="margin-bottom:0;"><?php echo htmlspecialchars( $error ); ?></div>
         <?php endif; ?>
 
         <form method="post" id="page-editor-form">
@@ -149,151 +149,181 @@ include __DIR__ . '/templates/sidebar.php';
             <input type="hidden" name="content_html" value="" id="content-html-field">
             <input type="hidden" name="content_blocks" value="" id="content-blocks-field">
 
-            <div class="klytos-page-editor">
+            <!-- ═══ FULLSCREEN EDITOR SHELL ═══ -->
+            <div class="klytos-editor-shell" id="klytos-editor-shell">
 
-                <!-- MAIN COLUMN — Title + Editor -->
-                <div class="klytos-page-editor__main">
-
-                    <!-- Title -->
-                    <input
-                        type="text"
-                        name="title"
-                        class="klytos-page-editor__title"
-                        placeholder="<?php echo __( 'pages.page_title' ); ?>..."
-                        value="<?php echo htmlspecialchars( $pageTitle ); ?>"
-                        required
-                    >
-
-                    <!-- Slug (shown when editing or after first save) -->
-                    <?php if ( $isEditing ): ?>
-                    <div style="margin-bottom:1rem;font-size:0.85rem;color:var(--admin-text-muted);">
-                        URL: <code style="background:#f1f5f9;padding:0.15rem 0.5rem;border-radius:4px;">/<?php echo htmlspecialchars( $slug ); ?>/</code>
+                <!-- ─── Top Header Bar (like WordPress) ─── -->
+                <div class="klytos-editor-header">
+                    <div class="klytos-editor-header__left">
+                        <a href="pages.php" class="klytos-editor-header__back" title="<?php echo __( 'common.back' ); ?>">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        </a>
+                        <div class="klytos-editor-header__title-group">
+                            <input
+                                type="text"
+                                name="title"
+                                class="klytos-editor-header__title"
+                                placeholder="<?php echo __( 'pages.page_title' ); ?>..."
+                                value="<?php echo htmlspecialchars( $pageTitle ); ?>"
+                                required
+                            >
+                            <?php if ( $isEditing ): ?>
+                            <span class="klytos-editor-header__slug">/<?php echo htmlspecialchars( $slug ); ?>/</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <?php endif; ?>
 
-                    <!-- Action buttons -->
-                    <div class="klytos-page-editor__actions">
-                        <button type="submit" name="status" value="draft" class="btn btn-secondary">
-                            <?php echo __( 'pages.draft' ); ?>
-                        </button>
-                        <button type="submit" name="status" value="published" class="btn btn-primary">
-                            <?php echo __( 'pages.published' ); ?>
-                        </button>
+                    <div class="klytos-editor-header__center">
+                        <span class="klytos-editor-header__status" id="editor-status">
+                            <?php if ( $isEditing ): ?>
+                                <span class="badge-status badge-<?php echo $pageStatus; ?>"><?php echo ucfirst( $pageStatus ); ?></span>
+                            <?php else: ?>
+                                <span class="badge-status badge-draft"><?php echo __( 'pages.draft' ); ?></span>
+                            <?php endif; ?>
+                        </span>
+                    </div>
+
+                    <div class="klytos-editor-header__right">
                         <?php if ( $isEditing ): ?>
-                        <a href="../<?php echo htmlspecialchars( $slug ); ?>/" target="_blank" class="btn btn-ghost">
-                            <?php echo __( 'common.preview' ); ?> &rarr;
+                        <a href="../<?php echo htmlspecialchars( $slug ); ?>/" target="_blank" class="klytos-editor-header__btn klytos-editor-header__btn--ghost">
+                            <?php echo __( 'common.preview' ); ?>
                         </a>
                         <?php endif; ?>
+                        <button type="submit" name="status" value="draft" class="klytos-editor-header__btn klytos-editor-header__btn--secondary">
+                            <?php echo __( 'pages.draft' ); ?>
+                        </button>
+                        <button type="submit" name="status" value="published" class="klytos-editor-header__btn klytos-editor-header__btn--primary">
+                            <?php echo __( 'pages.published' ); ?>
+                        </button>
+                        <button type="button" class="klytos-editor-header__btn klytos-editor-header__btn--icon" id="toggle-settings-panel" title="Page Settings">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
                     </div>
-
-                    <!-- Gutenberg Editor Container -->
-                    <div id="klytos-editor-container"></div>
-
                 </div>
 
-                <!-- SIDEBAR — Page settings -->
-                <div class="klytos-page-editor__sidebar">
+                <!-- ─── Editor Body ─── -->
+                <div class="klytos-editor-body">
 
-                    <!-- Page Settings -->
-                    <div class="card">
-                        <h3><?php echo __( 'common.status' ); ?></h3>
-
-                        <label><?php echo __( 'pages.template' ); ?></label>
-                        <select name="template">
-                            <option value="default" <?php echo $pageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
-                            <option value="landing" <?php echo $pageTemplate === 'landing' ? 'selected' : ''; ?>>Landing</option>
-                            <option value="blog-post" <?php echo $pageTemplate === 'blog-post' ? 'selected' : ''; ?>>Blog Post</option>
-                            <option value="blank" <?php echo $pageTemplate === 'blank' ? 'selected' : ''; ?>>Blank</option>
-                        </select>
-
-                        <label><?php echo __( 'pages.language' ); ?></label>
-                        <select name="lang">
-                            <option value="en" <?php echo $pageLang === 'en' ? 'selected' : ''; ?>>English</option>
-                            <option value="es" <?php echo $pageLang === 'es' ? 'selected' : ''; ?>>Español</option>
-                            <option value="fr" <?php echo $pageLang === 'fr' ? 'selected' : ''; ?>>Français</option>
-                            <option value="de" <?php echo $pageLang === 'de' ? 'selected' : ''; ?>>Deutsch</option>
-                            <option value="pt" <?php echo $pageLang === 'pt' ? 'selected' : ''; ?>>Português</option>
-                            <option value="ca" <?php echo $pageLang === 'ca' ? 'selected' : ''; ?>>Català</option>
-                        </select>
+                    <!-- Main Canvas (Gutenberg) -->
+                    <div class="klytos-editor-canvas">
+                        <div id="klytos-editor-container"></div>
                     </div>
 
-                    <!-- SEO — Search Engines -->
-                    <div class="card">
-                        <h3>SEO</h3>
+                    <!-- Right Settings Panel (Klytos page settings) -->
+                    <div class="klytos-editor-settings" id="klytos-editor-settings">
 
-                        <label>Meta Description <span style="color:var(--admin-error);">*</span></label>
-                        <textarea name="meta_description" rows="3" maxlength="160" style="resize:vertical;" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo htmlspecialchars( $pageMetaDesc ); ?></textarea>
-                        <div class="form-help" id="meta-counter" style="display:flex;justify-content:space-between;">
-                            <span id="meta-count-text">0/160</span>
-                            <span id="meta-quality"></span>
+                        <!-- Tabs: Page / Block -->
+                        <div class="klytos-editor-settings__tabs">
+                            <button type="button" class="klytos-editor-settings__tab active" data-tab="page"><?php echo __( 'pages.title' ); ?></button>
+                            <button type="button" class="klytos-editor-settings__tab" data-tab="seo">SEO</button>
                         </div>
 
-                        <label>Canonical URL</label>
-                        <input type="url" name="canonical_url" value="<?php echo htmlspecialchars( $pageCanonical ); ?>" placeholder="Leave empty to use page URL (recommended)">
-                        <div class="form-help">Only set if this content exists at another URL.</div>
+                        <div class="klytos-editor-settings__content">
 
-                        <div style="margin-top:0.75rem;">
-                            <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;">
-                                <input type="checkbox" name="noindex" value="1" <?php echo $pageNoIndex ? 'checked' : ''; ?>>
-                                noindex — Hide from search engines
-                            </label>
+                            <!-- PAGE TAB -->
+                            <div class="klytos-editor-settings__panel active" data-panel="page">
+
+                                <!-- Status & Template -->
+                                <div class="klytos-editor-settings__section">
+                                    <h3 class="klytos-editor-settings__heading"><?php echo __( 'common.status' ); ?></h3>
+
+                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.template' ); ?></label>
+                                    <select name="template" class="klytos-editor-settings__input">
+                                        <option value="default" <?php echo $pageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
+                                        <option value="landing" <?php echo $pageTemplate === 'landing' ? 'selected' : ''; ?>>Landing</option>
+                                        <option value="blog-post" <?php echo $pageTemplate === 'blog-post' ? 'selected' : ''; ?>>Blog Post</option>
+                                        <option value="blank" <?php echo $pageTemplate === 'blank' ? 'selected' : ''; ?>>Blank</option>
+                                    </select>
+
+                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.language' ); ?></label>
+                                    <select name="lang" class="klytos-editor-settings__input">
+                                        <option value="en" <?php echo $pageLang === 'en' ? 'selected' : ''; ?>>English</option>
+                                        <option value="es" <?php echo $pageLang === 'es' ? 'selected' : ''; ?>>Español</option>
+                                        <option value="fr" <?php echo $pageLang === 'fr' ? 'selected' : ''; ?>>Français</option>
+                                        <option value="de" <?php echo $pageLang === 'de' ? 'selected' : ''; ?>>Deutsch</option>
+                                        <option value="pt" <?php echo $pageLang === 'pt' ? 'selected' : ''; ?>>Português</option>
+                                        <option value="ca" <?php echo $pageLang === 'ca' ? 'selected' : ''; ?>>Català</option>
+                                    </select>
+                                </div>
+
+                                <!-- Social Media -->
+                                <details class="klytos-editor-settings__section">
+                                    <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Facebook / LinkedIn</summary>
+                                    <div class="klytos-editor-settings__details-body">
+                                        <label class="klytos-editor-settings__label">OG Image <span class="klytos-editor-settings__hint">recommended</span></label>
+                                        <input type="text" name="og_image" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
+                                        <div class="form-help">1200x630px recommended.</div>
+
+                                        <label class="klytos-editor-settings__label">OG Title</label>
+                                        <input type="text" name="og_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
+
+                                        <label class="klytos-editor-settings__label">OG Description</label>
+                                        <textarea name="og_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use meta description"><?php echo htmlspecialchars( $pageOgDesc ); ?></textarea>
+                                    </div>
+                                </details>
+
+                                <!-- Twitter / X -->
+                                <details class="klytos-editor-settings__section">
+                                    <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Twitter / X</summary>
+                                    <div class="klytos-editor-settings__details-body">
+                                        <label class="klytos-editor-settings__label">Twitter Title</label>
+                                        <input type="text" name="twitter_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
+
+                                        <label class="klytos-editor-settings__label">Twitter Description</label>
+                                        <textarea name="twitter_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use OG description"><?php echo htmlspecialchars( $pageTwDesc ); ?></textarea>
+                                        <div class="form-help">Uses OG image automatically.</div>
+                                    </div>
+                                </details>
+
+                                <!-- Custom Code -->
+                                <details class="klytos-editor-settings__section">
+                                    <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle"><?php echo __( 'pages.custom_css' ); ?> / JS</summary>
+                                    <div class="klytos-editor-settings__details-body">
+                                        <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_css' ); ?></label>
+                                        <textarea name="custom_css" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomCss ); ?></textarea>
+
+                                        <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_js' ); ?></label>
+                                        <textarea name="custom_js" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomJs ); ?></textarea>
+                                    </div>
+                                </details>
+                            </div>
+
+                            <!-- SEO TAB -->
+                            <div class="klytos-editor-settings__panel" data-panel="seo">
+
+                                <div class="klytos-editor-settings__section">
+                                    <h3 class="klytos-editor-settings__heading">Meta Description</h3>
+
+                                    <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo htmlspecialchars( $pageMetaDesc ); ?></textarea>
+                                    <div class="form-help" id="meta-counter" style="display:flex;justify-content:space-between;">
+                                        <span id="meta-count-text">0/160</span>
+                                        <span id="meta-quality"></span>
+                                    </div>
+
+                                    <label class="klytos-editor-settings__label">Canonical URL</label>
+                                    <input type="url" name="canonical_url" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageCanonical ); ?>" placeholder="Leave empty (recommended)">
+
+                                    <div style="margin-top:0.75rem;">
+                                        <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;font-size:0.85rem;">
+                                            <input type="checkbox" name="noindex" value="1" <?php echo $pageNoIndex ? 'checked' : ''; ?>>
+                                            noindex
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Search Preview -->
+                                <div class="klytos-editor-settings__section">
+                                    <h3 class="klytos-editor-settings__heading">Search Preview</h3>
+                                    <div class="klytos-seo-preview">
+                                        <div id="seo-preview-title" class="klytos-seo-preview__title"></div>
+                                        <div id="seo-preview-url" class="klytos-seo-preview__url"></div>
+                                        <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
-
-                    <!-- SEO — Social Media / Open Graph -->
-                    <div class="card">
-                        <h3>Facebook / LinkedIn</h3>
-
-                        <label>OG Image <span style="color:var(--admin-warning);">recommended</span></label>
-                        <input type="text" name="og_image" value="<?php echo htmlspecialchars( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
-                        <div class="form-help">Preview image when shared. 1200x630px recommended.</div>
-
-                        <label>OG Title</label>
-                        <input type="text" name="og_title" value="<?php echo htmlspecialchars( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
-
-                        <label>OG Description</label>
-                        <textarea name="og_description" rows="2" maxlength="200" style="resize:vertical;" placeholder="Leave empty to use meta description"><?php echo htmlspecialchars( $pageOgDesc ); ?></textarea>
-                    </div>
-
-                    <!-- SEO — Twitter / X -->
-                    <details class="card">
-                        <summary style="cursor:pointer;font-weight:600;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--admin-text-muted);">
-                            Twitter / X
-                        </summary>
-                        <div style="margin-top:1rem;">
-                            <label>Twitter Title</label>
-                            <input type="text" name="twitter_title" value="<?php echo htmlspecialchars( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
-
-                            <label>Twitter Description</label>
-                            <textarea name="twitter_description" rows="2" maxlength="200" style="resize:vertical;" placeholder="Leave empty to use OG description"><?php echo htmlspecialchars( $pageTwDesc ); ?></textarea>
-                            <div class="form-help">Twitter uses the OG image automatically. Set these only if you want different text for Twitter.</div>
-                        </div>
-                    </details>
-
-                    <!-- SEO Preview -->
-                    <div class="card" id="seo-preview-card">
-                        <h3>Search Preview</h3>
-                        <div style="font-family:Arial,sans-serif;max-width:600px;">
-                            <div id="seo-preview-title" style="color:#1a0dab;font-size:1.1rem;font-weight:400;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-                            <div id="seo-preview-url" style="color:#006621;font-size:0.85rem;margin:0.15rem 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-                            <div id="seo-preview-desc" style="color:#545454;font-size:0.85rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Custom Code -->
-                    <details class="card">
-                        <summary style="cursor:pointer;font-weight:600;font-size:0.875rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--admin-text-muted);">
-                            <?php echo __( 'pages.custom_css' ); ?> / <?php echo __( 'pages.custom_js' ); ?>
-                        </summary>
-                        <div style="margin-top:1rem;">
-                            <label><?php echo __( 'pages.custom_css' ); ?></label>
-                            <textarea name="custom_css" rows="4" class="mono" style="resize:vertical;font-size:0.8rem;"><?php echo htmlspecialchars( $pageCustomCss ); ?></textarea>
-
-                            <label><?php echo __( 'pages.custom_js' ); ?></label>
-                            <textarea name="custom_js" rows="4" class="mono" style="resize:vertical;font-size:0.8rem;"><?php echo htmlspecialchars( $pageCustomJs ); ?></textarea>
-                        </div>
-                    </details>
-
                 </div>
 
             </div>
@@ -381,12 +411,12 @@ include __DIR__ . '/templates/sidebar.php';
         autosaveInterval: 60,
 
         onSave: function( response ) {
-            document.getElementById( 'editor-status' ).textContent = '<?php echo __( 'common.success' ); ?>';
-            document.getElementById( 'editor-status' ).className = 'klytos-page-editor__status';
+            var el = document.getElementById( 'editor-status' );
+            if ( el ) el.innerHTML = '<span class="badge-status badge-published"><?php echo __( 'common.success' ); ?></span>';
         },
         onChange: function( html ) {
-            document.getElementById( 'editor-status' ).textContent = 'Unsaved changes';
-            document.getElementById( 'editor-status' ).className = 'klytos-page-editor__status dirty';
+            var el = document.getElementById( 'editor-status' );
+            if ( el ) el.innerHTML = '<span style="color:#f59e0b;font-size:0.8rem;">Unsaved changes</span>';
         },
         onError: function( err ) {
             console.error( 'KlytosEditor error:', err );
@@ -476,6 +506,44 @@ include __DIR__ . '/templates/sidebar.php';
         metaField.addEventListener( 'input', updateSeoPreview );
     }
     updateSeoPreview();
+
+} )();
+</script>
+
+<!-- Settings panel toggle & tabs -->
+<script nonce="<?php echo $cspNonce; ?>">
+( function() {
+    'use strict';
+
+    // ─── Settings panel toggle ───────────────────────────────
+    var toggleBtn = document.getElementById( 'toggle-settings-panel' );
+    var panel     = document.getElementById( 'klytos-editor-settings' );
+
+    if ( toggleBtn && panel ) {
+        toggleBtn.addEventListener( 'click', function() {
+            panel.classList.toggle( 'hidden' );
+            toggleBtn.classList.toggle( 'active' );
+        } );
+    }
+
+    // ─── Tab switching ───────────────────────────────────────
+    var tabs   = document.querySelectorAll( '.klytos-editor-settings__tab' );
+    var panels = document.querySelectorAll( '.klytos-editor-settings__panel' );
+
+    tabs.forEach( function( tab ) {
+        tab.addEventListener( 'click', function() {
+            var target = tab.getAttribute( 'data-tab' );
+
+            tabs.forEach( function( t ) { t.classList.remove( 'active' ); } );
+            panels.forEach( function( p ) { p.classList.remove( 'active' ); } );
+
+            tab.classList.add( 'active' );
+            var targetPanel = document.querySelector( '[data-panel="' + target + '"]' );
+            if ( targetPanel ) {
+                targetPanel.classList.add( 'active' );
+            }
+        } );
+    } );
 
 } )();
 </script>
