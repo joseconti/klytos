@@ -277,14 +277,14 @@ require_once __DIR__ . '/templates/sidebar.php';
     // Confirm before updating.
     var btnUpdate = document.getElementById( 'btnUpdate' );
     if ( btnUpdate ) {
-        btnUpdate.addEventListener( 'click', function( e ) {
+        btnUpdate.closest( 'form' ).addEventListener( 'submit', function( e ) {
             if ( ! confirm( 'Update Klytos? A backup will be created automatically before updating.' ) ) {
                 e.preventDefault();
-            } else {
-                btnUpdate.textContent = '<?php echo __( 'updates.updating' ); ?>';
-                btnUpdate.disabled = true;
-                btnUpdate.style.opacity = '0.7';
+                return;
             }
+            btnUpdate.textContent = '<?php echo __( 'updates.updating' ); ?>';
+            btnUpdate.style.opacity = '0.7';
+            btnUpdate.style.pointerEvents = 'none';
         } );
     }
 

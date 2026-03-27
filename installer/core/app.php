@@ -27,6 +27,12 @@ declare(strict_types=1);
 
 namespace Klytos\Core;
 
+// Single source of truth for the Klytos version.
+if (!defined('KLYTOS_VERSION')) {
+    $versionFile = dirname(__DIR__) . '/VERSION';
+    define('KLYTOS_VERSION', file_exists($versionFile) ? trim(file_get_contents($versionFile)) : '0.0.0');
+}
+
 class App
 {
     /** @var App|null Singleton instance. */
@@ -518,18 +524,12 @@ class App
     }
 
     /**
-     * Get the current Klytos version from the VERSION file.
+     * Get the current Klytos version.
      *
-     * @return string Semantic version (e.g. '2.0.0').
+     * @return string Semantic version (e.g. '0.4.2').
      */
     public function getVersion(): string
     {
-        $versionFile = $this->rootPath . '/VERSION';
-
-        if (file_exists($versionFile)) {
-            return trim(file_get_contents($versionFile));
-        }
-
-        return '0.0.0';
+        return KLYTOS_VERSION;
     }
 }
