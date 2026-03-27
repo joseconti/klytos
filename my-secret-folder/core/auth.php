@@ -68,14 +68,27 @@ class Auth
      * @param  string $password
      * @return array  ['success' => bool, 'error' => string]
      */
+    /**
+     * Attempt admin login.
+     *
+     * When 2FA is enabled for the user, the login succeeds at the password
+     * stage but sets a pending 2FA flag. The caller must then verify the
+     * second factor before full access is granted.
+     *
+     * @param  string $username
+     * @param  string $password
+     * @return array  ['success' => bool, 'error' => string, 'requires_2fa' => bool, 'user_id' => string|null]
+     */
     public function login(string $username, string $password): array
     {
         // Check lockout
         if ($this->isLockedOut()) {
             $minutes = self::LOCKOUT_MINUTES;
             return [
-                'success' => false,
-                'error'   => "account_locked:{$minutes}",
+                'success'      => false,
+                'error'        => "account_locked:{$minutes}",
+                'requires_2fa' => false,
+                'user_id'      => null,
             ];
         }
 
@@ -86,27 +99,127 @@ class Auth
             // Regenerate session ID for security
             session_regenerate_id(true);
 
-            $_SESSION['klytos_auth']       = true;
-            $_SESSION['klytos_user']       = $username;
-            $_SESSION['klytos_login_time'] = time();
+            // Reset failed attempts
+            $this->resetLoginAttempts();
+
+            // Check if the user has 2FA enabled.
+            $userId = $this->resolveUserId($username);
+
+            if ($userId && $this->userHasTwoFactor($userId)) {
+                // Password verified, but 2FA is required.
+                $_SESSION['klytos_2fa_pending'] = true;
+                $_SESSION['klytos_2fa_user']    = $username;
+                $_SESSION['klytos_2fa_user_id'] = $userId;
+                $_SESSION['klytos_2fa_time']    = time();
+                $_SESSION['klytos_csrf']        = Helpers::randomHex(32);
+
+                return [
+                    'success'      => true,
+                    'error'        => '',
+                    'requires_2fa' => true,
+                    'user_id'      => $userId,
+                ];
+            }
+
+            // No 2FA -- grant full access immediately.
+            $_SESSION['klytos_auth']        = true;
+            $_SESSION['klytos_user']        = $username;
+            $_SESSION['klytos_user_id']     = $userId;
+            $_SESSION['klytos_login_time']  = time();
             $_SESSION['klytos_last_active'] = time();
 
             // Generate CSRF token
             $_SESSION['klytos_csrf'] = Helpers::randomHex(32);
 
-            // Reset failed attempts
-            $this->resetLoginAttempts();
-
-            return ['success' => true, 'error' => ''];
+            return [
+                'success'      => true,
+                'error'        => '',
+                'requires_2fa' => false,
+                'user_id'      => $userId,
+            ];
         }
 
         // Record failed attempt
         $this->recordFailedAttempt();
 
         return [
-            'success' => false,
-            'error'   => 'login_failed',
+            'success'      => false,
+            'error'        => 'login_failed',
+            'requires_2fa' => false,
+            'user_id'      => null,
         ];
+    }
+
+    /**
+     * Complete 2FA verification and grant full session access.
+     * Called after the second factor has been successfully verified.
+     */
+    public function complete2fa(): void
+    {
+        $username = $_SESSION['klytos_2fa_user'] ?? '';
+        $userId   = $_SESSION['klytos_2fa_user_id'] ?? '';
+
+        // Clear 2FA pending state.
+        unset(
+            $_SESSION['klytos_2fa_pending'],
+            $_SESSION['klytos_2fa_user'],
+            $_SESSION['klytos_2fa_user_id'],
+            $_SESSION['klytos_2fa_time']
+        );
+
+        // Grant full access.
+        session_regenerate_id(true);
+
+        $_SESSION['klytos_auth']        = true;
+        $_SESSION['klytos_user']        = $username;
+        $_SESSION['klytos_user_id']     = $userId;
+        $_SESSION['klytos_login_time']  = time();
+        $_SESSION['klytos_last_active'] = time();
+        $_SESSION['klytos_csrf']        = Helpers::randomHex(32);
+    }
+
+    /**
+     * Check if there is a pending 2FA challenge.
+     *
+     * @return bool
+     */
+    public function is2faPending(): bool
+    {
+        if (empty($_SESSION['klytos_2fa_pending'])) {
+            return false;
+        }
+
+        // 2FA challenge expires after 5 minutes.
+        $challengeTime = $_SESSION['klytos_2fa_time'] ?? 0;
+        if ((time() - $challengeTime) > 300) {
+            $this->cancel2fa();
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Cancel a pending 2FA challenge (e.g. on timeout or user cancellation).
+     */
+    public function cancel2fa(): void
+    {
+        unset(
+            $_SESSION['klytos_2fa_pending'],
+            $_SESSION['klytos_2fa_user'],
+            $_SESSION['klytos_2fa_user_id'],
+            $_SESSION['klytos_2fa_time']
+        );
+    }
+
+    /**
+     * Get the user ID for the pending 2FA challenge.
+     *
+     * @return string|null
+     */
+    public function get2faPendingUserId(): ?string
+    {
+        return $_SESSION['klytos_2fa_user_id'] ?? null;
     }
 
     /**
@@ -578,5 +691,47 @@ class Auth
     public static function generateCspNonce(): string
     {
         return base64_encode(random_bytes(16));
+    }
+
+    // ─── 2FA Helpers ────────────────────────────────────────────
+
+    /**
+     * Resolve a username to a user ID from the users collection.
+     *
+     * @param  string $username
+     * @return string|null User ID, or null if not found.
+     */
+    private function resolveUserId(string $username): ?string
+    {
+        try {
+            $users = $this->storage->list('users');
+        } catch (\RuntimeException $e) {
+            return null;
+        }
+
+        foreach ($users as $user) {
+            if (($user['username'] ?? '') === $username) {
+                return $user['id'] ?? null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if a user has 2FA enabled.
+     *
+     * @param  string $userId
+     * @return bool
+     */
+    private function userHasTwoFactor(string $userId): bool
+    {
+        try {
+            $user = $this->storage->read('users', $userId);
+        } catch (\RuntimeException $e) {
+            return false;
+        }
+
+        return !empty($user['two_factor']['enabled']);
     }
 }

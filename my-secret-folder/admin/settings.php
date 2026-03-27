@@ -50,6 +50,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] 
             ],
         ]);
         $success = __( 'common.success' );
+    } elseif ($section === 'email') {
+        $app->getSiteConfig()->set([
+            'email' => [
+                'transport'     => $_POST['email_transport'] ?? 'mail',
+                'from_name'     => trim($_POST['email_from_name'] ?? ''),
+                'from_email'    => trim($_POST['email_from_email'] ?? ''),
+                'reply_to'      => trim($_POST['email_reply_to'] ?? ''),
+                'smtp_host'     => trim($_POST['smtp_host'] ?? ''),
+                'smtp_port'     => (int) ($_POST['smtp_port'] ?? 587),
+                'smtp_user'     => trim($_POST['smtp_user'] ?? ''),
+                'smtp_pass'     => $_POST['smtp_pass'] ?? '',
+                'smtp_security' => $_POST['smtp_security'] ?? 'tls',
+            ],
+        ]);
+        // Reset cached mailer so it picks up new config.
+        if (isset($_POST['test_email'])) {
+            $mailer = $app->getMailer();
+            $adminEmail = $app->getConfig()['admin_email'] ?? '';
+            if ($adminEmail && $mailer->sendTest($adminEmail)) {
+                $success = __('settings.email_test_sent', ['email' => $adminEmail]);
+            } else {
+                $success = __('settings.email_test_failed');
+            }
+        } else {
+            $success = __('common.success');
+        }
     } elseif ($section === 'ai') {
         $generator = new \Klytos\Core\AiImageGenerator(
             $app->getStorage(),
@@ -144,6 +170,68 @@ require_once __DIR__ . '/templates/sidebar.php';
             <textarea name="custom_head_scripts" class="form-control mono" rows="4"><?php echo htmlspecialchars( $siteConfig['analytics']['custom_head_scripts'] ?? ''); ?></textarea>
         </div>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+    </form>
+</div>
+
+<!-- Email / SMTP -->
+<div class="card">
+    <div class="card-header"><h3><?php echo __('settings.email_title'); ?></h3></div>
+    <form method="post">
+        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <input type="hidden" name="section" value="email">
+        <div class="form-group">
+            <label><?php echo __('settings.email_transport'); ?></label>
+            <select name="email_transport" class="form-control">
+                <option value="mail" <?php echo ($siteConfig['email']['transport'] ?? '') === 'mail' ? 'selected' : ''; ?>>PHP mail()</option>
+                <option value="smtp" <?php echo ($siteConfig['email']['transport'] ?? '') === 'smtp' ? 'selected' : ''; ?>>SMTP</option>
+            </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+                <label><?php echo __('settings.email_from_name'); ?></label>
+                <input type="text" name="email_from_name" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['from_name'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars($siteConfig['site_name'] ?? 'Klytos'); ?>">
+            </div>
+            <div class="form-group">
+                <label><?php echo __('settings.email_from_email'); ?></label>
+                <input type="email" name="email_from_email" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['from_email'] ?? ''); ?>" placeholder="noreply@example.com">
+            </div>
+        </div>
+        <div class="form-group">
+            <label><?php echo __('settings.email_reply_to'); ?></label>
+            <input type="email" name="email_reply_to" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['reply_to'] ?? ''); ?>" placeholder="<?php echo __('common.optional'); ?>">
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
+            <div class="form-group">
+                <label><?php echo __('settings.smtp_host'); ?></label>
+                <input type="text" name="smtp_host" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['smtp_host'] ?? ''); ?>" placeholder="smtp.example.com">
+            </div>
+            <div class="form-group">
+                <label><?php echo __('settings.smtp_port'); ?></label>
+                <input type="number" name="smtp_port" class="form-control" value="<?php echo (int)($siteConfig['email']['smtp_port'] ?? 587); ?>" placeholder="587">
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+            <div class="form-group">
+                <label><?php echo __('settings.smtp_user'); ?></label>
+                <input type="text" name="smtp_user" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['smtp_user'] ?? ''); ?>">
+            </div>
+            <div class="form-group">
+                <label><?php echo __('settings.smtp_pass'); ?></label>
+                <input type="password" name="smtp_pass" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['smtp_pass'] ?? ''); ?>">
+            </div>
+            <div class="form-group">
+                <label><?php echo __('settings.smtp_security'); ?></label>
+                <select name="smtp_security" class="form-control">
+                    <option value="tls" <?php echo ($siteConfig['email']['smtp_security'] ?? '') === 'tls' ? 'selected' : ''; ?>>STARTTLS (587)</option>
+                    <option value="ssl" <?php echo ($siteConfig['email']['smtp_security'] ?? '') === 'ssl' ? 'selected' : ''; ?>>SSL/TLS (465)</option>
+                    <option value="" <?php echo ($siteConfig['email']['smtp_security'] ?? 'tls') === '' ? 'selected' : ''; ?>><?php echo __('settings.smtp_none'); ?></option>
+                </select>
+            </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+            <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
+            <button type="submit" name="test_email" value="1" class="btn btn-outline"><?php echo __('settings.email_test'); ?></button>
+        </div>
     </form>
 </div>
 

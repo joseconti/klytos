@@ -166,8 +166,10 @@ class UserManager
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
                 // Validate specific fields.
-                if ($field === 'email' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-                    throw new \InvalidArgumentException('Invalid email address.');
+                if ($field === 'email') {
+                    if (empty(trim($data['email'])) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                        throw new \InvalidArgumentException('A valid email address is required.');
+                    }
                 }
                 if ($field === 'role' && !in_array($data['role'], self::VALID_ROLES, true)) {
                     throw new \InvalidArgumentException('Invalid role.');
@@ -499,12 +501,22 @@ class UserManager
             return $existingOwner;
         }
 
+        // Email is mandatory for all users. If the v1 config is missing it,
+        // we cannot create a valid owner — the installer always collects it.
+        $email = trim($config['admin_email'] ?? '');
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException(
+                'Cannot migrate: admin_email is missing or invalid in config. '
+                . 'Please reinstall or add admin_email to the configuration.'
+            );
+        }
+
         $userId = Helpers::randomHex(8);
 
         $user = [
             'id'           => $userId,
             'username'     => $config['admin_user'] ?? 'admin',
-            'email'        => $config['admin_email'] ?? '',
+            'email'        => $email,
             'display_name' => $config['admin_user'] ?? 'Admin',
             'role'         => 'owner',
             'pass_hash'    => $config['admin_pass_hash'] ?? '',

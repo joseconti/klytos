@@ -135,6 +135,15 @@ $sidebarItems = [
         'capability' => 'mcp.manage',
     ],
     [
+        'id'         => 'security',
+        'title'      => __( 'security.title' ),
+        'url'        => $adminPath . 'security.php',
+        'icon'       => 'L',
+        'position'   => 78,
+        'section'    => 'system',
+        'capability' => null, // Visible to all authenticated users (each manages their own 2FA).
+    ],
+    [
         'id'         => 'settings',
         'title'      => __( 'settings.title' ),
         'url'        => $adminPath . 'settings.php',

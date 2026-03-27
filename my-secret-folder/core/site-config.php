@@ -82,6 +82,11 @@ class SiteConfig
             $current['seo'] = array_merge($current['seo'], $data['seo']);
         }
 
+        // Nested: email
+        if (isset($data['email']) && is_array($data['email'])) {
+            $current['email'] = array_merge($current['email'], $data['email']);
+        }
+
         $current['updated_at'] = Helpers::now();
         $this->storage->write(self::COLLECTION, self::ID, $current);
 
@@ -150,6 +155,17 @@ class SiteConfig
             'seo'              => [
                 'default_og_image'  => '',
                 'robots_txt_extra'  => '',
+            ],
+            'email'            => [
+                'transport'     => 'mail',     // 'mail' (PHP) or 'smtp'
+                'from_name'     => '',         // Default From name (falls back to site_name)
+                'from_email'    => '',         // Default From email (falls back to noreply@domain)
+                'reply_to'      => '',         // Default Reply-To address
+                'smtp_host'     => '',         // SMTP server hostname
+                'smtp_port'     => 587,        // SMTP port (587=STARTTLS, 465=SSL, 25=plain)
+                'smtp_user'     => '',         // SMTP username
+                'smtp_pass'     => '',         // SMTP password
+                'smtp_security' => 'tls',      // 'tls', 'ssl', or ''
             ],
             'last_build'       => null,
             'created_at'       => null,

@@ -135,6 +135,12 @@ class App
     /** @var AuditLog|null Activity audit trail. */
     private ?AuditLog $auditLog = null;
 
+    /** @var TwoFactor|null Two-factor authentication manager. */
+    private ?TwoFactor $twoFactor = null;
+
+    /** @var Mailer|null Central email sending service. */
+    private ?Mailer $mailer = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -441,6 +447,32 @@ class App
 
     /** Get the audit log. */
     public function getAuditLog(): AuditLog { return $this->auditLog; }
+
+    /** Get the two-factor authentication manager. */
+    public function getTwoFactor(): TwoFactor
+    {
+        if ($this->twoFactor === null) {
+            $this->twoFactor = new TwoFactor($this->storage);
+        }
+        return $this->twoFactor;
+    }
+
+    /**
+     * Get the central email service.
+     *
+     * Lazy-loaded: reads email configuration from site config on first access.
+     * All components that send email MUST use this instead of mail() directly.
+     */
+    public function getMailer(): Mailer
+    {
+        if ($this->mailer === null) {
+            $siteConfig  = $this->siteConfig->get();
+            $emailConfig = $siteConfig['email'] ?? [];
+            $siteName    = $siteConfig['site_name'] ?? 'Klytos';
+            $this->mailer = new Mailer($emailConfig, $siteName);
+        }
+        return $this->mailer;
+    }
 
     // ─── Path Getters ───────────────────────────────────────────
 
