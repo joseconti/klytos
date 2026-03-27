@@ -64,6 +64,41 @@ class DatabaseStorage implements StorageInterface
     private array $dbConfig;
 
     /**
+     * Collections that contain sensitive data and MUST be encrypted.
+     * Everything else is stored as plain JSON for recoverability.
+     */
+    private const SENSITIVE_COLLECTIONS = [
+        'users',
+        'webhooks',
+        'analytics-salt',
+    ];
+
+    /**
+     * Within the 'config' collection, these IDs contain sensitive data.
+     */
+    private const SENSITIVE_CONFIG_IDS = [
+        'tokens',
+        'app_passwords',
+        'oauth_clients',
+    ];
+
+    /**
+     * Determine if a collection+id pair requires encryption.
+     */
+    private function isSensitive(string $collection, string $id = ''): bool
+    {
+        if (in_array($collection, self::SENSITIVE_COLLECTIONS, true)) {
+            return true;
+        }
+
+        if ($collection === 'config' && in_array($id, self::SENSITIVE_CONFIG_IDS, true)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Indexable fields per collection.
      * Maps collection names to the record fields that should be
      * stored as cleartext index columns for efficient filtering.
@@ -156,8 +191,16 @@ class DatabaseStorage implements StorageInterface
             );
         }
 
-        // Decrypt the AES-256-GCM encrypted JSON data.
-        return $this->enc->decrypt($row['data']);
+        // Only decrypt sensitive data. Plain JSON is stored as-is.
+        if ($this->isSensitive($collection, $id)) {
+            return $this->enc->decrypt($row['data']);
+        }
+
+        $decoded = json_decode($row['data'], true);
+        if (!is_array($decoded)) {
+            throw new \RuntimeException("Cannot decode JSON: {$collection}/{$id}");
+        }
+        return $decoded;
     }
 
     /**
@@ -182,10 +225,16 @@ class DatabaseStorage implements StorageInterface
             return;
         }
 
-        $table     = $this->tableName($collection);
-        $pdo       = $this->getPdo();
-        $encrypted = $this->enc->encrypt($data);
-        $now       = date('Y-m-d H:i:s');
+        $table   = $this->tableName($collection);
+        $pdo     = $this->getPdo();
+        $now     = date('Y-m-d H:i:s');
+
+        // Only encrypt sensitive data. Plain JSON is stored as-is for recoverability.
+        if ($this->isSensitive($collection, $id)) {
+            $encrypted = $this->enc->encrypt($data);
+        } else {
+            $encrypted = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
 
         // Extract index values from the data for cleartext index columns.
         $indexes = $this->extractIndexValues($collection, $data);
@@ -324,7 +373,14 @@ class DatabaseStorage implements StorageInterface
 
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             try {
-                $record = $this->enc->decrypt($row['data']);
+                if ($this->isSensitive($collection, $row['id'] ?? '')) {
+                    $record = $this->enc->decrypt($row['data']);
+                } else {
+                    $record = json_decode($row['data'], true);
+                    if (!is_array($record)) {
+                        continue;
+                    }
+                }
 
                 // Apply memory filters for non-indexed fields.
                 if (!empty($memFilters)) {
@@ -434,7 +490,7 @@ class DatabaseStorage implements StorageInterface
         $pdo     = $this->getPdo();
         $queryLc = mb_strtolower($query);
 
-        $stmt = $pdo->prepare("SELECT `data` FROM `{$table}`");
+        $stmt = $pdo->prepare("SELECT `id`, `data` FROM `{$table}`");
         $stmt->execute();
 
         $results = [];
@@ -445,7 +501,14 @@ class DatabaseStorage implements StorageInterface
             }
 
             try {
-                $record = $this->enc->decrypt($row['data']);
+                if ($this->isSensitive($collection, $row['id'] ?? '')) {
+                    $record = $this->enc->decrypt($row['data']);
+                } else {
+                    $record = json_decode($row['data'], true);
+                    if (!is_array($record)) {
+                        continue;
+                    }
+                }
 
                 $searchFields = !empty($fields)
                     ? $fields
@@ -647,9 +710,20 @@ class DatabaseStorage implements StorageInterface
     {
         if (empty($collections)) {
             $collections = [
-                'pages', 'config', 'users', 'tasks', 'page-versions',
-                'analytics', 'form-submissions', 'audit-log', 'webhooks',
-                'plugins', 'blocks', 'page-templates',
+                'config',
+                'pages',
+                'users',
+                'tasks',
+                'blocks',
+                'page-templates',
+                'page-versions',
+                'webhooks',
+                'webhook-logs',
+                'analytics',
+                'analytics-salt',
+                'audit-log',
+                'plugins',
+                'cron',
             ];
         }
 

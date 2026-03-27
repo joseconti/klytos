@@ -22,7 +22,8 @@ class SiteConfig
 {
     /** @var StorageInterface Storage backend (FileStorage or DatabaseStorage). */
     private StorageInterface $storage;
-    private const SITE_FILE = 'site.json.enc';
+    private const COLLECTION = 'config';
+    private const ID         = 'site';
 
     public function __construct(StorageInterface $storage)
     {
@@ -36,11 +37,11 @@ class SiteConfig
      */
     public function get(): array
     {
-        if (!$this->storage->exists(self::SITE_FILE)) {
+        if (!$this->storage->exists(self::COLLECTION, self::ID)) {
             return $this->getDefaults();
         }
 
-        return array_merge($this->getDefaults(), $this->storage->read(self::SITE_FILE));
+        return array_merge($this->getDefaults(), $this->storage->read(self::COLLECTION, self::ID));
     }
 
     /**
@@ -57,6 +58,7 @@ class SiteConfig
         $topLevel = [
             'site_name', 'tagline', 'default_language',
             'description', 'favicon_url', 'logo_url',
+            'indexing_enabled',
         ];
 
         foreach ($topLevel as $field) {
@@ -81,7 +83,7 @@ class SiteConfig
         }
 
         $current['updated_at'] = Helpers::now();
-        $this->storage->write(self::SITE_FILE, $current);
+        $this->storage->write(self::COLLECTION, self::ID, $current);
 
         return $current;
     }
@@ -116,7 +118,7 @@ class SiteConfig
     {
         $config = $this->get();
         $config['last_build'] = Helpers::now();
-        $this->storage->write(self::SITE_FILE, $config);
+        $this->storage->write(self::COLLECTION, self::ID, $config);
     }
 
     /**
@@ -131,6 +133,7 @@ class SiteConfig
             'description'      => '',
             'favicon_url'      => '',
             'logo_url'         => '',
+            'indexing_enabled' => false,
             'social'           => [
                 'twitter'   => '',
                 'github'    => '',

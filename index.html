@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site powered by Klytos &mdash; AI CMS</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --border: #1e1e2e;
+            --text: #e4e4ef;
+            --muted: #6b6b8a;
+            --accent: #4f6ef7;
+            --accent-glow: rgba(79, 110, 247, 0.25);
+            --gradient-1: #4f6ef7;
+            --gradient-2: #a855f7;
+            --gradient-3: #ec4899;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background grid */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79, 110, 247, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 110, 247, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridMove 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 15s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--gradient-1);
+            top: -10%;
+            right: -5%;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 350px;
+            height: 350px;
+            background: var(--gradient-2);
+            bottom: -10%;
+            left: -5%;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            background: var(--gradient-3);
+            top: 40%;
+            left: 50%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Main content */
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 2rem;
+            max-width: 720px;
+        }
+
+        /* Logo mark */
+        .logo-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            margin-bottom: 2.5rem;
+            box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(168, 85, 247, 0.15);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .logo-mark svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(168, 85, 247, 0.15); }
+            50% { box-shadow: 0 0 80px var(--accent-glow), 0 0 160px rgba(168, 85, 247, 0.25); }
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 2rem;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        h1 {
+            font-size: clamp(2.2rem, 6vw, 3.8rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.03em;
+        }
+
+        h1 .gradient-text {
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2), var(--gradient-3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: var(--muted);
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
+            max-width: 540px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* CTA button */
+        .cta-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.9rem 2rem;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 24px var(--accent-glow);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        .cta-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .cta-small {
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+
+        .cta-small a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .cta-small a:hover {
+            text-decoration: underline;
+        }
+
+        /* Features row */
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 3.5rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.78rem;
+            color: var(--muted);
+            z-index: 1;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .features { gap: 1rem; }
+            .feature { font-size: 0.78rem; }
+            .orb { opacity: 0.2; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background effects -->
+    <div class="grid-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Main content -->
+    <main class="container">
+        <!-- Logo -->
+        <div class="logo-mark">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+
+        <!-- Badge -->
+        <div class="badge">
+            <span class="badge-dot"></span>
+            Building something big
+        </div>
+
+        <!-- Heading -->
+        <h1>
+            Something <span class="gradient-text">extraordinary</span><br>
+            is coming
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="subtitle">
+            This site is being crafted by AI. Built with Klytos &mdash; the first
+            CMS designed to be controlled entirely by artificial intelligence.
+        </p>
+
+        <!-- CTA -->
+        <div class="cta-wrapper">
+            <a href="https://klytos.io" class="cta-btn" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Discover Klytos
+            </a>
+            <p class="cta-small">
+                Free &amp; open source &mdash; <a href="https://github.com/joseconti/klytos" target="_blank" rel="noopener">View on GitHub</a>
+            </p>
+        </div>
+
+        <!-- Features -->
+        <div class="features">
+            <div class="feature">
+                <span class="feature-icon">&#129302;</span>
+                AI-First
+            </div>
+            <div class="feature">
+                <span class="feature-icon">&#9889;</span>
+                Static &amp; Fast
+            </div>
+            <div class="feature">
+                <span class="feature-icon">&#128274;</span>
+                Privacy-First
+            </div>
+            <div class="feature">
+                <span class="feature-icon">&#127760;</span>
+                MCP Protocol
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        Powered by <a href="https://klytos.io" target="_blank" rel="noopener">Klytos</a> &mdash; The AI-First CMS
+    </footer>
+</body>
+</html>

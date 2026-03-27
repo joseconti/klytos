@@ -263,24 +263,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $storage->writeTo($rootPath . '/config', 'config.json.enc', $config);
 
                 // ── Step D: Create site metadata ──
-                // writeTo() writes directly to the data/ directory (legacy file-based API).
-                $storage->writeTo($rootPath . '/data', 'site.json.enc', [
+                $siteData = [
                     'site_name'        => $siteName,
                     'tagline'          => '',
                     'default_language' => substr($adminLang, 0, 2),
                     'description'      => $description,
                     'favicon_url'      => '',
                     'logo_url'         => '',
+                    'indexing_enabled' => false,
                     'social'           => [],
                     'analytics'        => [],
                     'seo'              => [],
                     'created_at'       => Helpers::now(),
                     'updated_at'       => Helpers::now(),
-                ]);
+                ];
 
                 // ── Step E: Create theme with color preset ──
-                $colors = getColorPreset($colorPreset);
-                $storage->writeTo($rootPath . '/data', 'theme.json.enc', [
+                $colors    = getColorPreset($colorPreset);
+                $themeData = [
                     'colors'     => $colors,
                     'fonts'      => [
                         'heading' => 'Inter', 'body' => 'Inter', 'code' => 'JetBrains Mono',
@@ -295,11 +295,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'spacing_unit' => '1rem',
                     ],
                     'custom_css' => '',
-                ]);
+                ];
 
-                // ── Step F: Create empty menus and templates ──
-                $storage->writeTo($rootPath . '/data', 'menus.json.enc', ['items' => []]);
-                $storage->writeTo($rootPath . '/data', 'templates.json.enc', ['templates' => []]);
+                $menusData     = ['items' => []];
+                $templatesData = ['templates' => []];
+
+                // ── Step F: Write data using collection+id paradigm ──
+                // This works for BOTH FileStorage and DatabaseStorage.
+                $storage->write('config', 'site', $siteData);
+                $storage->write('config', 'theme', $themeData);
+                $storage->write('config', 'menus', $menusData);
+                $storage->write('config', 'templates', $templatesData);
 
                 // ── Step G: Generate first Application Password for MCP ──
                 // Application Passwords are the primary way to authenticate with MCP.
@@ -376,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // ── Step J: Create supporting files ──
-                $storage->writeTo($rootPath . '/data', 'update_log.json.enc', ['updates' => []]);
+                $storage->write('config', 'update_log', ['updates' => []]);
                 file_put_contents($rootPath . '/VERSION', '2.0.0', LOCK_EX);
 
                 // ── Step K: Create owner user from installer credentials ──
@@ -391,14 +397,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 \Klytos\Core\seedDefaultData($blockManager, $pageTemplateManager);
 
                 // Create permanent installation lock (prevents re-running install.php).
-                file_put_contents($rootPath . '/config/.install.lock', date( 'c'), LOCK_EX);
+                file_put_contents($rootPath . '/config/.install.lock', date( 'c' ), LOCK_EX);
 
                 // Rename install.php so it cannot be accessed again.
                 rename($rootPath . '/install.php', $rootPath . '/.install.done.php');
 
-                // ── Done! ──
-                $step        = 'complete';
-                $mcpEndpoint = Helpers::siteUrl('mcp');
+                // ── Rename admin directory if user chose a different name ──
+                $currentDirName = basename($rootPath);
+                $parentDir      = dirname($rootPath);
+                $newDirPath     = $parentDir . '/' . $adminDirName;
+                $dirRenamed     = false;
+
+                if ($adminDirName !== $currentDirName && !file_exists($newDirPath)) {
+                    $dirRenamed = @rename($rootPath, $newDirPath);
+                    if (!$dirRenamed) {
+                        error_log("Klytos: could not rename admin directory from '{$currentDirName}' to '{$adminDirName}'. Check directory permissions.");
+                    }
+                }
+
+                // ── Build the admin URL (with the new or current dir name) ──
+                $protocol    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                $finalDir    = $dirRenamed ? $adminDirName : $currentDirName;
+                $adminUrl    = $protocol . '://' . $host . '/' . $finalDir . '/admin/';
+                $mcpEndpoint = $protocol . '://' . $host . '/' . $finalDir . '/mcp';
+
+                // ── Done! Show completion screen with credentials ──
+                $step = 'complete';
 
             } catch (\Exception $e) {
                 // Show a sanitized error — do NOT expose internal paths or stack traces.
@@ -882,13 +907,14 @@ function getColorPreset(string $name): array
         <div class="form-group">
             <label>Admin Panel (secret URL)</label>
             <div class="token-box" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">
-                <a href="admin/"><?php echo Helpers::siteUrl($adminDirName . '/admin/'); ?></a>
+                <a href="<?php echo htmlspecialchars( $adminUrl ); ?>"><?php echo htmlspecialchars( $adminUrl ); ?></a>
             </div>
+            <p class="small" style="color:#92400e;">&#9888; Bookmark this URL. There is no public link to it.</p>
         </div>
 
         <div class="form-group">
             <label>MCP Endpoint</label>
-            <div class="token-box"><?php echo htmlspecialchars( $mcpEndpoint ?? ''); ?></div>
+            <div class="token-box"><?php echo htmlspecialchars( $mcpEndpoint ); ?></div>
         </div>
 
         <h3 style="margin-top:1.5rem">MCP Authentication</h3>
@@ -944,7 +970,7 @@ function getColorPreset(string $name): array
         </div>
         <?php endif; ?>
 
-        <a href="admin/" class="btn btn-block" style="text-decoration: none;">
+        <a href="<?php echo htmlspecialchars( $adminUrl ); ?>" class="btn btn-block" style="text-decoration: none;">
             Go to Admin Panel
         </a>
     </div>

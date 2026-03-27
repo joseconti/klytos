@@ -244,6 +244,13 @@
     "endpoints": "Endpoints OAuth",
     "missing_fields": "El nombre del cliente y la URI de redirección son obligatorios."
   },
+  "indexing": {
+    "disabled_title": "La indexación en buscadores está desactivada",
+    "disabled_description": "Tu sitio no aparecerá en Google ni en otros buscadores. Actívala cuando tu sitio esté listo para ser público.",
+    "enable_button": "Activar indexación",
+    "enabled_title": "Indexación activada",
+    "enabled_description": "Tu sitio ya es visible para los buscadores. Recuerda hacer un build para aplicar los cambios."
+  },
   "install": {
     "title": "Instalación de Klytos",
     "step_config": "Configuración",

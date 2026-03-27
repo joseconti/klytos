@@ -209,7 +209,7 @@ class Auth
         $tokenHash = Helpers::hashToken($token);
 
         try {
-            $tokensData = $this->storage->read('tokens.json.enc');
+            $tokensData = $this->storage->read('config', 'tokens');
         } catch (\RuntimeException $e) {
             return false;
         }
@@ -240,7 +240,7 @@ class Auth
         $tokenId   = Helpers::randomHex(8);
 
         try {
-            $tokensData = $this->storage->read('tokens.json.enc');
+            $tokensData = $this->storage->read('config', 'tokens');
         } catch (\RuntimeException $e) {
             $tokensData = ['tokens' => []];
         }
@@ -253,7 +253,7 @@ class Auth
             'last_used'  => null,
         ];
 
-        $this->storage->write('tokens.json.enc', $tokensData);
+        $this->storage->write('config', 'tokens', $tokensData);
 
         return [
             'token' => $rawToken,
@@ -270,7 +270,7 @@ class Auth
     public function revokeBearerToken(string $tokenId): bool
     {
         try {
-            $tokensData = $this->storage->read('tokens.json.enc');
+            $tokensData = $this->storage->read('config', 'tokens');
         } catch (\RuntimeException $e) {
             return false;
         }
@@ -284,7 +284,7 @@ class Auth
             return false;
         }
 
-        $this->storage->write('tokens.json.enc', $tokensData);
+        $this->storage->write('config', 'tokens', $tokensData);
         return true;
     }
 
@@ -296,7 +296,7 @@ class Auth
     public function listBearerTokens(): array
     {
         try {
-            $tokensData = $this->storage->read('tokens.json.enc');
+            $tokensData = $this->storage->read('config', 'tokens');
         } catch (\RuntimeException $e) {
             return [];
         }
@@ -343,7 +343,7 @@ class Auth
             'last_used'  => null,
         ];
 
-        $this->storage->write('app_passwords.json.enc', $data);
+        $this->storage->write('config', 'app_passwords', $data);
 
         return [
             'password' => $rawPassword,
@@ -380,7 +380,7 @@ class Auth
             if (password_verify($password, $stored['hash'] ?? '')) {
                 // Update last used
                 $stored['last_used'] = Helpers::now();
-                $this->storage->write('app_passwords.json.enc', $data);
+                $this->storage->write('config', 'app_passwords', $data);
                 return $stored['id'] ?? null;
             }
         }
@@ -408,7 +408,7 @@ class Auth
             return false;
         }
 
-        $this->storage->write('app_passwords.json.enc', $data);
+        $this->storage->write('config', 'app_passwords', $data);
         return true;
     }
 
@@ -438,7 +438,7 @@ class Auth
     private function loadAppPasswords(): array
     {
         try {
-            return $this->storage->read('app_passwords.json.enc');
+            return $this->storage->read('config', 'app_passwords');
         } catch (\RuntimeException $e) {
             return ['passwords' => []];
         }
@@ -532,7 +532,7 @@ class Auth
     private function updateTokenLastUsed(string $tokenHash): void
     {
         try {
-            $tokensData = $this->storage->read('tokens.json.enc');
+            $tokensData = $this->storage->read('config', 'tokens');
         } catch (\RuntimeException $e) {
             return;
         }
@@ -545,7 +545,7 @@ class Auth
         }
         unset($token);
 
-        $this->storage->write('tokens.json.enc', $tokensData);
+        $this->storage->write('config', 'tokens', $tokensData);
     }
 
     // ─── Security Headers ──────────────────────────────────────

@@ -22,7 +22,8 @@ class MenuManager
 {
     /** @var StorageInterface Storage backend (FileStorage or DatabaseStorage). */
     private StorageInterface $storage;
-    private const MENU_FILE = 'menus.json.enc';
+    private const COLLECTION = 'config';
+    private const ID         = 'menus';
 
     public function __construct(StorageInterface $storage)
     {
@@ -36,11 +37,11 @@ class MenuManager
      */
     public function get(): array
     {
-        if (!$this->storage->exists(self::MENU_FILE)) {
+        if (!$this->storage->exists(self::COLLECTION, self::ID)) {
             return ['items' => []];
         }
 
-        return $this->storage->read(self::MENU_FILE);
+        return $this->storage->read(self::COLLECTION, self::ID);
     }
 
     /**
@@ -52,7 +53,7 @@ class MenuManager
     public function set(array $items): array
     {
         $menu = ['items' => $this->normalizeItems($items)];
-        $this->storage->write(self::MENU_FILE, $menu);
+        $this->storage->write(self::COLLECTION, self::ID, $menu);
 
         return $menu;
     }
@@ -69,7 +70,7 @@ class MenuManager
         $item  = $this->normalizeItem($item);
 
         $menu['items'][] = $item;
-        $this->storage->write(self::MENU_FILE, $menu);
+        $this->storage->write(self::COLLECTION, self::ID, $menu);
 
         return $menu;
     }
@@ -84,7 +85,7 @@ class MenuManager
     {
         $menu  = $this->get();
         $menu['items'] = $this->filterItemById($menu['items'], $id);
-        $this->storage->write(self::MENU_FILE, $menu);
+        $this->storage->write(self::COLLECTION, self::ID, $menu);
 
         return $menu;
     }

@@ -41,7 +41,7 @@ function registerTemplateTools(ToolRegistry $registry): void
 
             // Load existing templates
             try {
-                $templates = $storage->read('templates.json.enc');
+                $templates = $storage->read('config', 'templates');
             } catch (\RuntimeException $e) {
                 $templates = ['templates' => []];
             }
@@ -53,7 +53,7 @@ function registerTemplateTools(ToolRegistry $registry): void
                 'updated_at'  => \Klytos\Core\Helpers::now(),
             ];
 
-            $storage->write('templates.json.enc', $templates);
+            $storage->write('config', 'templates', $templates);
 
             return ['success' => true, 'template' => $name];
         },

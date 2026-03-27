@@ -22,9 +22,39 @@ $drafts     = $app->getPages()->count('draft');
 $tokens     = $app->getAuth()->listBearerTokens();
 $lastBuild  = $siteConfig['last_build'] ?? null;
 
+$indexingEnabled = $siteConfig['indexing_enabled'] ?? false;
+
+// Handle enable indexing action.
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && ( $_POST['action'] ?? '' ) === 'enable_indexing' ) {
+    if ( $auth->validateCsrf( $_POST['csrf'] ?? '' ) ) {
+        $app->getSiteConfig()->set( ['indexing_enabled' => true] );
+        $indexingEnabled = true;
+        $siteConfig['indexing_enabled'] = true;
+    }
+}
+
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
-?>
+
+// Show noindex warning banner.
+if ( ! $indexingEnabled ) : ?>
+<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+    <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:1.5rem;">&#9888;&#65039;</span>
+        <div>
+            <strong style="color:#92400e;"><?php echo __( 'indexing.disabled_title' ); ?></strong>
+            <p style="color:#a16207;margin:0.25rem 0 0;font-size:0.85rem;"><?php echo __( 'indexing.disabled_description' ); ?></p>
+        </div>
+    </div>
+    <form method="post" style="margin:0;">
+        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars( $auth->getCsrfToken() ); ?>">
+        <input type="hidden" name="action" value="enable_indexing">
+        <button type="submit" style="background:#059669;color:white;border:none;padding:0.5rem 1.25rem;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">
+            <?php echo __( 'indexing.enable_button' ); ?>
+        </button>
+    </form>
+</div>
+<?php endif; ?>
 
 <div class="stats-grid">
     <div class="stat-card">

@@ -45,6 +45,29 @@ class FileStorage implements StorageInterface
     private $transactionLock = null;
 
     /**
+     * Collections that contain sensitive data and MUST be encrypted.
+     * Everything else is stored as plain JSON for recoverability.
+     *
+     * If a collection is 'config', encryption is determined per-ID
+     * using SENSITIVE_CONFIG_IDS below.
+     */
+    private const SENSITIVE_COLLECTIONS = [
+        'users',
+        'webhooks',
+        'analytics-salt',
+    ];
+
+    /**
+     * Within the 'config' collection, these IDs contain sensitive data.
+     * Other config IDs (site, theme, menus, templates) are stored in plain JSON.
+     */
+    private const SENSITIVE_CONFIG_IDS = [
+        'tokens',
+        'app_passwords',
+        'oauth_clients',
+    ];
+
+    /**
      * Constructor.
      *
      * @param Encryption $enc     Encryption engine initialized with the master key.
@@ -54,6 +77,22 @@ class FileStorage implements StorageInterface
     {
         $this->enc     = $enc;
         $this->dataDir = rtrim($dataDir, '/');
+    }
+
+    /**
+     * Determine if a collection+id pair requires encryption.
+     */
+    private function isSensitive(string $collection, string $id = ''): bool
+    {
+        if (in_array($collection, self::SENSITIVE_COLLECTIONS, true)) {
+            return true;
+        }
+
+        if ($collection === 'config' && in_array($id, self::SENSITIVE_CONFIG_IDS, true)) {
+            return true;
+        }
+
+        return false;
     }
 
     // ─── Core CRUD Operations ────────────────────────────────────
@@ -92,10 +131,18 @@ class FileStorage implements StorageInterface
             );
         }
 
-        // Decrypt returns the JSON-decoded associative array.
-        // Throws RuntimeException if the ciphertext is tampered with
-        // (GCM authentication tag verification failure).
-        return $this->enc->decrypt($content);
+        // Only decrypt sensitive data. Plain JSON is stored as-is.
+        if ($this->isSensitive($collection, $id)) {
+            return $this->enc->decrypt($content);
+        }
+
+        $decoded = json_decode($content, true);
+        if (!is_array($decoded)) {
+            throw new \RuntimeException(
+                "Cannot decode JSON: {$collection}/{$id}"
+            );
+        }
+        return $decoded;
     }
 
     /**
@@ -141,12 +188,15 @@ class FileStorage implements StorageInterface
             }
         }
 
-        // Encrypt the data. Each call generates a unique random IV,
-        // so encrypting the same data twice produces different ciphertext.
-        $encrypted = $this->enc->encrypt($data);
+        // Only encrypt sensitive data. Plain JSON is stored as-is for recoverability.
+        if ($this->isSensitive($collection, $id)) {
+            $content = $this->enc->encrypt($data);
+        } else {
+            $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
 
         // LOCK_EX: exclusive lock during write — prevents race conditions.
-        $result = file_put_contents($path, $encrypted, LOCK_EX);
+        $result = file_put_contents($path, $content, LOCK_EX);
 
         if ($result === false) {
             throw new \RuntimeException(
@@ -220,7 +270,10 @@ class FileStorage implements StorageInterface
         }
 
         // Find all encrypted JSON files in the collection directory.
-        $files = glob($dir . '/*.json.enc');
+        $files = array_merge(
+            glob($dir . '/*.json') ?: [],
+            glob($dir . '/*.json.enc') ?: []
+        );
         if ($files === false) {
             return [];
         }
@@ -234,7 +287,15 @@ class FileStorage implements StorageInterface
                     continue;
                 }
 
-                $record = $this->enc->decrypt($content);
+                // Determine if file is encrypted based on extension.
+                if (str_ends_with($file, '.json.enc')) {
+                    $record = $this->enc->decrypt($content);
+                } else {
+                    $record = json_decode($content, true);
+                    if (!is_array($record)) {
+                        continue;
+                    }
+                }
 
                 // Apply filters: every filter key must match the record value.
                 if (!$this->matchesFilters($record, $filters)) {
@@ -244,7 +305,6 @@ class FileStorage implements StorageInterface
                 $records[] = $record;
             } catch (\RuntimeException $e) {
                 // Skip corrupted or unreadable files.
-                // Log the error for debugging but don't expose details.
                 error_log("Klytos FileStorage: skipping corrupted file {$file}: " . $e->getMessage());
                 continue;
             }
@@ -278,7 +338,10 @@ class FileStorage implements StorageInterface
                 return 0;
             }
 
-            $files = glob($dir . '/*.json.enc');
+            $files = array_merge(
+            glob($dir . '/*.json') ?: [],
+            glob($dir . '/*.json.enc') ?: []
+        );
             return $files !== false ? count($files) : 0;
         }
 
@@ -311,13 +374,12 @@ class FileStorage implements StorageInterface
             return [];
         }
 
-        $files   = glob($dir . '/*.json.enc');
+        $files = array_merge(
+            glob($dir . '/*.json') ?: [],
+            glob($dir . '/*.json.enc') ?: []
+        );
         $results = [];
         $queryLc = mb_strtolower($query);
-
-        if ($files === false) {
-            return [];
-        }
 
         foreach ($files as $file) {
             if (count($results) >= $limit) {
@@ -330,7 +392,14 @@ class FileStorage implements StorageInterface
                     continue;
                 }
 
-                $record = $this->enc->decrypt($content);
+                if (str_ends_with($file, '.json.enc')) {
+                    $record = $this->enc->decrypt($content);
+                } else {
+                    $record = json_decode($content, true);
+                    if (!is_array($record)) {
+                        continue;
+                    }
+                }
 
                 // Determine which fields to search.
                 $searchFields = !empty($fields)
@@ -500,7 +569,8 @@ class FileStorage implements StorageInterface
         $safeCollection = $this->sanitizeName($collection);
         $safeId         = $this->sanitizeId($id);
 
-        return $this->dataDir . '/' . $safeCollection . '/' . $safeId . '.json.enc';
+        $ext = $this->isSensitive($collection, $id) ? '.json.enc' : '.json';
+        return $this->dataDir . '/' . $safeCollection . '/' . $safeId . $ext;
     }
 
     /**

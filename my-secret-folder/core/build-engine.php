@@ -388,9 +388,17 @@ class BuildEngine
         $siteUrl = Helpers::publicUrl();
         $extra   = $siteConfig['seo']['robots_txt_extra'] ?? '';
 
-        $content  = "User-agent: *\n";
-        $content .= "Allow: /\n";
-        $content .= "Sitemap: {$siteUrl}sitemap.xml\n";
+        $indexingEnabled = $siteConfig['indexing_enabled'] ?? false;
+
+        $content = "User-agent: *\n";
+
+        if ( ! $indexingEnabled ) {
+            // Site is not ready for indexing — block all crawlers.
+            $content .= "Disallow: /\n";
+        } else {
+            $content .= "Allow: /\n";
+            $content .= "Sitemap: {$siteUrl}sitemap.xml\n";
+        }
 
         if (!empty($extra)) {
             $content .= "\n" . $extra . "\n";
@@ -695,14 +703,15 @@ CSS;
         $twTitle  = ! empty( $page['twitter_title'] ) ? $page['twitter_title'] : $ogTitle;
         $twDesc   = ! empty( $page['twitter_description'] ) ? $page['twitter_description'] : $ogDesc;
         $canonical = ! empty( $page['canonical_url'] ) ? $page['canonical_url'] : $pageUrl;
-        $noIndex  = ! empty( $page['noindex'] );
+        $globalIndexing = $siteConfig['indexing_enabled'] ?? false;
+        $noIndex        = ! $globalIndexing || ! empty( $page['noindex'] );
 
         $tags = [];
 
         // Generator meta tag — identifies the CMS.
         $tags[] = "<meta name=\"generator\" content=\"Klytos {$version}\">";
 
-        // Robots.
+        // Robots — noindex if site indexing is disabled globally OR per-page.
         if ( $noIndex ) {
             $tags[] = "<meta name=\"robots\" content=\"noindex, nofollow\">";
         }

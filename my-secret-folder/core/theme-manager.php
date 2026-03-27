@@ -22,7 +22,8 @@ class ThemeManager
 {
     /** @var StorageInterface Storage backend (FileStorage or DatabaseStorage). */
     private StorageInterface $storage;
-    private const THEME_FILE = 'theme.json.enc';
+    private const COLLECTION = 'config';
+    private const ID         = 'theme';
 
     public function __construct(StorageInterface $storage)
     {
@@ -36,11 +37,11 @@ class ThemeManager
      */
     public function get(): array
     {
-        if (!$this->storage->exists(self::THEME_FILE)) {
+        if (!$this->storage->exists(self::COLLECTION, self::ID)) {
             return $this->getDefaults();
         }
 
-        return array_merge($this->getDefaults(), $this->storage->read(self::THEME_FILE));
+        return array_merge($this->getDefaults(), $this->storage->read(self::COLLECTION, self::ID));
     }
 
     /**
@@ -54,7 +55,7 @@ class ThemeManager
         $current = $this->get();
         $theme   = $this->mergeTheme($current, $data);
 
-        $this->storage->write(self::THEME_FILE, $theme);
+        $this->storage->write(self::COLLECTION, self::ID, $theme);
 
         return $theme;
     }
@@ -75,7 +76,7 @@ class ThemeManager
             }
         }
 
-        $this->storage->write(self::THEME_FILE, $theme);
+        $this->storage->write(self::COLLECTION, self::ID, $theme);
 
         return $theme;
     }
@@ -101,7 +102,7 @@ class ThemeManager
             }
         }
 
-        $this->storage->write(self::THEME_FILE, $theme);
+        $this->storage->write(self::COLLECTION, self::ID, $theme);
 
         return $theme;
     }
@@ -127,7 +128,7 @@ class ThemeManager
             }
         }
 
-        $this->storage->write(self::THEME_FILE, $theme);
+        $this->storage->write(self::COLLECTION, self::ID, $theme);
 
         return $theme;
     }
