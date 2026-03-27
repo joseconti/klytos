@@ -318,7 +318,7 @@ include __DIR__ . '/templates/sidebar.php';
     </div>
 </div>
 
-<?php if ($editorType === 'tinymce'): ?>
+<?php if ($editorType === 'tinymce') { ?>
 <!-- TinyMCE Editor -->
 <link rel="stylesheet" href="assets/css/klytos-editor.css">
 <script src="assets/vendor/tinymce/tinymce.min.js"></script>
@@ -361,7 +361,14 @@ include __DIR__ . '/templates/sidebar.php';
         document.getElementById( 'content-blocks-field' ).value = '';
     } );
 
-<?php else: ?>
+} )();
+</script>
+
+<?php } else { ?>
+<!-- React (required by Gutenberg) -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
 <!-- Gutenberg vendor files (NEVER modify these) -->
 <link rel="stylesheet" href="assets/vendor/gutenberg/core.css">
 <link rel="stylesheet" href="assets/vendor/gutenberg/isolated-block-editor.css">
@@ -408,9 +415,16 @@ include __DIR__ . '/templates/sidebar.php';
         document.getElementById( 'content-html-field' ).value = KlytosEditor.getContent();
         document.getElementById( 'content-blocks-field' ).value = JSON.stringify( KlytosEditor.getBlocks() );
     } );
-<?php endif; ?>
 
-    // ─── SEO Preview & Quality Indicator ─────────────────
+} )();
+</script>
+<?php } ?>
+
+<!-- SEO Preview (shared by both editors) -->
+<script nonce="<?php echo $cspNonce; ?>">
+( function() {
+    'use strict';
+
     var titleField   = document.querySelector( 'input[name="title"]' );
     var metaField    = document.querySelector( 'textarea[name="meta_description"]' );
     var slugField    = document.getElementById( 'page-slug' );
@@ -420,7 +434,7 @@ include __DIR__ . '/templates/sidebar.php';
     var previewUrl   = document.getElementById( 'seo-preview-url' );
     var previewDesc  = document.getElementById( 'seo-preview-desc' );
     var siteUrl      = <?php echo json_encode( rtrim( \Klytos\Core\Helpers::publicUrl(), '/' ) ); ?>;
-    var siteName     = <?php echo json_encode( $app->getSiteConfig()->get( 'site_name', 'Klytos' ) ); ?>;
+    var siteName     = <?php echo json_encode( $app->getSiteConfig()->getValue( 'site_name', 'Klytos' ) ); ?>;
 
     function updateSeoPreview() {
         var title = titleField ? titleField.value : '';
