@@ -260,19 +260,33 @@
     min-height: 0 !important;
 }
 
-/* __body: content + sidebar SIDE BY SIDE. This is the key fix. */
+/* __body: content + sidebar SIDE BY SIDE. This is the key fix.
+   Use min-height:0 (not overflow:hidden) to allow flex children to scroll. */
 #klytos-editor-container .interface-interface-skeleton__body {
     display: flex !important;
     flex-direction: row !important;
     flex: 1 !important;
     min-height: 0 !important;
-    overflow: hidden !important;
+    overflow: visible !important;
 }
 
 /* Canvas area: fill remaining space, scroll internally. */
 #klytos-editor-container .interface-interface-skeleton__content {
     flex: 1 !important;
     min-width: 0 !important;
+    overflow-y: auto !important;
+}
+
+/* Secondary sidebar (block inserter library panel) — scrollable. */
+#klytos-editor-container .interface-interface-skeleton__secondary-sidebar {
+    overflow-y: auto !important;
+    flex-shrink: 0 !important;
+    min-height: 0 !important;
+}
+
+/* Ensure the inserter panel inside can scroll its block list. */
+#klytos-editor-container .block-editor-inserter__content,
+#klytos-editor-container .block-editor-inserter__block-list {
     overflow-y: auto !important;
 }
 
@@ -301,7 +315,17 @@
     background: #fff;
     max-width: 840px;
     width: 100%;
+    min-height: 100%;
     box-shadow: 0 0 20px rgba( 0, 0, 0, 0.04 );
+}
+
+/* Ensure the writing area fills the full canvas height. */
+#klytos-editor-container .editor-styles-wrapper.block-editor-writing-flow {
+    min-height: 100% !important;
+}
+
+#klytos-editor-container .is-root-container {
+    min-height: 100% !important;
 }
 
 /* Override Gutenberg's writing area typography. */
@@ -350,7 +374,17 @@
 
 /* ─── Toolbar: merge into a single row ─── */
 
-/* Force the toolbar wrapper to lay out children in a single horizontal row. */
+/* The outer header: row layout with toolbar + settings. */
+#klytos-editor-container .editor-header.edit-post-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    height: 48px !important;
+    min-height: 48px !important;
+}
+
+/* Toolbar wrapper: holds document-tools + block-toolbar side by side. */
 #klytos-editor-container .editor-header__toolbar {
     display: flex !important;
     flex-direction: row !important;
@@ -358,34 +392,54 @@
     flex-wrap: nowrap !important;
     flex: 1 !important;
     min-width: 0 !important;
+    height: 100% !important;
 }
 
-/* Document tools (inserter, undo, redo, list view) — don't shrink. */
+/* Document tools (inserter, undo, redo, list view) — keep together. */
 #klytos-editor-container .editor-document-tools {
     flex-shrink: 0 !important;
 }
 
-/* Block toolbar sits inline after document tools. */
+/* Block toolbar: inline beside document tools, NOT on a new row. */
 #klytos-editor-container .editor-collapsible-block-toolbar {
-    flex: 1 !important;
+    flex: 0 1 auto !important;
     min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
     border-top: none !important;
+    border-bottom: none !important;
+    position: static !important;
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-/* Separator between document tools and block tools. */
+/* The accessible toolbar inside the collapsible block toolbar. */
+#klytos-editor-container .editor-collapsible-block-toolbar .block-editor-block-contextual-toolbar {
+    border: none !important;
+    margin: 0 !important;
+}
+
+/* Thin separator between document and block tools. */
 #klytos-editor-container .editor-collapsible-block-toolbar::before {
     content: '';
-    display: inline-block;
+    display: block;
     width: 1px;
     height: 24px;
-    background: #e0e0e0;
+    background: #ddd;
     margin: 0 4px;
-    vertical-align: middle;
     flex-shrink: 0;
 }
 
 /* Hide the "Hide block tools" toggle — not needed in single-row mode. */
 #klytos-editor-container .edit-post-header__block-tools-toggle {
+    display: none !important;
+}
+
+/* Hide stray popover-slot in the toolbar row. */
+#klytos-editor-container .editor-header__toolbar > .popover-slot {
     display: none !important;
 }
 

@@ -679,7 +679,7 @@ class Auth
             ? "'self' 'nonce-{$nonce}'"
             : "'self' 'unsafe-inline'";
 
-        header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data:; script-src {$scriptSrc}");
+        header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data:; script-src {$scriptSrc}; frame-src 'self' blob:");
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     }
 

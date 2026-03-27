@@ -133,6 +133,14 @@ $adminPageTitle = $isEditing
 $pageTitle_header = $adminPageTitle;
 include __DIR__ . '/templates/header.php';
 include __DIR__ . '/templates/sidebar.php';
+
+// Override CSP for the editor page: Gutenberg creates blob: iframes with
+// inline scripts that cannot carry a nonce. We must allow 'unsafe-inline'
+// for script-src on this page only. The nonce attribute on our own <script>
+// tags is kept for defense-in-depth but is no longer the sole gate.
+if ( $editorType === 'gutenberg' ) {
+    header( "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline' 'nonce-{$cspNonce}'; frame-src 'self' blob:", true );
+}
 ?>
 
 <!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
