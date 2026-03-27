@@ -366,8 +366,8 @@ include __DIR__ . '/templates/sidebar.php';
 
 <?php } else { ?>
 <!-- React (required by Gutenberg) -->
-<script src="assets/vendor/gutenberg/react.production.min.js"></script>
-<script src="assets/vendor/gutenberg/react-dom.production.min.js"></script>
+<script nonce="<?php echo $cspNonce; ?>" src="assets/vendor/gutenberg/react.production.min.js"></script>
+<script nonce="<?php echo $cspNonce; ?>" src="assets/vendor/gutenberg/react-dom.production.min.js"></script>
 
 <!-- Gutenberg vendor files (NEVER modify these) -->
 <link rel="stylesheet" href="assets/vendor/gutenberg/core.css">
@@ -377,10 +377,10 @@ include __DIR__ . '/templates/sidebar.php';
 <link rel="stylesheet" href="assets/css/klytos-editor.css">
 
 <!-- Gutenberg library (NEVER modify this) -->
-<script src="assets/vendor/gutenberg/isolated-block-editor.js"></script>
+<script nonce="<?php echo $cspNonce; ?>" src="assets/vendor/gutenberg/isolated-block-editor.js"></script>
 
 <!-- Klytos Editor API wrapper (OUR code) -->
-<script src="assets/js/klytos-editor.js"></script>
+<script nonce="<?php echo $cspNonce; ?>" src="assets/js/klytos-editor.js"></script>
 
 <!-- Initialize the editor -->
 <script nonce="<?php echo $cspNonce; ?>">
