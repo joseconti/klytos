@@ -204,9 +204,6 @@ include __DIR__ . '/templates/sidebar.php';
                         <button type="submit" name="status" value="published" class="klytos-editor-header__btn klytos-editor-header__btn--primary">
                             <?php echo __( 'pages.published' ); ?>
                         </button>
-                        <button type="button" class="klytos-editor-header__btn klytos-editor-header__btn--icon" id="toggle-settings-panel" title="Page Settings">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </button>
                     </div>
                 </div>
 
@@ -218,116 +215,102 @@ include __DIR__ . '/templates/sidebar.php';
                         <div id="klytos-editor-container"></div>
                     </div>
 
-                    <!-- Right Settings Panel (Klytos page settings) -->
-                    <div class="klytos-editor-settings" id="klytos-editor-settings">
+                    <!-- Page settings (will be injected into Gutenberg's sidebar by JS) -->
+                    <div id="klytos-page-settings-source" style="display:none;">
+                        <div class="klytos-page-panel" id="klytos-page-panel">
 
-                        <!-- Tabs: Page / Block -->
-                        <div class="klytos-editor-settings__tabs">
-                            <button type="button" class="klytos-editor-settings__tab active" data-tab="page"><?php echo __( 'pages.title' ); ?></button>
-                            <button type="button" class="klytos-editor-settings__tab" data-tab="seo">SEO</button>
-                        </div>
+                            <!-- Status & Template -->
+                            <div class="klytos-editor-settings__section">
+                                <h3 class="klytos-editor-settings__heading"><?php echo __( 'common.status' ); ?></h3>
 
-                        <div class="klytos-editor-settings__content">
+                                <label class="klytos-editor-settings__label"><?php echo __( 'pages.template' ); ?></label>
+                                <select name="template" class="klytos-editor-settings__input">
+                                    <option value="default" <?php echo $pageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
+                                    <option value="landing" <?php echo $pageTemplate === 'landing' ? 'selected' : ''; ?>>Landing</option>
+                                    <option value="blog-post" <?php echo $pageTemplate === 'blog-post' ? 'selected' : ''; ?>>Blog Post</option>
+                                    <option value="blank" <?php echo $pageTemplate === 'blank' ? 'selected' : ''; ?>>Blank</option>
+                                </select>
 
-                            <!-- PAGE TAB -->
-                            <div class="klytos-editor-settings__panel active" data-panel="page">
-
-                                <!-- Status & Template -->
-                                <div class="klytos-editor-settings__section">
-                                    <h3 class="klytos-editor-settings__heading"><?php echo __( 'common.status' ); ?></h3>
-
-                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.template' ); ?></label>
-                                    <select name="template" class="klytos-editor-settings__input">
-                                        <option value="default" <?php echo $pageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
-                                        <option value="landing" <?php echo $pageTemplate === 'landing' ? 'selected' : ''; ?>>Landing</option>
-                                        <option value="blog-post" <?php echo $pageTemplate === 'blog-post' ? 'selected' : ''; ?>>Blog Post</option>
-                                        <option value="blank" <?php echo $pageTemplate === 'blank' ? 'selected' : ''; ?>>Blank</option>
-                                    </select>
-
-                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.language' ); ?></label>
-                                    <select name="lang" class="klytos-editor-settings__input">
-                                        <option value="en" <?php echo $pageLang === 'en' ? 'selected' : ''; ?>>English</option>
-                                        <option value="es" <?php echo $pageLang === 'es' ? 'selected' : ''; ?>>Español</option>
-                                        <option value="fr" <?php echo $pageLang === 'fr' ? 'selected' : ''; ?>>Français</option>
-                                        <option value="de" <?php echo $pageLang === 'de' ? 'selected' : ''; ?>>Deutsch</option>
-                                        <option value="pt" <?php echo $pageLang === 'pt' ? 'selected' : ''; ?>>Português</option>
-                                        <option value="ca" <?php echo $pageLang === 'ca' ? 'selected' : ''; ?>>Català</option>
-                                    </select>
-                                </div>
-
-                                <!-- Social Media -->
-                                <details class="klytos-editor-settings__section">
-                                    <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Facebook / LinkedIn</summary>
-                                    <div class="klytos-editor-settings__details-body">
-                                        <label class="klytos-editor-settings__label">OG Image <span class="klytos-editor-settings__hint">recommended</span></label>
-                                        <input type="text" name="og_image" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
-                                        <div class="form-help">1200x630px recommended.</div>
-
-                                        <label class="klytos-editor-settings__label">OG Title</label>
-                                        <input type="text" name="og_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
-
-                                        <label class="klytos-editor-settings__label">OG Description</label>
-                                        <textarea name="og_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use meta description"><?php echo htmlspecialchars( $pageOgDesc ); ?></textarea>
-                                    </div>
-                                </details>
-
-                                <!-- Twitter / X -->
-                                <details class="klytos-editor-settings__section">
-                                    <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Twitter / X</summary>
-                                    <div class="klytos-editor-settings__details-body">
-                                        <label class="klytos-editor-settings__label">Twitter Title</label>
-                                        <input type="text" name="twitter_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
-
-                                        <label class="klytos-editor-settings__label">Twitter Description</label>
-                                        <textarea name="twitter_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use OG description"><?php echo htmlspecialchars( $pageTwDesc ); ?></textarea>
-                                        <div class="form-help">Uses OG image automatically.</div>
-                                    </div>
-                                </details>
-
-                                <!-- Custom Code -->
-                                <details class="klytos-editor-settings__section">
-                                    <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle"><?php echo __( 'pages.custom_css' ); ?> / JS</summary>
-                                    <div class="klytos-editor-settings__details-body">
-                                        <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_css' ); ?></label>
-                                        <textarea name="custom_css" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomCss ); ?></textarea>
-
-                                        <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_js' ); ?></label>
-                                        <textarea name="custom_js" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomJs ); ?></textarea>
-                                    </div>
-                                </details>
+                                <label class="klytos-editor-settings__label"><?php echo __( 'pages.language' ); ?></label>
+                                <select name="lang" class="klytos-editor-settings__input">
+                                    <option value="en" <?php echo $pageLang === 'en' ? 'selected' : ''; ?>>English</option>
+                                    <option value="es" <?php echo $pageLang === 'es' ? 'selected' : ''; ?>>Español</option>
+                                    <option value="fr" <?php echo $pageLang === 'fr' ? 'selected' : ''; ?>>Français</option>
+                                    <option value="de" <?php echo $pageLang === 'de' ? 'selected' : ''; ?>>Deutsch</option>
+                                    <option value="pt" <?php echo $pageLang === 'pt' ? 'selected' : ''; ?>>Português</option>
+                                    <option value="ca" <?php echo $pageLang === 'ca' ? 'selected' : ''; ?>>Català</option>
+                                </select>
                             </div>
 
-                            <!-- SEO TAB -->
-                            <div class="klytos-editor-settings__panel" data-panel="seo">
+                            <!-- Social Media -->
+                            <details class="klytos-editor-settings__section">
+                                <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Facebook / LinkedIn</summary>
+                                <div class="klytos-editor-settings__details-body">
+                                    <label class="klytos-editor-settings__label">OG Image <span class="klytos-editor-settings__hint">recommended</span></label>
+                                    <input type="text" name="og_image" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
+                                    <div class="form-help">1200x630px recommended.</div>
 
-                                <div class="klytos-editor-settings__section">
-                                    <h3 class="klytos-editor-settings__heading">Meta Description</h3>
+                                    <label class="klytos-editor-settings__label">OG Title</label>
+                                    <input type="text" name="og_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
 
-                                    <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo htmlspecialchars( $pageMetaDesc ); ?></textarea>
-                                    <div class="form-help" id="meta-counter" style="display:flex;justify-content:space-between;">
-                                        <span id="meta-count-text">0/160</span>
-                                        <span id="meta-quality"></span>
-                                    </div>
+                                    <label class="klytos-editor-settings__label">OG Description</label>
+                                    <textarea name="og_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use meta description"><?php echo htmlspecialchars( $pageOgDesc ); ?></textarea>
+                                </div>
+                            </details>
 
-                                    <label class="klytos-editor-settings__label">Canonical URL</label>
-                                    <input type="url" name="canonical_url" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageCanonical ); ?>" placeholder="Leave empty (recommended)">
+                            <!-- Twitter / X -->
+                            <details class="klytos-editor-settings__section">
+                                <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Twitter / X</summary>
+                                <div class="klytos-editor-settings__details-body">
+                                    <label class="klytos-editor-settings__label">Twitter Title</label>
+                                    <input type="text" name="twitter_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
 
-                                    <div style="margin-top:0.75rem;">
-                                        <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;font-size:0.85rem;">
-                                            <input type="checkbox" name="noindex" value="1" <?php echo $pageNoIndex ? 'checked' : ''; ?>>
-                                            noindex
-                                        </label>
-                                    </div>
+                                    <label class="klytos-editor-settings__label">Twitter Description</label>
+                                    <textarea name="twitter_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use OG description"><?php echo htmlspecialchars( $pageTwDesc ); ?></textarea>
+                                    <div class="form-help">Uses OG image automatically.</div>
+                                </div>
+                            </details>
+
+                            <!-- Custom Code -->
+                            <details class="klytos-editor-settings__section">
+                                <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle"><?php echo __( 'pages.custom_css' ); ?> / JS</summary>
+                                <div class="klytos-editor-settings__details-body">
+                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_css' ); ?></label>
+                                    <textarea name="custom_css" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomCss ); ?></textarea>
+
+                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_js' ); ?></label>
+                                    <textarea name="custom_js" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomJs ); ?></textarea>
+                                </div>
+                            </details>
+
+                            <!-- SEO: Meta Description -->
+                            <div class="klytos-editor-settings__section">
+                                <h3 class="klytos-editor-settings__heading">Meta Description</h3>
+
+                                <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo htmlspecialchars( $pageMetaDesc ); ?></textarea>
+                                <div class="form-help" id="meta-counter" style="display:flex;justify-content:space-between;">
+                                    <span id="meta-count-text">0/160</span>
+                                    <span id="meta-quality"></span>
                                 </div>
 
-                                <!-- Search Preview -->
-                                <div class="klytos-editor-settings__section">
-                                    <h3 class="klytos-editor-settings__heading">Search Preview</h3>
-                                    <div class="klytos-seo-preview">
-                                        <div id="seo-preview-title" class="klytos-seo-preview__title"></div>
-                                        <div id="seo-preview-url" class="klytos-seo-preview__url"></div>
-                                        <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
-                                    </div>
+                                <label class="klytos-editor-settings__label">Canonical URL</label>
+                                <input type="url" name="canonical_url" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageCanonical ); ?>" placeholder="Leave empty (recommended)">
+
+                                <div style="margin-top:0.75rem;">
+                                    <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;font-size:0.85rem;">
+                                        <input type="checkbox" name="noindex" value="1" <?php echo $pageNoIndex ? 'checked' : ''; ?>>
+                                        noindex
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Search Preview -->
+                            <div class="klytos-editor-settings__section">
+                                <h3 class="klytos-editor-settings__heading">Search Preview</h3>
+                                <div class="klytos-seo-preview">
+                                    <div id="seo-preview-title" class="klytos-seo-preview__title"></div>
+                                    <div id="seo-preview-url" class="klytos-seo-preview__url"></div>
+                                    <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
                                 </div>
                             </div>
 
@@ -519,40 +502,182 @@ include __DIR__ . '/templates/sidebar.php';
 } )();
 </script>
 
-<!-- Settings panel toggle & tabs -->
+<!-- Inject page settings into Gutenberg's unified sidebar -->
 <script nonce="<?php echo $cspNonce; ?>">
 ( function() {
     'use strict';
 
-    // ─── Settings panel toggle ───────────────────────────────
-    var toggleBtn = document.getElementById( 'toggle-settings-panel' );
-    var panel     = document.getElementById( 'klytos-editor-settings' );
+    var SOURCE_ID  = 'klytos-page-settings-source';
+    var PANEL_ID   = 'klytos-page-panel';
+    var TAB_LABEL  = '<?php echo __( 'pages.title' ); ?>';
+    var injected   = false;
 
-    if ( toggleBtn && panel ) {
-        toggleBtn.addEventListener( 'click', function() {
-            panel.classList.toggle( 'hidden' );
-            toggleBtn.classList.toggle( 'active' );
+    /**
+     * Inject a "Pagina" tab + page-settings panel into Gutenberg's
+     * complementary-area sidebar, producing a unified two-tab sidebar
+     * identical in structure to WordPress (Entrada / Bloque).
+     */
+    function injectPageTab() {
+        if ( injected ) return;
+
+        // Gutenberg's sidebar wrapper.
+        var sidebar = document.querySelector(
+            '#klytos-editor-container .interface-interface-skeleton__sidebar'
+        );
+        if ( ! sidebar ) return;
+
+        var compArea = sidebar.querySelector( '.interface-complementary-area' );
+        if ( ! compArea ) return;
+
+        // Find the header that holds the tab buttons.
+        var header = compArea.querySelector( '.interface-complementary-area-header' );
+        if ( ! header ) return;
+
+        // Look for an existing tablist (role="tablist") or the first button group.
+        var tablist = header.querySelector( '[role="tablist"]' );
+        var closeBtn = header.querySelector( 'button[aria-label="Close Settings"], button[aria-label="Close settings"], button.interface-complementary-area-header__small' );
+
+        // ─── Create "Pagina" tab button ──────────────────────
+        var pageTab = document.createElement( 'button' );
+        pageTab.type = 'button';
+        pageTab.className = 'components-button klytos-sidebar-tab klytos-sidebar-tab--page';
+        pageTab.setAttribute( 'role', 'tab' );
+        pageTab.setAttribute( 'aria-selected', 'true' );
+        pageTab.textContent = TAB_LABEL;
+
+        // ─── Find or create a "Block" tab reference ──────────
+        // Gutenberg may render a single tab labelled "Block" or "Settings".
+        var existingTabs = header.querySelectorAll( '[role="tab"]' );
+        var blockTab = null;
+
+        if ( tablist ) {
+            // Insert our tab at the beginning of the tablist.
+            tablist.insertBefore( pageTab, tablist.firstChild );
+            blockTab = tablist.querySelector( '[role="tab"]:not(.klytos-sidebar-tab--page)' );
+        } else {
+            // No tablist — create one.
+            var newTablist = document.createElement( 'div' );
+            newTablist.setAttribute( 'role', 'tablist' );
+            newTablist.className = 'klytos-sidebar-tablist';
+            newTablist.appendChild( pageTab );
+
+            // Wrap existing buttons as "Block" tab.
+            var existingBtn = header.querySelector( 'button:not([aria-label])' );
+            if ( existingBtn ) {
+                existingBtn.classList.add( 'klytos-sidebar-tab', 'klytos-sidebar-tab--block' );
+                existingBtn.setAttribute( 'role', 'tab' );
+                existingBtn.setAttribute( 'aria-selected', 'false' );
+                newTablist.appendChild( existingBtn );
+                blockTab = existingBtn;
+            } else {
+                // Create a synthetic Block tab.
+                blockTab = document.createElement( 'button' );
+                blockTab.type = 'button';
+                blockTab.className = 'components-button klytos-sidebar-tab klytos-sidebar-tab--block';
+                blockTab.setAttribute( 'role', 'tab' );
+                blockTab.setAttribute( 'aria-selected', 'false' );
+                blockTab.textContent = 'Block';
+                newTablist.appendChild( blockTab );
+            }
+
+            // Insert tablist before the close button (or at the start).
+            if ( closeBtn ) {
+                header.insertBefore( newTablist, closeBtn );
+            } else {
+                header.insertBefore( newTablist, header.firstChild );
+            }
+        }
+
+        // ─── Create page-settings panel inside sidebar ───────
+        var source = document.getElementById( SOURCE_ID );
+        var pagePanel = document.createElement( 'div' );
+        pagePanel.id = 'klytos-sidebar-page-panel';
+        pagePanel.className = 'klytos-sidebar-page-panel';
+        pagePanel.setAttribute( 'role', 'tabpanel' );
+
+        if ( source ) {
+            // Move the content from the hidden source div.
+            var inner = source.querySelector( '#' + PANEL_ID );
+            if ( inner ) {
+                pagePanel.appendChild( inner );
+                inner.style.display = '';
+            }
+            source.parentNode.removeChild( source );
+        }
+
+        // Find the block inspector panel (the main content area of the sidebar).
+        var blockPanel = compArea.querySelector( '.edit-post-sidebar, .components-panel' );
+        if ( ! blockPanel ) {
+            blockPanel = compArea.querySelector( '[class*="sidebar"]' ) || compArea.lastElementChild;
+        }
+
+        // Insert page panel before the block panel.
+        if ( blockPanel && blockPanel.parentNode === compArea ) {
+            compArea.insertBefore( pagePanel, blockPanel );
+        } else {
+            compArea.appendChild( pagePanel );
+        }
+
+        // ─── Tab switching logic ─────────────────────────────
+        function activatePageTab() {
+            pageTab.setAttribute( 'aria-selected', 'true' );
+            pageTab.classList.add( 'is-active' );
+            if ( blockTab ) {
+                blockTab.setAttribute( 'aria-selected', 'false' );
+                blockTab.classList.remove( 'is-active' );
+            }
+            pagePanel.style.display = '';
+            if ( blockPanel ) blockPanel.style.display = 'none';
+        }
+
+        function activateBlockTab() {
+            pageTab.setAttribute( 'aria-selected', 'false' );
+            pageTab.classList.remove( 'is-active' );
+            if ( blockTab ) {
+                blockTab.setAttribute( 'aria-selected', 'true' );
+                blockTab.classList.add( 'is-active' );
+            }
+            pagePanel.style.display = 'none';
+            if ( blockPanel ) blockPanel.style.display = '';
+        }
+
+        pageTab.addEventListener( 'click', function( e ) {
+            e.preventDefault();
+            e.stopPropagation();
+            activatePageTab();
         } );
+
+        if ( blockTab ) {
+            blockTab.addEventListener( 'click', function() {
+                activateBlockTab();
+            } );
+        }
+
+        // Start with the page tab active.
+        activatePageTab();
+
+        injected = true;
     }
 
-    // ─── Tab switching ───────────────────────────────────────
-    var tabs   = document.querySelectorAll( '.klytos-editor-settings__tab' );
-    var panels = document.querySelectorAll( '.klytos-editor-settings__panel' );
+    // ─── Wait for Gutenberg to render, then inject ───────────
+    var container = document.getElementById( 'klytos-editor-container' );
+    if ( ! container ) return;
 
-    tabs.forEach( function( tab ) {
-        tab.addEventListener( 'click', function() {
-            var target = tab.getAttribute( 'data-tab' );
-
-            tabs.forEach( function( t ) { t.classList.remove( 'active' ); } );
-            panels.forEach( function( p ) { p.classList.remove( 'active' ); } );
-
-            tab.classList.add( 'active' );
-            var targetPanel = document.querySelector( '[data-panel="' + target + '"]' );
-            if ( targetPanel ) {
-                targetPanel.classList.add( 'active' );
-            }
-        } );
+    var observer = new MutationObserver( function( mutations, obs ) {
+        var sidebar = container.querySelector( '.interface-interface-skeleton__sidebar' );
+        if ( sidebar ) {
+            // Give Gutenberg a tick to finish rendering the sidebar internals.
+            setTimeout( function() {
+                injectPageTab();
+                obs.disconnect();
+            }, 200 );
+        }
     } );
+
+    observer.observe( container, { childList: true, subtree: true } );
+
+    // Also try immediately in case the sidebar is already there.
+    setTimeout( injectPageTab, 500 );
 
 } )();
 </script>
