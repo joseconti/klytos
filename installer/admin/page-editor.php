@@ -135,12 +135,21 @@ include __DIR__ . '/templates/header.php';
 include __DIR__ . '/templates/sidebar.php';
 ?>
 
+<!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
+<style>
+    .admin-sidebar  { display: none !important; }
+    .admin-topbar   { display: none !important; }
+    .admin-content  { margin-left: 0 !important; }
+    .admin-main     { padding: 0 !important; }
+    .admin-layout   { display: block !important; }
+</style>
+
         <?php if ( isset( $success ) ): ?>
-            <div class="alert alert-success" style="margin-bottom:0;"><?php echo __( 'common.success' ); ?></div>
+            <div class="alert alert-success" style="position:fixed;top:0;left:0;right:0;z-index:200000;text-align:center;border-radius:0;"><?php echo __( 'common.success' ); ?></div>
         <?php endif; ?>
 
         <?php if ( isset( $error ) ): ?>
-            <div class="alert alert-error" style="margin-bottom:0;"><?php echo htmlspecialchars( $error ); ?></div>
+            <div class="alert alert-error" style="position:fixed;top:0;left:0;right:0;z-index:200000;text-align:center;border-radius:0;"><?php echo htmlspecialchars( $error ); ?></div>
         <?php endif; ?>
 
         <form method="post" id="page-editor-form">
