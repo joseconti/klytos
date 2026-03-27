@@ -1,0 +1,89 @@
+*** Klytos Change Log ***
+
+2026.03.27 - version 0.4.0
+
+ First Public Release | AI-Powered Headless CMS
+
+= Core Engine =
+* PHP 8.1+ with zero external dependencies.
+* AES-256-GCM encryption for all sensitive data.
+* Dual storage system: flat-file JSON or MySQL/MariaDB, selectable during installation.
+* StorageInterface abstraction — switch backends without code changes.
+* Selective encryption — only sensitive collections are encrypted, plain JSON for everything else.
+* Built-in internationalization (i18n) with English and Spanish translations.
+* WordPress-style hook engine (actions and filters with priorities).
+* CLI interface for command-line operations.
+
+= Admin Panel =
+* Secret URL admin panel — nobody can discover the admin without knowing the directory name.
+* Dashboard with system info, quick actions, and indexing status.
+* Multi-step installation wizard with requirements check, configuration, and completion screen.
+* Page editor with dual editor support: Gutenberg (block editor) or TinyMCE (classic editor), selectable during install and changeable in Settings.
+* Page management with drafts, published states, and SEO metadata (meta description, Open Graph, Twitter Cards, canonical URL, noindex).
+* Template management with 4 built-in templates (Default, Landing, Blog Post, Blank).
+* Reusable block system with categories, scopes (global, template, page), and typed slots.
+* Theme settings with color presets, fonts (Google Fonts), layout, and custom CSS.
+* Navigation menu management.
+* File/asset management with upload support.
+* User management.
+* Plugin management with install/activate/deactivate lifecycle.
+* Webhook configuration and delivery system.
+* Task/to-do management.
+* Analytics dashboard with built-in client-side tracking.
+* AI image generation via Gemini API.
+* License management.
+* Self-update system with backup, verify, and rollback.
+* Inline front-end editing for authenticated users.
+
+= Security =
+* Two-factor authentication (2FA) with three methods:
+  - TOTP (RFC 6238) — Google Authenticator, 1Password, Authy compatible.
+  - Magic Link — one-time email login link with 10-minute expiry.
+  - Passkeys (WebAuthn/FIDO2) — passwordless auth via biometrics, security keys, or password managers.
+* Recovery codes — 8 single-use bcrypt-hashed codes per user.
+* Emergency email recovery — fallback link when authenticator app is unavailable.
+* Brute-force protection with account lockout (5 attempts, 15-minute lockout).
+* CSRF protection on all admin forms.
+* Audit logging for security events.
+* Content Security Policy (CSP) nonce support.
+
+= Email System =
+* Centralized Mailer class for all CMS email.
+* Dual transport: PHP mail() or built-in SMTP via fsockopen (STARTTLS/SSL).
+* HTML email templates with responsive design.
+* Configurable from/reply-to/CC/BCC.
+* Test email functionality from Settings.
+* Extensible via hooks (mailer.send, mailer.headers, mailer.html_template).
+
+= MCP Server (Model Context Protocol) =
+* Streamable HTTP MCP server with JSON-RPC 2.0.
+* OAuth 2.0/2.1 authentication with PKCE (S256), Authorization Code, Client Credentials, and Refresh Token rotation.
+* Application Passwords for HTTP Basic Auth (generated during install).
+* Rate limiting per client.
+* 18 tool modules: pages, templates, blocks, site config, menus, themes, users, assets, build, plugins, tasks, webhooks, versions, analytics, AI images, and guides.
+
+= AI Development Guides =
+* 7 built-in guides accessible via MCP tools:
+  - Gutenberg block markup reference.
+  - SEO content writing guide.
+  - Accessibility (WCAG) standards.
+  - Core development guide.
+  - Plugin development guide.
+  - Security architecture documentation.
+  - SEO and indexing guide.
+
+= Build Engine =
+* Static HTML site generation from templates and data.
+* Search engine indexing controls (enable/disable with one click).
+* Automatic sitemap.xml and robots.txt generation.
+
+= Plugin System =
+* Plugin discovery via klytos-plugin.json manifest.
+* Lifecycle hooks: install, activate, deactivate, uninstall.
+* Hook-based extensibility for all core systems.
+
+= Content Editors =
+* Gutenberg (Block Editor) — visual drag-and-drop blocks via @automattic/isolated-block-editor. Rich layout options, structured content ideal for AI-generated pages.
+* TinyMCE 7 (Classic Editor) — familiar word-processor interface, lightweight and fast. Self-hosted GPL distribution with 26 plugins.
+* Editor choice during installation with side-by-side comparison.
+* Changeable at any time from Settings.

@@ -15,6 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 
 $pageTitle  = __( 'dashboard.title' );
+$auth       = $app->getAuth();
 $siteConfig = $app->getSiteConfig()->get();
 $pageCount  = $app->getPages()->count('all');
 $published  = $app->getPages()->count('published');
