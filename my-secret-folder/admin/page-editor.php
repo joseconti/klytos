@@ -16,7 +16,7 @@ require __DIR__ . '/bootstrap.php';
 $editorType = $app->getSiteConfig()->get('editor', 'gutenberg');
 $auth = $app->getAuth();
 $csrf = $auth->getCsrfToken();
-$pm   = $app->getPageManager();
+$pm   = $app->getPages();
 
 // Determine if editing or creating.
 $slug       = $_GET['slug'] ?? '';
