@@ -72,14 +72,6 @@ require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<div class="admin-content">
-<div class="admin-topbar">
-    <h1 style="font-size:1.1rem;font-weight:600;"><?php echo __( 'updates.title' ); ?></h1>
-    <div style="display:flex;align-items:center;gap:0.75rem;">
-        <?php echo htmlspecialchars( $auth->getUsername() ); ?>
-        <a href="logout.php" class="btn btn-outline btn-sm"><?php echo __( 'auth.logout' ); ?></a>
-    </div>
-</div>
 <div class="admin-main">
 
 <?php if ( $success ): ?>
@@ -269,22 +261,19 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 <?php endif; ?>
 
-</div>
-</div>
-
 <script nonce="<?php echo $cspNonce; ?>">
 ( function() {
     // Confirm before updating.
     var btnUpdate = document.getElementById( 'btnUpdate' );
     if ( btnUpdate ) {
-        btnUpdate.addEventListener( 'click', function( e ) {
+        btnUpdate.closest( 'form' ).addEventListener( 'submit', function( e ) {
             if ( ! confirm( 'Update Klytos? A backup will be created automatically before updating.' ) ) {
                 e.preventDefault();
-            } else {
-                btnUpdate.textContent = '<?php echo __( 'updates.updating' ); ?>';
-                btnUpdate.disabled = true;
-                btnUpdate.style.opacity = '0.7';
+                return;
             }
+            btnUpdate.textContent = '<?php echo __( 'updates.updating' ); ?>';
+            btnUpdate.style.opacity = '0.7';
+            btnUpdate.style.pointerEvents = 'none';
         } );
     }
 

@@ -254,59 +254,189 @@ class Updater
      */
     public function install( string $downloadUrl ): array
     {
+        // Give the update script more time on slow servers.
+        if ( function_exists( 'set_time_limit' ) ) {
+            set_time_limit( 300 );
+        }
+
         $fromVersion = $this->getCurrentVersion();
 
-        // 1. Check PHP version.
+        // ── 1. Pre-flight checks ──────────────────────────────────
         if ( version_compare( PHP_VERSION, '8.1.0', '<' ) ) {
             return $this->result( false, $fromVersion, '', 'Requires PHP 8.1+. Current: ' . PHP_VERSION );
         }
 
-        // 2. Check ZipArchive.
         if ( ! class_exists( 'ZipArchive' ) ) {
             return $this->result( false, $fromVersion, '', 'ZipArchive PHP extension is required.' );
         }
 
-        // 3. Pre-update backup.
+        // Check disk space (need at least 50MB free).
+        $freeSpace = function_exists( 'disk_free_space' ) ? @disk_free_space( $this->rootPath ) : false;
+        if ( $freeSpace !== false && $freeSpace < 50 * 1024 * 1024 ) {
+            return $this->result( false, $fromVersion, '', 'Not enough disk space. At least 50MB required.' );
+        }
+
+        // Check that target directories are writable BEFORE starting.
+        $writableDirs = [ 'core', 'admin', 'templates' ];
+        foreach ( $writableDirs as $dir ) {
+            $path = $this->rootPath . '/' . $dir;
+            if ( is_dir( $path ) && ! is_writable( $path ) ) {
+                return $this->result( false, $fromVersion, '', 'Directory not writable: ' . $dir . '/. Check file permissions (755).' );
+            }
+        }
+
+        // ── 2. Enable maintenance mode ────────────────────────────
+        $this->enableMaintenanceMode();
+
+        // ── 3. Pre-update backup ──────────────────────────────────
         $backupDir = $this->rootPath . '/backups/pre-update-' . $fromVersion . '-' . date( 'Ymd-His' );
         try {
             $this->createBackup( $backupDir );
         } catch ( \RuntimeException $e ) {
+            $this->disableMaintenanceMode();
             return $this->result( false, $fromVersion, '', 'Backup failed: ' . $e->getMessage() );
         }
 
-        // 4. Download ZIP.
+        // ── 4. Download ZIP ───────────────────────────────────────
         $tmpFile = sys_get_temp_dir() . '/klytos-update-' . bin2hex( random_bytes( 8 ) ) . '.zip';
         try {
             $this->downloadFile( $downloadUrl, $tmpFile );
         } catch ( \RuntimeException $e ) {
+            $this->disableMaintenanceMode();
             return $this->result( false, $fromVersion, '', 'Download failed: ' . $e->getMessage() );
         }
 
-        // 5. Extract and apply.
+        // ── 5. Extract to temp directory ──────────────────────────
         $tmpDir = sys_get_temp_dir() . '/klytos-update-' . bin2hex( random_bytes( 8 ) );
+        $zip = new \ZipArchive();
+        if ( $zip->open( $tmpFile ) !== true ) {
+            @unlink( $tmpFile );
+            $this->disableMaintenanceMode();
+            return $this->result( false, $fromVersion, '', 'Could not open update package.' );
+        }
+
+        if ( ! mkdir( $tmpDir, 0755, true ) ) {
+            $zip->close();
+            @unlink( $tmpFile );
+            $this->disableMaintenanceMode();
+            return $this->result( false, $fromVersion, '', 'Could not create temporary directory.' );
+        }
+
+        $zip->extractTo( $tmpDir );
+        $zip->close();
+
+        // ── 6. Verify the extracted package ───────────────────────
+        $extractRoot = $this->findExtractRoot( $tmpDir );
+        if ( ! is_dir( $extractRoot . '/core' ) || ! is_dir( $extractRoot . '/admin' ) ) {
+            @unlink( $tmpFile );
+            $this->removeDir( $tmpDir );
+            $this->disableMaintenanceMode();
+            return $this->result( false, $fromVersion, '', 'Invalid update package: missing core/ or admin/ directory.' );
+        }
+
+        // Verify the new VERSION file exists and is valid.
+        $newVersionFile = $extractRoot . '/VERSION';
+        if ( ! file_exists( $newVersionFile ) ) {
+            @unlink( $tmpFile );
+            $this->removeDir( $tmpDir );
+            $this->disableMaintenanceMode();
+            return $this->result( false, $fromVersion, '', 'Invalid update package: missing VERSION file.' );
+        }
+
+        $newVersion = trim( file_get_contents( $newVersionFile ) );
+        if ( empty( $newVersion ) || ! preg_match( '/^\d+\.\d+\.\d+/', $newVersion ) ) {
+            @unlink( $tmpFile );
+            $this->removeDir( $tmpDir );
+            $this->disableMaintenanceMode();
+            return $this->result( false, $fromVersion, '', 'Invalid update package: invalid VERSION format.' );
+        }
+
+        // ── 7. Apply update (copy files) ──────────────────────────
+        // Copy VERSION last so a failed update still reports the old version.
         try {
-            $this->extractAndApply( $tmpFile, $tmpDir );
+            $allowedDirs = [ 'core', 'admin', 'templates' ];
+            foreach ( $allowedDirs as $dir ) {
+                $src = $extractRoot . '/' . $dir;
+                if ( is_dir( $src ) ) {
+                    $this->copyDir( $src, $this->rootPath . '/' . $dir );
+                }
+            }
+
+            // Individual files (except VERSION).
+            $allowedFiles = [ 'index.php', '.htaccess', 'install.php' ];
+            foreach ( $allowedFiles as $file ) {
+                $src = $extractRoot . '/' . $file;
+                if ( file_exists( $src ) ) {
+                    if ( ! copy( $src, $this->rootPath . '/' . $file ) ) {
+                        throw new \RuntimeException( 'Failed to copy: ' . $file );
+                    }
+                }
+            }
         } catch ( \RuntimeException $e ) {
-            // Rollback.
+            // Rollback from backup.
             $this->rollback( $backupDir );
             @unlink( $tmpFile );
             $this->removeDir( $tmpDir );
+            $this->disableMaintenanceMode();
+
+            $this->addLogEntry( [
+                'from'        => $fromVersion,
+                'to'          => $newVersion,
+                'date'        => Helpers::now(),
+                'status'      => 'failed',
+                'backup_path' => basename( $backupDir ),
+                'error'       => $e->getMessage(),
+            ] );
 
             return $this->result( false, $fromVersion, '', 'Install failed (rolled back): ' . $e->getMessage() );
         }
 
-        // 6. Cleanup.
-        $toVersion = $this->getCurrentVersion();
+        // ── 8. Post-copy verification ─────────────────────────────
+        // Verify critical files exist after copy.
+        $criticalFiles = [ 'core/app.php', 'admin/bootstrap.php' ];
+        $verifyFailed = [];
+        foreach ( $criticalFiles as $file ) {
+            if ( ! file_exists( $this->rootPath . '/' . $file ) ) {
+                $verifyFailed[] = $file;
+            }
+        }
+
+        if ( ! empty( $verifyFailed ) ) {
+            // Critical files missing — rollback.
+            $this->rollback( $backupDir );
+            @unlink( $tmpFile );
+            $this->removeDir( $tmpDir );
+            $this->disableMaintenanceMode();
+
+            $this->addLogEntry( [
+                'from'        => $fromVersion,
+                'to'          => $newVersion,
+                'date'        => Helpers::now(),
+                'status'      => 'rollback',
+                'backup_path' => basename( $backupDir ),
+                'error'       => 'Verification failed: ' . implode( ', ', $verifyFailed ),
+            ] );
+
+            return $this->result( false, $fromVersion, '', 'Verification failed after copy (rolled back). Missing: ' . implode( ', ', $verifyFailed ) );
+        }
+
+        // ── 9. Write VERSION file last ────────────────────────────
+        // This ensures a partial update still reports the old version.
+        copy( $newVersionFile, $this->rootPath . '/VERSION' );
+
+        // ── 10. Cleanup ───────────────────────────────────────────
         @unlink( $tmpFile );
         $this->removeDir( $tmpDir );
 
-        // 7. Run migrations.
+        // ── 11. Run migrations ────────────────────────────────────
+        $toVersion = trim( file_get_contents( $this->rootPath . '/VERSION' ) );
         $this->runMigrations( $fromVersion, $toVersion );
 
-        // 8. Clear the update cache so the admin shows the correct state.
+        // ── 12. Clear cache and disable maintenance ───────────────
         $this->clearCache();
+        $this->disableMaintenanceMode();
 
-        // 9. Log success.
+        // ── 13. Log success ───────────────────────────────────────
         $this->addLogEntry( [
             'from'        => $fromVersion,
             'to'          => $toVersion,
@@ -316,6 +446,27 @@ class Updater
         ] );
 
         return $this->result( true, $fromVersion, $toVersion );
+    }
+
+    /**
+     * Enable maintenance mode.
+     * Creates a .maintenance file that the front-end checks to show a maintenance message.
+     */
+    private function enableMaintenanceMode(): void
+    {
+        $file = $this->rootPath . '/.maintenance';
+        file_put_contents( $file, '<?php $upgrading = ' . time() . '; ?>', LOCK_EX );
+    }
+
+    /**
+     * Disable maintenance mode.
+     */
+    private function disableMaintenanceMode(): void
+    {
+        $file = $this->rootPath . '/.maintenance';
+        if ( file_exists( $file ) ) {
+            @unlink( $file );
+        }
     }
 
     /**
@@ -586,8 +737,7 @@ class Updater
             CURLOPT_TIMEOUT        => 300,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_HTTPHEADER     => [
-                'Accept: application/octet-stream',
-                'User-Agent: Klytos-CMS/' . $this->getCurrentVersion(),
+                'User-Agent: Klytos-CMS/' . KLYTOS_VERSION,
             ],
         ] );
 
@@ -667,7 +817,7 @@ class Updater
         if ( count( $entries ) === 1 ) {
             $first = $tmpDir . '/' . reset( $entries );
             if ( is_dir( $first ) ) {
-                // Check if this directory contains 'my-secret-folder' (repo structure).
+                // Check if this directory contains 'installer' (repo structure).
                 $innerEntries = array_diff( scandir( $first ), [ '.', '..' ] );
                 foreach ( $innerEntries as $entry ) {
                     $innerPath = $first . '/' . $entry;

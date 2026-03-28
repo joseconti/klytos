@@ -240,11 +240,11 @@ function klytos_plugin_path(string $pluginId, string $path = ''): string
 /**
  * Get the current Klytos version.
  *
- * @return string Semantic version (e.g. '2.0.0').
+ * @return string Semantic version (e.g. '0.4.2').
  */
 function klytos_version(): string
 {
-    return App::getInstance()->getVersion();
+    return KLYTOS_VERSION;
 }
 
 // ─── Context Checks ──────────────────────────────────────────

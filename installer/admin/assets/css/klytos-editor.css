@@ -1,0 +1,791 @@
+/**
+ * Klytos Editor — CSS overrides for Gutenberg (Fullscreen Layout)
+ *
+ * These styles adapt Gutenberg's visual editor to match
+ * the WordPress-like fullscreen editor experience.
+ * They NEVER modify vendor files.
+ *
+ * @copyright 2024-2026 José Conti. All rights reserved.
+ * @license   Elastic License 2.0 (ELv2)
+ */
+
+/* ============================================================
+ * FULLSCREEN EDITOR SHELL
+ * Fills the viewport (admin sidebar/topbar hidden via inline style).
+ * ============================================================ */
+
+.klytos-editor-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #fff;
+}
+
+/* ============================================================
+ * EDITOR HEADER BAR (top bar like WordPress)
+ * ============================================================ */
+
+.klytos-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    min-height: 56px;
+    padding: 0 1rem;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.klytos-editor-header__left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.klytos-editor-header__back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    color: #1e1e1e;
+    text-decoration: none;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+
+.klytos-editor-header__back:hover {
+    background: #f0f0f0;
+    text-decoration: none;
+}
+
+.klytos-editor-header__title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.klytos-editor-header__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #1e1e1e;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    min-width: 200px;
+    max-width: 500px;
+    flex: 1;
+}
+
+.klytos-editor-header__title:focus {
+    box-shadow: 0 0 0 2px #3858e9;
+}
+
+.klytos-editor-header__title::placeholder {
+    color: #949494;
+}
+
+.klytos-editor-header__slug {
+    font-size: 0.8rem;
+    color: #949494;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.klytos-editor-header__center {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.klytos-editor-header__status {
+    font-size: 0.8rem;
+    color: #757575;
+}
+
+.klytos-editor-header__right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Header buttons */
+.klytos-editor-header__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.12s;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.klytos-editor-header__btn--primary {
+    background: #3858e9;
+    color: #fff;
+}
+
+.klytos-editor-header__btn--primary:hover {
+    background: #2145c6;
+}
+
+.klytos-editor-header__btn--secondary {
+    background: #fff;
+    color: #1e1e1e;
+    border: 1px solid #ddd;
+}
+
+.klytos-editor-header__btn--secondary:hover {
+    background: #f6f7f7;
+}
+
+.klytos-editor-header__btn--ghost {
+    background: transparent;
+    color: #3858e9;
+}
+
+.klytos-editor-header__btn--ghost:hover {
+    background: #f0f0ff;
+    text-decoration: none;
+}
+
+.klytos-editor-header__btn--icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #1e1e1e;
+    border-radius: 4px;
+}
+
+.klytos-editor-header__btn--icon:hover {
+    background: #f0f0f0;
+}
+
+.klytos-editor-header__btn--icon.active {
+    background: #1e1e1e;
+    color: #fff;
+}
+
+/* ============================================================
+ * EDITOR BODY — Gutenberg + Klytos Settings sidebar
+ * ============================================================ */
+
+.klytos-editor-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    height: calc( 100vh - 56px );
+}
+
+/* Main editor canvas area — Gutenberg takes full control here */
+.klytos-editor-canvas {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================================================
+ * EDITOR CONTAINER — Force height chain so Gutenberg's
+ * skeleton lays out sidebar beside canvas (not below).
+ *
+ * DOM structure (from isolated-block-editor):
+ *   #klytos-editor-container
+ *     > div                              ← React root
+ *       > .editor                        ← wrapper
+ *         > .iso-editor .edit-post-layout.interface-interface-skeleton
+ *           > div                        ← inner wrapper
+ *             > .edit-post-layout.interface-interface-skeleton  (nested!)
+ *               > .interface-interface-skeleton__editor
+ *                 > .interface-interface-skeleton__header  (toolbar)
+ *                 > .interface-interface-skeleton__body
+ *                   > .interface-interface-skeleton__content  (canvas)
+ *                   > .interface-interface-skeleton__sidebar  (inspector)
+ * ============================================================ */
+
+#klytos-editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* All wrappers down to the skeleton: fill height via flex. */
+#klytos-editor-container > div,
+#klytos-editor-container .editor,
+#klytos-editor-container .iso-editor,
+#klytos-editor-container .iso-editor > div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+/* The inner skeleton (the one that contains __editor). */
+#klytos-editor-container .edit-post-layout.interface-interface-skeleton {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+
+/* __editor wraps header + body — column layout, fill parent. */
+#klytos-editor-container .interface-interface-skeleton__editor {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+}
+
+/* __body: content + sidebar SIDE BY SIDE. This is the key fix.
+   Use min-height:0 (not overflow:hidden) to allow flex children to scroll. */
+#klytos-editor-container .interface-interface-skeleton__body {
+    display: flex !important;
+    flex-direction: row !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+}
+
+/* Canvas area: fill remaining space, scroll internally. */
+#klytos-editor-container .interface-interface-skeleton__content {
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow-y: auto !important;
+}
+
+/* Secondary sidebar (block inserter library panel) — scrollable. */
+#klytos-editor-container .interface-interface-skeleton__secondary-sidebar {
+    overflow-y: auto !important;
+    flex-shrink: 0 !important;
+    min-height: 0 !important;
+}
+
+/* Ensure the inserter panel inside can scroll its block list. */
+#klytos-editor-container .block-editor-inserter__content,
+#klytos-editor-container .block-editor-inserter__block-list {
+    overflow-y: auto !important;
+}
+
+/* Gutenberg's sidebar slot — hidden by default; Klytos sidebar replaces it.
+   When "Bloque" tab is active, CSS positions it over our block panel area. */
+#klytos-editor-container .interface-interface-skeleton__sidebar {
+    display: none !important;
+}
+
+/* The visual editor inside the content area — subtle background. */
+#klytos-editor-container .edit-post-visual-editor {
+    background: #f0f0f0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The actual writing canvas — white, centered, with subtle shadow. */
+#klytos-editor-container .edit-post-visual-editor__content-area {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+#klytos-editor-container .edit-post-visual-editor__content-area > .is-desktop-preview {
+    background: #fff;
+    max-width: 840px;
+    width: 100%;
+    min-height: 100%;
+    box-shadow: 0 0 20px rgba( 0, 0, 0, 0.04 );
+}
+
+/* Ensure the writing area fills the full canvas height. */
+#klytos-editor-container .editor-styles-wrapper.block-editor-writing-flow {
+    min-height: 100% !important;
+}
+
+#klytos-editor-container .is-root-container {
+    min-height: 100% !important;
+}
+
+/* Override Gutenberg's writing area typography. */
+#klytos-editor-container .editor-styles-wrapper {
+    font-family: var( --font-body, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif );
+    font-size: 1rem;
+    line-height: 1.75;
+    color: #1e1e1e;
+}
+
+/* Override Gutenberg heading styles to match the site theme. */
+#klytos-editor-container .editor-styles-wrapper h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+}
+#klytos-editor-container .editor-styles-wrapper h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+#klytos-editor-container .editor-styles-wrapper h3 {
+    font-size: 1.375rem;
+    font-weight: 600;
+}
+
+/* Gutenberg's own sidebar (block inspector) — ensure it renders properly. */
+#klytos-editor-container .interface-complementary-area {
+    z-index: 5;
+}
+
+/* Hide Gutenberg's settings area visually but keep it in the DOM
+   so we can programmatically click the Settings button. */
+#klytos-editor-container .editor-header__settings {
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Hide Gutenberg's back button and center title — we have our own. */
+#klytos-editor-container .editor-header__back-button,
+#klytos-editor-container .editor-header__center {
+    display: none !important;
+}
+
+/* ─── Toolbar: merge into a single row ─── */
+
+/* The outer header: row layout with toolbar + settings. */
+#klytos-editor-container .editor-header.edit-post-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    height: 48px !important;
+    min-height: 48px !important;
+}
+
+/* Toolbar wrapper: holds document-tools + block-toolbar side by side. */
+#klytos-editor-container .editor-header__toolbar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    height: 100% !important;
+}
+
+/* Document tools (inserter, undo, redo, list view) — keep together. */
+#klytos-editor-container .editor-document-tools {
+    flex-shrink: 0 !important;
+}
+
+/* Block toolbar: inline beside document tools, NOT on a new row. */
+#klytos-editor-container .editor-collapsible-block-toolbar {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    position: static !important;
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* The accessible toolbar inside the collapsible block toolbar. */
+#klytos-editor-container .editor-collapsible-block-toolbar .block-editor-block-contextual-toolbar {
+    border: none !important;
+    margin: 0 !important;
+}
+
+/* Thin separator between document and block tools. */
+#klytos-editor-container .editor-collapsible-block-toolbar::before {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 24px;
+    background: #ddd;
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
+/* Hide the "Hide block tools" toggle — not needed in single-row mode. */
+#klytos-editor-container .edit-post-header__block-tools-toggle {
+    display: none !important;
+}
+
+/* Hide stray popover-slot in the toolbar row. */
+#klytos-editor-container .editor-header__toolbar > .popover-slot {
+    display: none !important;
+}
+
+/* Gutenberg primary button color override. */
+#klytos-editor-container .components-button.is-primary {
+    background: #3858e9;
+    border-radius: 4px;
+}
+
+#klytos-editor-container .components-button.is-primary:hover {
+    background: #2145c6;
+}
+
+/* ============================================================
+ * KLYTOS SIDEBAR — own sidebar outside Gutenberg
+ * ============================================================ */
+
+.klytos-sidebar {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #e0e0e0;
+    background: #fff;
+    overflow: hidden;
+}
+
+.klytos-sidebar__header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.klytos-sidebar__tabs {
+    display: flex;
+}
+
+.klytos-sidebar__tab {
+    flex: 1;
+    padding: 0.7rem 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-align: center;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #757575;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.klytos-sidebar__tab:hover {
+    color: #1e1e1e;
+}
+
+.klytos-sidebar__tab[aria-selected="true"],
+.klytos-sidebar__tab.is-active {
+    color: #3858e9;
+    border-bottom-color: #3858e9;
+}
+
+.klytos-sidebar__body {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+}
+
+.klytos-sidebar__panel {
+    min-height: 0;
+}
+
+.klytos-sidebar__empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #757575;
+    font-size: 0.8125rem;
+}
+
+/* ─── "Bloque" tab active: show Gutenberg's sidebar via position:fixed ─── */
+
+/* Make our sidebar body transparent to pointer events so the fixed
+   Gutenberg sidebar underneath can receive clicks. */
+body.klytos-block-tab-active .klytos-sidebar__body {
+    pointer-events: none !important;
+}
+
+/* Hide the placeholder text when Gutenberg inspector is shown. */
+body.klytos-block-tab-active #klytos-panel-block .klytos-sidebar__empty {
+    display: none !important;
+}
+
+/* Keep tabs clickable. */
+body.klytos-block-tab-active .klytos-sidebar__header {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 110;
+}
+
+body.klytos-block-tab-active #klytos-editor-container .interface-interface-skeleton__sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    position: fixed !important;
+    /* 56px Klytos header + ~44px tab bar = 100px from top */
+    top: 100px !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    z-index: 105 !important;
+    border-left: 1px solid #e0e0e0 !important;
+    background: #fff !important;
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+}
+
+/* Hide Gutenberg's own sidebar header (close button, tab buttons) when
+   it's shown inside our sidebar — our tabs handle navigation. */
+body.klytos-block-tab-active .interface-complementary-area-header {
+    display: none !important;
+}
+
+#klytos-page-panel {
+    padding: 0;
+}
+
+#klytos-page-panel .klytos-editor-settings__section {
+    padding: 1rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#klytos-page-panel .klytos-editor-settings__heading {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #757575;
+    margin: 0 0 0.75rem 0;
+}
+
+#klytos-page-panel .klytos-editor-settings__heading--toggle {
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#klytos-page-panel details.klytos-editor-settings__section {
+    padding: 0;
+}
+
+#klytos-page-panel details.klytos-editor-settings__section > summary {
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    margin: 0;
+}
+
+#klytos-page-panel details.klytos-editor-settings__section[open] > summary {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#klytos-page-panel .klytos-editor-settings__details-body {
+    padding: 0.75rem 1rem 1rem;
+}
+
+/* Labels & Inputs */
+#klytos-page-panel .klytos-editor-settings__label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    color: #1e1e1e;
+}
+
+#klytos-page-panel .klytos-editor-settings__hint {
+    font-weight: 400;
+    font-size: 0.75rem;
+    color: #f59e0b;
+}
+
+#klytos-page-panel .klytos-editor-settings__input {
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    margin-bottom: 0.65rem;
+    box-sizing: border-box;
+    font-family: inherit;
+    resize: vertical;
+}
+
+#klytos-page-panel .klytos-editor-settings__input:focus {
+    outline: none;
+    border-color: #3858e9;
+    box-shadow: 0 0 0 1px #3858e9;
+}
+
+#klytos-page-panel .klytos-editor-settings__input.mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+}
+
+#klytos-page-panel .form-help {
+    font-size: 0.75rem;
+    color: #757575;
+    margin-top: -0.35rem;
+    margin-bottom: 0.65rem;
+}
+
+/* ============================================================
+ * SEO PREVIEW
+ * ============================================================ */
+
+.klytos-seo-preview {
+    font-family: Arial, sans-serif;
+    padding: 0.75rem;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid #f0f0f0;
+}
+
+.klytos-seo-preview__title {
+    color: #1a0dab;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.klytos-seo-preview__url {
+    color: #006621;
+    font-size: 0.8rem;
+    margin: 0.15rem 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.klytos-seo-preview__desc {
+    color: #545454;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ============================================================
+ * TOAST NOTIFICATIONS
+ * ============================================================ */
+
+.klytos-editor-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX( -50% ) translateY( 1rem );
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    z-index: 200000;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+}
+
+.klytos-editor-toast--visible {
+    opacity: 1;
+    transform: translateX( -50% ) translateY( 0 );
+}
+
+.klytos-editor-toast--success {
+    background: #059669;
+    color: #ffffff;
+}
+
+.klytos-editor-toast--error {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+/* ============================================================
+ * FALLBACK EDITOR — When Gutenberg fails to load
+ * ============================================================ */
+
+.klytos-editor-fallback__notice {
+    padding: 0.75rem 1rem;
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fde68a;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.klytos-editor-fallback__textarea {
+    width: 100%;
+    min-height: 500px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.875rem;
+    padding: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+/* ============================================================
+ * FORM HELP (shared)
+ * ============================================================ */
+
+/* ============================================================
+ * RESPONSIVE
+ * ============================================================ */
+
+@media ( max-width: 782px ) {
+    .klytos-editor-header {
+        padding: 0 0.5rem;
+        height: 48px;
+        min-height: 48px;
+    }
+
+    .klytos-editor-header__title {
+        font-size: 0.95rem;
+        min-width: 120px;
+    }
+
+    .klytos-editor-header__slug {
+        display: none;
+    }
+
+    .klytos-editor-body {
+        height: calc( 100vh - 48px );
+    }
+
+    .klytos-sidebar {
+        display: none;
+    }
+
+    /* Adjust Gutenberg sidebar overlay for mobile header. */
+    body.klytos-block-tab-active #klytos-editor-container .interface-interface-skeleton__sidebar {
+        top: 48px !important;
+        width: 100% !important;
+    }
+
+}

@@ -284,10 +284,10 @@ License data is stored in: `config/plugin_licenses/{plugin-id}.json.enc`
 
 ## File Locations
 
-- Klytos root: `/my-secret-folder/` (configurable)
-- Core: `/my-secret-folder/core/`
-- Plugins: `/my-secret-folder/plugins/`
-- Admin: `/my-secret-folder/admin/`
-- Public output: `/my-secret-folder/public/`
-- Data (encrypted): `/my-secret-folder/data/`
-- Config: `/my-secret-folder/config/`
+- Klytos root: `/installer/` (configurable)
+- Core: `/installer/core/`
+- Plugins: `/installer/plugins/`
+- Admin: `/installer/admin/`
+- Public output: `/installer/public/`
+- Data (encrypted): `/installer/data/`
+- Config: `/installer/config/`

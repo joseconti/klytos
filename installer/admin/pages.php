@@ -42,17 +42,6 @@ require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<div class="admin-content">
-<div class="admin-topbar">
-    <h1 style="font-size:1.1rem;font-weight:600;"><?php echo __( 'pages.title' ); ?></h1>
-    <div style="display:flex;align-items:center;gap:0.75rem;">
-        <a href="page-editor.php" class="btn btn-primary"><?php echo __( 'pages.create_page' ); ?></a>
-        <?php echo htmlspecialchars( $auth->getUsername() ); ?>
-        <a href="logout.php" class="btn btn-outline btn-sm"><?php echo __( 'auth.logout' ); ?></a>
-    </div>
-</div>
-<div class="admin-main">
-
 <?php if ($success): ?>
     <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
 <?php endif; ?>
@@ -110,9 +99,6 @@ require_once __DIR__ . '/templates/sidebar.php';
             </table>
         </div>
     <?php endif; ?>
-</div>
-
-</div>
 </div>
 
 <script nonce="<?php echo $cspNonce; ?>">

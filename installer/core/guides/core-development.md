@@ -17,7 +17,7 @@ trigger: When the user asks to modify Klytos core, add core MCP tools, fix core 
 ## Architecture
 
 ```
-my-secret-folder/
+installer/
 ├── index.php              ← Front controller (routes all requests)
 ├── install.php            ← Multi-step installer
 ├── t.php                  ← Analytics tracking pixel

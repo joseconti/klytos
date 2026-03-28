@@ -257,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'storage_driver' => $storageDriver,
                     'admin_dir'      => $adminDirName,
                     'installed_at'   => Helpers::now(),
-                    'version'        => '2.0.0',
+                    'version'        => KLYTOS_VERSION,
                     'update_channel' => 'stable',
                     'timezone'       => 'Europe/Madrid',
                 ];
@@ -385,7 +385,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // ── Step J: Create supporting files ──
                 $storage->write('config', 'update_log', ['updates' => []]);
-                file_put_contents($rootPath . '/VERSION', '2.0.0', LOCK_EX);
+                file_put_contents($rootPath . '/VERSION', KLYTOS_VERSION, LOCK_EX);
 
                 // ── Step K: Create owner user from installer credentials ──
                 // Migrate the admin user from v1.0 config to v2.0 UserManager.
