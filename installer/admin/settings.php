@@ -76,6 +76,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] 
         } else {
             $success = __('common.success');
         }
+    } elseif ($section === 'languages') {
+        $languages = [];
+        $langCodes = $_POST['lang_code'] ?? [];
+        $langNames = $_POST['lang_name'] ?? [];
+        for ($i = 0; $i < count($langCodes); $i++) {
+            $code = trim($langCodes[$i] ?? '');
+            $name = trim($langNames[$i] ?? '');
+            if ($code !== '' && $name !== '') {
+                $languages[] = ['code' => $code, 'name' => $name];
+            }
+        }
+        $app->getSiteConfig()->set(['languages' => $languages]);
+        $success = __( 'common.success' );
     } elseif ($section === 'editor') {
         $editorValue = $_POST['editor'] ?? 'gutenberg';
         if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
@@ -241,6 +254,50 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
     </form>
 </div>
+
+<!-- Languages -->
+<div class="card">
+    <div class="card-header"><h3>Languages</h3></div>
+    <form method="post">
+        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <input type="hidden" name="section" value="languages">
+        <p style="font-size:0.85rem;color:var(--admin-text-muted);margin-bottom:1rem;">Define the languages available on your site. These will be used for post type slug translations and content localization.</p>
+        <div id="languages-list">
+            <?php
+            $languages = $siteConfig['languages'] ?? [];
+            if (empty($languages)) {
+                $languages = [['code' => '', 'name' => '']];
+            }
+            foreach ($languages as $i => $lang): ?>
+                <div class="form-group" style="display:flex;gap:0.5rem;align-items:end;">
+                    <div>
+                        <?php if ($i === 0): ?><label>Code</label><?php endif; ?>
+                        <input type="text" name="lang_code[]" class="form-control" value="<?php echo htmlspecialchars($lang['code'] ?? ''); ?>" placeholder="es" style="width:80px;">
+                    </div>
+                    <div style="flex:1;">
+                        <?php if ($i === 0): ?><label>Name</label><?php endif; ?>
+                        <input type="text" name="lang_name[]" class="form-control" value="<?php echo htmlspecialchars($lang['name'] ?? ''); ?>" placeholder="Espanol">
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addLanguageRow()" style="margin-bottom:1rem;">+ Add Language</button>
+        <br>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+    </form>
+</div>
+
+<script nonce="<?php echo $cspNonce; ?>">
+function addLanguageRow() {
+    var list = document.getElementById('languages-list');
+    var div = document.createElement('div');
+    div.className = 'form-group';
+    div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
+    div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
+                    '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
+    list.appendChild(div);
+}
+</script>
 
 <!-- Content Editor -->
 <div class="card">

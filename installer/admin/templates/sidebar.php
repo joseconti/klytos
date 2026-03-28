@@ -88,6 +88,15 @@ $sidebarItems = [
         'capability' => 'assets.manage',
     ],
     [
+        'id'         => 'post-types',
+        'title'      => 'Post Types',
+        'url'        => $adminPath . 'post-types.php',
+        'icon'       => 'T',
+        'position'   => 22,
+        'section'    => 'content',
+        'capability' => 'pages.view',
+    ],
+    [
         'id'         => 'tasks',
         'title'      => 'Tasks',
         'url'        => $adminPath . 'tasks.php',

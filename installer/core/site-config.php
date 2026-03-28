@@ -87,6 +87,11 @@ class SiteConfig
             $current['email'] = array_merge($current['email'], $data['email']);
         }
 
+        // Languages list
+        if (array_key_exists('languages', $data)) {
+            $current['languages'] = $data['languages'];
+        }
+
         $current['updated_at'] = Helpers::now();
         $this->storage->write(self::COLLECTION, self::ID, $current);
 
@@ -168,6 +173,7 @@ class SiteConfig
                 'smtp_pass'     => '',         // SMTP password
                 'smtp_security' => 'tls',      // 'tls', 'ssl', or ''
             ],
+            'languages'        => [],
             'last_build'       => null,
             'created_at'       => null,
             'updated_at'       => null,

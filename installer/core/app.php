@@ -144,6 +144,9 @@ class App
     /** @var TwoFactor|null Two-factor authentication manager. */
     private ?TwoFactor $twoFactor = null;
 
+    /** @var PostTypeManager|null Custom post types and taxonomies. */
+    private ?PostTypeManager $postTypeManager = null;
+
     /** @var Mailer|null Central email sending service. */
     private ?Mailer $mailer = null;
 
@@ -275,6 +278,7 @@ class App
         $this->webhookManager      = new WebhookManager($this->storage);
         $this->cronManager         = new CronManager($this->storage);
         $this->auditLog            = new AuditLog($this->storage);
+        $this->postTypeManager     = new PostTypeManager($this->storage);
 
         // Step 10b: Auto-migrate v1.0 admin user to v2.0 multi-user system.
         // On first boot after upgrade from v1.x, the owner user doesn't exist yet.
@@ -453,6 +457,9 @@ class App
 
     /** Get the audit log. */
     public function getAuditLog(): AuditLog { return $this->auditLog; }
+
+    /** Get the post type manager. */
+    public function getPostTypeManager(): PostTypeManager { return $this->postTypeManager; }
 
     /** Get the two-factor authentication manager. */
     public function getTwoFactor(): TwoFactor
