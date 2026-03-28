@@ -513,7 +513,7 @@ class Updater
 
         $response = curl_exec( $ch );
         $httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        curl_close( $ch );
+        unset( $ch );
 
         if ( $httpCode !== 200 || empty( $response ) ) {
             return null;
@@ -828,7 +828,7 @@ class Updater
         $httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
         $error    = curl_error( $ch );
 
-        curl_close( $ch );
+        unset( $ch );
         fclose( $fp );
 
         if ( $httpCode !== 200 || filesize( $dest ) < 1000 ) {

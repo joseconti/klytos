@@ -63,6 +63,10 @@ try {
 use Klytos\Core\App;
 use Klytos\Core\Helpers;
 
+// Load security helpers early so klytos_esc_html() is available
+// in the error handler below, even if boot() fails midway.
+require_once $rootPath . '/core/helpers-security.php';
+
 try {
     $app = App::getInstance();
 

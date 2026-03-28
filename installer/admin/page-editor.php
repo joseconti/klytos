@@ -133,14 +133,11 @@ $adminPageTitle = $isEditing
     ? __( 'pages.edit_page' ) . ': ' . klytos_esc_html( $pageTitle )
     : __( 'pages.create_page' );
 
-$pageTitle_header = $adminPageTitle;
-include __DIR__ . '/templates/header.php';
-include __DIR__ . '/templates/sidebar.php';
-
 // Override CSP for the editor page: Gutenberg creates blob: iframes with
 // inline scripts that cannot carry a nonce. We must allow 'unsafe-inline'
 // for script-src on this page only. The nonce attribute on our own <script>
 // tags is kept for defense-in-depth but is no longer the sole gate.
+// This MUST be set before including header.php (which sends HTTP headers).
 if ( $editorType === 'gutenberg' ) {
     // CSP frame-src: allow all oEmbed provider iframe domains.
     // CSP img-src: allow provider thumbnails/images.
@@ -259,10 +256,13 @@ if ( $editorType === 'gutenberg' ) {
         '*.kickstarter.com',
     ] );
 
-    $scriptSrc = "'self' 'unsafe-inline' 'nonce-{$cspNonce}'";
-
-    header( "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src {$imgSrc}; script-src {$scriptSrc}; frame-src {$frameSrc}", true );
+    // $customCsp tells header.php to use this policy instead of the default one.
+    $customCsp = "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src {$imgSrc}; script-src 'self' 'unsafe-inline'; frame-src {$frameSrc}";
 }
+
+$pageTitle_header = $adminPageTitle;
+include __DIR__ . '/templates/header.php';
+include __DIR__ . '/templates/sidebar.php';
 ?>
 
 <!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
