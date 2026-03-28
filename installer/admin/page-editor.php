@@ -139,7 +139,126 @@ include __DIR__ . '/templates/sidebar.php';
 // for script-src on this page only. The nonce attribute on our own <script>
 // tags is kept for defense-in-depth but is no longer the sole gate.
 if ( $editorType === 'gutenberg' ) {
-    header( "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline' 'nonce-{$cspNonce}'; frame-src 'self' blob:", true );
+    // CSP frame-src: allow all oEmbed provider iframe domains.
+    // CSP img-src: allow provider thumbnails/images.
+    // CSP script-src: some embeds inject scripts (Twitter, Reddit, TikTok, etc.).
+    $frameSrc = implode( ' ', [
+        "'self'",
+        'blob:',
+        // YouTube
+        '*.youtube.com',
+        '*.youtube-nocookie.com',
+        // Vimeo
+        'player.vimeo.com',
+        '*.vimeo.com',
+        // Dailymotion
+        '*.dailymotion.com',
+        'geo.dailymotion.com',
+        // Spotify
+        'open.spotify.com',
+        '*.spotify.com',
+        // SoundCloud
+        'w.soundcloud.com',
+        '*.soundcloud.com',
+        // TikTok
+        '*.tiktok.com',
+        // Twitter / X
+        'platform.twitter.com',
+        '*.twitter.com',
+        '*.x.com',
+        // Flickr
+        '*.flickr.com',
+        // SmugMug
+        '*.smugmug.com',
+        // Scribd
+        '*.scribd.com',
+        // WordPress.tv / VideoPress
+        'wordpress.tv',
+        '*.wordpress.tv',
+        'videopress.com',
+        '*.videopress.com',
+        // Crowdsignal / Polldaddy
+        '*.crowdsignal.net',
+        '*.crowdsignal.com',
+        '*.polldaddy.com',
+        'poll.fm',
+        'survey.fm',
+        // Imgur
+        '*.imgur.com',
+        // Issuu
+        'e.issuu.com',
+        '*.issuu.com',
+        // Mixcloud
+        '*.mixcloud.com',
+        // TED
+        'embed.ted.com',
+        '*.ted.com',
+        // Animoto
+        '*.animoto.com',
+        // Tumblr
+        '*.tumblr.com',
+        'assets.tumblr.com',
+        // Kickstarter
+        '*.kickstarter.com',
+        // Cloudup
+        'cloudup.com',
+        '*.cloudup.com',
+        // ReverbNation
+        '*.reverbnation.com',
+        // Reddit
+        '*.reddit.com',
+        '*.redditmedia.com',
+        // Speaker Deck
+        'speakerdeck.com',
+        '*.speakerdeck.com',
+        // Amazon Kindle
+        'read.amazon.com',
+        'read.amazon.co.uk',
+        'read.amazon.co.jp',
+        'read.amazon.com.au',
+        'read.amazon.cn',
+        // Someecards
+        '*.someecards.com',
+        // Pinterest
+        '*.pinterest.com',
+        'assets.pinterest.com',
+        // Wolfram Cloud
+        '*.wolframcloud.com',
+        // Pocket Casts
+        '*.pocketcasts.com',
+        'pca.st',
+        // Anghami
+        '*.anghami.com',
+        // Bluesky
+        'embed.bsky.app',
+        '*.bsky.app',
+        // Canva
+        '*.canva.com',
+    ] );
+
+    $imgSrc = implode( ' ', [
+        "'self'",
+        'data:',
+        '*.youtube.com',
+        '*.ytimg.com',
+        '*.vimeocdn.com',
+        '*.spotify.com',
+        '*.scdn.co',
+        '*.flickr.com',
+        '*.staticflickr.com',
+        '*.smugmug.com',
+        '*.tumblr.com',
+        '*.imgur.com',
+        '*.pinimg.com',
+        '*.twimg.com',
+        '*.redditmedia.com',
+        'embed.ted.com',
+        '*.kickstarter.com',
+    ] );
+
+    $scriptSrc = "'self' 'unsafe-inline' 'nonce-{$cspNonce}'";
+
+    header( "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src {$imgSrc}; script-src {$scriptSrc}; frame-src {$frameSrc}", true );
 }
 ?>
 
@@ -412,6 +531,38 @@ if ( $editorType === 'gutenberg' ) {
 
 <!-- Klytos Editor API wrapper (OUR code) -->
 <script nonce="<?php echo $cspNonce; ?>" src="assets/js/klytos-editor.js"></script>
+
+<!-- Intercept fetch() so Gutenberg embed blocks use our oEmbed proxy -->
+<script nonce="<?php echo $cspNonce; ?>">
+( function() {
+    'use strict';
+
+    var oembedBase = <?php echo json_encode( rtrim( \Klytos\Core\Helpers::getBasePath(), '/' ) . '/admin/api/oembed.php' ); ?>;
+    var originalFetch = window.fetch;
+
+    /**
+     * Override window.fetch to intercept requests to /oembed/1.0/proxy.
+     * The isolated-block-editor's internal apiFetch ultimately calls
+     * window.fetch, so this is the reliable interception point.
+     */
+    window.fetch = function( input, init ) {
+        var url = ( typeof input === 'string' ) ? input : ( input && input.url ? input.url : '' );
+
+        if ( url.indexOf( '/oembed/1.0/proxy' ) !== -1 ) {
+            // Extract the embed URL from the query string.
+            var match = url.match( /[?&]url=([^&]+)/ );
+            if ( match ) {
+                var embedUrl = decodeURIComponent( match[1] );
+                var proxyUrl = oembedBase + '?url=' + encodeURIComponent( embedUrl );
+                return originalFetch.call( window, proxyUrl, { credentials: 'same-origin' } );
+            }
+        }
+
+        return originalFetch.apply( window, arguments );
+    };
+
+} )();
+</script>
 
 <!-- Initialize the editor -->
 <script nonce="<?php echo $cspNonce; ?>">
