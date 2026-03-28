@@ -548,13 +548,48 @@ if ( $editorType === 'gutenberg' ) {
     window.fetch = function( input, init ) {
         var url = ( typeof input === 'string' ) ? input : ( input && input.url ? input.url : '' );
 
+        // Intercept oEmbed proxy requests → route to Klytos proxy.
         if ( url.indexOf( '/oembed/1.0/proxy' ) !== -1 ) {
-            // Extract the embed URL from the query string.
             var match = url.match( /[?&]url=([^&]+)/ );
             if ( match ) {
                 var embedUrl = decodeURIComponent( match[1] );
                 var proxyUrl = oembedBase + '?url=' + encodeURIComponent( embedUrl );
                 return originalFetch.call( window, proxyUrl, { credentials: 'same-origin' } );
+            }
+        }
+
+        // Intercept WP REST API calls that don't exist in Klytos.
+        // Gutenberg tries to call these on init — return empty/stub responses.
+        if ( url.indexOf( '/wp/v2/' ) !== -1 || url.indexOf( '/wp-json/' ) !== -1 ) {
+            var stubResponse = null;
+
+            if ( url.indexOf( '/wp/v2/settings' ) !== -1 ) {
+                stubResponse = {};
+            } else if ( url.indexOf( '/wp/v2/themes' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/types' ) !== -1 ) {
+                stubResponse = {};
+            } else if ( url.indexOf( '/wp/v2/taxonomies' ) !== -1 ) {
+                stubResponse = {};
+            } else if ( url.indexOf( '/wp/v2/users/me' ) !== -1 ) {
+                stubResponse = { id: 1, name: 'admin', slug: 'admin', roles: [ 'administrator' ] };
+            } else if ( url.indexOf( '/wp/v2/users' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/media' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/blocks' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/block-patterns' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/comments' ) !== -1 ) {
+                stubResponse = [];
+            }
+
+            if ( stubResponse !== null ) {
+                return Promise.resolve( new Response(
+                    JSON.stringify( stubResponse ),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                ) );
             }
         }
 
