@@ -181,6 +181,46 @@ $sidebarItems = [
     ],
 ];
 
+// Dynamic: add custom post types to the sidebar menu.
+// Each custom post type gets its own menu item with taxonomy children.
+try {
+    $ptMenuItems = $app->getPostTypeManager()->getMenuItems();
+    $ptPosition  = 23; // Start after "Post Types" (22).
+    foreach ($ptMenuItems as $ptItem) {
+        $children = [];
+        // "All items" links to content listing filtered by post type.
+        $children[] = [
+            'id'    => 'pt-' . $ptItem['id'] . '-all',
+            'title' => 'All ' . $ptItem['name'],
+            'url'   => $adminPath . 'pages.php?post_type=' . urlencode($ptItem['id']),
+        ];
+        foreach ($ptItem['taxonomies'] as $tax) {
+            $children[] = [
+                'id'    => 'tax-' . $ptItem['id'] . '-' . $tax['id'],
+                'title' => $tax['name'],
+                'url'   => $adminPath . 'taxonomy.php?post_type=' . urlencode($ptItem['id']) . '&taxonomy=' . urlencode($tax['id']),
+            ];
+        }
+        $children[] = [
+            'id'    => 'pt-' . $ptItem['id'] . '-settings',
+            'title' => 'Settings',
+            'url'   => $adminPath . 'post-type-edit.php?id=' . urlencode($ptItem['id']),
+        ];
+        $sidebarItems[] = [
+            'id'         => 'pt-' . $ptItem['id'],
+            'title'      => $ptItem['name'],
+            'url'        => $adminPath . 'pages.php?post_type=' . urlencode($ptItem['id']),
+            'icon'       => mb_strtoupper(mb_substr($ptItem['name'], 0, 1)),
+            'position'   => $ptPosition++,
+            'section'    => 'content',
+            'capability' => 'pages.view',
+            'children'   => $children,
+        ];
+    }
+} catch (\Throwable $e) {
+    // Silently skip if PostTypeManager not available yet.
+}
+
 // Hook: allow plugins to add, remove, or modify sidebar items.
 $sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);
 

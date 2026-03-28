@@ -16,11 +16,29 @@ require_once __DIR__ . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
 
-$pageTitle = __( 'pages.title' );
 $auth      = $app->getAuth();
 $pages     = $app->getPages();
 $error     = '';
 $success   = '';
+
+// Post type filter: when accessed via ?post_type=casas, only show that type.
+$postTypeFilter = trim($_GET['post_type'] ?? '');
+$postTypeName   = '';
+
+if ($postTypeFilter !== '') {
+    // Resolve the human-readable name from the PostTypeManager.
+    try {
+        $ptDef        = $app->getPostTypeManager()->get($postTypeFilter);
+        $postTypeName = $ptDef['name'] ?? ucfirst($postTypeFilter);
+    } catch (\Throwable $e) {
+        $postTypeName = ucfirst($postTypeFilter);
+    }
+    $pageTitle   = $postTypeName;
+    $currentPage = 'pt-' . $postTypeFilter;
+} else {
+    $pageTitle   = __( 'pages.title' );
+    $currentPage = 'pages';
+}
 
 // Handle delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
@@ -34,9 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     }
 }
 
-$allPages = $pages->list('all');
+$allPages = $pages->list('all', '', 50, 0, $postTypeFilter);
 $csrf     = $auth->getCsrfToken();
-$currentPage = 'pages';
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
@@ -51,8 +68,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <div class="card">
     <div class="card-header">
-        <h3><?php echo __( 'pages.title' ); ?> (<?php echo count( $allPages); ?>)</h3>
-        <a href="page-editor.php" class="btn btn-primary btn-sm"><?php echo __( 'pages.create_page' ); ?></a>
+        <h3><?php echo htmlspecialchars($postTypeFilter !== '' ? $postTypeName : __( 'pages.title' )); ?> (<?php echo count( $allPages); ?>)</h3>
+        <a href="page-editor.php<?php echo $postTypeFilter !== '' ? '?post_type=' . urlencode($postTypeFilter) : ''; ?>" class="btn btn-primary btn-sm">
+            <?php echo $postTypeFilter !== '' ? '+ New ' . htmlspecialchars($postTypeName) : __( 'pages.create_page' ); ?>
+        </a>
     </div>
 
     <?php if (empty($allPages)): ?>

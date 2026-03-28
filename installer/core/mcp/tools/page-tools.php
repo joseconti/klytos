@@ -40,6 +40,7 @@ function registerPageTools(ToolRegistry $registry): void
             'custom_js'        => ['type' => 'string', 'description' => 'Custom JS for this page'],
             'hreflang_refs'    => ['type' => 'object', 'description' => 'Map of lang to slug for alternate versions. E.g.: {"en": "en/about", "es": "about"}', 'additionalProperties' => true],
             'order'            => ['type' => 'integer', 'description' => 'Sort order (lower = first)'],
+            'post_type'        => ['type' => 'string', 'description' => 'Post type identifier. Default "page". Use the custom post type slug for custom content (e.g. "casas", "productos").'],
         ],
         function (array $params, App $app): array {
             // Validate SEO fields.
@@ -93,6 +94,7 @@ function registerPageTools(ToolRegistry $registry): void
             'lang'             => ['type' => 'string'],
             'hreflang_refs'    => ['type' => 'object', 'additionalProperties' => true],
             'order'            => ['type' => 'integer'],
+            'post_type'        => ['type' => 'string', 'description' => 'Change the post type'],
         ],
         function (array $params, App $app): array {
             $slug = $params['slug'] ?? '';
@@ -138,17 +140,19 @@ function registerPageTools(ToolRegistry $registry): void
         'klytos_list_pages',
         'List all pages with optional filtering by status and language.',
         [
-            'status' => ['type' => 'string', 'description' => 'Filter: all, published, draft', 'enum' => ['all', 'published', 'draft']],
-            'lang'   => ['type' => 'string', 'description' => 'Filter by language code (empty = all)'],
-            'limit'  => ['type' => 'integer', 'description' => 'Max results (default 50)'],
-            'offset' => ['type' => 'integer', 'description' => 'Offset for pagination'],
+            'status'    => ['type' => 'string', 'description' => 'Filter: all, published, draft', 'enum' => ['all', 'published', 'draft']],
+            'lang'      => ['type' => 'string', 'description' => 'Filter by language code (empty = all)'],
+            'post_type' => ['type' => 'string', 'description' => 'Filter by post type slug (e.g. "page", "casas"). Empty = all types.'],
+            'limit'     => ['type' => 'integer', 'description' => 'Max results (default 50)'],
+            'offset'    => ['type' => 'integer', 'description' => 'Offset for pagination'],
         ],
         function (array $params, App $app): array {
             $pages = $app->getPages()->list(
                 $params['status'] ?? 'all',
                 $params['lang'] ?? '',
                 (int) ($params['limit'] ?? 50),
-                (int) ($params['offset'] ?? 0)
+                (int) ($params['offset'] ?? 0),
+                $params['post_type'] ?? ''
             );
             return ['pages' => $pages, 'total' => count($pages)];
         },

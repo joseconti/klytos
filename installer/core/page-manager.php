@@ -91,7 +91,10 @@ class PageManager
         $updatable = [
             'title', 'content_html', 'meta_description', 'template',
             'status', 'custom_css', 'custom_js', 'og_image',
-            'lang', 'hreflang_refs', 'order',
+            'lang',
+            'hreflang_refs',
+            'order',
+            'post_type',
         ];
 
         foreach ($updatable as $field) {
@@ -171,13 +174,14 @@ class PageManager
     /**
      * List all pages with optional filters.
      *
-     * @param  string $status  Filter: 'all', 'published', 'draft'.
-     * @param  string $lang    Filter by language code (empty = all).
+     * @param  string $status    Filter: 'all', 'published', 'draft'.
+     * @param  string $lang      Filter by language code (empty = all).
      * @param  int    $limit
      * @param  int    $offset
+     * @param  string $post_type Filter by post type (empty = all).
      * @return array
      */
-    public function list(string $status = 'all', string $lang = '', int $limit = 50, int $offset = 0): array
+    public function list(string $status = 'all', string $lang = '', int $limit = 50, int $offset = 0, string $post_type = ''): array
     {
         // Build filters for the storage layer.
         $filters = [];
@@ -186,6 +190,9 @@ class PageManager
         }
         if ($lang !== '') {
             $filters['lang'] = $lang;
+        }
+        if ($post_type !== '') {
+            $filters['post_type'] = $post_type;
         }
 
         // Delegate filtering and pagination to the storage backend.
@@ -209,14 +216,18 @@ class PageManager
     /**
      * Count total pages with optional status filter.
      *
-     * @param  string $status Filter: 'all', 'published', 'draft'.
+     * @param  string $status    Filter: 'all', 'published', 'draft'.
+     * @param  string $post_type Filter by post type (empty = all).
      * @return int
      */
-    public function count(string $status = 'all'): int
+    public function count(string $status = 'all', string $post_type = ''): int
     {
         $filters = [];
         if ($status !== 'all') {
             $filters['status'] = $status;
+        }
+        if ($post_type !== '') {
+            $filters['post_type'] = $post_type;
         }
 
         return $this->storage->count(self::COLLECTION, $filters);
@@ -388,6 +399,7 @@ class PageManager
             'lang'             => $data['lang'] ?? '',
             'hreflang_refs'    => $data['hreflang_refs'] ?? [],
             'order'            => (int) ($data['order'] ?? 0),
+            'post_type'        => $data['post_type'] ?? 'page',
         ];
     }
 }

@@ -38,6 +38,7 @@ $pageCanonical = '';
 $pageNoIndex   = false;
 $pageCustomCss = '';
 $pageCustomJs  = '';
+$pagePostType  = trim($_GET['post_type'] ?? 'page');
 
 if ( $slug ) {
     $page = $pm->get( $slug );
@@ -59,6 +60,7 @@ if ( $slug ) {
         $pageNoIndex   = ! empty( $page['noindex'] );
         $pageCustomCss = $page['custom_css'] ?? '';
         $pageCustomJs  = $page['custom_js'] ?? '';
+        $pagePostType  = $page['post_type'] ?? $pagePostType;
     }
 }
 
@@ -81,6 +83,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf( $_POST['csrf'
         'noindex'             => ! empty( $_POST['noindex'] ),
         'custom_css'          => $_POST['custom_css'] ?? '',
         'custom_js'           => $_POST['custom_js'] ?? '',
+        'post_type'           => $_POST['post_type'] ?? 'page',
     ];
 
     $saveSlug = $_POST['slug'] ?? '';
@@ -284,6 +287,7 @@ if ( $editorType === 'gutenberg' ) {
             <input type="hidden" name="slug" value="<?php echo htmlspecialchars( $slug ); ?>" id="page-slug">
             <input type="hidden" name="content_html" value="" id="content-html-field">
             <input type="hidden" name="content_blocks" value="" id="content-blocks-field">
+            <input type="hidden" name="post_type" value="<?php echo htmlspecialchars($pagePostType); ?>">
 
             <!-- ═══ FULLSCREEN EDITOR SHELL ═══ -->
             <div class="klytos-editor-shell" id="klytos-editor-shell">

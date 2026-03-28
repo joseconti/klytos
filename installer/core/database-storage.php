@@ -106,7 +106,7 @@ class DatabaseStorage implements StorageInterface
      * @var array<string, array<string, string>>
      */
     private const INDEX_FIELDS = [
-        'pages'            => ['status' => 'idx_status', 'lang' => 'idx_lang', 'slug' => 'idx_slug'],
+        'pages'            => ['status' => 'idx_status', 'lang' => 'idx_lang', 'slug' => 'idx_slug', 'post_type' => 'idx_type'],
         'users'            => ['role' => 'idx_status', 'username' => 'idx_slug'],
         'tasks'            => ['status' => 'idx_status', 'priority' => 'idx_type'],
         'page-versions'    => ['page_slug' => 'idx_slug'],
