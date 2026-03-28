@@ -66,7 +66,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header">
         <h3>Post Types (<?php echo count( $postTypes ); ?>)</h3>
-        <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-pt').style.display='flex'">+ New Post Type</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btn-new-pt">+ New Post Type</button>
     </div>
 
     <?php if (empty($postTypes)): ?>
@@ -128,7 +128,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div style="background:var(--admin-card-bg, #fff);border-radius:12px;padding:2rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
             <h3 style="margin:0;">New Post Type</h3>
-            <button type="button" onclick="document.getElementById('modal-create-pt').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--admin-text-muted, #666);">&times;</button>
+            <button type="button" id="btn-close-modal-x" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--admin-text-muted, #666);">&times;</button>
         </div>
         <form method="post">
             <input type="hidden" name="action" value="create">
@@ -148,7 +148,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <p class="form-help">URL prefix for this post type.</p>
             </div>
             <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem;">
-                <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-create-pt').style.display='none'">Cancel</button>
+                <button type="button" class="btn btn-outline" id="btn-cancel-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Create</button>
             </div>
         </form>
@@ -157,6 +157,31 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
+    var modal = document.getElementById('modal-create-pt');
+
+    // Open modal
+    document.getElementById('btn-new-pt').addEventListener('click', function() {
+        modal.style.display = 'flex';
+    });
+
+    // Close modal (X button, Cancel button, backdrop click, Escape key)
+    document.getElementById('btn-close-modal-x').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    document.getElementById('btn-cancel-modal').addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        }
+    });
+
     // Confirm delete
     document.querySelectorAll('.form-confirm-delete').forEach(function(form) {
         form.addEventListener('submit', function(e) {
@@ -164,21 +189,6 @@ require_once __DIR__ . '/templates/sidebar.php';
                 e.preventDefault();
             }
         });
-    });
-
-    // Close modal on backdrop click
-    var modal = document.getElementById('modal-create-pt');
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-
-    // Close modal on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.style.display === 'flex') {
-            modal.style.display = 'none';
-        }
     });
 })();
 </script>
