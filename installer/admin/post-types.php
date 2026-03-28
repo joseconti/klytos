@@ -24,54 +24,28 @@ $error       = '';
 $success     = '';
 
 // Handle POST actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
     $action = $_POST['action'] ?? '';
 
-    if ($auth->validateCsrf($_POST['csrf'] ?? '')) {
-        try {
-            switch ($action) {
-                case 'create':
-                    $ptManager->create([
-                        'id'   => $_POST['id'] ?? '',
-                        'name' => $_POST['name'] ?? '',
-                        'slug' => $_POST['slug'] ?? '',
-                    ]);
-                    $success = __( 'common.success' );
-                    break;
-
-                case 'delete':
-                    $deleteId = $_POST['id'] ?? '';
-                    if ($deleteId === 'page') {
-                        $error = 'Cannot delete the built-in page post type.';
-                    } else {
-                        $ptManager->delete($deleteId);
-                        $success = __( 'common.success' );
-                    }
-                    break;
-
-                case 'add_taxonomy':
-                    $ptManager->addTaxonomy($_POST['post_type_id'] ?? '', [
-                        'id'           => $_POST['tax_id'] ?? '',
-                        'name'         => $_POST['tax_name'] ?? '',
-                        'slug'         => $_POST['tax_slug'] ?? '',
-                        'hierarchical' => isset($_POST['hierarchical']),
-                    ]);
-                    $success = __( 'common.success' );
-                    break;
-
-                case 'remove_taxonomy':
-                    $ptManager->removeTaxonomy(
-                        $_POST['post_type_id'] ?? '',
-                        $_POST['tax_id'] ?? ''
-                    );
-                    $success = __( 'common.success' );
-                    break;
+    try {
+        if ($action === 'create') {
+            $ptManager->create([
+                'id'   => $_POST['id'] ?? '',
+                'name' => $_POST['name'] ?? '',
+                'slug' => $_POST['slug'] ?? '',
+            ]);
+            $success = __( 'common.success' );
+        } elseif ($action === 'delete') {
+            $deleteId = $_POST['id'] ?? '';
+            if ($deleteId === 'page') {
+                $error = 'Cannot delete the built-in page post type.';
+            } else {
+                $ptManager->delete($deleteId);
+                $success = __( 'common.success' );
             }
-        } catch (\Throwable $e) {
-            $error = $e->getMessage();
         }
-    } else {
-        $error = __( 'common.error' );
+    } catch (\Throwable $e) {
+        $error = $e->getMessage();
     }
 }
 
@@ -91,30 +65,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <div class="card">
     <div class="card-header">
-        <h3>Create New Post Type</h3>
-    </div>
-    <form method="post" style="padding:1.5rem;">
-        <input type="hidden" name="action" value="create">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
-        <div class="form-group">
-            <label>ID (slug format)</label>
-            <input type="text" name="id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. product">
-        </div>
-        <div class="form-group">
-            <label>Name</label>
-            <input type="text" name="name" class="form-control" required placeholder="e.g. Products">
-        </div>
-        <div class="form-group">
-            <label>Slug</label>
-            <input type="text" name="slug" class="form-control" required placeholder="e.g. products">
-        </div>
-        <button type="submit" class="btn btn-primary">Create Post Type</button>
-    </form>
-</div>
-
-<div class="card" style="margin-top:1.5rem;">
-    <div class="card-header">
         <h3>Post Types (<?php echo count( $postTypes ); ?>)</h3>
+        <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('modal-create-pt').style.display='flex'">+ New Post Type</button>
     </div>
 
     <?php if (empty($postTypes)): ?>
@@ -140,7 +92,13 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <td class="mono"><?php echo htmlspecialchars( $pt['id'] ?? '' ); ?></td>
                         <td><?php echo htmlspecialchars( $pt['name'] ?? '' ); ?></td>
                         <td class="mono"><?php echo htmlspecialchars( $pt['slug'] ?? '' ); ?></td>
-                        <td><?php echo count( $pt['taxonomies'] ?? [] ); ?></td>
+                        <td>
+                            <?php
+                            $taxList = $pt['taxonomies'] ?? [];
+                            $taxNames = array_map(fn($t) => $t['name'] ?? $t['id'] ?? '', $taxList);
+                            ?>
+                            <span title="<?php echo htmlspecialchars(implode(', ', $taxNames)); ?>" style="cursor:default;"><?php echo count($taxList); ?></span>
+                        </td>
                         <td>
                             <span class="badge-status badge-<?php echo ($pt['builtin'] ?? false) ? 'published' : 'draft'; ?>">
                                 <?php echo ($pt['builtin'] ?? false) ? 'Yes' : 'No'; ?>
@@ -155,8 +113,6 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
                                 <button type="submit" class="btn btn-danger btn-sm"><?php echo __( 'common.delete' ); ?></button>
                             </form>
-                            <?php else: ?>
-                            <button type="button" class="btn btn-danger btn-sm" disabled><?php echo __( 'common.delete' ); ?></button>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -167,98 +123,62 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php endif; ?>
 </div>
 
-<?php foreach ($postTypes as $pt):
-    $ptId     = $pt['id'] ?? '';
-    $isBuiltin = $pt['builtin'] ?? false;
-
-    // Show taxonomy section for non-built-in post types AND for the built-in 'page'
-    if ($isBuiltin && $ptId !== 'page') {
-        continue;
-    }
-?>
-<div class="card" style="margin-top:1.5rem;">
-    <div class="card-header">
-        <h3>Taxonomies for &ldquo;<?php echo htmlspecialchars( $pt['name'] ?? '' ); ?>&rdquo;</h3>
+<!-- Modal: Create Post Type -->
+<div id="modal-create-pt" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);">
+    <div style="background:var(--admin-card-bg, #fff);border-radius:12px;padding:2rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <h3 style="margin:0;">New Post Type</h3>
+            <button type="button" onclick="document.getElementById('modal-create-pt').style.display='none'" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--admin-text-muted, #666);">&times;</button>
+        </div>
+        <form method="post">
+            <input type="hidden" name="action" value="create">
+            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <div class="form-group">
+                <label>ID</label>
+                <input type="text" name="id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. product">
+                <p class="form-help">Lowercase, no spaces. This cannot be changed later.</p>
+            </div>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" class="form-control" required placeholder="e.g. Products">
+            </div>
+            <div class="form-group">
+                <label>Slug</label>
+                <input type="text" name="slug" class="form-control" required placeholder="e.g. products">
+                <p class="form-help">URL prefix for this post type.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem;">
+                <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-create-pt').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </form>
     </div>
-
-    <?php $taxonomies = $pt['taxonomies'] ?? []; ?>
-
-    <?php if (!empty($taxonomies)): ?>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th>Hierarchical</th>
-                    <th><?php echo __( 'common.actions' ); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($taxonomies as $tax): ?>
-                <tr>
-                    <td class="mono"><?php echo htmlspecialchars( $tax['id'] ?? '' ); ?></td>
-                    <td><?php echo htmlspecialchars( $tax['name'] ?? '' ); ?></td>
-                    <td class="mono"><?php echo htmlspecialchars( $tax['slug'] ?? '' ); ?></td>
-                    <td>
-                        <span class="badge-status badge-<?php echo ($tax['hierarchical'] ?? false) ? 'published' : 'draft'; ?>">
-                            <?php echo ($tax['hierarchical'] ?? false) ? 'Yes' : 'No'; ?>
-                        </span>
-                    </td>
-                    <td>
-                        <form method="post" style="display:inline;" class="form-confirm-delete">
-                            <input type="hidden" name="action" value="remove_taxonomy">
-                            <input type="hidden" name="post_type_id" value="<?php echo htmlspecialchars( $ptId ); ?>">
-                            <input type="hidden" name="tax_id" value="<?php echo htmlspecialchars( $tax['id'] ?? '' ); ?>">
-                            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
-                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                        </form>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-    <?php else: ?>
-    <div class="empty-state">
-        <p>No taxonomies registered for this post type.</p>
-    </div>
-    <?php endif; ?>
-
-    <form method="post" style="padding:1.5rem;border-top:1px solid var(--border, #e2e8f0);">
-        <h4 style="margin-bottom:1rem;">Add Taxonomy</h4>
-        <input type="hidden" name="action" value="add_taxonomy">
-        <input type="hidden" name="post_type_id" value="<?php echo htmlspecialchars( $ptId ); ?>">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
-        <div class="form-group">
-            <label>ID (slug format)</label>
-            <input type="text" name="tax_id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. category">
-        </div>
-        <div class="form-group">
-            <label>Name</label>
-            <input type="text" name="tax_name" class="form-control" required placeholder="e.g. Categories">
-        </div>
-        <div class="form-group">
-            <label>Slug</label>
-            <input type="text" name="tax_slug" class="form-control" required placeholder="e.g. categories">
-        </div>
-        <div class="form-group">
-            <label><input type="checkbox" name="hierarchical" value="1"> Hierarchical</label>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm">Add Taxonomy</button>
-    </form>
 </div>
-<?php endforeach; ?>
 
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
-    document.querySelectorAll( '.form-confirm-delete' ).forEach( function( form ) {
-        form.addEventListener( 'submit', function( e ) {
-            if ( !confirm( 'Are you sure you want to delete this item?' ) ) {
+    // Confirm delete
+    document.querySelectorAll('.form-confirm-delete').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            if (!confirm('Are you sure you want to delete this post type?')) {
                 e.preventDefault();
             }
         });
+    });
+
+    // Close modal on backdrop click
+    var modal = document.getElementById('modal-create-pt');
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        }
     });
 })();
 </script>
