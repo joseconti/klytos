@@ -23,7 +23,7 @@ $success   = '';
 $error     = '';
 
 // Handle upload
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'upload' && isset($_FILES['file'])) {
@@ -61,24 +61,29 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <!-- Upload -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'assets.upload' ); ?></h3></div>
-    <form method="post" enctype="multipart/form-data">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="upload">
+
+        <div id="drop-zone" style="border:2px dashed var(--admin-border, #555);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:1rem;">
+            <p style="margin:0 0 0.5rem;font-size:1.1rem;" id="drop-zone-text">
+                Drag &amp; drop files here or click to select
+            </p>
+            <p style="margin:0;font-size:0.85rem;color:var(--admin-text-muted,#888);" id="drop-zone-file"></p>
+            <input type="file" name="file" id="file-input" style="display:none;" required>
+        </div>
+
         <div style="display:flex;gap:1rem;align-items:end;">
             <div class="form-group" style="flex:1;">
-                <label><?php echo __( 'assets.upload' ); ?></label>
-                <input type="file" name="file" class="form-control" required>
-            </div>
-            <div class="form-group">
                 <label>Directory</label>
                 <select name="directory" class="form-control">
                     <option value="images">images</option>
@@ -113,15 +118,15 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <tbody>
                     <?php foreach ($allAssets as $asset): ?>
                     <tr>
-                        <td class="mono" style="font-size:0.8rem;"><?php echo htmlspecialchars( $asset['path'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars( $asset['mime_type'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars( $asset['size_human'] ?? ''); ?></td>
+                        <td class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $asset['path'] ?? ''); ?></td>
+                        <td><?php echo klytos_esc_html( $asset['mime_type'] ?? ''); ?></td>
+                        <td><?php echo klytos_esc_html( $asset['size_human'] ?? ''); ?></td>
                         <td><?php echo $asset['modified'] ? date( 'Y-m-d', strtotime($asset['modified'])) : ''; ?></td>
                         <td>
                             <form method="post" style="display:inline;" class="form-confirm-delete">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="path" value="<?php echo htmlspecialchars( $asset['path'] ?? '' ); ?>">
+                                <input type="hidden" name="path" value="<?php echo klytos_esc_attr( $asset['path'] ?? '' ); ?>">
                                 <button type="submit" class="btn btn-danger btn-sm"><?php echo __( 'common.delete' ); ?></button>
                             </form>
                         </td>
@@ -135,12 +140,63 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
+    // Confirm delete.
     document.querySelectorAll( '.form-confirm-delete' ).forEach( function( form ) {
         form.addEventListener( 'submit', function( e ) {
             if ( !confirm( '<?php echo __( 'assets.confirm_delete_asset' ); ?>' ) ) {
                 e.preventDefault();
             }
         });
+    });
+
+    // Drag & drop upload.
+    var dropZone   = document.getElementById('drop-zone');
+    var fileInput  = document.getElementById('file-input');
+    var fileLabel  = document.getElementById('drop-zone-file');
+
+    if (!dropZone || !fileInput) return;
+
+    // Click to open file picker.
+    dropZone.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // Show selected file name.
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files.length) {
+            fileLabel.textContent = fileInput.files[0].name;
+        }
+    });
+
+    // Prevent default browser behavior for drag events.
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(evt) {
+        dropZone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+
+    // Visual feedback on drag.
+    ['dragenter', 'dragover'].forEach(function(evt) {
+        dropZone.addEventListener(evt, function() {
+            dropZone.style.borderColor = 'var(--admin-primary, #4f8cff)';
+            dropZone.style.background  = 'rgba(79,140,255,0.08)';
+        });
+    });
+    ['dragleave', 'drop'].forEach(function(evt) {
+        dropZone.addEventListener(evt, function() {
+            dropZone.style.borderColor = '';
+            dropZone.style.background  = '';
+        });
+    });
+
+    // Handle dropped files.
+    dropZone.addEventListener('drop', function(e) {
+        var files = e.dataTransfer.files;
+        if (files.length) {
+            fileInput.files = files;
+            fileLabel.textContent = files[0].name;
+        }
     });
 })();
 </script>

@@ -52,7 +52,7 @@ $currentPage  = 'taxonomy';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    if ($auth->validateCsrf($_POST['csrf'] ?? '')) {
+    if (klytos_verify_csrf()) {
         switch ($action) {
             case 'add_term':
                 $termData = [
@@ -107,19 +107,19 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <div class="card">
     <div class="card-header">
-        <h3><?php echo htmlspecialchars( $taxonomyName ); ?> — <?php echo __( 'common.add' ); ?></h3>
+        <h3><?php echo klytos_esc_html( $taxonomyName ); ?> — <?php echo __( 'common.add' ); ?></h3>
     </div>
     <form method="post">
         <input type="hidden" name="action" value="add_term">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <div class="form-group">
             <label><?php echo __( 'common.name' ); ?></label>
             <input type="text" name="name" class="form-control" required>
@@ -138,7 +138,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <div class="card">
     <div class="card-header">
-        <h3><?php echo htmlspecialchars( $taxonomyName ); ?> (<?php echo count( $terms ); ?>)</h3>
+        <h3><?php echo klytos_esc_html( $taxonomyName ); ?> (<?php echo count( $terms ); ?>)</h3>
     </div>
 
     <?php if (empty($terms)): ?>
@@ -159,14 +159,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <tbody>
                     <?php foreach ($terms as $term): ?>
                     <tr>
-                        <td class="mono"><?php echo htmlspecialchars( $term['slug'] ?? '' ); ?></td>
-                        <td><?php echo htmlspecialchars( $term['name'] ?? '' ); ?></td>
-                        <td><?php echo htmlspecialchars( $term['description'] ?? '' ); ?></td>
+                        <td class="mono"><?php echo klytos_esc_html( $term['slug'] ?? '' ); ?></td>
+                        <td><?php echo klytos_esc_html( $term['name'] ?? '' ); ?></td>
+                        <td><?php echo klytos_esc_html( $term['description'] ?? '' ); ?></td>
                         <td style="display:flex;gap:0.5rem;align-items:center;">
                             <form method="post" style="display:inline;" class="form-confirm-delete">
                                 <input type="hidden" name="action" value="delete_term">
-                                <input type="hidden" name="slug" value="<?php echo htmlspecialchars( $term['slug'] ?? '' ); ?>">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <input type="hidden" name="slug" value="<?php echo klytos_esc_attr( $term['slug'] ?? '' ); ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <button type="submit" class="btn btn-danger btn-sm"><?php echo __( 'common.delete' ); ?></button>
                             </form>
                         </td>

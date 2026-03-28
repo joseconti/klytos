@@ -42,7 +42,7 @@ $siteConfig = $app->getSiteConfig()->get();
 $languages  = $siteConfig['languages'] ?? [];
 
 // Handle POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? 'update';
 
     try {
@@ -91,30 +91,30 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html($success); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html($error); ?></div>
 <?php endif; ?>
 
 <!-- Post Type Settings -->
 <div class="card">
     <div class="card-header">
-        <h3>Post Type: <?php echo htmlspecialchars($postType['name'] ?? $ptId); ?></h3>
+        <h3>Post Type: <?php echo klytos_esc_html($postType['name'] ?? $ptId); ?></h3>
         <a href="post-types.php" class="btn btn-outline btn-sm">Back</a>
     </div>
     <form method="post" style="padding:1.5rem;">
         <input type="hidden" name="action" value="update">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label>Name</label>
-                <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($postType['name'] ?? ''); ?>" required>
+                <input type="text" name="name" class="form-control" value="<?php echo klytos_esc_attr($postType['name'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Slug</label>
-                <input type="text" name="slug" class="form-control" value="<?php echo htmlspecialchars($postType['slug'] ?? ''); ?>" required
+                <input type="text" name="slug" class="form-control" value="<?php echo klytos_esc_attr($postType['slug'] ?? ''); ?>" required
                     <?php echo ($postType['builtin'] ?? false) ? '' : ''; ?>>
                 <p class="form-help">URL prefix. Use <code>/</code> for root (pages only).</p>
             </div>
@@ -128,8 +128,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 $langSlug = $postType['slug_i18n'][$code] ?? '';
             ?>
                 <div class="form-group">
-                    <label><?php echo htmlspecialchars($lang['name'] ?? $code); ?> (<?php echo htmlspecialchars($code); ?>)</label>
-                    <input type="text" name="slug_i18n_<?php echo htmlspecialchars($code); ?>" class="form-control" value="<?php echo htmlspecialchars($langSlug); ?>" placeholder="<?php echo htmlspecialchars($postType['slug'] ?? ''); ?>">
+                    <label><?php echo klytos_esc_html($lang['name'] ?? $code); ?> (<?php echo klytos_esc_html($code); ?>)</label>
+                    <input type="text" name="slug_i18n_<?php echo klytos_esc_attr($code); ?>" class="form-control" value="<?php echo klytos_esc_attr($langSlug); ?>" placeholder="<?php echo klytos_esc_attr($postType['slug'] ?? ''); ?>">
                 </div>
             <?php endforeach; ?>
         </div>
@@ -162,9 +162,9 @@ require_once __DIR__ . '/templates/sidebar.php';
             <tbody>
                 <?php foreach ($taxonomies as $tax): ?>
                 <tr>
-                    <td class="mono"><?php echo htmlspecialchars($tax['id'] ?? ''); ?></td>
-                    <td><?php echo htmlspecialchars($tax['name'] ?? ''); ?></td>
-                    <td class="mono"><?php echo htmlspecialchars($tax['slug'] ?? ''); ?></td>
+                    <td class="mono"><?php echo klytos_esc_html($tax['id'] ?? ''); ?></td>
+                    <td><?php echo klytos_esc_html($tax['name'] ?? ''); ?></td>
+                    <td class="mono"><?php echo klytos_esc_html($tax['slug'] ?? ''); ?></td>
                     <td>
                         <span class="badge-status badge-<?php echo ($tax['hierarchical'] ?? false) ? 'published' : 'draft'; ?>">
                             <?php echo ($tax['hierarchical'] ?? false) ? 'Yes' : 'No'; ?>
@@ -174,8 +174,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <a href="taxonomy.php?post_type=<?php echo urlencode($ptId); ?>&taxonomy=<?php echo urlencode($tax['id'] ?? ''); ?>" class="btn btn-outline btn-sm">Terms</a>
                         <form method="post" style="display:inline;" class="form-confirm-delete">
                             <input type="hidden" name="action" value="remove_taxonomy">
-                            <input type="hidden" name="tax_id" value="<?php echo htmlspecialchars($tax['id'] ?? ''); ?>">
-                            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                            <input type="hidden" name="tax_id" value="<?php echo klytos_esc_attr($tax['id'] ?? ''); ?>">
+                            <?php echo klytos_csrf_field(); ?>
                             <button type="submit" class="btn btn-danger btn-sm">Remove</button>
                         </form>
                     </td>
@@ -193,7 +193,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post" style="padding:1.5rem;border-top:1px solid var(--admin-border, #e2e8f0);">
         <h4 style="margin-bottom:1rem;">Add Taxonomy</h4>
         <input type="hidden" name="action" value="add_taxonomy">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label>ID</label>

@@ -329,8 +329,8 @@ class PageManager
 
         $last = count($crumbs) - 1;
         foreach ($crumbs as $i => $crumb) {
-            $title = htmlspecialchars($crumb['title'], ENT_QUOTES, 'UTF-8');
-            $url   = htmlspecialchars($crumb['url'], ENT_QUOTES, 'UTF-8');
+            $title = Helpers::escHtml( $crumb['title'] );
+            $url   = Helpers::escUrl( $crumb['url'] );
 
             if ($i === $last) {
                 // Current page — no link, aria-current.

@@ -27,7 +27,7 @@ $success      = '';
 $error        = '';
 
 // ─── Handle POST actions (activate / deactivate) ─────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action   = $_POST['action'] ?? '';
     $pluginId = $_POST['plugin_id'] ?? '';
 
@@ -53,18 +53,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] 
 
 // ─── Get list of all plugins ─────────────────────────────────
 $plugins = $pluginLoader->listAll();
-$csrf    = $auth->getCsrfToken();
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 
 <?php if (!empty($error)): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <!-- Marketplace link -->
@@ -106,26 +105,26 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <?php foreach ($plugins as $plugin): ?>
                 <tr>
                     <td>
-                        <strong><?php echo htmlspecialchars( $plugin['name'] ); ?></strong>
+                        <strong><?php echo klytos_esc_html( $plugin['name'] ); ?></strong>
                         <br>
                         <small style="color: var(--admin-text-muted);">
-                            <?php echo htmlspecialchars( $plugin['description'] ); ?>
+                            <?php echo klytos_esc_html( $plugin['description'] ); ?>
                         </small>
                         <?php if (!empty($plugin['error'])): ?>
                             <br>
                             <small style="color: var(--admin-error);">
-                                Error: <?php echo htmlspecialchars( $plugin['error'] ); ?>
+                                Error: <?php echo klytos_esc_html( $plugin['error'] ); ?>
                             </small>
                         <?php endif; ?>
                     </td>
-                    <td><?php echo htmlspecialchars( $plugin['version'] ); ?></td>
+                    <td><?php echo klytos_esc_html( $plugin['version'] ); ?></td>
                     <td>
                         <?php if (!empty($plugin['author_url'])): ?>
-                            <a href="<?php echo htmlspecialchars( $plugin['author_url'] ); ?>" target="_blank" rel="noopener">
-                                <?php echo htmlspecialchars( $plugin['author'] ); ?>
+                            <a href="<?php echo klytos_esc_url( $plugin['author_url'] ); ?>" target="_blank" rel="noopener">
+                                <?php echo klytos_esc_html( $plugin['author'] ); ?>
                             </a>
                         <?php else: ?>
-                            <?php echo htmlspecialchars( $plugin['author'] ); ?>
+                            <?php echo klytos_esc_html( $plugin['author'] ); ?>
                         <?php endif; ?>
                     </td>
                     <td>
@@ -145,16 +144,16 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <td>
                         <?php if ($plugin['active']): ?>
                             <form method="post" style="display:inline;">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="deactivate">
-                                <input type="hidden" name="plugin_id" value="<?php echo htmlspecialchars( $plugin['id'] ); ?>">
+                                <input type="hidden" name="plugin_id" value="<?php echo klytos_esc_attr( $plugin['id'] ); ?>">
                                 <button type="submit" class="btn btn-outline btn-sm">Deactivate</button>
                             </form>
                         <?php else: ?>
                             <form method="post" style="display:inline;">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="activate">
-                                <input type="hidden" name="plugin_id" value="<?php echo htmlspecialchars( $plugin['id'] ); ?>">
+                                <input type="hidden" name="plugin_id" value="<?php echo klytos_esc_attr( $plugin['id'] ); ?>">
                                 <button type="submit" class="btn btn-primary btn-sm">Activate</button>
                             </form>
                         <?php endif; ?>

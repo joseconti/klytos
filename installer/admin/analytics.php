@@ -99,7 +99,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="chart-bar" style="height:140px">
         <?php foreach ($dailyViews as $date => $count): ?>
             <div class="chart-bar-item" style="height:<?php echo round(($count / $maxViews) * 100); ?>%"
-                 title="<?php echo htmlspecialchars( $date ); ?>: <?php echo $count; ?> views"></div>
+                 title="<?php echo klytos_esc_attr( $date ); ?>: <?php echo $count; ?> views"></div>
         <?php endforeach; ?>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--admin-text-muted);margin-top:0.4rem">
@@ -126,7 +126,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <tbody>
                         <?php foreach (array_slice($summary['top_pages'], 0, 10, true) as $path => $views): ?>
                         <tr>
-                            <td><code style="font-size:0.85rem"><?php echo htmlspecialchars( $path ); ?></code></td>
+                            <td><code style="font-size:0.85rem"><?php echo klytos_esc_html( $path ); ?></code></td>
                             <td style="text-align:right;font-weight:600"><?php echo number_format( $views); ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -152,7 +152,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <tbody>
                         <?php foreach ($summary['top_referrers'] as $domain => $count): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars( $domain ); ?></td>
+                            <td><?php echo klytos_esc_html( $domain ); ?></td>
                             <td style="text-align:right;font-weight:600"><?php echo number_format( $count); ?></td>
                         </tr>
                         <?php endforeach; ?>
@@ -181,7 +181,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 } ?>
             </div>
             <div style="font-weight:700;font-size:1.2rem"><?php echo $info['percentage']; ?>%</div>
-            <div style="font-size:0.8rem;color:var(--admin-text-muted)"><?php echo ucfirst( htmlspecialchars( $category )); ?></div>
+            <div style="font-size:0.8rem;color:var(--admin-text-muted)"><?php echo ucfirst( klytos_esc_html( $category )); ?></div>
             <div style="font-size:0.75rem;color:var(--admin-text-muted)"><?php echo number_format( $info['count']); ?> visits</div>
         </div>
         <?php endforeach; ?>

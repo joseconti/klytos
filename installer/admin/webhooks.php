@@ -30,7 +30,7 @@ $createdSecret  = null;
 $csrf           = $auth->getCsrfToken();
 
 // ─── Handle POST actions ─────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
@@ -83,16 +83,16 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <?php if ($createdSecret): ?>
     <div class="alert alert-warning">
         <strong>Signing Secret (copy now — will not be shown again):</strong>
-        <div class="token-display" style="margin-top:0.5rem"><?php echo htmlspecialchars( $createdSecret ); ?></div>
+        <div class="token-display" style="margin-top:0.5rem"><?php echo klytos_esc_html( $createdSecret ); ?></div>
         <p style="font-size:0.8rem;margin-top:0.4rem">
             Use this secret to verify webhook signatures via the <code>X-Klytos-Signature</code> header.
             Signature format: <code>sha256=HMAC(body, secret)</code>
@@ -122,7 +122,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div></div>
     <div style="display:flex;gap:0.5rem">
         <form method="post" style="display:inline">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="test">
             <button type="submit" class="btn btn-outline">Send Test Event</button>
         </form>
@@ -156,19 +156,19 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <?php foreach ($webhooks as $wh): ?>
                     <tr>
                         <td>
-                            <code style="font-size:0.8rem"><?php echo htmlspecialchars( $wh['url'] ?? ''); ?></code>
+                            <code style="font-size:0.8rem"><?php echo klytos_esc_html( $wh['url'] ?? ''); ?></code>
                             <?php if (!empty($wh['description'])): ?>
-                                <br><small style="color:var(--admin-text-muted)"><?php echo htmlspecialchars( $wh['description'] ); ?></small>
+                                <br><small style="color:var(--admin-text-muted)"><?php echo klytos_esc_html( $wh['description'] ); ?></small>
                             <?php endif; ?>
                         </td>
                         <td>
                             <?php foreach (($wh['events'] ?? []) as $event): ?>
-                                <span class="badge-status badge-medium" style="margin:1px 0;display:inline-block"><?php echo htmlspecialchars( $event ); ?></span>
+                                <span class="badge-status badge-medium" style="margin:1px 0;display:inline-block"><?php echo klytos_esc_html( $event ); ?></span>
                             <?php endforeach; ?>
                         </td>
                         <td>
                             <span class="badge-status badge-<?php echo ($wh['status'] ?? '') === 'active' ? 'active' : 'inactive'; ?>">
-                                <?php echo ucfirst( htmlspecialchars( $wh['status'] ?? 'unknown')); ?>
+                                <?php echo ucfirst( klytos_esc_html( $wh['status'] ?? 'unknown')); ?>
                             </span>
                         </td>
                         <td>
@@ -182,9 +182,9 @@ require_once __DIR__ . '/templates/sidebar.php';
                         </td>
                         <td>
                             <form method="post" style="display:inline">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="webhook_id" value="<?php echo htmlspecialchars( $wh['id'] ?? ''); ?>">
+                                <input type="hidden" name="webhook_id" value="<?php echo klytos_esc_attr( $wh['id'] ?? ''); ?>">
                                 <button type="submit" class="btn btn-danger btn-sm btn-confirm-delete">Delete</button>
                             </form>
                         </td>
@@ -201,7 +201,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="modal">
         <h3>Create New Webhook</h3>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="create">
 
             <div class="form-group">
@@ -220,8 +220,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-top:0.3rem">
                     <?php foreach ($availableEvents as $event => $desc): ?>
                     <label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;font-size:0.85rem;cursor:pointer">
-                        <input type="checkbox" name="events[]" value="<?php echo htmlspecialchars( $event ); ?>">
-                        <span title="<?php echo htmlspecialchars( $desc ); ?>"><?php echo htmlspecialchars( $event ); ?></span>
+                        <input type="checkbox" name="events[]" value="<?php echo klytos_esc_attr( $event ); ?>">
+                        <span title="<?php echo klytos_esc_attr( $desc ); ?>"><?php echo klytos_esc_html( $event ); ?></span>
                     </label>
                     <?php endforeach; ?>
                 </div>

@@ -42,7 +42,7 @@ if (!$userId) {
 $tfConfig = $userId ? $twoFactor->getUserConfig($userId) : [];
 
 // ─── Handle POST actions ────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '') && $userId) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
     $action = $_POST['action'] ?? '';
 
     // ── TOTP Setup ──
@@ -127,11 +127,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html($success); ?></div>
 <?php endif; ?>
 
 <?php if ($error): ?>
-    <div class="alert alert-error" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;"><?php echo htmlspecialchars($error); ?></div>
+    <div class="alert alert-error" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;"><?php echo klytos_esc_html($error); ?></div>
 <?php endif; ?>
 
 <!-- ─── Recovery Codes (shown once after generation) ─── -->
@@ -141,7 +141,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <p style="color:#92400e;margin-bottom:1rem;"><?php echo __('security.recovery_codes_warning'); ?></p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;max-width:400px;margin-bottom:1rem;">
         <?php foreach ($recoveryCodes as $code): ?>
-            <code style="background:#fff;padding:0.5rem;border-radius:6px;text-align:center;font-size:1.1rem;border:1px solid #e5e7eb;"><?php echo htmlspecialchars($code); ?></code>
+            <code style="background:#fff;padding:0.5rem;border-radius:6px;text-align:center;font-size:1.1rem;border:1px solid #e5e7eb;"><?php echo klytos_esc_html($code); ?></code>
         <?php endforeach; ?>
     </div>
     <p style="color:#92400e;font-size:0.85rem;"><?php echo __('security.recovery_codes_count', ['count' => count($recoveryCodes)]); ?></p>
@@ -164,7 +164,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
         <?php foreach ($tfConfig['methods'] as $method): ?>
             <span style="background:#eff6ff;color:#2563eb;padding:0.25rem 0.75rem;border-radius:6px;font-size:0.85rem;font-weight:600;">
-                <?php echo htmlspecialchars(__('security.method_' . $method)); ?>
+                <?php echo klytos_esc_html(__('security.method_' . $method)); ?>
             </span>
         <?php endforeach; ?>
     </div>
@@ -182,7 +182,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php if ($tfConfig['totp_configured'] ?? false): ?>
         <p style="color:#166534;font-weight:600;margin-bottom:1rem;"><?php echo __('security.totp_active'); ?></p>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="totp_disable">
             <button type="submit" class="btn btn-outline" onclick="return confirm('<?php echo __('security.confirm_disable'); ?>');"><?php echo __('security.disable_totp'); ?></button>
         </form>
@@ -194,10 +194,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=<?php echo urlencode($totpSetupUri); ?>" alt="QR Code" style="border-radius:8px;">
             </div>
             <p style="font-size:0.85rem;color:#64748b;margin-bottom:0.5rem;"><?php echo __('security.totp_manual_key'); ?></p>
-            <code style="display:block;background:#fff;padding:0.5rem;border-radius:6px;font-size:0.9rem;word-break:break-all;border:1px solid #e5e7eb;"><?php echo htmlspecialchars($totpSetupSecret); ?></code>
+            <code style="display:block;background:#fff;padding:0.5rem;border-radius:6px;font-size:0.9rem;word-break:break-all;border:1px solid #e5e7eb;"><?php echo klytos_esc_html($totpSetupSecret); ?></code>
         </div>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="totp_verify">
             <div class="form-group">
                 <label><?php echo __('security.enter_totp_code'); ?></label>
@@ -208,7 +208,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php else: ?>
         <!-- TOTP Setup Step 1: Start -->
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="totp_setup">
             <button type="submit" class="btn btn-primary"><?php echo __('security.setup_totp'); ?></button>
         </form>
@@ -223,13 +223,13 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php if (in_array('email', $tfConfig['methods'] ?? [], true)): ?>
         <p style="color:#166534;font-weight:600;margin-bottom:1rem;"><?php echo __('security.email_active'); ?></p>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="email_disable">
             <button type="submit" class="btn btn-outline"><?php echo __('security.disable_email'); ?></button>
         </form>
     <?php else: ?>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="email_enable">
             <button type="submit" class="btn btn-primary"><?php echo __('security.enable_email'); ?></button>
         </form>
@@ -247,13 +247,13 @@ require_once __DIR__ . '/templates/sidebar.php';
         <tbody>
             <?php foreach ($tfConfig['passkeys'] as $pk): ?>
             <tr>
-                <td><?php echo htmlspecialchars($pk['label']); ?></td>
-                <td><?php echo htmlspecialchars($pk['created_at']); ?></td>
+                <td><?php echo klytos_esc_html($pk['label']); ?></td>
+                <td><?php echo klytos_esc_html($pk['created_at']); ?></td>
                 <td>
                     <form method="post" style="display:inline;">
-                        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                        <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="action" value="remove_passkey">
-                        <input type="hidden" name="credential_id" value="<?php echo htmlspecialchars($pk['credential_id']); ?>">
+                        <input type="hidden" name="credential_id" value="<?php echo klytos_esc_attr($pk['credential_id']); ?>">
                         <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('<?php echo __('common.confirm_delete'); ?>');"><?php echo __('common.delete'); ?></button>
                     </form>
                 </td>
@@ -341,7 +341,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <strong><?php echo __('security.recovery_codes_remaining', ['count' => $tfConfig['recovery_codes_left']]); ?></strong>
     </p>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="regenerate_recovery">
         <button type="submit" class="btn btn-outline" onclick="return confirm('<?php echo __('security.confirm_regenerate'); ?>');"><?php echo __('security.regenerate_recovery'); ?></button>
     </form>
@@ -352,7 +352,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="card-header"><h3 style="color:#dc2626;"><?php echo __('security.disable_all_title'); ?></h3></div>
     <p style="color:#64748b;margin-bottom:1rem;"><?php echo __('security.disable_all_description'); ?></p>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="disable_all">
         <button type="submit" class="btn" style="background:#dc2626;color:#fff;" onclick="return confirm('<?php echo __('security.confirm_disable_all'); ?>');"><?php echo __('security.disable_all_button'); ?></button>
     </form>

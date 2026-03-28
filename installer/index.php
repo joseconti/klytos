@@ -82,7 +82,7 @@ try {
     echo '<h1 style="color:#dc2626">Klytos Error</h1>';
     echo '<p>The application failed to start. Check the PHP error log.</p>';
     echo '<pre style="background:#f1f5f9;padding:1rem;border-radius:8px;text-align:left;font-size:0.85rem;overflow:auto">';
-    echo htmlspecialchars( $e->getMessage() );
+    echo klytos_esc_html( $e->getMessage() );
     echo '</pre></div></body></html>';
     exit( 1 );
 }

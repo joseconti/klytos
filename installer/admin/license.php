@@ -23,7 +23,7 @@ $success   = '';
 $error     = '';
 
 // Handle activation
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'activate') {
@@ -58,10 +58,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <!-- License Status -->
@@ -85,16 +85,16 @@ require_once __DIR__ . '/templates/sidebar.php';
             };
             ?>
             <div class="alert <?php echo $statusClass; ?>" style="margin:0;padding:0.5rem 1rem;display:inline-block;">
-                <?php echo htmlspecialchars( $statusLabel ); ?>
+                <?php echo klytos_esc_html( $statusLabel ); ?>
             </div>
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.plan' ); ?></label>
-            <div style="font-size:1.1rem;font-weight:600;"><?php echo htmlspecialchars(ucfirst($status['plan'] ?? '---')); ?></div>
+            <div style="font-size:1.1rem;font-weight:600;"><?php echo klytos_esc_html(ucfirst($status['plan'] ?? '---')); ?></div>
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.domain' ); ?></label>
-            <div class="mono" style="font-size:0.85rem;"><?php echo htmlspecialchars( $status['domain'] ?? '---'); ?></div>
+            <div class="mono" style="font-size:0.85rem;"><?php echo klytos_esc_html( $status['domain'] ?? '---'); ?></div>
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.activated_on' ); ?></label>
@@ -106,7 +106,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.key' ); ?></label>
-            <div class="mono" style="font-size:0.8rem;"><?php echo !empty($status['license_key']) ? htmlspecialchars(substr($status['license_key'], 0, 8) . '...' . substr($status['license_key'], -8)) : '---'; ?></div>
+            <div class="mono" style="font-size:0.8rem;"><?php echo !empty($status['license_key']) ? klytos_esc_html(substr($status['license_key'], 0, 8) . '...' . substr($status['license_key'], -8)) : '---'; ?></div>
         </div>
     </div>
 
@@ -118,7 +118,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     <?php if ($licenseStatus === 'valid'): ?>
         <form method="post" style="margin-top:1rem;">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="verify">
             <button type="submit" class="btn btn-outline"><?php echo __( 'license.last_check' ); ?> — <?php echo __( 'common.status' ); ?></button>
         </form>
@@ -129,7 +129,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'license.activate' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="activate">
         <div class="form-group">
             <label><?php echo __( 'license.key' ); ?></label>

@@ -59,6 +59,7 @@ require_once $rootPath . '/core/storage-interface.php';
 require_once $rootPath . '/core/file-storage.php';
 require_once $rootPath . '/core/database-storage.php';
 require_once $rootPath . '/core/helpers.php';
+require_once $rootPath . '/core/helpers-security.php';
 require_once $rootPath . '/core/i18n.php';
 require_once $rootPath . '/core/auth.php';
 require_once $rootPath . '/core/hooks.php';
@@ -174,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($adminPass !== $adminPass2) {
             $errors[] = 'Passwords do not match.';
         }
-        if (empty($adminEmail) || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+        if (empty($adminEmail) || !klytos_is_email($adminEmail)) {
             $errors[] = 'A valid email address is required.';
         }
 
@@ -323,8 +324,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Helpers::ensureWritableDir($rootPath . '/public/js');
                 Helpers::ensureWritableDir($rootPath . '/public/assets/images');
 
-                $langCode = htmlspecialchars(substr($adminLang, 0, 2));
-                $safeName = htmlspecialchars( $siteName );
+                $langCode = klytos_esc_attr( substr($adminLang, 0, 2) );
+                $safeName = klytos_esc_html( $siteName );
 
                 $placeholderHtml = <<<HTML
                 <!DOCTYPE html>
@@ -333,17 +334,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>{$safeName}</title>
-                    <link rel="stylesheet" href="css/style.css">
+                    <meta name="robots" content="noindex, nofollow">
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                    <style>
+                        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+                        :root {
+                            --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+                            --text: #e4e4ef; --muted: #6b6b8a; --accent: #4f6ef7;
+                            --accent-glow: rgba(79, 110, 247, 0.25);
+                            --gradient-1: #4f6ef7; --gradient-2: #a855f7; --gradient-3: #ec4899;
+                        }
+                        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+                        .grid-bg { position: fixed; inset: 0; background-image: linear-gradient(rgba(79, 110, 247, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(79, 110, 247, 0.03) 1px, transparent 1px); background-size: 60px 60px; animation: gridMove 20s linear infinite; z-index: 0; }
+                        @keyframes gridMove { 0% { transform: translate(0, 0); } 100% { transform: translate(60px, 60px); } }
+                        .orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: 0.4; animation: float 15s ease-in-out infinite; z-index: 0; }
+                        .orb-1 { width: 400px; height: 400px; background: var(--gradient-1); top: -10%; right: -5%; }
+                        .orb-2 { width: 350px; height: 350px; background: var(--gradient-2); bottom: -10%; left: -5%; animation-delay: -5s; }
+                        .orb-3 { width: 250px; height: 250px; background: var(--gradient-3); top: 40%; left: 50%; animation-delay: -10s; }
+                        @keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(30px, -20px) scale(1.05); } 66% { transform: translate(-20px, 20px) scale(0.95); } }
+                        .container { position: relative; z-index: 1; text-align: center; padding: 2rem; max-width: 720px; }
+                        .logo-mark { display: inline-flex; align-items: center; justify-content: center; width: 80px; height: 80px; border-radius: 20px; background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2)); margin-bottom: 2.5rem; box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(168, 85, 247, 0.15); animation: pulse 3s ease-in-out infinite; }
+                        .logo-mark svg { width: 40px; height: 40px; fill: white; }
+                        @keyframes pulse { 0%, 100% { box-shadow: 0 0 60px var(--accent-glow), 0 0 120px rgba(168, 85, 247, 0.15); } 50% { box-shadow: 0 0 80px var(--accent-glow), 0 0 160px rgba(168, 85, 247, 0.25); } }
+                        .badge { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1rem; border-radius: 100px; background: var(--surface); border: 1px solid var(--border); font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 2rem; letter-spacing: 0.03em; }
+                        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 2s ease-in-out infinite; }
+                        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+                        h1 { font-size: clamp(2.2rem, 6vw, 3.8rem); font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem; letter-spacing: -0.03em; }
+                        h1 .gradient-text { background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2), var(--gradient-3)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+                        .subtitle { font-size: 1.15rem; color: var(--muted); line-height: 1.6; margin-bottom: 2.5rem; max-width: 540px; margin-left: auto; margin-right: auto; }
+                        .cta-wrapper { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+                        .cta-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.9rem 2rem; border-radius: 12px; background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2)); color: white; font-family: inherit; font-size: 1rem; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 24px var(--accent-glow); }
+                        .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
+                        .cta-btn svg { width: 18px; height: 18px; }
+                        .cta-small { font-size: 0.82rem; color: var(--muted); }
+                        .cta-small a { color: var(--accent); text-decoration: none; }
+                        .cta-small a:hover { text-decoration: underline; }
+                        .features { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; margin-top: 3.5rem; }
+                        .feature { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+                        .feature-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+                        .footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding: 1.5rem; font-size: 0.78rem; color: var(--muted); z-index: 1; }
+                        .footer a { color: var(--accent); text-decoration: none; }
+                        .footer a:hover { text-decoration: underline; }
+                        @media (max-width: 480px) { .features { gap: 1rem; } .feature { font-size: 0.78rem; } .orb { opacity: 0.2; } }
+                    </style>
                 </head>
                 <body>
-                    <div class="klytos-container">
-                        <main class="klytos-main" style="text-align:center;padding:4rem 1rem;">
-                            <h1>{$safeName}</h1>
-                            <p style="color:var(--klytos-text-muted);font-size:1.2em;">
-                                Site under construction. Connect an AI via MCP to build your site.
+                    <div class="grid-bg"></div>
+                    <div class="orb orb-1"></div>
+                    <div class="orb orb-2"></div>
+                    <div class="orb orb-3"></div>
+                    <main class="container">
+                        <div class="logo-mark">
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <div class="badge">
+                            <span class="badge-dot"></span>
+                            Building something big
+                        </div>
+                        <h1>Something <span class="gradient-text">extraordinary</span><br>is coming</h1>
+                        <p class="subtitle">
+                            This site is being crafted by AI. Built with Klytos &mdash; the first
+                            CMS designed to be controlled entirely by artificial intelligence.
+                        </p>
+                        <div class="cta-wrapper">
+                            <a href="https://klytos.io" class="cta-btn" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                                Discover Klytos
+                            </a>
+                            <p class="cta-small">
+                                Free &amp; open source &mdash; <a href="https://github.com/joseconti/klytos" target="_blank" rel="noopener">View on GitHub</a>
                             </p>
-                        </main>
-                    </div>
+                        </div>
+                        <div class="features">
+                            <div class="feature"><span class="feature-icon">&#129302;</span> AI-First</div>
+                            <div class="feature"><span class="feature-icon">&#9889;</span> Static &amp; Fast</div>
+                            <div class="feature"><span class="feature-icon">&#128274;</span> Privacy-First</div>
+                            <div class="feature"><span class="feature-icon">&#127760;</span> MCP Protocol</div>
+                        </div>
+                    </main>
+                    <footer class="footer">
+                        Powered by <a href="https://klytos.io" target="_blank" rel="noopener">Klytos</a> &mdash; The AI-First CMS
+                    </footer>
                 </body>
                 </html>
                 HTML;
@@ -595,7 +674,7 @@ function getColorPreset(string $name): array
     </div>
 
     <?php if (!empty($error)): ?>
-        <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+        <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
     <?php endif; ?>
 
     <!-- ─── Step 1: Requirements ─── -->
@@ -651,14 +730,14 @@ function getColorPreset(string $name): array
             <div class="form-group">
                 <label for="site_name">Site Name</label>
                 <input type="text" id="site_name" name="site_name" placeholder="My Website"
-                       required value="<?php echo htmlspecialchars( $_POST['site_name'] ?? ''); ?>">
+                       required value="<?php echo klytos_esc_attr( $_POST['site_name'] ?? '' ); ?>">
             </div>
 
             <!-- Site description -->
             <div class="form-group">
                 <label for="description">Site Description</label>
                 <textarea id="description" name="description"
-                          placeholder="Brief description of your site..."><?php echo htmlspecialchars( $_POST['description'] ?? ''); ?></textarea>
+                          placeholder="Brief description of your site..."><?php echo klytos_esc_html( $_POST['description'] ?? '' ); ?></textarea>
             </div>
 
             <!-- Language selection (with correct orthography) -->
@@ -679,7 +758,7 @@ function getColorPreset(string $name): array
             <div class="form-group">
                 <label for="admin_user">Admin Username</label>
                 <input type="text" id="admin_user" name="admin_user" required
-                       value="<?php echo htmlspecialchars( $_POST['admin_user'] ?? ''); ?>"
+                       value="<?php echo klytos_esc_attr( $_POST['admin_user'] ?? '' ); ?>"
                        autocomplete="off">
             </div>
 
@@ -698,7 +777,7 @@ function getColorPreset(string $name): array
             <div class="form-group">
                 <label for="admin_email">Admin Email</label>
                 <input type="email" id="admin_email" name="admin_email" required
-                       value="<?php echo htmlspecialchars( $_POST['admin_email'] ?? ''); ?>">
+                       value="<?php echo klytos_esc_attr( $_POST['admin_email'] ?? '' ); ?>">
             </div>
 
             <!-- Color palette -->
@@ -772,7 +851,7 @@ function getColorPreset(string $name): array
             <div class="form-group">
                 <label for="admin_dir_name">Admin Panel Directory Name</label>
                 <input type="text" id="admin_dir_name" name="admin_dir_name" class="form-control"
-                       value="<?php echo htmlspecialchars( $_POST['admin_dir_name'] ?? ''); ?>"
+                       value="<?php echo klytos_esc_attr( $_POST['admin_dir_name'] ?? '' ); ?>"
                        placeholder="Leave empty for auto-generated random name"
                        pattern="[a-zA-Z0-9_\-]{4,64}">
                 <div class="form-help">
@@ -811,12 +890,12 @@ function getColorPreset(string $name): array
                     <div class="form-group">
                         <label for="db_host">Database Host</label>
                         <input type="text" id="db_host" name="db_host"
-                               value="<?php echo htmlspecialchars( $_POST['db_host'] ?? 'localhost'); ?>">
+                               value="<?php echo klytos_esc_attr( $_POST['db_host'] ?? 'localhost' ); ?>">
                     </div>
                     <div class="form-group">
                         <label for="db_port">Port</label>
                         <input type="number" id="db_port" name="db_port"
-                               value="<?php echo htmlspecialchars( $_POST['db_port'] ?? '3306'); ?>"
+                               value="<?php echo klytos_esc_attr( $_POST['db_port'] ?? '3306' ); ?>"
                                min="1" max="65535">
                     </div>
                 </div>
@@ -824,7 +903,7 @@ function getColorPreset(string $name): array
                 <div class="form-group">
                     <label for="db_name">Database Name</label>
                     <input type="text" id="db_name" name="db_name"
-                           value="<?php echo htmlspecialchars( $_POST['db_name'] ?? ''); ?>"
+                           value="<?php echo klytos_esc_attr( $_POST['db_name'] ?? '' ); ?>"
                            placeholder="klytos_db">
                 </div>
 
@@ -832,7 +911,7 @@ function getColorPreset(string $name): array
                     <div class="form-group">
                         <label for="db_user">Database User</label>
                         <input type="text" id="db_user" name="db_user"
-                               value="<?php echo htmlspecialchars( $_POST['db_user'] ?? ''); ?>"
+                               value="<?php echo klytos_esc_attr( $_POST['db_user'] ?? '' ); ?>"
                                autocomplete="off">
                     </div>
                     <div class="form-group">
@@ -845,7 +924,7 @@ function getColorPreset(string $name): array
                 <div class="form-group">
                     <label for="db_prefix">Table Prefix</label>
                     <input type="text" id="db_prefix" name="db_prefix"
-                           value="<?php echo htmlspecialchars( $_POST['db_prefix'] ?? 'kly_'); ?>"
+                           value="<?php echo klytos_esc_attr( $_POST['db_prefix'] ?? 'kly_' ); ?>"
                            pattern="[a-zA-Z0-9_]+">
                     <p class="small">Only letters, numbers and underscores. Default: kly_</p>
                 </div>
@@ -952,14 +1031,14 @@ function getColorPreset(string $name): array
         <div class="form-group">
             <label>Admin Panel (secret URL)</label>
             <div class="token-box" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">
-                <a href="<?php echo htmlspecialchars( $adminUrl ); ?>"><?php echo htmlspecialchars( $adminUrl ); ?></a>
+                <a href="<?php echo klytos_esc_url( $adminUrl ); ?>"><?php echo klytos_esc_html( $adminUrl ); ?></a>
             </div>
             <p class="small" style="color:#92400e;">&#9888; Bookmark this URL. There is no public link to it.</p>
         </div>
 
         <div class="form-group">
             <label>MCP Endpoint</label>
-            <div class="token-box"><?php echo htmlspecialchars( $mcpEndpoint ); ?></div>
+            <div class="token-box"><?php echo klytos_esc_html( $mcpEndpoint ); ?></div>
         </div>
 
         <h3 style="margin-top:1.5rem">MCP Authentication</h3>
@@ -971,9 +1050,9 @@ function getColorPreset(string $name): array
         <div class="form-group">
             <label>Application Password (copy now — will not be shown again)</label>
             <div class="token-box" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">
-                <?php echo htmlspecialchars( $appPassword ?? ''); ?>
+                <?php echo klytos_esc_html( $appPassword ?? '' ); ?>
             </div>
-            <p class="small">User: <strong><?php echo htmlspecialchars( $adminUser ); ?></strong> — Use with HTTP Basic Auth.</p>
+            <p class="small">User: <strong><?php echo klytos_esc_html( $adminUser ); ?></strong> — Use with HTTP Basic Auth.</p>
         </div>
 
         <?php
@@ -986,9 +1065,9 @@ function getColorPreset(string $name): array
             <div class="mcp-config">{
   "mcpServers": {
     "klytos": {
-      "url": "<?php echo htmlspecialchars( $mcpEndpoint ?? ''); ?>",
+      "url": "<?php echo klytos_esc_html( $mcpEndpoint ?? '' ); ?>",
       "headers": {
-        "Authorization": "Basic <?php echo htmlspecialchars( $basicAuth ); ?>"
+        "Authorization": "Basic <?php echo klytos_esc_html( $basicAuth ); ?>"
       }
     }
   }
@@ -997,8 +1076,8 @@ function getColorPreset(string $name): array
 
         <div class="form-group">
             <label>cURL Example</label>
-            <div class="mcp-config">curl -u "<?php echo htmlspecialchars( $adminUser ); ?>:<?php echo htmlspecialchars( $appPassword ?? ''); ?>" \
-  -X POST <?php echo htmlspecialchars( $mcpEndpoint ?? ''); ?> \
+            <div class="mcp-config">curl -u "<?php echo klytos_esc_html( $adminUser ); ?>:<?php echo klytos_esc_html( $appPassword ?? '' ); ?>" \
+  -X POST <?php echo klytos_esc_html( $mcpEndpoint ?? '' ); ?> \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'</div>
         </div>
@@ -1011,11 +1090,11 @@ function getColorPreset(string $name): array
 
         <?php if (($storageDriver ?? 'file') === 'database'): ?>
         <div class="alert alert-success">
-            MySQL storage active. Tables created with prefix "<?php echo htmlspecialchars( $dbPrefix ?? 'kly_'); ?>".
+            MySQL storage active. Tables created with prefix "<?php echo klytos_esc_html( $dbPrefix ?? 'kly_' ); ?>".
         </div>
         <?php endif; ?>
 
-        <a href="<?php echo htmlspecialchars( $adminUrl ); ?>" class="btn btn-block" style="text-decoration: none;">
+        <a href="<?php echo klytos_esc_url( $adminUrl ); ?>" class="btn btn-block" style="text-decoration: none;">
             Go to Admin Panel
         </a>
     </div>

@@ -150,6 +150,12 @@ class App
     /** @var Mailer|null Central email sending service. */
     private ?Mailer $mailer = null;
 
+    /** @var OptionsManager|null Public Options API manager. */
+    private ?OptionsManager $optionsManager = null;
+
+    /** @var MetaManager|null Public Meta API manager. */
+    private ?MetaManager $metaManager = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -267,6 +273,7 @@ class App
         // call Hooks::doAction() and Hooks::applyFilters() in their methods.
         require_once $this->corePath . '/hooks.php';
         require_once $this->corePath . '/helpers-global.php';
+        require_once $this->corePath . '/helpers-security.php';
 
         // Step 10: Initialize v2.0 managers.
         $this->userManager         = new UserManager($this->storage);
@@ -287,7 +294,15 @@ class App
             $this->userManager->migrateFromV1Config($this->config);
         }
 
-        // Step 10: Discover and load active plugins.
+        // Step 10c: Initialize Options and Meta API managers.
+        // These must be ready BEFORE plugins load so they can use
+        // klytos_get_option() / klytos_set_meta() in their init.php.
+        // Note: Meta cleanup is automatic — _meta lives inside the entity document,
+        // so deleting an entity deletes its meta too. No cleanup hook needed.
+        $this->optionsManager = new OptionsManager($this->storage);
+        $this->metaManager    = new MetaManager($this->storage);
+
+        // Step 11: Discover and load active plugins.
         // Plugins register their hooks/filters in their init.php files.
         require_once $this->corePath . '/plugin-loader.php';
         $this->pluginLoader = new PluginLoader(
@@ -460,6 +475,12 @@ class App
 
     /** Get the post type manager. */
     public function getPostTypeManager(): PostTypeManager { return $this->postTypeManager; }
+
+    /** Get the Options API manager. */
+    public function getOptionsManager(): OptionsManager { return $this->optionsManager; }
+
+    /** Get the Meta API manager. */
+    public function getMetaManager(): MetaManager { return $this->metaManager; }
 
     /** Get the two-factor authentication manager. */
     public function getTwoFactor(): TwoFactor

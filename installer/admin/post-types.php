@@ -24,7 +24,7 @@ $error       = '';
 $success     = '';
 
 // Handle POST actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? '';
 
     try {
@@ -57,10 +57,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <div class="card">
@@ -89,15 +89,15 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <tbody>
                     <?php foreach ($postTypes as $pt): ?>
                     <tr>
-                        <td class="mono"><?php echo htmlspecialchars( $pt['id'] ?? '' ); ?></td>
-                        <td><?php echo htmlspecialchars( $pt['name'] ?? '' ); ?></td>
-                        <td class="mono"><?php echo htmlspecialchars( $pt['slug'] ?? '' ); ?></td>
+                        <td class="mono"><?php echo klytos_esc_html( $pt['id'] ?? '' ); ?></td>
+                        <td><?php echo klytos_esc_html( $pt['name'] ?? '' ); ?></td>
+                        <td class="mono"><?php echo klytos_esc_html( $pt['slug'] ?? '' ); ?></td>
                         <td>
                             <?php
                             $taxList = $pt['taxonomies'] ?? [];
                             $taxNames = array_map(fn($t) => $t['name'] ?? $t['id'] ?? '', $taxList);
                             ?>
-                            <span title="<?php echo htmlspecialchars(implode(', ', $taxNames)); ?>" style="cursor:default;"><?php echo count($taxList); ?></span>
+                            <span title="<?php echo klytos_esc_attr(implode(', ', $taxNames)); ?>" style="cursor:default;"><?php echo count($taxList); ?></span>
                         </td>
                         <td>
                             <span class="badge-status badge-<?php echo ($pt['builtin'] ?? false) ? 'published' : 'draft'; ?>">
@@ -109,8 +109,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                             <?php if (!($pt['builtin'] ?? false)): ?>
                             <form method="post" style="display:inline;" class="form-confirm-delete">
                                 <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo htmlspecialchars( $pt['id'] ?? '' ); ?>">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <input type="hidden" name="id" value="<?php echo klytos_esc_attr( $pt['id'] ?? '' ); ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <button type="submit" class="btn btn-danger btn-sm"><?php echo __( 'common.delete' ); ?></button>
                             </form>
                             <?php endif; ?>
@@ -132,7 +132,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <form method="post">
             <input type="hidden" name="action" value="create">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <div class="form-group">
                 <label>ID</label>
                 <input type="text" name="id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. product">

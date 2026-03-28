@@ -684,6 +684,89 @@ class Updater
     }
 
     /**
+     * Restore the installation from a backup directory.
+     *
+     * Called from the admin UI when the user clicks "Restore" on a
+     * history entry. Validates the backup, enables maintenance mode,
+     * restores files, and logs the operation.
+     *
+     * @param  string $backupName Basename of the backup directory (e.g. "pre-update-0.5.0-20260328-120000").
+     * @return array  Result with success, from_version, to_version, error.
+     */
+    public function restoreFromBackup( string $backupName ): array
+    {
+        $currentVersion = $this->getCurrentVersion();
+
+        // Sanitize: only allow alphanumeric, dash, dot, underscore.
+        $backupName = preg_replace( '/[^a-zA-Z0-9._-]/', '', $backupName );
+        $backupPath = $this->rootPath . '/backups/' . $backupName;
+
+        if ( ! is_dir( $backupPath ) ) {
+            return $this->result( false, $currentVersion, '', 'Backup not found: ' . $backupName );
+        }
+
+        // Verify the backup contains the minimum required structure.
+        if ( ! is_dir( $backupPath . '/core' ) || ! is_dir( $backupPath . '/admin' ) ) {
+            return $this->result( false, $currentVersion, '', 'Invalid backup: missing core/ or admin/ directory.' );
+        }
+
+        // Read the version from the backup.
+        $backupVersionFile = $backupPath . '/VERSION';
+        $backupVersion     = file_exists( $backupVersionFile )
+            ? trim( file_get_contents( $backupVersionFile ) )
+            : 'unknown';
+
+        $this->enableMaintenanceMode();
+
+        try {
+            $this->rollback( $backupPath );
+        } catch ( \Throwable $e ) {
+            $this->disableMaintenanceMode();
+            return $this->result( false, $currentVersion, '', 'Restore failed: ' . $e->getMessage() );
+        }
+
+        $restoredVersion = $this->getCurrentVersion();
+        $this->clearCache();
+        $this->disableMaintenanceMode();
+
+        $this->addLogEntry( [
+            'from'        => $currentVersion,
+            'to'          => $restoredVersion,
+            'date'        => Helpers::now(),
+            'status'      => 'restored',
+            'backup_path' => $backupName,
+        ] );
+
+        return $this->result( true, $currentVersion, $restoredVersion );
+    }
+
+    /**
+     * List available backup directories.
+     *
+     * @return array List of backup names with metadata.
+     */
+    public function listBackups(): array
+    {
+        $backupsDir = $this->rootPath . '/backups';
+        if ( ! is_dir( $backupsDir ) ) {
+            return [];
+        }
+
+        $backups = [];
+        $entries = array_diff( scandir( $backupsDir ), [ '.', '..' ] );
+
+        foreach ( $entries as $entry ) {
+            $path = $backupsDir . '/' . $entry;
+            if ( ! is_dir( $path ) || ! str_starts_with( $entry, 'pre-update-' ) ) {
+                continue;
+            }
+            $backups[] = $entry;
+        }
+
+        return $backups;
+    }
+
+    /**
      * Rollback from a backup directory.
      */
     private function rollback( string $backupPath ): void

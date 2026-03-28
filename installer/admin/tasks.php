@@ -29,7 +29,7 @@ $error       = '';
 $csrf        = $auth->getCsrfToken();
 
 // ─── Handle POST actions ─────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? '';
     $taskId = $_POST['task_id'] ?? '';
 
@@ -72,10 +72,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <!-- Stats -->
@@ -129,19 +129,19 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
             <div style="flex:1">
                 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
-                    <span class="priority-dot <?php echo htmlspecialchars( $task['priority'] ?? 'medium'); ?>"></span>
-                    <span class="badge-status badge-<?php echo htmlspecialchars( $task['priority'] ?? 'medium'); ?>">
-                        <?php echo ucfirst( htmlspecialchars( $task['priority'] ?? 'medium')); ?>
+                    <span class="priority-dot <?php echo klytos_esc_attr( $task['priority'] ?? 'medium'); ?>"></span>
+                    <span class="badge-status badge-<?php echo klytos_esc_attr( $task['priority'] ?? 'medium'); ?>">
+                        <?php echo ucfirst( klytos_esc_html( $task['priority'] ?? 'medium')); ?>
                     </span>
-                    <span class="badge-status badge-<?php echo htmlspecialchars( $task['status'] ?? 'open'); ?>">
-                        <?php echo ucfirst(str_replace('_', ' ', htmlspecialchars( $task['status'] ?? 'open'))); ?>
+                    <span class="badge-status badge-<?php echo klytos_esc_attr( $task['status'] ?? 'open'); ?>">
+                        <?php echo ucfirst(str_replace('_', ' ', klytos_esc_html( $task['status'] ?? 'open'))); ?>
                     </span>
                 </div>
-                <p style="margin-bottom:0.4rem"><?php echo htmlspecialchars( $task['description'] ?? ''); ?></p>
+                <p style="margin-bottom:0.4rem"><?php echo klytos_esc_html( $task['description'] ?? ''); ?></p>
                 <div style="font-size:0.8rem;color:var(--admin-text-muted);display:flex;gap:1rem;flex-wrap:wrap">
-                    <span>Page: <strong><?php echo htmlspecialchars( $task['page_slug'] ?? '—'); ?></strong></span>
+                    <span>Page: <strong><?php echo klytos_esc_html( $task['page_slug'] ?? '—'); ?></strong></span>
                     <?php if (!empty($task['css_selector'])): ?>
-                        <span>Element: <code style="font-size:0.75rem"><?php echo htmlspecialchars( $task['css_selector'] ); ?></code></span>
+                        <span>Element: <code style="font-size:0.75rem"><?php echo klytos_esc_html( $task['css_selector'] ); ?></code></span>
                     <?php endif; ?>
                     <span><?php echo $task['created_at'] ? date( 'M j, Y H:i', strtotime($task['created_at'])) : ''; ?></span>
                 </div>
@@ -149,15 +149,15 @@ require_once __DIR__ . '/templates/sidebar.php';
             <div style="display:flex;gap:0.3rem;flex-shrink:0">
                 <?php if (($task['status'] ?? '') !== 'completed' && ($task['status'] ?? '') !== 'dismissed'): ?>
                     <form method="post" style="display:inline">
-                        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                        <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="action" value="complete">
-                        <input type="hidden" name="task_id" value="<?php echo htmlspecialchars( $task['id'] ?? ''); ?>">
+                        <input type="hidden" name="task_id" value="<?php echo klytos_esc_attr( $task['id'] ?? ''); ?>">
                         <button type="submit" class="btn btn-primary btn-sm" title="Complete">✓</button>
                     </form>
                     <form method="post" style="display:inline">
-                        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                        <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="action" value="dismiss">
-                        <input type="hidden" name="task_id" value="<?php echo htmlspecialchars( $task['id'] ?? ''); ?>">
+                        <input type="hidden" name="task_id" value="<?php echo klytos_esc_attr( $task['id'] ?? ''); ?>">
                         <button type="submit" class="btn btn-outline btn-sm" title="Dismiss">✕</button>
                     </form>
                 <?php endif; ?>

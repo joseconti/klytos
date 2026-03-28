@@ -177,7 +177,7 @@ class MenuManager
         usort($items, fn($a, $b) => ($a['order'] ?? 0) - ($b['order'] ?? 0));
 
         foreach ($items as $item) {
-            $label  = htmlspecialchars($item['label'] ?? '', ENT_QUOTES, 'UTF-8');
+            $label  = Helpers::escHtml( $item['label'] ?? '' );
             $url    = $item['url'] ?? '#';
             $target = $item['target'] ?? '_self';
 

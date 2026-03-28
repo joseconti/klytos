@@ -22,7 +22,7 @@ if ( $_SERVER['REQUEST_METHOD'] !== 'POST' ) {
 
 // CSRF validation.
 $auth = $app->getAuth();
-if ( ! $auth->validateCsrf( $_POST['csrf'] ?? '' ) ) {
+if ( ! klytos_verify_csrf() ) {
     http_response_code( 403 );
     echo json_encode( [ 'error' => 'Invalid CSRF token' ] );
     exit;

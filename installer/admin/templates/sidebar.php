@@ -92,9 +92,9 @@ $sidebarItems = [
         'title'      => 'Post Types',
         'url'        => $adminPath . 'post-types.php',
         'icon'       => 'T',
-        'position'   => 22,
-        'section'    => 'content',
-        'capability' => 'pages.view',
+        'position'   => 85,
+        'section'    => 'system',
+        'capability' => 'site.configure',
     ],
     [
         'id'         => 'tasks',
@@ -245,7 +245,7 @@ foreach ($sidebarItems as $item) {
 <aside class="admin-sidebar" id="sidebar">
     <div class="sidebar-brand">
         <h2>Klytos</h2>
-        <small>v<?php echo htmlspecialchars( $app->getVersion()); ?></small>
+        <small>v<?php echo klytos_esc_html( $app->getVersion() ); ?></small>
     </div>
 
     <nav class="sidebar-nav">
@@ -263,19 +263,19 @@ foreach ($sidebarItems as $item) {
                     }
                 }
                 ?>
-                <a href="<?php echo htmlspecialchars( $item['url'] ); ?>"
+                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
                    class="<?php echo $isParentActive ? 'active' : ''; ?>">
-                    <span>[<?php echo htmlspecialchars( $item['icon'] ?? '?' ); ?>]</span>
-                    <?php echo htmlspecialchars( $item['title'] ); ?>
+                    <span>[<?php echo klytos_esc_html( $item['icon'] ?? '?' ); ?>]</span>
+                    <?php echo klytos_esc_html( $item['title'] ); ?>
                     <?php if (!empty( $item['badge'] )): ?>
-                        <span class="badge"><?php echo htmlspecialchars( (string) $item['badge'] ); ?></span>
+                        <span class="badge"><?php echo klytos_esc_html( (string) $item['badge'] ); ?></span>
                     <?php endif; ?>
                 </a>
                 <?php if ($hasChildren && $isParentActive): ?>
                     <?php foreach ($item['children'] as $child): ?>
-                        <a href="<?php echo htmlspecialchars( $child['url'] ); ?>"
+                        <a href="<?php echo klytos_esc_url( $child['url'] ); ?>"
                            class="sidebar-child <?php echo $currentPage === $child['id'] ? 'active' : ''; ?>">
-                            <?php echo htmlspecialchars( $child['title'] ); ?>
+                            <?php echo klytos_esc_html( $child['title'] ); ?>
                         </a>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -296,19 +296,19 @@ foreach ($sidebarItems as $item) {
                     }
                 }
                 ?>
-                <a href="<?php echo htmlspecialchars( $item['url'] ); ?>"
+                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
                    class="<?php echo $isParentActive ? 'active' : ''; ?>">
-                    <span>[<?php echo htmlspecialchars( $item['icon'] ?? '?' ); ?>]</span>
-                    <?php echo htmlspecialchars( $item['title'] ); ?>
+                    <span>[<?php echo klytos_esc_html( $item['icon'] ?? '?' ); ?>]</span>
+                    <?php echo klytos_esc_html( $item['title'] ); ?>
                     <?php if (!empty( $item['badge'] )): ?>
-                        <span class="badge"><?php echo htmlspecialchars( (string) $item['badge'] ); ?></span>
+                        <span class="badge"><?php echo klytos_esc_html( (string) $item['badge'] ); ?></span>
                     <?php endif; ?>
                 </a>
                 <?php if ($hasChildren && $isParentActive): ?>
                     <?php foreach ($item['children'] as $child): ?>
-                        <a href="<?php echo htmlspecialchars( $child['url'] ); ?>"
+                        <a href="<?php echo klytos_esc_url( $child['url'] ); ?>"
                            class="sidebar-child <?php echo $currentPage === $child['id'] ? 'active' : ''; ?>">
-                            <?php echo htmlspecialchars( $child['title'] ); ?>
+                            <?php echo klytos_esc_html( $child['title'] ); ?>
                         </a>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -320,12 +320,12 @@ foreach ($sidebarItems as $item) {
         foreach ($sections as $sectionName => $items):
             if ($sectionName === 'content' || $sectionName === 'system') continue;
         ?>
-            <div class="sidebar-section"><?php echo htmlspecialchars(ucfirst($sectionName)); ?></div>
+            <div class="sidebar-section"><?php echo klytos_esc_html( ucfirst( $sectionName ) ); ?></div>
             <?php foreach ($items as $item): ?>
-                <a href="<?php echo htmlspecialchars( $item['url'] ); ?>"
+                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
                    class="<?php echo $currentPage === $item['id'] ? 'active' : ''; ?>">
-                    <span>[<?php echo htmlspecialchars( $item['icon'] ?? '?'); ?>]</span>
-                    <?php echo htmlspecialchars( $item['title'] ); ?>
+                    <span>[<?php echo klytos_esc_html( $item['icon'] ?? '?' ); ?>]</span>
+                    <?php echo klytos_esc_html( $item['title'] ); ?>
                 </a>
             <?php endforeach; ?>
         <?php endforeach; ?>
@@ -335,11 +335,11 @@ foreach ($sidebarItems as $item) {
 <div class="admin-content">
     <div class="admin-topbar">
         <div>
-            <strong><?php echo htmlspecialchars( $pageTitle ?? ''); ?></strong>
+            <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
             <span style="font-size:0.85rem;color:var(--admin-text-muted);">
-                <?php echo htmlspecialchars( $app->getAuth()->getUsername()); ?>
+                <?php echo klytos_esc_html( $app->getAuth()->getUsername() ); ?>
             </span>
             <a href="<?php echo $adminPath; ?>logout.php" class="btn btn-outline btn-sm">
                 <?php echo __( 'auth.logout' ); ?>

@@ -455,7 +455,7 @@ class Mailer
      */
     private function wrapInTemplate(string $content, string $subject): string
     {
-        $siteName = htmlspecialchars($this->siteName, ENT_QUOTES, 'UTF-8');
+        $siteName = Helpers::escHtml( $this->siteName );
 
         $template = <<<HTML
 <!DOCTYPE html>
@@ -546,15 +546,15 @@ HTML;
         string $buttonUrl,
         string $footer = ''
     ): bool {
-        $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
-        $safeButton  = htmlspecialchars($buttonText, ENT_QUOTES, 'UTF-8');
-        $safeUrl     = htmlspecialchars($buttonUrl, ENT_QUOTES, 'UTF-8');
+        $safeMessage = Helpers::escHtml( $message );
+        $safeButton  = Helpers::escHtml( $buttonText );
+        $safeUrl     = Helpers::escUrl( $buttonUrl );
 
         $html = "<p>{$safeMessage}</p>";
         $html .= "<p style=\"text-align:center;\"><a href=\"{$safeUrl}\" class=\"btn\">{$safeButton}</a></p>";
 
         if (!empty($footer)) {
-            $safeFooter = htmlspecialchars($footer, ENT_QUOTES, 'UTF-8');
+            $safeFooter = Helpers::escHtml( $footer );
             $html .= "<p style=\"font-size:13px;color:#64748b;\">{$safeFooter}</p>";
         }
 

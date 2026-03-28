@@ -27,7 +27,7 @@ $version   = $app->getVersion();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title><?php echo htmlspecialchars( $pageTitle ); ?> — Klytos Admin</title>
+    <title><?php echo klytos_esc_html( $pageTitle ); ?> — Klytos Admin</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {

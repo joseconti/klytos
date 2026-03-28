@@ -98,7 +98,7 @@ function handleOAuthAuthorizeView(App $app): void
             if (!$auth->isAuthenticated()) {
                 $error = 'Session expired. Please log in again.';
                 $showLogin = true;
-            } elseif (!$auth->validateCsrf($_POST['csrf'] ?? '')) {
+            } elseif (!klytos_verify_csrf()) {
                 $error = 'Invalid CSRF token.';
             } else {
                 // Generate authorization code
@@ -180,7 +180,7 @@ function handleOAuthAuthorizeView(App $app): void
     </div>
 
     <?php if (!empty($error)): ?>
-        <div class="alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+        <div class="alert-error"><?php echo klytos_esc_html( $error ); ?></div>
     <?php endif; ?>
 
     <?php if ($showLogin): ?>
@@ -190,7 +190,7 @@ function handleOAuthAuthorizeView(App $app): void
 
         <form method="post">
             <?php foreach ($params as $k => $v): ?>
-                <input type="hidden" name="<?php echo htmlspecialchars( $k ); ?>" value="<?php echo htmlspecialchars( $v ); ?>">
+                <input type="hidden" name="<?php echo klytos_esc_attr( $k ); ?>" value="<?php echo klytos_esc_attr( $v ); ?>">
             <?php endforeach; ?>
             <input type="hidden" name="action" value="login">
 
@@ -208,24 +208,24 @@ function handleOAuthAuthorizeView(App $app): void
     <?php elseif ($showConsent): ?>
         <!-- Consent Screen -->
         <h1>Authorize Application</h1>
-        <p class="subtitle"><strong><?php echo htmlspecialchars( $client['name'] ?? 'Unknown'); ?></strong> is requesting access to your Klytos site.</p>
+        <p class="subtitle"><strong><?php echo klytos_esc_html( $client['name'] ?? 'Unknown' ); ?></strong> is requesting access to your Klytos site.</p>
 
         <dl class="client-info">
             <dt>Application</dt>
-            <dd><?php echo htmlspecialchars( $client['name'] ?? ''); ?></dd>
+            <dd><?php echo klytos_esc_html( $client['name'] ?? '' ); ?></dd>
             <dt>Redirect URI</dt>
-            <dd><?php echo htmlspecialchars( $params['redirect_uri'] ); ?></dd>
+            <dd><?php echo klytos_esc_url( $params['redirect_uri'] ); ?></dd>
             <?php if (!empty($params['scope'])): ?>
                 <dt>Scope</dt>
-                <dd><?php echo htmlspecialchars( $params['scope'] ); ?></dd>
+                <dd><?php echo klytos_esc_html( $params['scope'] ); ?></dd>
             <?php endif; ?>
         </dl>
 
         <form method="post">
             <?php foreach ($params as $k => $v): ?>
-                <input type="hidden" name="<?php echo htmlspecialchars( $k ); ?>" value="<?php echo htmlspecialchars( $v ); ?>">
+                <input type="hidden" name="<?php echo klytos_esc_attr( $k ); ?>" value="<?php echo klytos_esc_attr( $v ); ?>">
             <?php endforeach; ?>
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
 
             <div class="btn-group">
                 <button type="submit" name="action" value="authorize" class="btn btn-primary" style="flex:1;">Authorize</button>

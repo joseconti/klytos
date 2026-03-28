@@ -203,7 +203,7 @@ class BlockManager
         foreach ($data as $key => $value) {
             if (is_string($value)) {
                 // Sanitize output to prevent XSS.
-                $safeValue = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+                $safeValue = Helpers::escAttr( $value );
                 $html = str_replace('{{' . $key . '}}', $safeValue, $html);
             } elseif (is_bool($value)) {
                 $html = str_replace('{{' . $key . '}}', $value ? 'true' : 'false', $html);

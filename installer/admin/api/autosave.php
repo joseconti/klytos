@@ -41,7 +41,7 @@ try {
         Helpers::jsonResponse(['error' => 'Invalid JSON body'], 400);
     }
 
-    if (!$app->getAuth()->validateCsrf($input['csrf'] ?? '')) {
+    if (!klytos_verify_csrf()) {
         Helpers::jsonResponse(['error' => 'Invalid CSRF token'], 403);
     }
 

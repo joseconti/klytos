@@ -23,7 +23,7 @@ $success   = '';
 $error     = '';
 
 // Handle POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $section = $_POST['section'] ?? '';
 
     if ($section === 'colors') {
@@ -61,14 +61,14 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 
 <!-- Colors -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'theme.colors' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="colors">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;">
             <?php
@@ -86,8 +86,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <div class="form-group">
                     <label><?php echo $label; ?></label>
                     <div class="color-row">
-                        <input type="color" name="<?php echo $key; ?>" value="<?php echo htmlspecialchars( $themeData['colors'][$key] ?? '#000000'); ?>">
-                        <input type="text" name="<?php echo $key; ?>" class="form-control" value="<?php echo htmlspecialchars( $themeData['colors'][$key] ?? ''); ?>" pattern="#[0-9a-fA-F]{3,8}">
+                        <input type="color" name="<?php echo $key; ?>" value="<?php echo klytos_esc_attr( $themeData['colors'][$key] ?? '#000000'); ?>">
+                        <input type="text" name="<?php echo $key; ?>" class="form-control" value="<?php echo klytos_esc_attr( $themeData['colors'][$key] ?? ''); ?>" pattern="#[0-9a-fA-F]{3,8}">
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -100,29 +100,29 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'theme.fonts' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="fonts">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label><?php echo __( 'theme.heading_font' ); ?></label>
-                <input type="text" name="heading" class="form-control" value="<?php echo htmlspecialchars( $themeData['fonts']['heading'] ?? ''); ?>">
+                <input type="text" name="heading" class="form-control" value="<?php echo klytos_esc_attr( $themeData['fonts']['heading'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __( 'theme.body_font' ); ?></label>
-                <input type="text" name="body" class="form-control" value="<?php echo htmlspecialchars( $themeData['fonts']['body'] ?? ''); ?>">
+                <input type="text" name="body" class="form-control" value="<?php echo klytos_esc_attr( $themeData['fonts']['body'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __( 'theme.code_font' ); ?></label>
-                <input type="text" name="code" class="form-control" value="<?php echo htmlspecialchars( $themeData['fonts']['code'] ?? ''); ?>">
+                <input type="text" name="code" class="form-control" value="<?php echo klytos_esc_attr( $themeData['fonts']['code'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __( 'theme.base_size' ); ?></label>
-                <input type="text" name="base_size" class="form-control" value="<?php echo htmlspecialchars( $themeData['fonts']['base_size'] ?? '16px'); ?>">
+                <input type="text" name="base_size" class="form-control" value="<?php echo klytos_esc_attr( $themeData['fonts']['base_size'] ?? '16px'); ?>">
             </div>
         </div>
         <div class="form-group">
             <label><?php echo __( 'theme.google_fonts_url' ); ?></label>
-            <input type="text" name="google_fonts_url" class="form-control" value="<?php echo htmlspecialchars( $themeData['fonts']['google_fonts_url'] ?? ''); ?>">
+            <input type="text" name="google_fonts_url" class="form-control" value="<?php echo klytos_esc_attr( $themeData['fonts']['google_fonts_url'] ?? ''); ?>">
         </div>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
@@ -132,12 +132,12 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'theme.layout' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="layout">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label><?php echo __( 'theme.max_width' ); ?></label>
-                <input type="text" name="max_width" class="form-control" value="<?php echo htmlspecialchars( $themeData['layout']['max_width'] ?? '1200px'); ?>">
+                <input type="text" name="max_width" class="form-control" value="<?php echo klytos_esc_attr( $themeData['layout']['max_width'] ?? '1200px'); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __( 'theme.header_style' ); ?></label>
@@ -149,7 +149,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             </div>
             <div class="form-group">
                 <label><?php echo __( 'theme.border_radius' ); ?></label>
-                <input type="text" name="border_radius" class="form-control" value="<?php echo htmlspecialchars( $themeData['layout']['border_radius'] ?? '8px'); ?>">
+                <input type="text" name="border_radius" class="form-control" value="<?php echo klytos_esc_attr( $themeData['layout']['border_radius'] ?? '8px'); ?>">
             </div>
         </div>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
