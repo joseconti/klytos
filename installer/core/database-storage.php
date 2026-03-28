@@ -178,10 +178,17 @@ class DatabaseStorage implements StorageInterface
         $table = $this->tableName($collection);
         $pdo   = $this->getPdo();
 
-        $stmt = $pdo->prepare(
-            "SELECT `data` FROM `{$table}` WHERE `id` = :id LIMIT 1"
-        );
-        $stmt->execute([':id' => $id]);
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT `data` FROM `{$table}` WHERE `id` = :id LIMIT 1"
+            );
+            $stmt->execute([':id' => $id]);
+        } catch (\PDOException $e) {
+            if ($this->isTableNotFound($e)) {
+                throw new \RuntimeException("Record not found: {$collection}/{$id}");
+            }
+            throw $e;
+        }
 
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
@@ -240,6 +247,25 @@ class DatabaseStorage implements StorageInterface
         $indexes = $this->extractIndexValues($collection, $data);
 
         // Build the upsert query with parameterized values.
+        // Auto-create table if it doesn't exist (supports dynamic collections like terms-*).
+        try {
+            $this->executeUpsert($table, $id, $encrypted, $indexes, $now);
+        } catch (\PDOException $e) {
+            if (str_contains($e->getMessage(), '1146') || str_contains($e->getMessage(), 'doesn\'t exist')) {
+                $this->createTables([$collection]);
+                $this->executeUpsert($table, $id, $encrypted, $indexes, $now);
+            } else {
+                throw $e;
+            }
+        }
+    }
+
+    /**
+     * Execute an upsert (INSERT ... ON DUPLICATE KEY UPDATE) query.
+     */
+    private function executeUpsert(string $table, string $id, string $encrypted, array $indexes, string $now): void
+    {
+        $pdo  = $this->getPdo();
         $stmt = $pdo->prepare(
             "INSERT INTO `{$table}` (`id`, `data`, `idx_status`, `idx_lang`, `idx_type`, `idx_slug`, `created_at`, `updated_at`)
              VALUES (:id, :data, :idx_status, :idx_lang, :idx_type, :idx_slug, :created_at, :updated_at)
@@ -276,10 +302,17 @@ class DatabaseStorage implements StorageInterface
         $table = $this->tableName($collection);
         $pdo   = $this->getPdo();
 
-        $stmt = $pdo->prepare(
-            "DELETE FROM `{$table}` WHERE `id` = :id"
-        );
-        $stmt->execute([':id' => $id]);
+        try {
+            $stmt = $pdo->prepare(
+                "DELETE FROM `{$table}` WHERE `id` = :id"
+            );
+            $stmt->execute([':id' => $id]);
+        } catch (\PDOException $e) {
+            if ($this->isTableNotFound($e)) {
+                return false;
+            }
+            throw $e;
+        }
 
         return $stmt->rowCount() > 0;
     }
@@ -298,10 +331,17 @@ class DatabaseStorage implements StorageInterface
         $table = $this->tableName($collection);
         $pdo   = $this->getPdo();
 
-        $stmt = $pdo->prepare(
-            "SELECT COUNT(1) FROM `{$table}` WHERE `id` = :id"
-        );
-        $stmt->execute([':id' => $id]);
+        try {
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(1) FROM `{$table}` WHERE `id` = :id"
+            );
+            $stmt->execute([':id' => $id]);
+        } catch (\PDOException $e) {
+            if ($this->isTableNotFound($e)) {
+                return false;
+            }
+            throw $e;
+        }
 
         return (int) $stmt->fetchColumn() > 0;
     }
@@ -366,8 +406,15 @@ class DatabaseStorage implements StorageInterface
             }
         }
 
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        try {
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+        } catch (\PDOException $e) {
+            if ($this->isTableNotFound($e)) {
+                return [];
+            }
+            throw $e;
+        }
 
         $records = [];
 
@@ -458,8 +505,15 @@ class DatabaseStorage implements StorageInterface
                 $sql .= ' WHERE ' . implode(' AND ', $where);
             }
 
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
+            try {
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+            } catch (\PDOException $e) {
+                if ($this->isTableNotFound($e)) {
+                    return 0;
+                }
+                throw $e;
+            }
 
             return (int) $stmt->fetchColumn();
         }
@@ -724,6 +778,7 @@ class DatabaseStorage implements StorageInterface
                 'audit-log',
                 'plugins',
                 'cron',
+                'post-types',
             ];
         }
 
@@ -809,6 +864,21 @@ class DatabaseStorage implements StorageInterface
         $safe = str_replace('-', '_', strtolower($safe));
 
         return $this->prefix . $safe;
+    }
+
+    /**
+     * Check if a PDOException is a "table not found" error (MySQL error 1146).
+     *
+     * Used to gracefully handle dynamic collections that haven't been
+     * created yet (e.g. taxonomy term collections like terms-coches-colores).
+     *
+     * @param  \PDOException $e The exception to check.
+     * @return bool True if the error is "table doesn't exist".
+     */
+    private function isTableNotFound(\PDOException $e): bool
+    {
+        return str_contains($e->getMessage(), '1146')
+            || str_contains($e->getMessage(), 'doesn\'t exist');
     }
 
     /**
