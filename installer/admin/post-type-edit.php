@@ -78,6 +78,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         } elseif ($action === 'remove_taxonomy') {
             $postType = $ptManager->removeTaxonomy($ptId, $_POST['tax_id'] ?? '');
             $success  = __('common.success');
+
+        } elseif ($action === 'add_custom_field') {
+            $cfOptions = [];
+            if (!empty($_POST['cf_opt_value']) && is_array($_POST['cf_opt_value'])) {
+                foreach ($_POST['cf_opt_value'] as $i => $optVal) {
+                    $optLabel = $_POST['cf_opt_label'][$i] ?? '';
+                    if (trim($optVal) !== '') {
+                        $cfOptions[] = [
+                            'value' => trim($optVal),
+                            'label' => trim($optLabel) !== '' ? trim($optLabel) : trim($optVal),
+                        ];
+                    }
+                }
+            }
+
+            $cfData = [
+                'id'          => trim($_POST['cf_id'] ?? ''),
+                'type'        => trim($_POST['cf_type'] ?? 'text'),
+                'label'       => trim($_POST['cf_label'] ?? ''),
+                'description' => trim($_POST['cf_description'] ?? ''),
+                'placeholder' => trim($_POST['cf_placeholder'] ?? ''),
+                'required'    => isset($_POST['cf_required']),
+                'options'     => $cfOptions,
+            ];
+
+            $postType = $ptManager->addCustomField($ptId, $cfData);
+            $success  = __('common.success');
+
+        } elseif ($action === 'remove_custom_field') {
+            $postType = $ptManager->removeCustomField($ptId, $_POST['cf_field_id'] ?? '');
+            $success  = __('common.success');
         }
     } catch (\Exception $e) {
         $error = $e->getMessage();
@@ -215,16 +246,164 @@ require_once __DIR__ . '/templates/sidebar.php';
     </form>
 </div>
 
+<!-- Custom Fields -->
+<?php
+$customFields = $postType['custom_fields'] ?? [];
+usort($customFields, fn(array $a, array $b) => ($a['position'] ?? 0) <=> ($b['position'] ?? 0));
+
+$fieldTypeGroups = [
+    'Text'      => ['text', 'textarea', 'richtext', 'code', 'password'],
+    'Number'    => ['number', 'range'],
+    'Date/Time' => ['date', 'datetime', 'time'],
+    'Choice'    => ['select', 'multiselect', 'checkbox', 'checkbox_group', 'radio', 'toggle'],
+    'Media'     => ['image', 'file', 'gallery'],
+    'Data'      => ['email', 'url', 'phone', 'color', 'json'],
+    'Advanced'  => ['repeater', 'relationship'],
+];
+
+$optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
+?>
+<div class="card" style="margin-top:1.5rem;">
+    <div class="card-header">
+        <h3>Custom Fields (<?php echo count($customFields); ?>)</h3>
+    </div>
+
+    <?php if (!empty($customFields)): ?>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Label</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th><?php echo __('common.actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($customFields as $cf): ?>
+                <tr>
+                    <td class="mono"><?php echo klytos_esc_html($cf['id'] ?? ''); ?></td>
+                    <td><?php echo klytos_esc_html($cf['label'] ?? ''); ?></td>
+                    <td><span class="badge-status badge-published"><?php echo klytos_esc_html($cf['type'] ?? ''); ?></span></td>
+                    <td>
+                        <span class="badge-status badge-<?php echo ($cf['required'] ?? false) ? 'published' : 'draft'; ?>">
+                            <?php echo ($cf['required'] ?? false) ? 'Yes' : 'No'; ?>
+                        </span>
+                    </td>
+                    <td style="display:flex;gap:0.5rem;align-items:center;">
+                        <?php if (!empty($cf['options'])): ?>
+                            <span style="font-size:0.8rem;color:var(--admin-text-muted);"><?php echo count($cf['options']); ?> opts</span>
+                        <?php endif; ?>
+                        <form method="post" style="display:inline;" class="form-confirm-delete">
+                            <input type="hidden" name="action" value="remove_custom_field">
+                            <input type="hidden" name="cf_field_id" value="<?php echo klytos_esc_attr($cf['id'] ?? ''); ?>">
+                            <?php echo klytos_csrf_field(); ?>
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+    <div class="empty-state">
+        <p>No custom fields defined for this post type.</p>
+    </div>
+    <?php endif; ?>
+
+    <form method="post" style="padding:1.5rem;border-top:1px solid var(--admin-border, #e2e8f0);">
+        <h4 style="margin-bottom:1rem;">Add Custom Field</h4>
+        <input type="hidden" name="action" value="add_custom_field">
+        <?php echo klytos_csrf_field(); ?>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+            <div class="form-group">
+                <label>ID</label>
+                <input type="text" name="cf_id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. price">
+                <p class="form-help">Lowercase, hyphens/underscores only.</p>
+            </div>
+            <div class="form-group">
+                <label>Label</label>
+                <input type="text" name="cf_label" class="form-control" required placeholder="e.g. Price">
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="cf_type" class="form-control" id="cf-type-select" required>
+                    <?php foreach ($fieldTypeGroups as $group => $types): ?>
+                        <optgroup label="<?php echo klytos_esc_attr($group); ?>">
+                            <?php foreach ($types as $t): ?>
+                                <option value="<?php echo klytos_esc_attr($t); ?>"><?php echo klytos_esc_html($t); ?></option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" name="cf_description" class="form-control" placeholder="Help text shown below the field">
+            </div>
+            <div class="form-group">
+                <label>Placeholder</label>
+                <input type="text" name="cf_placeholder" class="form-control" placeholder="Placeholder text">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label><input type="checkbox" name="cf_required" value="1"> Required</label>
+        </div>
+
+        <!-- Options section (for select, multiselect, radio, checkbox_group) -->
+        <div id="cf-options-section" style="display:none;margin-top:1rem;padding:1rem;background:var(--admin-bg);border-radius:var(--admin-radius);">
+            <h5 style="margin-bottom:0.5rem;">Options</h5>
+            <div id="cf-options-list"></div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addOptionRow()" style="margin-top:0.5rem;">+ Add Option</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-sm" style="margin-top:1rem;">Add Custom Field</button>
+    </form>
+</div>
+
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
     document.querySelectorAll('.form-confirm-delete').forEach(function(form) {
         form.addEventListener('submit', function(e) {
-            if (!confirm('Are you sure you want to remove this taxonomy?')) {
+            if (!confirm('Are you sure you want to remove this?')) {
                 e.preventDefault();
             }
         });
     });
+
+    // Show/hide options section based on field type.
+    var typeSelect = document.getElementById('cf-type-select');
+    var optionsSection = document.getElementById('cf-options-section');
+    var optionTypes = <?php echo json_encode($optionTypes); ?>;
+
+    function updateOptionsVisibility() {
+        if (optionTypes.indexOf(typeSelect.value) !== -1) {
+            optionsSection.style.display = 'block';
+        } else {
+            optionsSection.style.display = 'none';
+        }
+    }
+
+    typeSelect.addEventListener('change', updateOptionsVisibility);
+    updateOptionsVisibility();
 })();
+
+function addOptionRow() {
+    var list = document.getElementById('cf-options-list');
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;';
+    div.innerHTML = '<input type="text" name="cf_opt_value[]" class="form-control" placeholder="Value" style="flex:1;" required>' +
+                    '<input type="text" name="cf_opt_label[]" class="form-control" placeholder="Label" style="flex:1;">' +
+                    '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">×</button>';
+    list.appendChild(div);
+}
 </script>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

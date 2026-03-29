@@ -107,6 +107,51 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         $page = $pm->get( $slug );
         $success = true;
 
+        // Save custom field values.
+        if (!empty($_POST['cf']) && is_array($_POST['cf'])) {
+            try {
+                $ptDef    = $app->getPostTypeManager()->get($data['post_type'] ?? 'page');
+                $cfFields = $ptDef['custom_fields'] ?? [];
+                $meta     = $app->getMetaManager();
+
+                foreach ($cfFields as $cfDef) {
+                    $fid = $cfDef['id'] ?? '';
+                    if ($fid === '' || !array_key_exists($fid, $_POST['cf'])) {
+                        continue;
+                    }
+                    $rawVal = $_POST['cf'][$fid];
+                    $validated = $app->getPostTypeManager()->validateFieldValue($cfDef, $rawVal);
+                    $meta->set('pages', $saveSlug, 'cf.' . $fid, $validated);
+                }
+            } catch (\Throwable $e) {
+                // Custom field save errors are non-fatal.
+            }
+        }
+
+        // Save taxonomy term assignments.
+        try {
+            $ptDefTax     = $app->getPostTypeManager()->get($data['post_type'] ?? 'page');
+            $ptTaxonomies = $ptDefTax['taxonomies'] ?? [];
+            $meta         = $app->getMetaManager();
+
+            foreach ($ptTaxonomies as $tax) {
+                $taxId   = $tax['id'] ?? '';
+                $postKey = 'tax_' . $taxId;
+                if ($taxId === '') {
+                    continue;
+                }
+                $assigned = $_POST[$postKey] ?? [];
+                if (!is_array($assigned)) {
+                    $assigned = [$assigned];
+                }
+                // Filter to non-empty values.
+                $assigned = array_values(array_filter($assigned, fn($v) => trim((string) $v) !== ''));
+                $meta->set('pages', $saveSlug, 'tax.' . $taxId, $assigned);
+            }
+        } catch (\Throwable $e) {
+            // Taxonomy assignment errors are non-fatal.
+        }
+
         // Update local vars.
         $pageTitle     = $data['title'];
         $pageContent   = $data['content_html'];
@@ -347,6 +392,37 @@ include __DIR__ . '/templates/sidebar.php';
                     <!-- Main Canvas (Gutenberg) -->
                     <div class="klytos-editor-canvas">
                         <div id="klytos-editor-container"></div>
+
+                        <?php
+                        // ─── Custom Fields below the editor ───
+                        $cfDefs = [];
+                        $cfValues = [];
+                        try {
+                            $cfDefs = $app->getPostTypeManager()->listCustomFields($pagePostType);
+                        } catch (\Throwable $e) {
+                            // Post type may not have custom fields.
+                        }
+                        if (!empty($cfDefs) && $isEditing && $slug) {
+                            $cfMeta = $app->getMetaManager()->getAll('pages', $slug);
+                            foreach ($cfMeta as $mk => $mv) {
+                                if (str_starts_with($mk, 'cf.')) {
+                                    $cfValues[substr($mk, 3)] = $mv;
+                                }
+                            }
+                        }
+                        if (!empty($cfDefs)):
+                            require_once __DIR__ . '/includes/custom-field-renderer.php';
+                        ?>
+                        <div class="klytos-custom-fields" style="padding:1.5rem 2rem;border-top:1px solid var(--admin-border, #e2e8f0);background:var(--admin-surface, #fff);">
+                            <h3 style="margin:0 0 1rem 0;font-size:0.95rem;font-weight:600;color:var(--admin-text, #1e293b);">Custom Fields</h3>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem;">
+                                <?php foreach ($cfDefs as $cfDef): ?>
+                                    <?php echo renderCustomField($cfDef, $cfValues[$cfDef['id']] ?? null); ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                     </div>
 
                     <!-- ─── Klytos Sidebar ─── -->
@@ -455,6 +531,76 @@ include __DIR__ . '/templates/sidebar.php';
                                     <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
                                 </div>
                             </div>
+
+                            <?php
+                            // Taxonomies section in sidebar.
+                            $ptDef = null;
+                            $ptTaxonomies = [];
+                            $taxAssigned = [];
+                            try {
+                                $ptDef = $app->getPostTypeManager()->get($pagePostType);
+                                $ptTaxonomies = $ptDef['taxonomies'] ?? [];
+                            } catch (\Throwable $e) {
+                                // Post type not found.
+                            }
+                            // Load assigned terms from _meta.
+                            if (!empty($ptTaxonomies) && $isEditing && $slug) {
+                                $allMetaSidebar = $app->getMetaManager()->getAll('pages', $slug);
+                                foreach ($allMetaSidebar as $mk => $mv) {
+                                    if (str_starts_with($mk, 'tax.')) {
+                                        $taxAssigned[substr($mk, 4)] = is_array($mv) ? $mv : [$mv];
+                                    }
+                                }
+                            }
+                            if (!empty($ptTaxonomies)):
+                                foreach ($ptTaxonomies as $taxonomy):
+                                    $taxId = $taxonomy['id'] ?? '';
+                                    $taxName = $taxonomy['name'] ?? ucfirst($taxId);
+                                    $isHierarchical = $taxonomy['hierarchical'] ?? false;
+                                    $currentTerms = $taxAssigned[$taxId] ?? [];
+
+                                    // Load available terms for this taxonomy.
+                                    $availableTerms = [];
+                                    try {
+                                        $availableTerms = $app->getPostTypeManager()->listTerms($pagePostType, $taxId);
+                                    } catch (\Throwable $e) {
+                                        // No terms.
+                                    }
+                            ?>
+                            <div class="klytos-editor-settings__section">
+                                <h3 class="klytos-editor-settings__heading"><?php echo klytos_esc_html($taxName); ?></h3>
+                                <?php if (!empty($availableTerms)): ?>
+                                    <?php if ($isHierarchical): ?>
+                                        <!-- Hierarchical: checkboxes (like WP categories) -->
+                                        <div style="max-height:180px;overflow-y:auto;padding:0.25rem 0;">
+                                        <?php foreach ($availableTerms as $term): ?>
+                                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.15rem 0;cursor:pointer;font-weight:400;font-size:0.85rem;">
+                                                <input type="checkbox" name="tax_<?php echo klytos_esc_attr($taxId); ?>[]" value="<?php echo klytos_esc_attr($term['slug']); ?>"
+                                                    <?php echo in_array($term['slug'], $currentTerms, true) ? 'checked' : ''; ?>>
+                                                <?php echo klytos_esc_html($term['name'] ?? $term['slug']); ?>
+                                            </label>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <!-- Flat: tag-like multi-select -->
+                                        <select name="tax_<?php echo klytos_esc_attr($taxId); ?>[]" class="klytos-editor-settings__input" multiple size="<?php echo min(count($availableTerms), 6); ?>">
+                                            <?php foreach ($availableTerms as $term): ?>
+                                                <option value="<?php echo klytos_esc_attr($term['slug']); ?>"
+                                                    <?php echo in_array($term['slug'], $currentTerms, true) ? 'selected' : ''; ?>>
+                                                    <?php echo klytos_esc_html($term['name'] ?? $term['slug']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="form-help" style="font-size:0.75rem;">Hold Ctrl/Cmd to select multiple.</div>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <p style="font-size:0.85rem;color:var(--admin-text-muted);">No terms available. <a href="taxonomy.php?post_type=<?php echo urlencode($pagePostType); ?>&taxonomy=<?php echo urlencode($taxId); ?>">Add terms</a></p>
+                                <?php endif; ?>
+                            </div>
+                            <?php
+                                endforeach;
+                            endif;
+                            ?>
 
                                 </div>
                             </div>
