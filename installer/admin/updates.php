@@ -32,6 +32,9 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         $newChannel = $_POST['channel'] ?? Updater::CHANNEL_STABLE;
         $updater->setChannel( $newChannel );
         $currentChannel = $updater->getChannel();
+        // Save max backups setting.
+        $maxBackups = (int) ( $_POST['max_backups'] ?? 10 );
+        $updater->setMaxBackups( $maxBackups );
         // Force refresh after changing channel.
         $updateInfo = $updater->checkForUpdate( true );
         if ( $updateInfo === null ) {
@@ -159,8 +162,16 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         </div>
 
+        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--admin-border);">
+            <label style="font-weight:600;font-size:0.9rem;">Maximum backups to keep</label>
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem;">
+                <input type="number" name="max_backups" value="<?php echo (int) $updater->getMaxBackups(); ?>" min="1" max="100" style="width:80px;" class="form-control">
+                <span style="font-size:0.85rem;color:var(--admin-text-muted);">Older backups are automatically deleted when this limit is exceeded.</span>
+            </div>
+        </div>
+
         <div style="margin-top:1rem;">
-            <button type="submit" class="btn btn-primary">Save channel &amp; check for updates</button>
+            <button type="submit" class="btn btn-primary">Save &amp; check for updates</button>
         </div>
     </form>
 </div>

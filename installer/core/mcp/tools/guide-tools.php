@@ -70,7 +70,7 @@ function registerGuideTools( ToolRegistry $registry ): void
     // ─── klytos_get_guide ────────────────────────────────────────
     $registry->register(
         'klytos_get_guide',
-        'Get a complete guide for AI assistants. Available guides: "gutenberg-blocks" (REQUIRED before creating page content — teaches all Gutenberg block markup), "seo-content" (REQUIRED before setting title/meta_description — teaches SEO best practices), "accessibility" (WCAG 2.1 AA compliance), "plugin-development" (how to build Klytos plugins), "seo-and-indexing" (sitemap, llms.txt, robots.txt), "security-architecture" (encryption, auth, CSP), "core-development" (system architecture). Always read "gutenberg-blocks" and "seo-content" before creating or editing any page.',
+        'Get a complete guide for AI assistants. Available guides: "gutenberg-blocks" (REQUIRED before creating page content — teaches all Gutenberg block markup), "seo-content" (REQUIRED before setting title/meta_description — teaches SEO best practices), "post-types-and-fields" (REQUIRED before creating Post Types, Taxonomies, or Custom Fields — teaches all 27 field types, taxonomies, and the complete workflow), "accessibility" (WCAG 2.1 AA compliance), "plugin-development" (how to build Klytos plugins), "seo-and-indexing" (sitemap, llms.txt, robots.txt), "security-architecture" (encryption, auth, CSP), "core-development" (system architecture). Always read "gutenberg-blocks" and "seo-content" before creating pages, and "post-types-and-fields" before creating or configuring Post Types.',
         [
             'guide_id' => [
                 'type'        => 'string',

@@ -259,6 +259,7 @@ class ToolRegistry
             'plugin-tools.php',
             'guide-tools.php',
             'post-type-tools.php',
+            'custom-field-tools.php',
         ];
 
         foreach ($toolFiles as $file) {

@@ -53,10 +53,60 @@ $version   = $app->getVersion();
 
         /* Layout */
         .admin-layout { display: flex; min-height: 100vh; }
-        .admin-sidebar { width: 260px; background: var(--admin-sidebar); color: var(--admin-sidebar-text); padding: 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 50; transition: transform 0.3s; }
-        .admin-content { flex: 1; margin-left: 260px; padding: 0; }
+        .admin-sidebar {
+            width: 260px; background: var(--admin-sidebar); color: var(--admin-sidebar-text);
+            padding: 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto;
+            z-index: 50; transition: width 0.25s ease;
+        }
+        .admin-content { flex: 1; margin-left: 260px; padding: 0; transition: margin-left 0.25s ease; min-width: 0; overflow-x: hidden; }
         .admin-topbar { background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 40; }
-        .admin-main { padding: 1.5rem; }
+
+        /* Sidebar toggle button */
+        .sidebar-toggle { background: none; border: none; color: var(--admin-text); cursor: pointer; font-size: 1.25rem; padding: 0.25rem 0.5rem; border-radius: var(--admin-radius); transition: background 0.15s; display: flex; align-items: center; }
+        .sidebar-toggle:hover { background: var(--admin-bg); }
+
+        /* Collapsed sidebar */
+        .admin-sidebar.collapsed { width: 60px; overflow: visible; }
+        .admin-sidebar.collapsed + .admin-content,
+        .admin-layout.sidebar-collapsed .admin-content { margin-left: 60px; }
+
+        .admin-sidebar.collapsed .sidebar-brand { padding: 1.25rem 0; text-align: center; }
+        .admin-sidebar.collapsed .sidebar-brand h2 { font-size: 0.9rem; }
+        .admin-sidebar.collapsed .sidebar-brand small { display: none; }
+
+        .admin-sidebar.collapsed .sidebar-section { font-size: 0; padding: 0.5rem 0 0.25rem; text-align: center; }
+        .admin-sidebar.collapsed .sidebar-section::after { content: ''; display: block; width: 24px; height: 1px; background: rgba(255,255,255,0.15); margin: 0 auto; }
+
+        .admin-sidebar.collapsed .sidebar-nav a { justify-content: center; padding: 0.65rem 0; position: relative; }
+        .admin-sidebar.collapsed .sidebar-nav a span { margin: 0; }
+        .admin-sidebar.collapsed .sidebar-nav a .sidebar-label,
+        .admin-sidebar.collapsed .sidebar-nav a .badge { display: none; }
+
+        .admin-sidebar.collapsed .sidebar-nav a.sidebar-child { display: none; }
+
+        /* Tooltip on hover (collapsed) */
+        .sidebar-item-wrap { position: relative; }
+        .sidebar-tooltip {
+            display: none; position: fixed; left: 60px;
+            background: var(--admin-sidebar); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 0 var(--admin-radius) var(--admin-radius) 0;
+            padding: 0.5rem 0.75rem; min-width: 180px; z-index: 200;
+            box-shadow: 4px 4px 16px rgba(0,0,0,0.4);
+        }
+        .sidebar-tooltip .tooltip-title {
+            padding: 0.5rem 1.25rem; color: #fff; font-size: 0.88rem; font-weight: 500;
+            white-space: nowrap; display: block; text-decoration: none;
+        }
+        .sidebar-tooltip .tooltip-title:hover { background: rgba(255,255,255,0.08); text-decoration: none; }
+        .sidebar-tooltip .tooltip-child {
+            display: block; padding: 0.35rem 1.25rem 0.35rem 2rem;
+            color: rgba(255,255,255,0.6); font-size: 0.82rem; text-decoration: none;
+            white-space: nowrap;
+        }
+        .sidebar-tooltip .tooltip-child:hover { color: #fff; background: rgba(255,255,255,0.08); text-decoration: none; }
+
+        .admin-sidebar.collapsed .sidebar-item-wrap:hover .sidebar-tooltip { display: block; }
+        .admin-main { padding: 1.5rem; min-width: 0; overflow-x: auto; }
 
         /* Sidebar */
         .sidebar-brand { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -127,10 +177,26 @@ $version   = $app->getVersion();
 
         /* Responsive */
         @media (max-width: 768px) {
-            .admin-sidebar { transform: translateX(-100%); }
-            .admin-sidebar.open { transform: translateX(0); }
-            .admin-content { margin-left: 0; }
+            .admin-sidebar { width: 60px; overflow: visible; }
+            .admin-sidebar .sidebar-brand { padding: 1.25rem 0; text-align: center; }
+            .admin-sidebar .sidebar-brand h2 { font-size: 0.9rem; }
+            .admin-sidebar .sidebar-brand small { display: none; }
+            .admin-sidebar .sidebar-section { font-size: 0; padding: 0.5rem 0 0.25rem; text-align: center; }
+            .admin-sidebar .sidebar-section::after { content: ''; display: block; width: 24px; height: 1px; background: rgba(255,255,255,0.15); margin: 0 auto; }
+            .admin-sidebar .sidebar-nav a { justify-content: center; padding: 0.65rem 0; }
+            .admin-sidebar .sidebar-nav a .sidebar-label,
+            .admin-sidebar .sidebar-nav a .badge { display: none; }
+            .admin-sidebar .sidebar-nav a.sidebar-child { display: none; }
+            .admin-sidebar .sidebar-item-wrap:hover .sidebar-tooltip { display: block; }
+            .admin-content { margin-left: 60px !important; min-width: 0; }
+            .admin-main { padding: 1rem; }
+            .admin-topbar { padding: 0.5rem 1rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .card { padding: 1rem; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
         }
 
         /* Code/Mono */
