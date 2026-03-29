@@ -27,17 +27,19 @@ $currentPage = $currentPage ?? basename($_SERVER['SCRIPT_NAME'], '.php');
 // Resolve the effective sidebar item ID for the current page.
 // Custom post type pages use a shared PHP file with query params,
 // so we need to map them back to their sidebar item IDs.
+// Use the raw script name because some pages override $currentPage.
+$scriptName    = basename($_SERVER['SCRIPT_NAME'], '.php');
 $currentItemId = $currentPage;
-if ($currentPage === 'post-type-edit' && isset($_GET['id'])) {
+if ($scriptName === 'post-type-edit' && isset($_GET['id'])) {
     $currentItemId = 'pt-' . $_GET['id'] . '-settings';
 }
-if ($currentPage === 'taxonomy' && isset($_GET['post_type'], $_GET['taxonomy'])) {
+if ($scriptName === 'taxonomy' && isset($_GET['post_type'], $_GET['taxonomy'])) {
     $currentItemId = 'tax-' . $_GET['post_type'] . '-' . $_GET['taxonomy'];
 }
-if ($currentPage === 'pages' && !empty($_GET['post_type'])) {
+if ($scriptName === 'pages' && !empty($_GET['post_type'])) {
     $currentItemId = 'pt-' . $_GET['post_type'] . '-all';
 }
-if ($currentPage === 'page-editor' && !empty($_GET['post_type'])) {
+if ($scriptName === 'page-editor' && !empty($_GET['post_type'])) {
     $currentItemId = 'pt-' . $_GET['post_type'] . '-all';
 }
 
@@ -260,6 +262,7 @@ foreach ($sidebarItems as $item) {
 }
 ?>
 <?php
+if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
 /**
  * Renders a single sidebar item with tooltip wrapper for collapsed mode.
  *
@@ -311,6 +314,7 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
     </div>
     <?php
 }
+} // End function_exists.
 ?>
 <aside class="admin-sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -363,22 +367,49 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
             </a>
         </div>
     </div>
+    <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+    (function() {
+        var sidebar  = document.getElementById('sidebar');
+        var toggle   = document.getElementById('sidebarToggle');
+        var content  = sidebar.nextElementSibling;
+        var KEY      = 'klytos_sidebar_collapsed';
+
+        function apply(collapsed) {
+            if (collapsed) {
+                sidebar.classList.add('collapsed');
+                content.style.marginLeft = '60px';
+            } else {
+                sidebar.classList.remove('collapsed');
+                content.style.marginLeft = '260px';
+            }
+        }
+
+        // Restore saved state.
+        apply(localStorage.getItem(KEY) === '1');
+
+        toggle.addEventListener('click', function() {
+            var collapsed = !sidebar.classList.contains('collapsed');
+            apply(collapsed);
+            localStorage.setItem(KEY, collapsed ? '1' : '0');
+        });
+
+        // Position tooltips vertically when hovering sidebar items.
+        var wraps = sidebar.querySelectorAll('.sidebar-item-wrap');
+        wraps.forEach(function(wrap) {
+            wrap.addEventListener('mouseenter', function() {
+                var tooltip = wrap.querySelector('.sidebar-tooltip');
+                if (!tooltip) return;
+                var rect = wrap.getBoundingClientRect();
+                tooltip.style.top = rect.top + 'px';
+                // If tooltip goes below viewport, adjust upward.
+                requestAnimationFrame(function() {
+                    var tRect = tooltip.getBoundingClientRect();
+                    if (tRect.bottom > window.innerHeight) {
+                        tooltip.style.top = Math.max(0, window.innerHeight - tRect.height) + 'px';
+                    }
+                });
+            });
+        });
+    })();
+    </script>
     <div class="admin-main">
-
-<script nonce="<?php echo $cspNonce; ?>">
-(function() {
-    var sidebar = document.getElementById('sidebar');
-    var toggle  = document.getElementById('sidebarToggle');
-    var STORAGE_KEY = 'klytos_sidebar_collapsed';
-
-    // Restore saved state.
-    if (localStorage.getItem(STORAGE_KEY) === '1') {
-        sidebar.classList.add('collapsed');
-    }
-
-    toggle.addEventListener('click', function() {
-        sidebar.classList.toggle('collapsed');
-        localStorage.setItem(STORAGE_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
-    });
-})();
-</script>

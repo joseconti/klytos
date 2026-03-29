@@ -58,7 +58,7 @@ $version   = $app->getVersion();
             padding: 0; position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto;
             z-index: 50; transition: width 0.25s ease;
         }
-        .admin-content { flex: 1; margin-left: 260px; padding: 0; transition: margin-left 0.25s ease; }
+        .admin-content { flex: 1; margin-left: 260px; padding: 0; transition: margin-left 0.25s ease; min-width: 0; overflow-x: hidden; }
         .admin-topbar { background: var(--admin-surface); border-bottom: 1px solid var(--admin-border); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 40; }
 
         /* Sidebar toggle button */
@@ -85,31 +85,28 @@ $version   = $app->getVersion();
         .admin-sidebar.collapsed .sidebar-nav a.sidebar-child { display: none; }
 
         /* Tooltip on hover (collapsed) */
-        .admin-sidebar.collapsed .sidebar-nav > a .sidebar-tooltip,
-        .admin-sidebar.collapsed .sidebar-nav > .sidebar-item-wrap .sidebar-tooltip { display: none; }
-
         .sidebar-item-wrap { position: relative; }
         .sidebar-tooltip {
-            display: none; position: absolute; left: 100%; top: 0;
+            display: none; position: fixed; left: 60px;
             background: var(--admin-sidebar); border: 1px solid rgba(255,255,255,0.12);
             border-radius: var(--admin-radius); padding: 0.5rem 0;
-            min-width: 180px; z-index: 60;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            min-width: 180px; z-index: 200;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
         }
         .sidebar-tooltip .tooltip-title {
-            padding: 0.4rem 1rem; color: #fff; font-size: 0.88rem; font-weight: 500;
+            padding: 0.5rem 1rem; color: #fff; font-size: 0.88rem; font-weight: 500;
             white-space: nowrap; display: block; text-decoration: none;
         }
-        .sidebar-tooltip .tooltip-title:hover { background: rgba(255,255,255,0.08); }
+        .sidebar-tooltip .tooltip-title:hover { background: rgba(255,255,255,0.08); text-decoration: none; }
         .sidebar-tooltip .tooltip-child {
             display: block; padding: 0.35rem 1rem 0.35rem 1.5rem;
             color: rgba(255,255,255,0.6); font-size: 0.82rem; text-decoration: none;
             white-space: nowrap;
         }
-        .sidebar-tooltip .tooltip-child:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .sidebar-tooltip .tooltip-child:hover { color: #fff; background: rgba(255,255,255,0.08); text-decoration: none; }
 
         .admin-sidebar.collapsed .sidebar-item-wrap:hover .sidebar-tooltip { display: block; }
-        .admin-main { padding: 1.5rem; }
+        .admin-main { padding: 1.5rem; min-width: 0; overflow-x: auto; }
 
         /* Sidebar */
         .sidebar-brand { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -191,8 +188,15 @@ $version   = $app->getVersion();
             .admin-sidebar .sidebar-nav a .badge { display: none; }
             .admin-sidebar .sidebar-nav a.sidebar-child { display: none; }
             .admin-sidebar .sidebar-item-wrap:hover .sidebar-tooltip { display: block; }
-            .admin-content { margin-left: 60px; }
+            .admin-content { margin-left: 60px !important; min-width: 0; }
+            .admin-main { padding: 1rem; }
+            .admin-topbar { padding: 0.5rem 1rem; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .card { padding: 1rem; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
         }
 
         /* Code/Mono */
