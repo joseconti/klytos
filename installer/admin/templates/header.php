@@ -89,17 +89,17 @@ $version   = $app->getVersion();
         .sidebar-tooltip {
             display: none; position: fixed; left: 60px;
             background: var(--admin-sidebar); border: 1px solid rgba(255,255,255,0.12);
-            border-radius: var(--admin-radius); padding: 0.5rem 0;
-            min-width: 180px; z-index: 200;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            border-radius: 0 var(--admin-radius) var(--admin-radius) 0;
+            padding: 0.5rem 0.75rem; min-width: 180px; z-index: 200;
+            box-shadow: 4px 4px 16px rgba(0,0,0,0.4);
         }
         .sidebar-tooltip .tooltip-title {
-            padding: 0.5rem 1rem; color: #fff; font-size: 0.88rem; font-weight: 500;
+            padding: 0.5rem 1.25rem; color: #fff; font-size: 0.88rem; font-weight: 500;
             white-space: nowrap; display: block; text-decoration: none;
         }
         .sidebar-tooltip .tooltip-title:hover { background: rgba(255,255,255,0.08); text-decoration: none; }
         .sidebar-tooltip .tooltip-child {
-            display: block; padding: 0.35rem 1rem 0.35rem 1.5rem;
+            display: block; padding: 0.35rem 1.25rem 0.35rem 2rem;
             color: rgba(255,255,255,0.6); font-size: 0.82rem; text-decoration: none;
             white-space: nowrap;
         }
