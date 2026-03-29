@@ -32,9 +32,10 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         $newChannel = $_POST['channel'] ?? Updater::CHANNEL_STABLE;
         $updater->setChannel( $newChannel );
         $currentChannel = $updater->getChannel();
-        // Save max backups setting.
+        // Save max backups setting and prune excess.
         $maxBackups = (int) ( $_POST['max_backups'] ?? 10 );
         $updater->setMaxBackups( $maxBackups );
+        $updater->pruneBackups();
         // Force refresh after changing channel.
         $updateInfo = $updater->checkForUpdate( true );
         if ( $updateInfo === null ) {
