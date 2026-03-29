@@ -29,7 +29,7 @@ function registerCustomFieldTools(ToolRegistry $registry, App $app): void
     // ─── klytos_get_field_types ─────────────────────────────────
     $registry->register(
         'klytos_get_field_types',
-        'List all supported custom field types with their descriptions, categories, and available validation rules. Call this first to understand what field types are available before creating custom fields.',
+        'List all 27 supported custom field types with their descriptions, categories, and available validation rules. Use this tool when the administrator asks what types of fields are available, or before creating custom fields. Each type includes: label, category (text/number/datetime/choice/media/data/advanced), description explaining when to use it, and available validation rules. You SHOULD present the types grouped by category and explain each one in plain language so the administrator can choose the right type for their data.',
         [],
         function (array $params, App $app): array {
             return [
@@ -43,7 +43,7 @@ function registerCustomFieldTools(ToolRegistry $registry, App $app): void
     // ─── klytos_add_custom_field ────────────────────────────────
     $registry->register(
         'klytos_add_custom_field',
-        'Add a custom field definition to a specific post type. Custom fields define the data schema for entries of that post type. The field ID must be unique within the post type. Supported types: text, textarea, richtext, code, password, number, range, date, datetime, time, select, multiselect, checkbox, checkbox_group, radio, toggle, image, file, gallery, email, url, phone, color, json, repeater, relationship.',
+        'Add a custom field definition to a specific post type. Custom fields define the data schema for entries of that post type. The field ID must be unique within the post type. IMPORTANT WORKFLOW: When adding a custom field, you MUST: (1) Ask the administrator for the field ID, label, and type. If they are unsure about the type, call klytos_get_field_types first and explain the options. (2) Ask whether the field should be REQUIRED (required=true) or optional (required=false). Explain that required fields must be filled when creating entries. (3) For choice types (select, multiselect, radio, checkbox_group), ask for the list of options (value/label pairs). (4) For number/range, ask about min/max/step validation rules. Supported types: text, textarea, richtext, code, password, number, range, date, datetime, time, select, multiselect, checkbox, checkbox_group, radio, toggle, image, file, gallery, email, url, phone, color, json, repeater, relationship. Read the "post-types-and-fields" guide for complete documentation.',
         [
             'post_type_id'  => ['type' => 'string', 'description' => 'The post type ID to add the custom field to (e.g. "products", "portfolio").'],
             'id'            => ['type' => 'string', 'description' => 'Unique machine name for the field (lowercase, underscores/hyphens). E.g.: "price", "featured_image", "release_date".'],

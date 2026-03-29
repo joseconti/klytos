@@ -29,10 +29,16 @@ $currentPage = $currentPage ?? basename($_SERVER['SCRIPT_NAME'], '.php');
 // so we need to map them back to their sidebar item IDs.
 $currentItemId = $currentPage;
 if ($currentPage === 'post-type-edit' && isset($_GET['id'])) {
-    $currentItemId = 'pt-' . $_GET['id'];
+    $currentItemId = 'pt-' . $_GET['id'] . '-settings';
 }
 if ($currentPage === 'taxonomy' && isset($_GET['post_type'], $_GET['taxonomy'])) {
     $currentItemId = 'tax-' . $_GET['post_type'] . '-' . $_GET['taxonomy'];
+}
+if ($currentPage === 'pages' && !empty($_GET['post_type'])) {
+    $currentItemId = 'pt-' . $_GET['post_type'] . '-all';
+}
+if ($currentPage === 'page-editor' && !empty($_GET['post_type'])) {
+    $currentItemId = 'pt-' . $_GET['post_type'] . '-all';
 }
 
 // ─── Build the sidebar menu items ────────────────────────────
