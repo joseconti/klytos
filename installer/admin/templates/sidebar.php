@@ -259,6 +259,59 @@ foreach ($sidebarItems as $item) {
     $sections[$section][] = $item;
 }
 ?>
+<?php
+/**
+ * Renders a single sidebar item with tooltip wrapper for collapsed mode.
+ *
+ * @param array  $item          The sidebar menu item data.
+ * @param string $currentItemId The current page item ID for active state.
+ */
+function klytos_render_sidebar_item( array $item, string $currentItemId ): void {
+    $isParentActive = $currentItemId === $item['id'];
+    $hasChildren    = !empty($item['children']);
+    if ($hasChildren) {
+        foreach ($item['children'] as $child) {
+            if ($currentItemId === $child['id']) {
+                $isParentActive = true;
+            }
+        }
+    }
+    ?>
+    <div class="sidebar-item-wrap">
+        <a href="<?php echo klytos_esc_url($item['url']); ?>"
+           class="<?php echo $isParentActive ? 'active' : ''; ?>">
+            <i class="<?php echo klytos_esc_attr($item['icon'] ?? 'fa-solid fa-circle'); ?>"></i>
+            <span class="sidebar-label"><?php echo klytos_esc_html($item['title']); ?></span>
+            <?php if (!empty($item['badge'])): ?>
+                <span class="badge"><?php echo klytos_esc_html((string) $item['badge']); ?></span>
+            <?php endif; ?>
+        </a>
+        <?php // Tooltip for collapsed state ?>
+        <div class="sidebar-tooltip">
+            <a href="<?php echo klytos_esc_url($item['url']); ?>" class="tooltip-title">
+                <?php echo klytos_esc_html($item['title']); ?>
+            </a>
+            <?php if ($hasChildren): ?>
+                <?php foreach ($item['children'] as $child): ?>
+                    <a href="<?php echo klytos_esc_url($child['url']); ?>" class="tooltip-child">
+                        <?php echo klytos_esc_html($child['title']); ?>
+                    </a>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+        <?php // Expanded child items (shown when expanded and parent is active) ?>
+        <?php if ($hasChildren && $isParentActive): ?>
+            <?php foreach ($item['children'] as $child): ?>
+                <a href="<?php echo klytos_esc_url($child['url']); ?>"
+                   class="sidebar-child <?php echo $currentItemId === $child['id'] ? 'active' : ''; ?>">
+                    <?php echo klytos_esc_html($child['title']); ?>
+                </a>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+    <?php
+}
+?>
 <aside class="admin-sidebar" id="sidebar">
     <div class="sidebar-brand">
         <h2>Klytos</h2>
@@ -269,66 +322,14 @@ foreach ($sidebarItems as $item) {
         <?php if (!empty($sections['content'])): ?>
             <div class="sidebar-section"><?php echo __( 'common.name' ); ?></div>
             <?php foreach ($sections['content'] as $item): ?>
-                <?php
-                $isParentActive = $currentItemId === $item['id'];
-                $hasChildren    = !empty( $item['children'] );
-                if ($hasChildren) {
-                    foreach ($item['children'] as $child) {
-                        if ($currentItemId === $child['id']) {
-                            $isParentActive = true;
-                        }
-                    }
-                }
-                ?>
-                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
-                   class="<?php echo $isParentActive ? 'active' : ''; ?>">
-                    <i class="<?php echo klytos_esc_attr( $item['icon'] ?? 'fa-solid fa-circle' ); ?>"></i>
-                    <?php echo klytos_esc_html( $item['title'] ); ?>
-                    <?php if (!empty( $item['badge'] )): ?>
-                        <span class="badge"><?php echo klytos_esc_html( (string) $item['badge'] ); ?></span>
-                    <?php endif; ?>
-                </a>
-                <?php if ($hasChildren && $isParentActive): ?>
-                    <?php foreach ($item['children'] as $child): ?>
-                        <a href="<?php echo klytos_esc_url( $child['url'] ); ?>"
-                           class="sidebar-child <?php echo $currentItemId === $child['id'] ? 'active' : ''; ?>">
-                            <?php echo klytos_esc_html( $child['title'] ); ?>
-                        </a>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
         <?php endif; ?>
 
         <?php if (!empty($sections['system'])): ?>
             <div class="sidebar-section">System</div>
             <?php foreach ($sections['system'] as $item): ?>
-                <?php
-                $isParentActive = $currentItemId === $item['id'];
-                $hasChildren    = !empty( $item['children'] );
-                if ($hasChildren) {
-                    foreach ($item['children'] as $child) {
-                        if ($currentItemId === $child['id']) {
-                            $isParentActive = true;
-                        }
-                    }
-                }
-                ?>
-                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
-                   class="<?php echo $isParentActive ? 'active' : ''; ?>">
-                    <i class="<?php echo klytos_esc_attr( $item['icon'] ?? 'fa-solid fa-circle' ); ?>"></i>
-                    <?php echo klytos_esc_html( $item['title'] ); ?>
-                    <?php if (!empty( $item['badge'] )): ?>
-                        <span class="badge"><?php echo klytos_esc_html( (string) $item['badge'] ); ?></span>
-                    <?php endif; ?>
-                </a>
-                <?php if ($hasChildren && $isParentActive): ?>
-                    <?php foreach ($item['children'] as $child): ?>
-                        <a href="<?php echo klytos_esc_url( $child['url'] ); ?>"
-                           class="sidebar-child <?php echo $currentItemId === $child['id'] ? 'active' : ''; ?>">
-                            <?php echo klytos_esc_html( $child['title'] ); ?>
-                        </a>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
         <?php endif; ?>
 
@@ -339,11 +340,7 @@ foreach ($sidebarItems as $item) {
         ?>
             <div class="sidebar-section"><?php echo klytos_esc_html( ucfirst( $sectionName ) ); ?></div>
             <?php foreach ($items as $item): ?>
-                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
-                   class="<?php echo $currentItemId === $item['id'] ? 'active' : ''; ?>">
-                    <i class="<?php echo klytos_esc_attr( $item['icon'] ?? 'fa-solid fa-circle' ); ?>"></i>
-                    <?php echo klytos_esc_html( $item['title'] ); ?>
-                </a>
+                <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
         <?php endforeach; ?>
     </nav>
@@ -351,7 +348,10 @@ foreach ($sidebarItems as $item) {
 
 <div class="admin-content">
     <div class="admin-topbar">
-        <div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
+                <i class="fa-solid fa-bars"></i>
+            </button>
             <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
@@ -364,3 +364,21 @@ foreach ($sidebarItems as $item) {
         </div>
     </div>
     <div class="admin-main">
+
+<script nonce="<?php echo $cspNonce; ?>">
+(function() {
+    var sidebar = document.getElementById('sidebar');
+    var toggle  = document.getElementById('sidebarToggle');
+    var STORAGE_KEY = 'klytos_sidebar_collapsed';
+
+    // Restore saved state.
+    if (localStorage.getItem(STORAGE_KEY) === '1') {
+        sidebar.classList.add('collapsed');
+    }
+
+    toggle.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem(STORAGE_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+    });
+})();
+</script>

@@ -30,6 +30,9 @@ class Updater
     /** Maximum update log entries. */
     private const MAX_LOG_ENTRIES = 50;
 
+    /** Default maximum number of backup directories to keep. */
+    private const DEFAULT_MAX_BACKUPS = 10;
+
     /**
      * Update channels.
      *
@@ -65,12 +68,8 @@ class Updater
      */
     public function getChannel(): string
     {
-        try {
-            $data = $this->storage->readFrom( $this->configPath, 'update_settings.json.enc' );
-            return $data['channel'] ?? self::CHANNEL_STABLE;
-        } catch ( \RuntimeException $e ) {
-            return self::CHANNEL_STABLE;
-        }
+        $settings = $this->getUpdateSettings();
+        return $settings['channel'] ?? self::CHANNEL_STABLE;
     }
 
     /**
@@ -85,9 +84,111 @@ class Updater
             $channel = self::CHANNEL_STABLE;
         }
 
-        $this->storage->writeTo( $this->configPath, 'update_settings.json.enc', [
-            'channel' => $channel,
-        ] );
+        $settings = $this->getUpdateSettings();
+        $settings['channel'] = $channel;
+        $this->storage->writeTo( $this->configPath, 'update_settings.json.enc', $settings );
+    }
+
+    /**
+     * Get the maximum number of backups to keep.
+     *
+     * @return int
+     */
+    public function getMaxBackups(): int
+    {
+        $settings = $this->getUpdateSettings();
+        return (int) ( $settings['max_backups'] ?? self::DEFAULT_MAX_BACKUPS );
+    }
+
+    /**
+     * Set the maximum number of backups to keep.
+     *
+     * @param int $max Minimum 1.
+     */
+    public function setMaxBackups( int $max ): void
+    {
+        $max = max( 1, $max );
+        $settings = $this->getUpdateSettings();
+        $settings['max_backups'] = $max;
+        $this->storage->writeTo( $this->configPath, 'update_settings.json.enc', $settings );
+    }
+
+    /**
+     * Read the full update settings.
+     *
+     * @return array
+     */
+    private function getUpdateSettings(): array
+    {
+        try {
+            return $this->storage->readFrom( $this->configPath, 'update_settings.json.enc' );
+        } catch ( \RuntimeException $e ) {
+            return [];
+        }
+    }
+
+    /**
+     * Delete oldest backups that exceed the configured maximum.
+     * Keeps the most recent $max backups, deletes the rest.
+     */
+    public function pruneBackups(): void
+    {
+        $max        = $this->getMaxBackups();
+        $backupsDir = $this->rootPath . '/backups';
+
+        if ( ! is_dir( $backupsDir ) ) {
+            return;
+        }
+
+        $backups = [];
+        $entries = array_diff( scandir( $backupsDir ), [ '.', '..' ] );
+
+        foreach ( $entries as $entry ) {
+            $path = $backupsDir . '/' . $entry;
+            if ( ! is_dir( $path ) || ! str_starts_with( $entry, 'pre-update-' ) ) {
+                continue;
+            }
+            $backups[] = [
+                'name' => $entry,
+                'path' => $path,
+                'time' => filemtime( $path ),
+            ];
+        }
+
+        if ( count( $backups ) <= $max ) {
+            return;
+        }
+
+        // Sort newest first.
+        usort( $backups, fn( $a, $b ) => $b['time'] <=> $a['time'] );
+
+        // Delete excess (oldest).
+        $toDelete = array_slice( $backups, $max );
+        foreach ( $toDelete as $backup ) {
+            $this->deleteDir( $backup['path'] );
+        }
+    }
+
+    /**
+     * Recursively delete a directory.
+     */
+    private function deleteDir( string $dir ): void
+    {
+        if ( ! is_dir( $dir ) ) {
+            return;
+        }
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ( $items as $item ) {
+            if ( $item->isDir() ) {
+                rmdir( $item->getPathname() );
+            } else {
+                unlink( $item->getPathname() );
+            }
+        }
+        rmdir( $dir );
     }
 
     /**
@@ -292,6 +393,7 @@ class Updater
         $backupDir = $this->rootPath . '/backups/pre-update-' . $fromVersion . '-' . date( 'Ymd-His' );
         try {
             $this->createBackup( $backupDir );
+            $this->pruneBackups();
         } catch ( \RuntimeException $e ) {
             $this->disableMaintenanceMode();
             return $this->result( false, $fromVersion, '', 'Backup failed: ' . $e->getMessage() );
