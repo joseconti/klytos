@@ -36,8 +36,7 @@ function registerAiImageTools(ToolRegistry $registry): void
         function (array $params, App $app): array {
             $generator = new AiImageGenerator(
                 $app->getStorage(),
-                $app->getAssets(),
-                $app->getConfigPath()
+                $app->getAssets()
             );
 
             if (!$generator->isConfigured()) {
@@ -75,8 +74,7 @@ function registerAiImageTools(ToolRegistry $registry): void
         function (array $params, App $app): array {
             $generator = new AiImageGenerator(
                 $app->getStorage(),
-                $app->getAssets(),
-                $app->getConfigPath()
+                $app->getAssets()
             );
 
             $history = $generator->getHistory((int) ($params['limit'] ?? 50));

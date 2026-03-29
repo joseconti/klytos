@@ -18,7 +18,7 @@ $pageTitle = __( 'settings.title' );
 $auth      = $app->getAuth();
 $success   = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $section = $_POST['section'] ?? '';
 
     if ($section === 'general') {
@@ -76,6 +76,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] 
         } else {
             $success = __('common.success');
         }
+    } elseif ($section === 'languages') {
+        $languages = [];
+        $langCodes = $_POST['lang_code'] ?? [];
+        $langNames = $_POST['lang_name'] ?? [];
+        for ($i = 0; $i < count($langCodes); $i++) {
+            $code = trim($langCodes[$i] ?? '');
+            $name = trim($langNames[$i] ?? '');
+            if ($code !== '' && $name !== '') {
+                $languages[] = ['code' => $code, 'name' => $name];
+            }
+        }
+        $app->getSiteConfig()->set(['languages' => $languages]);
+        $success = __( 'common.success' );
     } elseif ($section === 'editor') {
         $editorValue = $_POST['editor'] ?? 'gutenberg';
         if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
@@ -86,8 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] 
     } elseif ($section === 'ai') {
         $generator = new \Klytos\Core\AiImageGenerator(
             $app->getStorage(),
-            $app->getAssets(),
-            $app->getConfigPath()
+            $app->getAssets()
         );
         $generator->setApiKey(trim($_POST['gemini_api_key'] ?? ''));
         $success = __( 'ai_images.api_key_saved' );
@@ -100,8 +112,7 @@ $csrf       = $auth->getCsrfToken();
 // Get AI config
 $aiGenerator = new \Klytos\Core\AiImageGenerator(
     $app->getStorage(),
-    $app->getAssets(),
-    $app->getConfigPath()
+    $app->getAssets()
 );
 $aiApiKey = $aiGenerator->getApiKey();
 
@@ -110,26 +121,26 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 
 <!-- General Settings -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'settings.title' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="general">
         <div class="form-group">
             <label><?php echo __( 'settings.site_name' ); ?></label>
-            <input type="text" name="site_name" class="form-control" value="<?php echo htmlspecialchars( $siteConfig['site_name'] ?? ''); ?>">
+            <input type="text" name="site_name" class="form-control" value="<?php echo klytos_esc_attr( $siteConfig['site_name'] ?? ''); ?>">
         </div>
         <div class="form-group">
             <label><?php echo __( 'settings.tagline' ); ?></label>
-            <input type="text" name="tagline" class="form-control" value="<?php echo htmlspecialchars( $siteConfig['tagline'] ?? ''); ?>">
+            <input type="text" name="tagline" class="form-control" value="<?php echo klytos_esc_attr( $siteConfig['tagline'] ?? ''); ?>">
         </div>
         <div class="form-group">
             <label><?php echo __( 'settings.site_description' ); ?></label>
-            <textarea name="description" class="form-control"><?php echo htmlspecialchars( $siteConfig['description'] ?? ''); ?></textarea>
+            <textarea name="description" class="form-control"><?php echo klytos_esc_html( $siteConfig['description'] ?? ''); ?></textarea>
         </div>
         <div class="form-group">
             <label><?php echo __( 'settings.default_language' ); ?></label>
@@ -148,13 +159,13 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'settings.social' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="social">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <?php foreach (['twitter','github','linkedin','instagram','youtube','mastodon'] as $social): ?>
                 <div class="form-group">
                     <label><?php echo ucfirst($social); ?></label>
-                    <input type="text" name="<?php echo $social; ?>" class="form-control" value="<?php echo htmlspecialchars( $siteConfig['social'][$social] ?? ''); ?>" placeholder="https://...">
+                    <input type="text" name="<?php echo $social; ?>" class="form-control" value="<?php echo klytos_esc_attr( $siteConfig['social'][$social] ?? ''); ?>" placeholder="https://...">
                 </div>
             <?php endforeach; ?>
         </div>
@@ -166,15 +177,15 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'settings.analytics' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="analytics">
         <div class="form-group">
             <label><?php echo __( 'settings.google_analytics_id' ); ?></label>
-            <input type="text" name="google_analytics_id" class="form-control" value="<?php echo htmlspecialchars( $siteConfig['analytics']['google_analytics_id'] ?? ''); ?>" placeholder="G-XXXXXXXXXX">
+            <input type="text" name="google_analytics_id" class="form-control" value="<?php echo klytos_esc_attr( $siteConfig['analytics']['google_analytics_id'] ?? ''); ?>" placeholder="G-XXXXXXXXXX">
         </div>
         <div class="form-group">
             <label><?php echo __( 'settings.custom_head_scripts' ); ?></label>
-            <textarea name="custom_head_scripts" class="form-control mono" rows="4"><?php echo htmlspecialchars( $siteConfig['analytics']['custom_head_scripts'] ?? ''); ?></textarea>
+            <textarea name="custom_head_scripts" class="form-control mono" rows="4"><?php echo klytos_esc_html( $siteConfig['analytics']['custom_head_scripts'] ?? ''); ?></textarea>
         </div>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
@@ -184,7 +195,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __('settings.email_title'); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="email">
         <div class="form-group">
             <label><?php echo __('settings.email_transport'); ?></label>
@@ -196,21 +207,21 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label><?php echo __('settings.email_from_name'); ?></label>
-                <input type="text" name="email_from_name" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['from_name'] ?? ''); ?>" placeholder="<?php echo htmlspecialchars($siteConfig['site_name'] ?? 'Klytos'); ?>">
+                <input type="text" name="email_from_name" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['from_name'] ?? ''); ?>" placeholder="<?php echo klytos_esc_attr($siteConfig['site_name'] ?? 'Klytos'); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __('settings.email_from_email'); ?></label>
-                <input type="email" name="email_from_email" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['from_email'] ?? ''); ?>" placeholder="noreply@example.com">
+                <input type="email" name="email_from_email" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['from_email'] ?? ''); ?>" placeholder="noreply@example.com">
             </div>
         </div>
         <div class="form-group">
             <label><?php echo __('settings.email_reply_to'); ?></label>
-            <input type="email" name="email_reply_to" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['reply_to'] ?? ''); ?>" placeholder="<?php echo __('common.optional'); ?>">
+            <input type="email" name="email_reply_to" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['reply_to'] ?? ''); ?>" placeholder="<?php echo __('common.optional'); ?>">
         </div>
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label><?php echo __('settings.smtp_host'); ?></label>
-                <input type="text" name="smtp_host" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['smtp_host'] ?? ''); ?>" placeholder="smtp.example.com">
+                <input type="text" name="smtp_host" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['smtp_host'] ?? ''); ?>" placeholder="smtp.example.com">
             </div>
             <div class="form-group">
                 <label><?php echo __('settings.smtp_port'); ?></label>
@@ -220,11 +231,11 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label><?php echo __('settings.smtp_user'); ?></label>
-                <input type="text" name="smtp_user" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['smtp_user'] ?? ''); ?>">
+                <input type="text" name="smtp_user" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['smtp_user'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __('settings.smtp_pass'); ?></label>
-                <input type="password" name="smtp_pass" class="form-control" value="<?php echo htmlspecialchars($siteConfig['email']['smtp_pass'] ?? ''); ?>">
+                <input type="password" name="smtp_pass" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['smtp_pass'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label><?php echo __('settings.smtp_security'); ?></label>
@@ -242,11 +253,55 @@ require_once __DIR__ . '/templates/sidebar.php';
     </form>
 </div>
 
+<!-- Languages -->
+<div class="card">
+    <div class="card-header"><h3>Languages</h3></div>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="section" value="languages">
+        <p style="font-size:0.85rem;color:var(--admin-text-muted);margin-bottom:1rem;">Define the languages available on your site. These will be used for post type slug translations and content localization.</p>
+        <div id="languages-list">
+            <?php
+            $languages = $siteConfig['languages'] ?? [];
+            if (empty($languages)) {
+                $languages = [['code' => '', 'name' => '']];
+            }
+            foreach ($languages as $i => $lang): ?>
+                <div class="form-group" style="display:flex;gap:0.5rem;align-items:end;">
+                    <div>
+                        <?php if ($i === 0): ?><label>Code</label><?php endif; ?>
+                        <input type="text" name="lang_code[]" class="form-control" value="<?php echo klytos_esc_attr($lang['code'] ?? ''); ?>" placeholder="es" style="width:80px;">
+                    </div>
+                    <div style="flex:1;">
+                        <?php if ($i === 0): ?><label>Name</label><?php endif; ?>
+                        <input type="text" name="lang_name[]" class="form-control" value="<?php echo klytos_esc_attr($lang['name'] ?? ''); ?>" placeholder="Espanol">
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="addLanguageRow()" style="margin-bottom:1rem;">+ Add Language</button>
+        <br>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+    </form>
+</div>
+
+<script nonce="<?php echo $cspNonce; ?>">
+function addLanguageRow() {
+    var list = document.getElementById('languages-list');
+    var div = document.createElement('div');
+    div.className = 'form-group';
+    div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
+    div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
+                    '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
+    list.appendChild(div);
+}
+</script>
+
 <!-- Content Editor -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('editor.title'); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="editor">
         <div class="form-group">
             <label><?php echo __('editor.choose'); ?></label>
@@ -271,11 +326,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'ai_images.title' ); ?> — API</h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="ai">
         <div class="form-group">
             <label><?php echo __( 'ai_images.api_key' ); ?> (Gemini)</label>
-            <input type="password" name="gemini_api_key" class="form-control" value="<?php echo htmlspecialchars( $aiApiKey ); ?>" placeholder="AIza...">
+            <input type="password" name="gemini_api_key" class="form-control" value="<?php echo klytos_esc_attr( $aiApiKey ); ?>" placeholder="AIza...">
             <p class="form-help">Get your API key from Google AI Studio (aistudio.google.com)</p>
         </div>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>

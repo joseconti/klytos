@@ -96,7 +96,7 @@ class UserManager
             );
         }
 
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (empty($email) || !Helpers::isEmail( $email )) {
             throw new \InvalidArgumentException('A valid email address is required.');
         }
 
@@ -167,7 +167,7 @@ class UserManager
             if (array_key_exists($field, $data)) {
                 // Validate specific fields.
                 if ($field === 'email') {
-                    if (empty(trim($data['email'])) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                    if (empty(trim($data['email'])) || !Helpers::isEmail( $data['email'] )) {
                         throw new \InvalidArgumentException('A valid email address is required.');
                     }
                 }
@@ -504,7 +504,7 @@ class UserManager
         // Email is mandatory for all users. If the v1 config is missing it,
         // we cannot create a valid owner — the installer always collects it.
         $email = trim($config['admin_email'] ?? '');
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (empty($email) || !Helpers::isEmail( $email )) {
             throw new \RuntimeException(
                 'Cannot migrate: admin_email is missing or invalid in config. '
                 . 'Please reinstall or add admin_email to the configuration.'

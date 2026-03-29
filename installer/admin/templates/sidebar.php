@@ -22,7 +22,18 @@ use Klytos\Core\Helpers;
 use Klytos\Core\Hooks;
 
 $adminPath   = Helpers::getBasePath() . 'admin/';
-$currentPage = basename($_SERVER['SCRIPT_NAME'], '.php');
+$currentPage = $currentPage ?? basename($_SERVER['SCRIPT_NAME'], '.php');
+
+// Resolve the effective sidebar item ID for the current page.
+// Custom post type pages use a shared PHP file with query params,
+// so we need to map them back to their sidebar item IDs.
+$currentItemId = $currentPage;
+if ($currentPage === 'post-type-edit' && isset($_GET['id'])) {
+    $currentItemId = 'pt-' . $_GET['id'];
+}
+if ($currentPage === 'taxonomy' && isset($_GET['post_type'], $_GET['taxonomy'])) {
+    $currentItemId = 'tax-' . $_GET['post_type'] . '-' . $_GET['taxonomy'];
+}
 
 // ─── Build the sidebar menu items ────────────────────────────
 // Core items are defined here. Plugins can add/modify items
@@ -34,7 +45,7 @@ $sidebarItems = [
         'id'         => 'dashboard',
         'title'      => __( 'dashboard.title' ),
         'url'        => $adminPath,
-        'icon'       => 'D',
+        'icon'       => 'fa-solid fa-gauge-high',
         'position'   => 10,
         'section'    => 'content',
         'capability' => null, // Visible to all authenticated users.
@@ -43,7 +54,7 @@ $sidebarItems = [
         'id'         => 'pages',
         'title'      => __( 'pages.title' ),
         'url'        => $adminPath . 'pages.php',
-        'icon'       => 'P',
+        'icon'       => 'fa-solid fa-file-lines',
         'position'   => 20,
         'section'    => 'content',
         'capability' => 'pages.view',
@@ -52,7 +63,7 @@ $sidebarItems = [
         'id'         => 'theme',
         'title'      => __( 'design.title' ),
         'url'        => $adminPath . 'theme.php',
-        'icon'       => 'D',
+        'icon'       => 'fa-solid fa-palette',
         'position'   => 30,
         'section'    => 'content',
         'capability' => 'theme.manage',
@@ -73,7 +84,7 @@ $sidebarItems = [
         'id'         => 'assets',
         'title'      => __( 'assets.title' ),
         'url'        => $adminPath . 'assets.php',
-        'icon'       => 'F',
+        'icon'       => 'fa-solid fa-folder-open',
         'position'   => 40,
         'section'    => 'content',
         'capability' => 'assets.manage',
@@ -82,16 +93,25 @@ $sidebarItems = [
         'id'         => 'ai-images',
         'title'      => __( 'ai_images.title' ),
         'url'        => $adminPath . 'ai-images.php',
-        'icon'       => 'I',
+        'icon'       => 'fa-solid fa-wand-magic-sparkles',
         'position'   => 50,
         'section'    => 'content',
         'capability' => 'assets.manage',
     ],
     [
+        'id'         => 'post-types',
+        'title'      => 'Post Types',
+        'url'        => $adminPath . 'post-types.php',
+        'icon'       => 'fa-solid fa-layer-group',
+        'position'   => 85,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'tasks',
         'title'      => 'Tasks',
         'url'        => $adminPath . 'tasks.php',
-        'icon'       => 'K',
+        'icon'       => 'fa-solid fa-list-check',
         'position'   => 55,
         'section'    => 'content',
         'capability' => 'tasks.create',
@@ -100,7 +120,7 @@ $sidebarItems = [
         'id'         => 'analytics',
         'title'      => 'Analytics',
         'url'        => $adminPath . 'analytics.php',
-        'icon'       => 'A',
+        'icon'       => 'fa-solid fa-chart-line',
         'position'   => 60,
         'section'    => 'content',
         'capability' => 'analytics.view',
@@ -111,7 +131,7 @@ $sidebarItems = [
         'id'         => 'webhooks',
         'title'      => 'Webhooks',
         'url'        => $adminPath . 'webhooks.php',
-        'icon'       => 'W',
+        'icon'       => 'fa-solid fa-bolt',
         'position'   => 65,
         'section'    => 'system',
         'capability' => 'webhooks.manage',
@@ -120,7 +140,7 @@ $sidebarItems = [
         'id'         => 'users',
         'title'      => 'Users',
         'url'        => $adminPath . 'users.php',
-        'icon'       => 'U',
+        'icon'       => 'fa-solid fa-users',
         'position'   => 70,
         'section'    => 'system',
         'capability' => 'users.manage',
@@ -129,7 +149,7 @@ $sidebarItems = [
         'id'         => 'mcp',
         'title'      => __( 'mcp.title' ),
         'url'        => $adminPath . 'mcp.php',
-        'icon'       => 'M',
+        'icon'       => 'fa-solid fa-robot',
         'position'   => 75,
         'section'    => 'system',
         'capability' => 'mcp.manage',
@@ -138,7 +158,7 @@ $sidebarItems = [
         'id'         => 'security',
         'title'      => __( 'security.title' ),
         'url'        => $adminPath . 'security.php',
-        'icon'       => 'L',
+        'icon'       => 'fa-solid fa-shield-halved',
         'position'   => 78,
         'section'    => 'system',
         'capability' => null, // Visible to all authenticated users (each manages their own 2FA).
@@ -147,7 +167,7 @@ $sidebarItems = [
         'id'         => 'settings',
         'title'      => __( 'settings.title' ),
         'url'        => $adminPath . 'settings.php',
-        'icon'       => 'S',
+        'icon'       => 'fa-solid fa-gear',
         'position'   => 80,
         'section'    => 'system',
         'capability' => 'site.configure',
@@ -156,7 +176,7 @@ $sidebarItems = [
         'id'         => 'plugins',
         'title'      => 'Plugins',
         'url'        => $adminPath . 'plugins.php',
-        'icon'       => 'X',
+        'icon'       => 'fa-solid fa-puzzle-piece',
         'position'   => 90,
         'section'    => 'system',
         'capability' => 'plugins.manage',
@@ -165,12 +185,52 @@ $sidebarItems = [
         'id'         => 'updates',
         'title'      => __( 'updates.title' ),
         'url'        => $adminPath . 'updates.php',
-        'icon'       => 'U',
+        'icon'       => 'fa-solid fa-cloud-arrow-down',
         'position'   => 98,
         'section'    => 'system',
         'capability' => 'updates.manage',
     ],
 ];
+
+// Dynamic: add custom post types to the sidebar menu.
+// Each custom post type gets its own menu item with taxonomy children.
+try {
+    $ptMenuItems = $app->getPostTypeManager()->getMenuItems();
+    $ptPosition  = 23; // Start after "Post Types" (22).
+    foreach ($ptMenuItems as $ptItem) {
+        $children = [];
+        // "All items" links to content listing filtered by post type.
+        $children[] = [
+            'id'    => 'pt-' . $ptItem['id'] . '-all',
+            'title' => 'All ' . $ptItem['name'],
+            'url'   => $adminPath . 'pages.php?post_type=' . urlencode($ptItem['id']),
+        ];
+        foreach ($ptItem['taxonomies'] as $tax) {
+            $children[] = [
+                'id'    => 'tax-' . $ptItem['id'] . '-' . $tax['id'],
+                'title' => $tax['name'],
+                'url'   => $adminPath . 'taxonomy.php?post_type=' . urlencode($ptItem['id']) . '&taxonomy=' . urlencode($tax['id']),
+            ];
+        }
+        $children[] = [
+            'id'    => 'pt-' . $ptItem['id'] . '-settings',
+            'title' => 'Settings',
+            'url'   => $adminPath . 'post-type-edit.php?id=' . urlencode($ptItem['id']),
+        ];
+        $sidebarItems[] = [
+            'id'         => 'pt-' . $ptItem['id'],
+            'title'      => $ptItem['name'],
+            'url'        => $adminPath . 'pages.php?post_type=' . urlencode($ptItem['id']),
+            'icon'       => $ptItem['icon'] ?? 'fa-solid fa-newspaper',
+            'position'   => $ptPosition++,
+            'section'    => 'content',
+            'capability' => 'pages.view',
+            'children'   => $children,
+        ];
+    }
+} catch (\Throwable $e) {
+    // Silently skip if PostTypeManager not available yet.
+}
 
 // Hook: allow plugins to add, remove, or modify sidebar items.
 $sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);
@@ -196,7 +256,7 @@ foreach ($sidebarItems as $item) {
 <aside class="admin-sidebar" id="sidebar">
     <div class="sidebar-brand">
         <h2>Klytos</h2>
-        <small>v<?php echo htmlspecialchars( $app->getVersion()); ?></small>
+        <small>v<?php echo klytos_esc_html( $app->getVersion() ); ?></small>
     </div>
 
     <nav class="sidebar-nav">
@@ -204,29 +264,29 @@ foreach ($sidebarItems as $item) {
             <div class="sidebar-section"><?php echo __( 'common.name' ); ?></div>
             <?php foreach ($sections['content'] as $item): ?>
                 <?php
-                $isParentActive = $currentPage === $item['id'];
+                $isParentActive = $currentItemId === $item['id'];
                 $hasChildren    = !empty( $item['children'] );
                 if ($hasChildren) {
                     foreach ($item['children'] as $child) {
-                        if ($currentPage === $child['id']) {
+                        if ($currentItemId === $child['id']) {
                             $isParentActive = true;
                         }
                     }
                 }
                 ?>
-                <a href="<?php echo htmlspecialchars( $item['url'] ); ?>"
+                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
                    class="<?php echo $isParentActive ? 'active' : ''; ?>">
-                    <span>[<?php echo htmlspecialchars( $item['icon'] ?? '?' ); ?>]</span>
-                    <?php echo htmlspecialchars( $item['title'] ); ?>
+                    <i class="<?php echo klytos_esc_attr( $item['icon'] ?? 'fa-solid fa-circle' ); ?>"></i>
+                    <?php echo klytos_esc_html( $item['title'] ); ?>
                     <?php if (!empty( $item['badge'] )): ?>
-                        <span class="badge"><?php echo htmlspecialchars( (string) $item['badge'] ); ?></span>
+                        <span class="badge"><?php echo klytos_esc_html( (string) $item['badge'] ); ?></span>
                     <?php endif; ?>
                 </a>
                 <?php if ($hasChildren && $isParentActive): ?>
                     <?php foreach ($item['children'] as $child): ?>
-                        <a href="<?php echo htmlspecialchars( $child['url'] ); ?>"
-                           class="sidebar-child <?php echo $currentPage === $child['id'] ? 'active' : ''; ?>">
-                            <?php echo htmlspecialchars( $child['title'] ); ?>
+                        <a href="<?php echo klytos_esc_url( $child['url'] ); ?>"
+                           class="sidebar-child <?php echo $currentItemId === $child['id'] ? 'active' : ''; ?>">
+                            <?php echo klytos_esc_html( $child['title'] ); ?>
                         </a>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -237,29 +297,29 @@ foreach ($sidebarItems as $item) {
             <div class="sidebar-section">System</div>
             <?php foreach ($sections['system'] as $item): ?>
                 <?php
-                $isParentActive = $currentPage === $item['id'];
+                $isParentActive = $currentItemId === $item['id'];
                 $hasChildren    = !empty( $item['children'] );
                 if ($hasChildren) {
                     foreach ($item['children'] as $child) {
-                        if ($currentPage === $child['id']) {
+                        if ($currentItemId === $child['id']) {
                             $isParentActive = true;
                         }
                     }
                 }
                 ?>
-                <a href="<?php echo htmlspecialchars( $item['url'] ); ?>"
+                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
                    class="<?php echo $isParentActive ? 'active' : ''; ?>">
-                    <span>[<?php echo htmlspecialchars( $item['icon'] ?? '?' ); ?>]</span>
-                    <?php echo htmlspecialchars( $item['title'] ); ?>
+                    <i class="<?php echo klytos_esc_attr( $item['icon'] ?? 'fa-solid fa-circle' ); ?>"></i>
+                    <?php echo klytos_esc_html( $item['title'] ); ?>
                     <?php if (!empty( $item['badge'] )): ?>
-                        <span class="badge"><?php echo htmlspecialchars( (string) $item['badge'] ); ?></span>
+                        <span class="badge"><?php echo klytos_esc_html( (string) $item['badge'] ); ?></span>
                     <?php endif; ?>
                 </a>
                 <?php if ($hasChildren && $isParentActive): ?>
                     <?php foreach ($item['children'] as $child): ?>
-                        <a href="<?php echo htmlspecialchars( $child['url'] ); ?>"
-                           class="sidebar-child <?php echo $currentPage === $child['id'] ? 'active' : ''; ?>">
-                            <?php echo htmlspecialchars( $child['title'] ); ?>
+                        <a href="<?php echo klytos_esc_url( $child['url'] ); ?>"
+                           class="sidebar-child <?php echo $currentItemId === $child['id'] ? 'active' : ''; ?>">
+                            <?php echo klytos_esc_html( $child['title'] ); ?>
                         </a>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -271,12 +331,12 @@ foreach ($sidebarItems as $item) {
         foreach ($sections as $sectionName => $items):
             if ($sectionName === 'content' || $sectionName === 'system') continue;
         ?>
-            <div class="sidebar-section"><?php echo htmlspecialchars(ucfirst($sectionName)); ?></div>
+            <div class="sidebar-section"><?php echo klytos_esc_html( ucfirst( $sectionName ) ); ?></div>
             <?php foreach ($items as $item): ?>
-                <a href="<?php echo htmlspecialchars( $item['url'] ); ?>"
-                   class="<?php echo $currentPage === $item['id'] ? 'active' : ''; ?>">
-                    <span>[<?php echo htmlspecialchars( $item['icon'] ?? '?'); ?>]</span>
-                    <?php echo htmlspecialchars( $item['title'] ); ?>
+                <a href="<?php echo klytos_esc_url( $item['url'] ); ?>"
+                   class="<?php echo $currentItemId === $item['id'] ? 'active' : ''; ?>">
+                    <i class="<?php echo klytos_esc_attr( $item['icon'] ?? 'fa-solid fa-circle' ); ?>"></i>
+                    <?php echo klytos_esc_html( $item['title'] ); ?>
                 </a>
             <?php endforeach; ?>
         <?php endforeach; ?>
@@ -286,11 +346,11 @@ foreach ($sidebarItems as $item) {
 <div class="admin-content">
     <div class="admin-topbar">
         <div>
-            <strong><?php echo htmlspecialchars( $pageTitle ?? ''); ?></strong>
+            <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
             <span style="font-size:0.85rem;color:var(--admin-text-muted);">
-                <?php echo htmlspecialchars( $app->getAuth()->getUsername()); ?>
+                <?php echo klytos_esc_html( $app->getAuth()->getUsername() ); ?>
             </span>
             <a href="<?php echo $adminPath; ?>logout.php" class="btn btn-outline btn-sm">
                 <?php echo __( 'auth.logout' ); ?>

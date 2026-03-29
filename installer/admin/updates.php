@@ -25,7 +25,7 @@ $currentChannel = $updater->getChannel();
 $updateInfo     = null;
 
 // Handle actions.
-if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf( $_POST['csrf'] ?? '' ) ) {
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
     $action = $_POST['action'] ?? '';
 
     if ( $action === 'set_channel' ) {
@@ -41,6 +41,19 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf( $_POST['csrf'
         $updateInfo = $updater->checkForUpdate( true );
         if ( $updateInfo === null ) {
             $success = __( 'updates.up_to_date' );
+        }
+    } elseif ( $action === 'restore' ) {
+        $backupName = $_POST['backup_name'] ?? '';
+        if ( empty( $backupName ) ) {
+            $error = __( 'common.error' );
+        } else {
+            $result = $updater->restoreFromBackup( $backupName );
+            if ( $result['success'] ) {
+                $success = 'Restored to v' . $result['to_version'] . ' from backup.';
+                $currentVersion = $result['to_version'];
+            } else {
+                $error = 'Restore failed: ' . $result['error'];
+            }
         }
     } elseif ( $action === 'install' ) {
         $downloadUrl = $_POST['download_url'] ?? '';
@@ -75,10 +88,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="admin-main">
 
 <?php if ( $success ): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ( $error ): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <!-- Current Version + Check -->
@@ -86,16 +99,16 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
         <div>
             <div style="font-size:0.8rem;color:var(--admin-text-muted);text-transform:uppercase;letter-spacing:0.05em;"><?php echo __( 'updates.current_version' ); ?></div>
-            <span style="font-size:2rem;font-weight:700;">v<?php echo htmlspecialchars( $currentVersion ); ?></span>
+            <span style="font-size:2rem;font-weight:700;">v<?php echo klytos_esc_html( $currentVersion ); ?></span>
             <?php
             $currentChannelLabel = Updater::versionChannel( $currentVersion );
             if ( $currentChannelLabel !== 'stable' ):
             ?>
-                <span class="badge-status badge-draft" style="margin-left:0.5rem;"><?php echo htmlspecialchars( strtoupper( $currentChannelLabel ) ); ?></span>
+                <span class="badge-status badge-draft" style="margin-left:0.5rem;"><?php echo klytos_esc_html( strtoupper( $currentChannelLabel ) ); ?></span>
             <?php endif; ?>
         </div>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars( $csrf ); ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="check">
             <button type="submit" class="btn btn-outline"><?php echo __( 'updates.latest_version' ); ?></button>
         </form>
@@ -106,7 +119,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3>Update Channel</h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars( $csrf ); ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="set_channel">
 
         <div style="display:flex;flex-direction:column;gap:0.75rem;">
@@ -163,7 +176,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             if ( $releaseChannel !== 'stable' ):
             ?>
                 <span class="badge-status <?php echo $releaseChannel === 'beta' ? 'badge-urgent' : 'badge-draft'; ?>" style="margin-left:0.5rem;">
-                    <?php echo htmlspecialchars( strtoupper( $releaseChannel ) ); ?>
+                    <?php echo klytos_esc_html( strtoupper( $releaseChannel ) ); ?>
                 </span>
             <?php endif; ?>
         </h3>
@@ -177,12 +190,12 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;margin-bottom:1.5rem;align-items:center;">
         <div style="text-align:center;padding:1rem;background:var(--admin-bg);border-radius:var(--admin-radius);">
             <div style="font-size:0.75rem;color:var(--admin-text-muted);text-transform:uppercase;">Current</div>
-            <div class="mono" style="font-size:1.25rem;font-weight:600;">v<?php echo htmlspecialchars( $currentVersion ); ?></div>
+            <div class="mono" style="font-size:1.25rem;font-weight:600;">v<?php echo klytos_esc_html( $currentVersion ); ?></div>
         </div>
         <div style="font-size:1.5rem;color:var(--admin-text-muted);">&rarr;</div>
         <div style="text-align:center;padding:1rem;background:var(--admin-bg);border-radius:var(--admin-radius);">
             <div style="font-size:0.75rem;color:var(--admin-text-muted);text-transform:uppercase;">New</div>
-            <div class="mono" style="font-size:1.25rem;font-weight:700;color:var(--admin-primary);">v<?php echo htmlspecialchars( $updateInfo['new_version'] ); ?></div>
+            <div class="mono" style="font-size:1.25rem;font-weight:700;color:var(--admin-primary);">v<?php echo klytos_esc_html( $updateInfo['new_version'] ); ?></div>
         </div>
     </div>
 
@@ -190,7 +203,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="font-size:0.85rem;color:var(--admin-text-muted);margin-bottom:1rem;">
             Released: <?php echo date( 'F j, Y', strtotime( $updateInfo['published_at'] ) ); ?>
             <?php if ( ! empty( $updateInfo['html_url'] ) ): ?>
-                — <a href="<?php echo htmlspecialchars( $updateInfo['html_url'] ); ?>" target="_blank" rel="noopener">View on GitHub &rarr;</a>
+                — <a href="<?php echo klytos_esc_url( $updateInfo['html_url'] ); ?>" target="_blank" rel="noopener">View on GitHub &rarr;</a>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -200,7 +213,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="margin-bottom:1.5rem;">
             <h4 style="margin-bottom:0.75rem;font-size:1rem;">What's new in this version</h4>
             <div style="background:var(--admin-bg);padding:1.25rem;border-radius:var(--admin-radius);font-size:0.9rem;line-height:1.7;max-height:400px;overflow-y:auto;">
-                <?php echo nl2br( htmlspecialchars( $updateInfo['changelog'] ) ); ?>
+                <?php echo nl2br( klytos_esc_html( $updateInfo['changelog'] ) ); ?>
             </div>
         </div>
     <?php endif; ?>
@@ -208,11 +221,11 @@ require_once __DIR__ . '/templates/sidebar.php';
     <!-- Update button -->
     <?php if ( ! empty( $updateInfo['download_url'] ) ): ?>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars( $csrf ); ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="install">
-            <input type="hidden" name="download_url" value="<?php echo htmlspecialchars( $updateInfo['download_url'] ); ?>">
+            <input type="hidden" name="download_url" value="<?php echo klytos_esc_attr( $updateInfo['download_url'] ); ?>">
             <button type="submit" class="btn btn-primary" id="btnUpdate" style="font-size:1rem;padding:0.75rem 2rem;">
-                <?php echo __( 'updates.update_now' ); ?>: v<?php echo htmlspecialchars( $updateInfo['new_version'] ); ?>
+                <?php echo __( 'updates.update_now' ); ?>: v<?php echo klytos_esc_html( $updateInfo['new_version'] ); ?>
             </button>
         </form>
     <?php endif; ?>
@@ -238,21 +251,36 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <?php foreach ( $history as $entry ): ?>
                 <tr>
                     <td><?php echo ! empty( $entry['date'] ) ? date( 'Y-m-d H:i', strtotime( $entry['date'] ) ) : ''; ?></td>
-                    <td class="mono"><?php echo htmlspecialchars( $entry['from'] ?? '' ); ?></td>
-                    <td class="mono" style="font-weight:600;"><?php echo htmlspecialchars( $entry['to'] ?? '' ); ?></td>
+                    <td class="mono"><?php echo klytos_esc_html( $entry['from'] ?? '' ); ?></td>
+                    <td class="mono" style="font-weight:600;"><?php echo klytos_esc_html( $entry['to'] ?? '' ); ?></td>
                     <td>
                         <?php
                         $statusClass = match( $entry['status'] ?? '' ) {
                             'success'  => 'badge-published',
+                            'restored' => 'badge-published',
                             'rollback' => 'badge-draft',
                             default    => 'badge-urgent',
                         };
                         ?>
                         <span class="badge-status <?php echo $statusClass; ?>">
-                            <?php echo htmlspecialchars( ucfirst( $entry['status'] ?? 'unknown' ) ); ?>
+                            <?php echo klytos_esc_html( ucfirst( $entry['status'] ?? 'unknown' ) ); ?>
                         </span>
                     </td>
-                    <td class="mono" style="font-size:0.8rem;"><?php echo htmlspecialchars( $entry['backup_path'] ?? '—' ); ?></td>
+                    <td>
+                        <?php if ( ! empty( $entry['backup_path'] ) && $entry['backup_path'] !== '—' ): ?>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $entry['backup_path'] ); ?></span>
+                                <form method="post" style="display:inline;" class="form-confirm-restore">
+                                    <?php echo klytos_csrf_field(); ?>
+                                    <input type="hidden" name="action" value="restore">
+                                    <input type="hidden" name="backup_name" value="<?php echo klytos_esc_attr( $entry['backup_path'] ); ?>">
+                                    <button type="submit" class="btn btn-outline btn-sm">Restore</button>
+                                </form>
+                            </div>
+                        <?php else: ?>
+                            <span style="color:var(--admin-text-muted);">—</span>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -276,6 +304,15 @@ require_once __DIR__ . '/templates/sidebar.php';
             btnUpdate.style.pointerEvents = 'none';
         } );
     }
+
+    // Confirm before restoring a backup.
+    document.querySelectorAll( '.form-confirm-restore' ).forEach( function( form ) {
+        form.addEventListener( 'submit', function( e ) {
+            if ( ! confirm( 'Restore this backup? Current code files (core/, admin/, templates/) will be overwritten with the backup version.' ) ) {
+                e.preventDefault();
+            }
+        } );
+    } );
 
     // Highlight selected channel radio.
     document.querySelectorAll( 'input[name="channel"]' ).forEach( function( radio ) {

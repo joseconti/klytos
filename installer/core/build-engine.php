@@ -240,7 +240,7 @@ class BuildEngine
         if ( !empty( $fontsUrl ) ) {
             $googleFontsHtml = '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n  "
                              . '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n  "
-                             . '<link href="' . htmlspecialchars( $fontsUrl ) . '" rel="stylesheet">';
+                             . '<link href="' . Helpers::escUrl( $fontsUrl ) . '" rel="stylesheet">';
         }
 
         // Build SEO meta tags (generator, OG, Twitter, JSON-LD, canonical).
@@ -268,13 +268,13 @@ class BuildEngine
         }
 
         $replacements = [
-            '{{site_name}}'         => htmlspecialchars($rawSiteName, ENT_QUOTES, 'UTF-8'),
+            '{{site_name}}'         => Helpers::escHtml($rawSiteName),
             '{{title_separator}}'   => $titleSeparator,
-            '{{tagline}}'           => htmlspecialchars($siteConfig['tagline'] ?? '', ENT_QUOTES, 'UTF-8'),
+            '{{tagline}}'           => Helpers::escHtml($siteConfig['tagline'] ?? ''),
             '{{default_language}}'  => $siteConfig['default_language'] ?? 'es',
-            '{{page_title}}'        => htmlspecialchars($page['title'] ?? '', ENT_QUOTES, 'UTF-8'),
+            '{{page_title}}'        => Helpers::escHtml($page['title'] ?? ''),
             '{{page_content}}'      => $pageContent,
-            '{{meta_description}}'  => htmlspecialchars($page['meta_description'] ?? '', ENT_QUOTES, 'UTF-8'),
+            '{{meta_description}}'  => Helpers::escHtml($page['meta_description'] ?? ''),
             '{{page_lang}}'         => $page['lang'] ?? ($siteConfig['default_language'] ?? 'es'),
             '{{hreflang_tags}}'     => $hreflangHtml,
             '{{seo_meta_tags}}'     => $seoMetaTags,
@@ -357,14 +357,14 @@ class BuildEngine
         foreach ($refs as $lang => $slug) {
             // Clean URL: 'en/about' → '/en/about/'
             $url    = rtrim($siteUrl, '/') . '/' . ltrim($slug, '/') . '/';
-            $tags[] = '<link rel="alternate" hreflang="' . htmlspecialchars($lang) . '" href="' . htmlspecialchars($url) . '">';
+            $tags[] = '<link rel="alternate" hreflang="' . Helpers::escAttr($lang) . '" href="' . Helpers::escUrl($url) . '">';
         }
 
         // x-default (use the default language version).
         $defaultLang = $siteConfig['default_language'] ?? 'es';
         if (isset($refs[$defaultLang])) {
             $defaultUrl = rtrim($siteUrl, '/') . '/' . ltrim($refs[$defaultLang], '/') . '/';
-            $tags[]     = '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($defaultUrl) . '">';
+            $tags[]     = '<link rel="alternate" hreflang="x-default" href="' . Helpers::escUrl($defaultUrl) . '">';
         }
 
         return implode("\n  ", $tags);
@@ -375,7 +375,7 @@ class BuildEngine
      */
     private function buildFooterHtml(array $siteConfig): string
     {
-        $name = htmlspecialchars($siteConfig['site_name'] ?? 'Klytos Site', ENT_QUOTES, 'UTF-8');
+        $name = Helpers::escHtml($siteConfig['site_name'] ?? 'Klytos Site');
         $year = date('Y');
         return "<footer class=\"klytos-footer\"><p>&copy; {$year} {$name}</p></footer>";
     }
@@ -431,7 +431,7 @@ class BuildEngine
             $changefreq = $slug === 'index' ? 'daily' : 'weekly';
 
             $xml .= "  <url>\n";
-            $xml .= "    <loc>" . htmlspecialchars($loc) . "</loc>\n";
+            $xml .= "    <loc>" . Helpers::escUrl($loc) . "</loc>\n";
             $xml .= "    <lastmod>" . ($page['updated_at'] ?? date('c')) . "</lastmod>\n";
             $xml .= "    <changefreq>{$changefreq}</changefreq>\n";
             $xml .= "    <priority>{$priority}</priority>\n";
@@ -441,14 +441,14 @@ class BuildEngine
             if (!empty($refs)) {
                 foreach ($refs as $lang => $refSlug) {
                     $refUrl = $siteUrl . '/' . ltrim($refSlug, '/') . '/';
-                    $xml .= '    <xhtml:link rel="alternate" hreflang="' . htmlspecialchars($lang) . '" href="' . htmlspecialchars($refUrl) . '"/>' . "\n";
+                    $xml .= '    <xhtml:link rel="alternate" hreflang="' . Helpers::escAttr($lang) . '" href="' . Helpers::escUrl($refUrl) . '"/>' . "\n";
                 }
 
                 // x-default
                 $defaultLang = $siteConfig['default_language'] ?? 'es';
                 if (isset($refs[$defaultLang])) {
                     $defaultUrl = $siteUrl . '/' . ltrim($refs[$defaultLang], '/') . '/';
-                    $xml .= '    <xhtml:link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($defaultUrl) . '"/>' . "\n";
+                    $xml .= '    <xhtml:link rel="alternate" hreflang="x-default" href="' . Helpers::escUrl($defaultUrl) . '"/>' . "\n";
                 }
             }
 
@@ -459,9 +459,9 @@ class BuildEngine
         $pluginUrls = Hooks::applyFilters('build.sitemap_urls', []);
         foreach ($pluginUrls as $pluginUrl) {
             $xml .= "  <url>\n";
-            $xml .= "    <loc>" . htmlspecialchars($pluginUrl['loc'] ?? '') . "</loc>\n";
+            $xml .= "    <loc>" . Helpers::escUrl($pluginUrl['loc'] ?? '') . "</loc>\n";
             if (!empty($pluginUrl['lastmod'])) {
-                $xml .= "    <lastmod>" . htmlspecialchars($pluginUrl['lastmod']) . "</lastmod>\n";
+                $xml .= "    <lastmod>" . Helpers::escHtml($pluginUrl['lastmod']) . "</lastmod>\n";
             }
             $xml .= "    <changefreq>" . ($pluginUrl['changefreq'] ?? 'monthly') . "</changefreq>\n";
             $xml .= "    <priority>" . ($pluginUrl['priority'] ?? '0.5') . "</priority>\n";
@@ -717,29 +717,29 @@ CSS;
         }
 
         // Canonical URL.
-        $tags[] = "<link rel=\"canonical\" href=\"" . htmlspecialchars( $canonical ) . "\">";
+        $tags[] = "<link rel=\"canonical\" href=\"" . Helpers::escUrl( $canonical ) . "\">";
 
         // Open Graph tags (Facebook, LinkedIn, etc.).
         $tags[] = "<meta property=\"og:type\" content=\"website\">";
-        $tags[] = "<meta property=\"og:title\" content=\"" . htmlspecialchars( $ogTitle ) . "\">";
-        $tags[] = "<meta property=\"og:description\" content=\"" . htmlspecialchars( $ogDesc ) . "\">";
-        $tags[] = "<meta property=\"og:url\" content=\"" . htmlspecialchars( $pageUrl ) . "\">";
-        $tags[] = "<meta property=\"og:site_name\" content=\"" . htmlspecialchars( $siteName ) . "\">";
-        $tags[] = "<meta property=\"og:locale\" content=\"" . htmlspecialchars( $lang ) . "\">";
+        $tags[] = "<meta property=\"og:title\" content=\"" . Helpers::escAttr( $ogTitle ) . "\">";
+        $tags[] = "<meta property=\"og:description\" content=\"" . Helpers::escAttr( $ogDesc ) . "\">";
+        $tags[] = "<meta property=\"og:url\" content=\"" . Helpers::escUrl( $pageUrl ) . "\">";
+        $tags[] = "<meta property=\"og:site_name\" content=\"" . Helpers::escAttr( $siteName ) . "\">";
+        $tags[] = "<meta property=\"og:locale\" content=\"" . Helpers::escAttr( $lang ) . "\">";
 
         if ( ! empty( $ogImage ) ) {
-            $tags[] = "<meta property=\"og:image\" content=\"" . htmlspecialchars( $ogImage ) . "\">";
+            $tags[] = "<meta property=\"og:image\" content=\"" . Helpers::escUrl( $ogImage ) . "\">";
             $tags[] = "<meta property=\"og:image:width\" content=\"1200\">";
             $tags[] = "<meta property=\"og:image:height\" content=\"630\">";
         }
 
         // Twitter Card tags.
         $tags[] = "<meta name=\"twitter:card\" content=\"summary_large_image\">";
-        $tags[] = "<meta name=\"twitter:title\" content=\"" . htmlspecialchars( $twTitle ) . "\">";
-        $tags[] = "<meta name=\"twitter:description\" content=\"" . htmlspecialchars( $twDesc ) . "\">";
+        $tags[] = "<meta name=\"twitter:title\" content=\"" . Helpers::escAttr( $twTitle ) . "\">";
+        $tags[] = "<meta name=\"twitter:description\" content=\"" . Helpers::escAttr( $twDesc ) . "\">";
 
         if (!empty($ogImage)) {
-            $tags[] = "<meta name=\"twitter:image\" content=\"" . htmlspecialchars($ogImage) . "\">";
+            $tags[] = "<meta name=\"twitter:image\" content=\"" . Helpers::escUrl( $ogImage ) . "\">";
         }
 
         // JSON-LD Structured Data (WebPage schema).

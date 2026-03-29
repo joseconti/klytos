@@ -16,15 +16,33 @@ require_once __DIR__ . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
 
-$pageTitle = __( 'pages.title' );
 $auth      = $app->getAuth();
 $pages     = $app->getPages();
 $error     = '';
 $success   = '';
 
+// Post type filter: when accessed via ?post_type=casas, only show that type.
+$postTypeFilter = trim($_GET['post_type'] ?? '');
+$postTypeName   = '';
+
+if ($postTypeFilter !== '') {
+    // Resolve the human-readable name from the PostTypeManager.
+    try {
+        $ptDef        = $app->getPostTypeManager()->get($postTypeFilter);
+        $postTypeName = $ptDef['name'] ?? ucfirst($postTypeFilter);
+    } catch (\Throwable $e) {
+        $postTypeName = ucfirst($postTypeFilter);
+    }
+    $pageTitle   = $postTypeName;
+    $currentPage = 'pt-' . $postTypeFilter;
+} else {
+    $pageTitle   = __( 'pages.title' );
+    $currentPage = 'pages';
+}
+
 // Handle delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
-    if ($auth->validateCsrf($_POST['csrf'] ?? '')) {
+    if ( klytos_verify_csrf() ) {
         $slug = $_POST['slug'] ?? '';
         if ($pages->delete($slug)) {
             $success = __( 'common.success' );
@@ -34,25 +52,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     }
 }
 
-$allPages = $pages->list('all');
-$csrf     = $auth->getCsrfToken();
-$currentPage = 'pages';
+$allPages = $pages->list('all', '', 50, 0, $postTypeFilter);
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <div class="card">
     <div class="card-header">
-        <h3><?php echo __( 'pages.title' ); ?> (<?php echo count( $allPages); ?>)</h3>
-        <a href="page-editor.php" class="btn btn-primary btn-sm"><?php echo __( 'pages.create_page' ); ?></a>
+        <h3><?php echo klytos_esc_html($postTypeFilter !== '' ? $postTypeName : __( 'pages.title' )); ?> (<?php echo count( $allPages); ?>)</h3>
+        <a href="page-editor.php<?php echo $postTypeFilter !== '' ? '?post_type=' . urlencode($postTypeFilter) : ''; ?>" class="btn btn-primary btn-sm">
+            <?php echo $postTypeFilter !== '' ? '+ New ' . klytos_esc_html($postTypeName) : __( 'pages.create_page' ); ?>
+        </a>
     </div>
 
     <?php if (empty($allPages)): ?>
@@ -75,10 +93,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <tbody>
                     <?php foreach ($allPages as $page): ?>
                     <tr>
-                        <td class="mono"><?php echo htmlspecialchars( $page['slug'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars( $page['title'] ?? ''); ?></td>
-                        <td><?php echo htmlspecialchars( $page['template'] ?? 'default'); ?></td>
-                        <td><?php echo htmlspecialchars( $page['lang'] ?? '—'); ?></td>
+                        <td class="mono"><?php echo klytos_esc_html( $page['slug'] ?? ''); ?></td>
+                        <td><?php echo klytos_esc_html( $page['title'] ?? ''); ?></td>
+                        <td><?php echo klytos_esc_html( $page['template'] ?? 'default'); ?></td>
+                        <td><?php echo klytos_esc_html( $page['lang'] ?? '—'); ?></td>
                         <td>
                             <span class="badge-status badge-<?php echo ($page['status'] ?? '') === 'published' ? 'published' : 'draft'; ?>">
                                 <?php echo ($page['status'] ?? '') === 'published' ? __( 'pages.published' ) : __( 'pages.draft' ); ?>
@@ -88,8 +106,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                             <a href="page-editor.php?slug=<?php echo urlencode( $page['slug'] ?? '' ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.edit' ); ?></a>
                             <form method="post" style="display:inline;" class="form-confirm-delete">
                                 <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="slug" value="<?php echo htmlspecialchars( $page['slug'] ?? '' ); ?>">
-                                <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                <input type="hidden" name="slug" value="<?php echo klytos_esc_attr( $page['slug'] ?? '' ); ?>">
+                                <?php echo klytos_csrf_field(); ?>
                                 <button type="submit" class="btn btn-danger btn-sm"><?php echo __( 'common.delete' ); ?></button>
                             </form>
                         </td>

@@ -668,18 +668,23 @@ class Auth
      *
      * @param string|null $nonce CSP nonce for inline scripts. If null, falls back to unsafe-inline.
      */
-    public static function sendSecurityHeaders(?string $nonce = null): void
+    public static function sendSecurityHeaders(?string $nonce = null, ?string $customCsp = null): void
     {
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
         header('X-XSS-Protection: 1; mode=block');
         header('Referrer-Policy: strict-origin-when-cross-origin');
 
-        $scriptSrc = $nonce
-            ? "'self' 'nonce-{$nonce}'"
-            : "'self' 'unsafe-inline'";
+        if ($customCsp !== null) {
+            header("Content-Security-Policy: {$customCsp}");
+        } else {
+            $scriptSrc = $nonce
+                ? "'self' 'nonce-{$nonce}'"
+                : "'self' 'unsafe-inline'";
 
-        header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data:; script-src {$scriptSrc}; frame-src 'self' blob:");
+            header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data:; script-src {$scriptSrc}; frame-src 'self' blob:");
+        }
+
         header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     }
 

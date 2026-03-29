@@ -50,8 +50,7 @@ if (isset($_GET['magic_token']) && $auth->is2faPending()) {
 
 // ─── Handle 2FA verification POST ───────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->is2faPending()) {
-    $csrf = $_POST['csrf'] ?? '';
-    if (!$auth->validateCsrf($csrf)) {
+    if ( ! klytos_verify_csrf() ) {
         $error = __('common.error');
     } else {
         $method = $_POST['2fa_method'] ?? '';
@@ -76,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->is2faPending()) {
             // Magic link: send email (works for both 2FA-email method and emergency recovery)
             $user = $app->getStorage()->read('users', $userId);
             $email = trim($user['email'] ?? '');
-            if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if ( $email && klytos_is_email( $email ) ) {
                 $link = $twoFactor->createMagicLink($userId, $email);
                 $siteConfig = $app->getSiteConfig()->get();
                 $baseUrl = rtrim($siteConfig['site_url'] ?? '', '/');
@@ -173,11 +172,11 @@ if ($show2fa) {
         </div>
 
         <?php if ($error): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+            <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
         <?php endif; ?>
 
         <?php if ($info): ?>
-            <div class="alert alert-info"><?php echo htmlspecialchars( $info ); ?></div>
+            <div class="alert alert-info"><?php echo klytos_esc_html( $info ); ?></div>
         <?php endif; ?>
 
         <?php if (!$show2fa): ?>
@@ -185,7 +184,7 @@ if ($show2fa) {
         <form method="post">
             <div class="form-group">
                 <label for="username"><?php echo __( 'auth.username' ); ?></label>
-                <input type="text" id="username" name="username" required autofocus value="<?php echo htmlspecialchars( $_POST['username'] ?? ''); ?>">
+                <input type="text" id="username" name="username" required autofocus value="<?php echo klytos_esc_attr( $_POST['username'] ?? '' ); ?>">
             </div>
 
             <div class="form-group">
@@ -219,7 +218,7 @@ if ($show2fa) {
         <?php if (in_array('totp', $methods2fa, true)): ?>
         <div class="method-panel active" id="panel-totp">
             <form method="post">
-                <input type="hidden" name="csrf" value="<?php echo $auth->getCsrfToken(); ?>">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="2fa_method" value="totp">
                 <div class="form-group">
                     <label for="totp-code"><?php echo __('security.enter_totp_code'); ?></label>
@@ -228,7 +227,7 @@ if ($show2fa) {
                 <button type="submit" class="btn"><?php echo __('security.verify'); ?></button>
             </form>
             <form method="post" style="margin-top:1rem;">
-                <input type="hidden" name="csrf" value="<?php echo $auth->getCsrfToken(); ?>">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="2fa_method" value="emergency_email">
                 <button type="submit" class="link-emergency"><?php echo __('security.emergency_email_link'); ?></button>
             </form>
@@ -241,12 +240,12 @@ if ($show2fa) {
             <p style="text-align:center;color:#64748b;margin-bottom:1rem;"><?php echo __('security.passkey_prompt'); ?></p>
             <button type="button" class="btn" id="passkey-auth-btn"><?php echo __('security.use_passkey'); ?></button>
             <form method="post" id="passkey-form" style="display:none;">
-                <input type="hidden" name="csrf" value="<?php echo $auth->getCsrfToken(); ?>">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="2fa_method" value="passkey">
                 <input type="hidden" name="2fa_code" id="passkey-response">
             </form>
             <form method="post" style="margin-top:1rem;">
-                <input type="hidden" name="csrf" value="<?php echo $auth->getCsrfToken(); ?>">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="2fa_method" value="emergency_email">
                 <button type="submit" class="link-emergency"><?php echo __('security.emergency_email_link'); ?></button>
             </form>
@@ -257,7 +256,7 @@ if ($show2fa) {
         <?php if (in_array('email', $methods2fa, true)): ?>
         <div class="method-panel" id="panel-email">
             <form method="post">
-                <input type="hidden" name="csrf" value="<?php echo $auth->getCsrfToken(); ?>">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="2fa_method" value="email">
                 <p style="color:#64748b;margin-bottom:1rem;font-size:0.9rem;"><?php echo __('security.magic_link_desc'); ?></p>
                 <button type="submit" class="btn"><?php echo __('security.send_magic_link'); ?></button>
@@ -268,7 +267,7 @@ if ($show2fa) {
         <!-- Recovery Code Panel -->
         <div class="method-panel" id="panel-recovery">
             <form method="post">
-                <input type="hidden" name="csrf" value="<?php echo $auth->getCsrfToken(); ?>">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="2fa_method" value="recovery">
                 <div class="form-group">
                     <label for="recovery-code"><?php echo __('security.enter_recovery_code'); ?></label>
@@ -278,7 +277,7 @@ if ($show2fa) {
             </form>
         </div>
 
-        <a href="<?php echo $basePath; ?>admin/login.php?cancel_2fa=1" class="link-cancel"><?php echo __('common.cancel'); ?></a>
+        <a href="<?php echo klytos_esc_url( $basePath . 'admin/login.php?cancel_2fa=1' ); ?>" class="link-cancel"><?php echo __('common.cancel'); ?></a>
 
         <script>
         // Tab switching for 2FA methods

@@ -27,7 +27,7 @@ $indexingEnabled = $siteConfig['indexing_enabled'] ?? false;
 
 // Handle enable indexing action.
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && ( $_POST['action'] ?? '' ) === 'enable_indexing' ) {
-    if ( $auth->validateCsrf( $_POST['csrf'] ?? '' ) ) {
+    if ( klytos_verify_csrf() ) {
         $app->getSiteConfig()->set( ['indexing_enabled' => true] );
         $indexingEnabled = true;
         $siteConfig['indexing_enabled'] = true;
@@ -48,7 +48,7 @@ if ( ! $indexingEnabled ) : ?>
         </div>
     </div>
     <form method="post" style="margin:0;">
-        <input type="hidden" name="csrf" value="<?php echo htmlspecialchars( $auth->getCsrfToken() ); ?>">
+        <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="enable_indexing">
         <button type="submit" style="background:#059669;color:white;border:none;padding:0.5rem 1.25rem;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">
             <?php echo __( 'indexing.enable_button' ); ?>
@@ -85,7 +85,7 @@ if ( ! $indexingEnabled ) : ?>
     <div class="stat-card">
         <div class="stat-label"><?php echo __( 'dashboard.klytos_version' ); ?></div>
         <div class="stat-value" style="font-size:1rem;">
-            v<?php echo htmlspecialchars( $app->getVersion()); ?>
+            v<?php echo klytos_esc_html( $app->getVersion()); ?>
         </div>
         <div class="stat-detail">PHP <?php echo PHP_VERSION; ?></div>
     </div>
@@ -109,10 +109,10 @@ if ( ! $indexingEnabled ) : ?>
             <h3><?php echo __( 'dashboard.system_info' ); ?></h3>
         </div>
         <table>
-            <tr><td style="font-weight:600;"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo htmlspecialchars( $app->getVersion()); ?></td></tr>
+            <tr><td style="font-weight:600;"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo klytos_esc_html( $app->getVersion()); ?></td></tr>
             <tr><td style="font-weight:600;"><?php echo __( 'dashboard.php_version' ); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
-            <tr><td style="font-weight:600;">Server</td><td><?php echo htmlspecialchars( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
-            <tr><td style="font-weight:600;"><?php echo __( 'license.domain' ); ?></td><td><?php echo htmlspecialchars( $license['domain'] ?? ''); ?></td></tr>
+            <tr><td style="font-weight:600;">Server</td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
+            <tr><td style="font-weight:600;"><?php echo __( 'license.domain' ); ?></td><td><?php echo klytos_esc_html( $license['domain'] ?? ''); ?></td></tr>
         </table>
     </div>
 </div>

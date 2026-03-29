@@ -50,7 +50,7 @@ try {
     }
 
     // Validate CSRF.
-    if (!$app->getAuth()->validateCsrf($input['csrf'] ?? '')) {
+    if (!klytos_verify_csrf()) {
         Helpers::jsonResponse(['error' => 'Invalid CSRF token'], 403);
     }
 

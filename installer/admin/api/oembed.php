@@ -138,24 +138,16 @@ if ( ! $oembedEndpoint ) {
 
 // Fetch oEmbed data.
 $requestUrl = $oembedEndpoint . '?' . http_build_query( [
-    'url'    => $url,
-    'format' => 'json',
+    'url'      => $url,
+    'format'   => 'json',
     'maxwidth' => 800,
 ] );
 
-$context = stream_context_create( [
-    'http' => [
-        'timeout' => 10,
-        'user_agent' => 'Klytos CMS/2.0',
-        'ignore_errors' => true,
-    ],
-] );
-
-$response = @file_get_contents( $requestUrl, false, $context );
+$response = fetchUrl( $requestUrl );
 
 if ( $response === false ) {
     http_response_code( 502 );
-    echo json_encode( [ 'error' => 'Failed to fetch oEmbed data' ] );
+    echo json_encode( [ 'error' => 'Failed to fetch oEmbed data from provider' ] );
     exit;
 }
 
@@ -163,12 +155,69 @@ $data = json_decode( $response, true );
 
 if ( ! $data ) {
     http_response_code( 502 );
-    echo json_encode( [ 'error' => 'Invalid oEmbed response' ] );
+    echo json_encode( [ 'error' => 'Invalid oEmbed response', 'raw' => substr( $response, 0, 500 ) ] );
     exit;
 }
 
 echo json_encode( $data );
 
+
+/**
+ * Fetch a URL using cURL (preferred) or file_get_contents as fallback.
+ *
+ * @param  string $url
+ * @return string|false Response body, or false on failure.
+ */
+function fetchUrl( string $url ) {
+    // Prefer cURL — works on virtually all hosts, handles HTTPS properly.
+    if ( function_exists( 'curl_init' ) ) {
+        $ch = curl_init( $url );
+        curl_setopt_array( $ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 5,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_USERAGENT      => 'Klytos CMS/2.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_HTTPHEADER     => [ 'Accept: application/json' ],
+        ] );
+
+        $response = curl_exec( $ch );
+        $httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+        $error    = curl_error( $ch );
+        curl_close( $ch );
+
+        if ( $response === false || $httpCode >= 400 ) {
+            error_log( "Klytos oEmbed: cURL failed for {$url} — HTTP {$httpCode}, error: {$error}" );
+            return false;
+        }
+
+        return $response;
+    }
+
+    // Fallback: file_get_contents with SSL context.
+    $context = stream_context_create( [
+        'http' => [
+            'timeout'       => 10,
+            'user_agent'    => 'Klytos CMS/2.0',
+            'ignore_errors' => true,
+            'header'        => 'Accept: application/json',
+        ],
+        'ssl' => [
+            'verify_peer'      => true,
+            'verify_peer_name' => true,
+        ],
+    ] );
+
+    $response = @file_get_contents( $url, false, $context );
+
+    if ( $response === false ) {
+        error_log( "Klytos oEmbed: file_get_contents failed for {$url}" );
+    }
+
+    return $response;
+}
 
 /**
  * Try to discover oEmbed endpoint from a page's HTML.
@@ -177,15 +226,7 @@ echo json_encode( $data );
  * @return string|null
  */
 function discoverOembed( string $url ): ?string {
-    $context = stream_context_create( [
-        'http' => [
-            'timeout' => 5,
-            'user_agent' => 'Klytos CMS/2.0',
-            'ignore_errors' => true,
-        ],
-    ] );
-
-    $html = @file_get_contents( $url, false, $context );
+    $html = fetchUrl( $url );
 
     if ( ! $html ) {
         return null;

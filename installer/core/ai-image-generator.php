@@ -25,20 +25,17 @@ class AiImageGenerator
     private StorageInterface $storage;
 
     private AssetManager $assets;
-    private string $configPath;
 
-    private const AI_CONFIG_FILE = 'ai-config.json.enc';
     private const AI_HISTORY_FILE = 'ai-history.json.enc';
     private const DEFAULT_MODEL  = 'gemini-2.0-flash-exp';
 
     // Gemini API endpoints
     private const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-    public function __construct(StorageInterface $storage, AssetManager $assets, string $configPath)
+    public function __construct(StorageInterface $storage, AssetManager $assets)
     {
-        $this->storage    = $storage;
-        $this->assets     = $assets;
-        $this->configPath = rtrim($configPath, '/');
+        $this->storage = $storage;
+        $this->assets  = $assets;
     }
 
     /**
@@ -130,12 +127,7 @@ class AiImageGenerator
      */
     public function getApiKey(): string
     {
-        try {
-            $config = $this->storage->readFrom($this->configPath, self::AI_CONFIG_FILE);
-            return $config['gemini_api_key'] ?? '';
-        } catch (\RuntimeException $e) {
-            return '';
-        }
+        return App::getInstance()->getOptionsManager()->get('ai-images.gemini_api_key', '');
     }
 
     /**
@@ -145,17 +137,7 @@ class AiImageGenerator
      */
     public function setApiKey(string $apiKey): void
     {
-        $config = [];
-        try {
-            $config = $this->storage->readFrom($this->configPath, self::AI_CONFIG_FILE);
-        } catch (\RuntimeException $e) {
-            // New config
-        }
-
-        $config['gemini_api_key'] = $apiKey;
-        $config['updated_at']     = Helpers::now();
-
-        $this->storage->writeTo($this->configPath, self::AI_CONFIG_FILE, $config);
+        App::getInstance()->getOptionsManager()->set('ai-images.gemini_api_key', $apiKey);
     }
 
     /**

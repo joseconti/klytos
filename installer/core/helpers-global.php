@@ -454,3 +454,108 @@ function klytos_set_config(string $key, mixed $value): void
 
     $storage->writeTo($app->getConfigPath(), 'config.json.enc', $config);
 }
+
+// ─── Options API ─────────────────────────────────────────────
+// Key-value storage for plugin and feature settings.
+// The CMS decides the backend (files or database) transparently.
+
+/**
+ * Get an option value.
+ *
+ * @param  string $key     Option key (e.g. 'myplugin.theme_color').
+ * @param  mixed  $default Value to return if the option does not exist.
+ * @return mixed
+ */
+function klytos_get_option(string $key, mixed $default = null): mixed
+{
+    return App::getInstance()->getOptionsManager()->get($key, $default);
+}
+
+/**
+ * Set (create or update) an option.
+ *
+ * @param string $key   Option key.
+ * @param mixed  $value Value to store (must be JSON-serialisable).
+ */
+function klytos_set_option(string $key, mixed $value): void
+{
+    App::getInstance()->getOptionsManager()->set($key, $value);
+}
+
+/**
+ * Delete an option.
+ *
+ * @param  string $key Option key.
+ * @return bool   True if the option existed and was deleted.
+ */
+function klytos_delete_option(string $key): bool
+{
+    return App::getInstance()->getOptionsManager()->delete($key);
+}
+
+/**
+ * Check if an option exists.
+ *
+ * @param  string $key Option key.
+ * @return bool
+ */
+function klytos_option_exists(string $key): bool
+{
+    return App::getInstance()->getOptionsManager()->exists($key);
+}
+
+// ─── Meta API ────────────────────────────────────────────────
+// Attach arbitrary metadata to any entity (pages, users, post types, etc.).
+// Meta is stored as a '_meta' field inside the entity document itself.
+
+/**
+ * Get a meta value for an entity.
+ *
+ * @param  string $collection Entity collection (e.g. 'pages', 'users').
+ * @param  string $entityId   Entity identifier (e.g. page slug, user ID).
+ * @param  string $key        Meta key (e.g. 'myplugin.custom_field').
+ * @return mixed  The value, or null if the key does not exist.
+ */
+function klytos_get_meta(string $collection, string $entityId, string $key): mixed
+{
+    return App::getInstance()->getMetaManager()->get($collection, $entityId, $key);
+}
+
+/**
+ * Set a meta value (create or replace).
+ * The value can be any JSON-serialisable type: string, int, bool, array.
+ *
+ * @param string $collection Entity collection.
+ * @param string $entityId   Entity identifier.
+ * @param string $key        Meta key.
+ * @param mixed  $value      Value to store.
+ */
+function klytos_set_meta(string $collection, string $entityId, string $key, mixed $value): void
+{
+    App::getInstance()->getMetaManager()->set($collection, $entityId, $key, $value);
+}
+
+/**
+ * Delete a meta key from an entity.
+ *
+ * @param  string $collection Entity collection.
+ * @param  string $entityId   Entity identifier.
+ * @param  string $key        Meta key to remove.
+ * @return bool   True if the key existed and was removed.
+ */
+function klytos_delete_meta(string $collection, string $entityId, string $key): bool
+{
+    return App::getInstance()->getMetaManager()->delete($collection, $entityId, $key);
+}
+
+/**
+ * Get ALL meta for an entity as an associative array.
+ *
+ * @param  string $collection Entity collection.
+ * @param  string $entityId   Entity identifier.
+ * @return array  Associative array: meta_key => value.
+ */
+function klytos_get_all_meta(string $collection, string $entityId): array
+{
+    return App::getInstance()->getMetaManager()->getAll($collection, $entityId);
+}

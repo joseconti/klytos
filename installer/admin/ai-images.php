@@ -25,12 +25,11 @@ $generated = null;
 
 $generator = new AiImageGenerator(
     $app->getStorage(),
-    $app->getAssets(),
-    $app->getConfigPath()
+    $app->getAssets()
 );
 
 // Handle generation
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $prompt = trim($_POST['prompt'] ?? '');
     $model  = $_POST['model'] ?? '';
 
@@ -61,10 +60,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ($success): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <?php if (!$generator->isConfigured()): ?>
@@ -79,8 +78,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'ai_images.generated' ); ?></h3></div>
     <div style="text-align:center;">
-        <img src="<?php echo htmlspecialchars(Helpers::url($generated['asset']['path'] ?? '')); ?>" alt="AI Generated" style="max-width:100%;border-radius:8px;margin-bottom:1rem;">
-        <p class="mono" style="font-size:0.85rem;color:var(--admin-text-muted);"><?php echo htmlspecialchars( $generated['asset']['path'] ?? ''); ?></p>
+        <img src="<?php echo klytos_esc_url(Helpers::url($generated['asset']['path'] ?? '')); ?>" alt="AI Generated" style="max-width:100%;border-radius:8px;margin-bottom:1rem;">
+        <p class="mono" style="font-size:0.85rem;color:var(--admin-text-muted);"><?php echo klytos_esc_html( $generated['asset']['path'] ?? ''); ?></p>
     </div>
 </div>
 <?php endif; ?>
@@ -89,17 +88,17 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'ai_images.generate' ); ?></h3></div>
     <form method="post">
-        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+        <?php echo klytos_csrf_field(); ?>
         <div class="form-group">
             <label><?php echo __( 'ai_images.prompt' ); ?></label>
-            <textarea name="prompt" class="form-control" rows="4" required placeholder="<?php echo __( 'ai_images.prompt' ); ?>"><?php echo htmlspecialchars( $_POST['prompt'] ?? ''); ?></textarea>
+            <textarea name="prompt" class="form-control" rows="4" required placeholder="<?php echo __( 'ai_images.prompt' ); ?>"><?php echo klytos_esc_textarea( $_POST['prompt'] ?? ''); ?></textarea>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
             <div class="form-group">
                 <label><?php echo __( 'ai_images.model' ); ?></label>
                 <select name="model" class="form-control">
                     <?php foreach ($models as $model): ?>
-                        <option value="<?php echo htmlspecialchars( $model['id'] ); ?>"><?php echo htmlspecialchars( $model['name'] ); ?></option>
+                        <option value="<?php echo klytos_esc_attr( $model['id'] ); ?>"><?php echo klytos_esc_html( $model['name'] ); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -129,9 +128,9 @@ require_once __DIR__ . '/templates/sidebar.php';
             <tbody>
                 <?php foreach ($history as $item): ?>
                 <tr>
-                    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?php echo htmlspecialchars( $item['prompt'] ?? ''); ?></td>
-                    <td class="mono" style="font-size:0.8rem;"><?php echo htmlspecialchars( $item['model'] ?? ''); ?></td>
-                    <td class="mono" style="font-size:0.8rem;"><?php echo htmlspecialchars( $item['filename'] ?? ''); ?></td>
+                    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?php echo klytos_esc_html( $item['prompt'] ?? ''); ?></td>
+                    <td class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $item['model'] ?? ''); ?></td>
+                    <td class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $item['filename'] ?? ''); ?></td>
                     <td><?php echo !empty($item['created_at']) ? date( 'Y-m-d H:i', strtotime($item['created_at'])) : ''; ?></td>
                 </tr>
                 <?php endforeach; ?>

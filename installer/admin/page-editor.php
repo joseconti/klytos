@@ -38,6 +38,7 @@ $pageCanonical = '';
 $pageNoIndex   = false;
 $pageCustomCss = '';
 $pageCustomJs  = '';
+$pagePostType  = trim($_GET['post_type'] ?? 'page');
 
 if ( $slug ) {
     $page = $pm->get( $slug );
@@ -59,11 +60,12 @@ if ( $slug ) {
         $pageNoIndex   = ! empty( $page['noindex'] );
         $pageCustomCss = $page['custom_css'] ?? '';
         $pageCustomJs  = $page['custom_js'] ?? '';
+        $pagePostType  = $page['post_type'] ?? $pagePostType;
     }
 }
 
 // Handle POST (save).
-if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf( $_POST['csrf'] ?? '' ) ) {
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
     $data = [
         'title'           => trim( $_POST['title'] ?? '' ),
         'content_html'    => $_POST['content_html'] ?? '',
@@ -81,13 +83,14 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf( $_POST['csrf'
         'noindex'             => ! empty( $_POST['noindex'] ),
         'custom_css'          => $_POST['custom_css'] ?? '',
         'custom_js'           => $_POST['custom_js'] ?? '',
+        'post_type'           => $_POST['post_type'] ?? 'page',
     ];
 
     $saveSlug = $_POST['slug'] ?? '';
 
     if ( ! $saveSlug && $data['title'] ) {
         // Auto-generate slug from title.
-        $saveSlug = strtolower( trim( preg_replace( '/[^a-zA-Z0-9\/]+/', '-', $data['title'] ), '-' ) );
+        $saveSlug = Helpers::sanitizeSlug($data['title']);
     }
 
     if ( $saveSlug && $data['title'] ) {
@@ -127,17 +130,14 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf( $_POST['csrf'
 }
 
 $adminPageTitle = $isEditing
-    ? __( 'pages.edit_page' ) . ': ' . htmlspecialchars( $pageTitle )
+    ? __( 'pages.edit_page' ) . ': ' . klytos_esc_html( $pageTitle )
     : __( 'pages.create_page' );
-
-$pageTitle_header = $adminPageTitle;
-include __DIR__ . '/templates/header.php';
-include __DIR__ . '/templates/sidebar.php';
 
 // Override CSP for the editor page: Gutenberg creates blob: iframes with
 // inline scripts that cannot carry a nonce. We must allow 'unsafe-inline'
 // for script-src on this page only. The nonce attribute on our own <script>
 // tags is kept for defense-in-depth but is no longer the sole gate.
+// This MUST be set before including header.php (which sends HTTP headers).
 if ( $editorType === 'gutenberg' ) {
     // CSP frame-src: allow all oEmbed provider iframe domains.
     // CSP img-src: allow provider thumbnails/images.
@@ -256,10 +256,13 @@ if ( $editorType === 'gutenberg' ) {
         '*.kickstarter.com',
     ] );
 
-    $scriptSrc = "'self' 'unsafe-inline' 'nonce-{$cspNonce}'";
-
-    header( "Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src {$imgSrc}; script-src {$scriptSrc}; frame-src {$frameSrc}", true );
+    // $customCsp tells header.php to use this policy instead of the default one.
+    $customCsp = "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src {$imgSrc}; script-src 'self' 'unsafe-inline'; frame-src {$frameSrc}";
 }
+
+$pageTitle_header = $adminPageTitle;
+include __DIR__ . '/templates/header.php';
+include __DIR__ . '/templates/sidebar.php';
 ?>
 
 <!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
@@ -276,14 +279,15 @@ if ( $editorType === 'gutenberg' ) {
         <?php endif; ?>
 
         <?php if ( isset( $error ) ): ?>
-            <div class="alert alert-error" style="position:fixed;top:0;left:0;right:0;z-index:200000;text-align:center;border-radius:0;"><?php echo htmlspecialchars( $error ); ?></div>
+            <div class="alert alert-error" style="position:fixed;top:0;left:0;right:0;z-index:200000;text-align:center;border-radius:0;"><?php echo klytos_esc_html( $error ); ?></div>
         <?php endif; ?>
 
         <form method="post" id="page-editor-form">
-            <input type="hidden" name="csrf" value="<?php echo htmlspecialchars( $csrf ); ?>">
-            <input type="hidden" name="slug" value="<?php echo htmlspecialchars( $slug ); ?>" id="page-slug">
+            <?php echo klytos_csrf_field(); ?>
+            <input type="hidden" name="slug" value="<?php echo klytos_esc_attr( $slug ); ?>" id="page-slug">
             <input type="hidden" name="content_html" value="" id="content-html-field">
             <input type="hidden" name="content_blocks" value="" id="content-blocks-field">
+            <input type="hidden" name="post_type" value="<?php echo klytos_esc_attr($pagePostType); ?>">
 
             <!-- ═══ FULLSCREEN EDITOR SHELL ═══ -->
             <div class="klytos-editor-shell" id="klytos-editor-shell">
@@ -300,11 +304,11 @@ if ( $editorType === 'gutenberg' ) {
                                 name="title"
                                 class="klytos-editor-header__title"
                                 placeholder="<?php echo __( 'pages.page_title' ); ?>..."
-                                value="<?php echo htmlspecialchars( $pageTitle ); ?>"
+                                value="<?php echo klytos_esc_attr( $pageTitle ); ?>"
                                 required
                             >
                             <?php if ( $isEditing ): ?>
-                            <span class="klytos-editor-header__slug">/<?php echo htmlspecialchars( $slug ); ?>/</span>
+                            <span class="klytos-editor-header__slug">/<?php echo klytos_esc_html( $slug ); ?>/</span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -324,7 +328,7 @@ if ( $editorType === 'gutenberg' ) {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.289 4.836A1 1 0 0111.275 4h1.306a1 1 0 01.987.836l.244 1.466c.787.26 1.503.679 2.108 1.218l1.393-.522a1 1 0 011.216.437l.653 1.13a1 1 0 01-.23 1.273l-1.148.944a6.025 6.025 0 010 2.435l1.149.946a1 1 0 01.23 1.272l-.653 1.13a1 1 0 01-1.216.437l-1.394-.522c-.605.54-1.32.958-2.108 1.218l-.244 1.466a1 1 0 01-.987.836h-1.306a1 1 0 01-.986-.836l-.244-1.466a5.995 5.995 0 01-2.108-1.218l-1.394.522a1 1 0 01-1.217-.436l-.653-1.131a1 1 0 01.23-1.272l1.149-.946a6.026 6.026 0 010-2.435l-1.148-.944a1 1 0 01-.23-1.272l.653-1.131a1 1 0 011.217-.437l1.393.522a5.994 5.994 0 012.108-1.218l.244-1.466zM14.929 12a3 3 0 11-6 0 3 3 0 016 0z" clip-rule="evenodd"/></svg>
                         </button>
                         <?php if ( $isEditing ): ?>
-                        <a href="../<?php echo htmlspecialchars( $slug ); ?>/" target="_blank" class="klytos-editor-header__btn klytos-editor-header__btn--ghost">
+                        <a href="../<?php echo klytos_esc_url( $slug ); ?>/" target="_blank" class="klytos-editor-header__btn klytos-editor-header__btn--ghost">
                             <?php echo __( 'common.preview' ); ?>
                         </a>
                         <?php endif; ?>
@@ -385,14 +389,14 @@ if ( $editorType === 'gutenberg' ) {
                                 <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Facebook / LinkedIn</summary>
                                 <div class="klytos-editor-settings__details-body">
                                     <label class="klytos-editor-settings__label">OG Image <span class="klytos-editor-settings__hint">recommended</span></label>
-                                    <input type="text" name="og_image" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
+                                    <input type="text" name="og_image" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
                                     <div class="form-help">1200x630px recommended.</div>
 
                                     <label class="klytos-editor-settings__label">OG Title</label>
-                                    <input type="text" name="og_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
+                                    <input type="text" name="og_title" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
 
                                     <label class="klytos-editor-settings__label">OG Description</label>
-                                    <textarea name="og_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use meta description"><?php echo htmlspecialchars( $pageOgDesc ); ?></textarea>
+                                    <textarea name="og_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use meta description"><?php echo klytos_esc_textarea( $pageOgDesc ); ?></textarea>
                                 </div>
                             </details>
 
@@ -401,10 +405,10 @@ if ( $editorType === 'gutenberg' ) {
                                 <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Twitter / X</summary>
                                 <div class="klytos-editor-settings__details-body">
                                     <label class="klytos-editor-settings__label">Twitter Title</label>
-                                    <input type="text" name="twitter_title" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
+                                    <input type="text" name="twitter_title" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
 
                                     <label class="klytos-editor-settings__label">Twitter Description</label>
-                                    <textarea name="twitter_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use OG description"><?php echo htmlspecialchars( $pageTwDesc ); ?></textarea>
+                                    <textarea name="twitter_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use OG description"><?php echo klytos_esc_textarea( $pageTwDesc ); ?></textarea>
                                     <div class="form-help">Uses OG image automatically.</div>
                                 </div>
                             </details>
@@ -414,10 +418,10 @@ if ( $editorType === 'gutenberg' ) {
                                 <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle"><?php echo __( 'pages.custom_css' ); ?> / JS</summary>
                                 <div class="klytos-editor-settings__details-body">
                                     <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_css' ); ?></label>
-                                    <textarea name="custom_css" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomCss ); ?></textarea>
+                                    <textarea name="custom_css" rows="4" class="klytos-editor-settings__input mono"><?php echo klytos_esc_textarea( $pageCustomCss ); ?></textarea>
 
                                     <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_js' ); ?></label>
-                                    <textarea name="custom_js" rows="4" class="klytos-editor-settings__input mono"><?php echo htmlspecialchars( $pageCustomJs ); ?></textarea>
+                                    <textarea name="custom_js" rows="4" class="klytos-editor-settings__input mono"><?php echo klytos_esc_textarea( $pageCustomJs ); ?></textarea>
                                 </div>
                             </details>
 
@@ -425,14 +429,14 @@ if ( $editorType === 'gutenberg' ) {
                             <div class="klytos-editor-settings__section">
                                 <h3 class="klytos-editor-settings__heading">Meta Description</h3>
 
-                                <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo htmlspecialchars( $pageMetaDesc ); ?></textarea>
+                                <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo klytos_esc_textarea( $pageMetaDesc ); ?></textarea>
                                 <div class="form-help" id="meta-counter" style="display:flex;justify-content:space-between;">
                                     <span id="meta-count-text">0/160</span>
                                     <span id="meta-quality"></span>
                                 </div>
 
                                 <label class="klytos-editor-settings__label">Canonical URL</label>
-                                <input type="url" name="canonical_url" class="klytos-editor-settings__input" value="<?php echo htmlspecialchars( $pageCanonical ); ?>" placeholder="Leave empty (recommended)">
+                                <input type="url" name="canonical_url" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageCanonical ); ?>" placeholder="Leave empty (recommended)">
 
                                 <div style="margin-top:0.75rem;">
                                     <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;font-size:0.85rem;">
@@ -548,13 +552,48 @@ if ( $editorType === 'gutenberg' ) {
     window.fetch = function( input, init ) {
         var url = ( typeof input === 'string' ) ? input : ( input && input.url ? input.url : '' );
 
+        // Intercept oEmbed proxy requests → route to Klytos proxy.
         if ( url.indexOf( '/oembed/1.0/proxy' ) !== -1 ) {
-            // Extract the embed URL from the query string.
             var match = url.match( /[?&]url=([^&]+)/ );
             if ( match ) {
                 var embedUrl = decodeURIComponent( match[1] );
                 var proxyUrl = oembedBase + '?url=' + encodeURIComponent( embedUrl );
                 return originalFetch.call( window, proxyUrl, { credentials: 'same-origin' } );
+            }
+        }
+
+        // Intercept WP REST API calls that don't exist in Klytos.
+        // Gutenberg tries to call these on init — return empty/stub responses.
+        if ( url.indexOf( '/wp/v2/' ) !== -1 || url.indexOf( '/wp-json/' ) !== -1 ) {
+            var stubResponse = null;
+
+            if ( url.indexOf( '/wp/v2/settings' ) !== -1 ) {
+                stubResponse = {};
+            } else if ( url.indexOf( '/wp/v2/themes' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/types' ) !== -1 ) {
+                stubResponse = {};
+            } else if ( url.indexOf( '/wp/v2/taxonomies' ) !== -1 ) {
+                stubResponse = {};
+            } else if ( url.indexOf( '/wp/v2/users/me' ) !== -1 ) {
+                stubResponse = { id: 1, name: 'admin', slug: 'admin', roles: [ 'administrator' ] };
+            } else if ( url.indexOf( '/wp/v2/users' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/media' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/blocks' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/block-patterns' ) !== -1 ) {
+                stubResponse = [];
+            } else if ( url.indexOf( '/wp/v2/comments' ) !== -1 ) {
+                stubResponse = [];
+            }
+
+            if ( stubResponse !== null ) {
+                return Promise.resolve( new Response(
+                    JSON.stringify( stubResponse ),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                ) );
             }
         }
 

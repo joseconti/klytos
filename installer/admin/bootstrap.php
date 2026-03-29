@@ -63,6 +63,10 @@ try {
 use Klytos\Core\App;
 use Klytos\Core\Helpers;
 
+// Load security helpers early so klytos_esc_html() is available
+// in the error handler below, even if boot() fails midway.
+require_once $rootPath . '/core/helpers-security.php';
+
 try {
     $app = App::getInstance();
 
@@ -82,7 +86,7 @@ try {
     echo '<h1 style="color:#dc2626">Klytos Boot Error</h1>';
     echo '<p>The application failed to start. Check the PHP error log for details.</p>';
     echo '<pre style="background:#f1f5f9;padding:1rem;border-radius:8px;text-align:left;font-size:0.85rem;overflow:auto">';
-    echo htmlspecialchars( $e->getMessage() );
+    echo klytos_esc_html( $e->getMessage() );
     echo '</pre>';
     echo '</div></body></html>';
     exit( 1 );

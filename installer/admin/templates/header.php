@@ -15,7 +15,7 @@ use Klytos\Core\Auth;
 use Klytos\Core\Helpers;
 
 $cspNonce = Auth::generateCspNonce();
-Auth::sendSecurityHeaders($cspNonce);
+Auth::sendSecurityHeaders($cspNonce, $customCsp ?? null);
 $basePath  = Helpers::getBasePath();
 $adminPath = $basePath . 'admin/';
 $pageTitle = $pageTitle ?? __( 'dashboard.title' );
@@ -27,7 +27,8 @@ $version   = $app->getVersion();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
-    <title><?php echo htmlspecialchars( $pageTitle ); ?> — Klytos Admin</title>
+    <title><?php echo klytos_esc_html( $pageTitle ); ?> — Klytos Admin</title>
+    <link rel="stylesheet" href="<?php echo klytos_esc_url( Helpers::getBasePath() . 'admin/assets/vendor/fontawesome/css/all.min.css' ); ?>">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -63,6 +64,7 @@ $version   = $app->getVersion();
         .sidebar-brand small { color: var(--admin-sidebar-text); font-size: 0.75rem; }
         .sidebar-nav { padding: 0.5rem 0; }
         .sidebar-nav a { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 1.5rem; color: var(--admin-sidebar-text); font-size: 0.9rem; transition: all 0.15s; text-decoration: none; }
+        .sidebar-nav a i.fa-solid, .sidebar-nav a i.fa-regular, .sidebar-nav a i.fa-brands { width: 1.25rem; text-align: center; font-size: 0.95rem; flex-shrink: 0; }
         .sidebar-nav a:hover { background: rgba(255,255,255,0.08); color: #fff; }
         .sidebar-nav a.active { background: var(--admin-sidebar-active); color: #fff; font-weight: 500; }
         .sidebar-section { padding: 0.75rem 1.5rem 0.25rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); }

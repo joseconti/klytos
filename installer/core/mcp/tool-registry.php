@@ -258,6 +258,7 @@ class ToolRegistry
             'webhook-tools.php',
             'plugin-tools.php',
             'guide-tools.php',
+            'post-type-tools.php',
         ];
 
         foreach ($toolFiles as $file) {

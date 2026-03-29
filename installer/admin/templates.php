@@ -50,10 +50,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if ( !empty( $success ) ): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if ( !empty( $error ) ): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <p style="color:var(--admin-text-muted);margin-bottom:1.5rem;">
@@ -64,11 +64,11 @@ require_once __DIR__ . '/templates/sidebar.php';
     <!-- Template Preview -->
     <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-header">
-            <h3><?php echo htmlspecialchars( ucfirst( $previewType ) ); ?> — <?php echo __( 'common.preview' ); ?></h3>
-            <a href="<?php echo htmlspecialchars( strtok( $_SERVER['REQUEST_URI'], '?' ) ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.close' ); ?></a>
+            <h3><?php echo klytos_esc_html( ucfirst( $previewType ) ); ?> — <?php echo __( 'common.preview' ); ?></h3>
+            <a href="<?php echo klytos_esc_url( strtok( $_SERVER['REQUEST_URI'], '?' ) ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.close' ); ?></a>
         </div>
         <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;">
-            <iframe srcdoc="<?php echo htmlspecialchars( $previewHtml ); ?>" style="width:100%;height:600px;border:none;"></iframe>
+            <iframe srcdoc="<?php echo klytos_esc_attr( $previewHtml ); ?>" style="width:100%;height:600px;border:none;"></iframe>
         </div>
     </div>
 <?php endif; ?>
@@ -93,8 +93,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <div class="template-card-preview">
                     <div class="template-card-blocks">
                         <?php foreach ( array_slice( $blocks, 0, 5 ) as $block ): ?>
-                            <div class="template-block-indicator" title="<?php echo htmlspecialchars( $block['block_id'] ?? '' ); ?>">
-                                <?php echo htmlspecialchars( $block['block_id'] ?? '?' ); ?>
+                            <div class="template-block-indicator" title="<?php echo klytos_esc_attr( $block['block_id'] ?? '' ); ?>">
+                                <?php echo klytos_esc_html( $block['block_id'] ?? '?' ); ?>
                             </div>
                         <?php endforeach; ?>
                         <?php if ( $blockCount > 5 ): ?>
@@ -103,11 +103,11 @@ require_once __DIR__ . '/templates/sidebar.php';
                     </div>
                 </div>
                 <div class="template-card-info">
-                    <h4><?php echo htmlspecialchars( ucfirst( $type ) ); ?></h4>
-                    <p class="template-card-desc"><?php echo htmlspecialchars( $desc ); ?></p>
+                    <h4><?php echo klytos_esc_html( ucfirst( $type ) ); ?></h4>
+                    <p class="template-card-desc"><?php echo klytos_esc_html( $desc ); ?></p>
                     <div class="template-card-meta">
                         <span class="badge-status badge-<?php echo $status === 'approved' ? 'active' : 'draft'; ?>">
-                            <?php echo ucfirst( htmlspecialchars( $status ) ); ?>
+                            <?php echo ucfirst( klytos_esc_html( $status ) ); ?>
                         </span>
                         <span><?php echo $blockCount; ?> blocks</span>
                     </div>

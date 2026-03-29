@@ -29,7 +29,7 @@ $error       = '';
 $csrf        = $auth->getCsrfToken();
 
 // ─── Handle POST actions ─────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->validateCsrf($_POST['csrf'] ?? '')) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'create') {
@@ -81,10 +81,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success"><?php echo htmlspecialchars( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div class="alert alert-error"><?php echo htmlspecialchars( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <!-- Stats -->
@@ -147,18 +147,18 @@ require_once __DIR__ . '/templates/sidebar.php';
                     ?>
                     <tr>
                         <td>
-                            <strong><?php echo htmlspecialchars( $user['display_name'] ?? $user['username'] ?? ''); ?></strong>
-                            <br><small style="color:var(--admin-text-muted)">@<?php echo htmlspecialchars( $user['username'] ?? ''); ?></small>
+                            <strong><?php echo klytos_esc_html( $user['display_name'] ?? $user['username'] ?? ''); ?></strong>
+                            <br><small style="color:var(--admin-text-muted)">@<?php echo klytos_esc_html( $user['username'] ?? ''); ?></small>
                         </td>
-                        <td><?php echo htmlspecialchars( $user['email'] ?? ''); ?></td>
+                        <td><?php echo klytos_esc_html( $user['email'] ?? ''); ?></td>
                         <td>
-                            <span class="badge-status badge-<?php echo htmlspecialchars( $user['role'] ?? 'viewer'); ?>">
-                                <?php echo ucfirst( htmlspecialchars( $user['role'] ?? 'viewer')); ?>
+                            <span class="badge-status badge-<?php echo klytos_esc_attr( $user['role'] ?? 'viewer'); ?>">
+                                <?php echo ucfirst( klytos_esc_html( $user['role'] ?? 'viewer')); ?>
                             </span>
                         </td>
                         <td>
                             <span class="badge-status badge-<?php echo ($user['status'] ?? 'active') === 'active' ? 'active' : 'inactive'; ?>">
-                                <?php echo ucfirst( htmlspecialchars( $user['status'] ?? 'active')); ?>
+                                <?php echo ucfirst( klytos_esc_html( $user['status'] ?? 'active')); ?>
                             </span>
                         </td>
                         <td style="font-size:0.85rem;color:var(--admin-text-muted)">
@@ -168,16 +168,16 @@ require_once __DIR__ . '/templates/sidebar.php';
                             <?php if (($user['role'] ?? '') !== 'owner'): ?>
                                 <?php if (($user['status'] ?? 'active') === 'active'): ?>
                                     <form method="post" style="display:inline">
-                                        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                        <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="suspend">
-                                        <input type="hidden" name="user_id" value="<?php echo htmlspecialchars( $user['id'] ?? ''); ?>">
+                                        <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $user['id'] ?? ''); ?>">
                                         <button type="submit" class="btn btn-outline btn-sm">Suspend</button>
                                     </form>
                                 <?php else: ?>
                                     <form method="post" style="display:inline">
-                                        <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                                        <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="activate">
-                                        <input type="hidden" name="user_id" value="<?php echo htmlspecialchars( $user['id'] ?? ''); ?>">
+                                        <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $user['id'] ?? ''); ?>">
                                         <button type="submit" class="btn btn-primary btn-sm">Activate</button>
                                     </form>
                                 <?php endif; ?>
@@ -198,7 +198,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="modal">
         <h3>Create New User</h3>
         <form method="post">
-            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="create">
 
             <div class="grid-2">

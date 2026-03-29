@@ -31,7 +31,7 @@ if (!$input) {
 
 // CSRF validation.
 $csrf = $input['csrf'] ?? '';
-if (!$auth->validateCsrf($csrf)) {
+if (!klytos_verify_csrf()) {
     http_response_code(403);
     echo json_encode(['error' => 'Invalid CSRF token']);
     exit;
