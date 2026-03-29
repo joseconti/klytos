@@ -32,7 +32,7 @@ try {
 }
 
 $pageTitle   = 'Edit: ' . ($postType['name'] ?? $ptId);
-$currentPage = 'post-types';
+$currentPage = 'pt-' . $ptId;
 $auth        = $app->getAuth();
 $error       = '';
 $success     = '';

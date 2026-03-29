@@ -22,7 +22,7 @@ use Klytos\Core\Helpers;
 use Klytos\Core\Hooks;
 
 $adminPath   = Helpers::getBasePath() . 'admin/';
-$currentPage = basename($_SERVER['SCRIPT_NAME'], '.php');
+$currentPage = $currentPage ?? basename($_SERVER['SCRIPT_NAME'], '.php');
 
 // Resolve the effective sidebar item ID for the current page.
 // Custom post type pages use a shared PHP file with query params,

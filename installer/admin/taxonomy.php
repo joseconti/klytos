@@ -46,7 +46,7 @@ if ($taxonomyConfig === null) {
 $taxonomyName = $taxonomyConfig['name'] ?? $taxonomyId;
 $postTypeName = $postType['name'] ?? $postTypeId;
 $pageTitle    = $taxonomyName . ' — ' . $postTypeName;
-$currentPage  = 'taxonomy';
+$currentPage  = 'tax-' . $postTypeId . '-' . $taxonomyId;
 
 // Handle POST actions.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
