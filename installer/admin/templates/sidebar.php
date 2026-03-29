@@ -163,6 +163,15 @@ $sidebarItems = [
         'capability' => 'mcp.manage',
     ],
     [
+        'id'         => 'ai-chat',
+        'title'      => __( 'ai_chat.title' ),
+        'url'        => $adminPath . 'ai-chat.php',
+        'icon'       => 'fa-solid fa-comments',
+        'position'   => 76,
+        'section'    => 'system',
+        'capability' => null,
+    ],
+    [
         'id'         => 'security',
         'title'      => __( 'security.title' ),
         'url'        => $adminPath . 'security.php',

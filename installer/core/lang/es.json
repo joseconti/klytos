@@ -350,5 +350,38 @@
     "all_ok": "Todo correcto",
     "missing_extension": "Falta la extensión: {ext}",
     "directory_not_writable": "El directorio no tiene permisos de escritura: {dir}"
+  },
+  "ai_chat": {
+    "title": "Chat IA",
+    "new_conversation": "Nueva conversacion",
+    "send": "Enviar",
+    "placeholder": "Escribe un mensaje para controlar tu sitio con IA...",
+    "no_conversations": "Sin conversaciones aun",
+    "delete_confirm": "¿Eliminar esta conversacion?",
+    "thinking": "Pensando...",
+    "tool_executed": "Tool ejecutado",
+    "provider_changed": "Proveedor cambiado",
+    "error": "Ha ocurrido un error",
+    "no_provider": "No hay proveedor de IA configurado",
+    "configure_key": "Configura una API key en"
+  },
+  "ai_keys": {
+    "title": "Conexion API IA",
+    "save": "Guardar API key",
+    "remove": "Eliminar",
+    "saved": "API key guardada correctamente.",
+    "removed": "API key eliminada.",
+    "invalid": "API key no valida. Revisala e intentalo de nuevo.",
+    "privacy_notice": "Tus API keys se almacenan encriptadas en tu instalacion. Klytos no tiene acceso a tus keys ni a tus conversaciones.",
+    "cost_notice": "La API de IA tiene un coste por tokens que se factura directamente por tu proveedor. Si ya usas Klytos via MCP desde Claude.ai u otra app, no necesitas configurar una API key aqui.",
+    "mcp_info": "Esta opcion es para quienes prefieren controlar Klytos directamente desde el panel de administracion.",
+    "get_key": "¿No tienes API key? Obten una en:",
+    "active_provider": "Proveedor activo",
+    "active_model": "Modelo activo",
+    "usage_this_month": "Uso este mes",
+    "tokens_in": "Tokens entrada",
+    "tokens_out": "Tokens salida",
+    "conversations": "Conversaciones",
+    "tools_executed": "Tools ejecutados"
   }
 }
