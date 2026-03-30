@@ -208,7 +208,6 @@ function klytos_fetch_url( string $url ): ?string {
 		] );
 		$body = curl_exec( $ch );
 		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close( $ch );
 		return ( $code >= 200 && $code < 300 && $body !== false ) ? $body : null;
 	}
 
@@ -235,7 +234,6 @@ function klytos_download_file( string $url, string $dest ): bool {
 		] );
 		curl_exec( $ch );
 		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close( $ch );
 		fclose( $fp );
 		if ( $code < 200 || $code >= 300 ) {
 			@unlink( $dest );

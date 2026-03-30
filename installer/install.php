@@ -500,8 +500,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $protocol    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                 $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
                 $finalDir    = $dirRenamed ? $adminDirName : $currentDirName;
-                $adminUrl    = $protocol . '://' . $host . '/' . $finalDir . '/admin/';
-                $mcpEndpoint = $protocol . '://' . $host . '/' . $finalDir . '/mcp';
+
+                // Derive the base path from SCRIPT_NAME so subdirectory installs work.
+                // e.g. /subdir/prueba/install.php → basePath = '/subdir/'
+                $scriptDir = dirname($_SERVER['SCRIPT_NAME'] ?? '/install.php');
+                $basePath  = dirname($scriptDir);
+                $basePath  = ($basePath === '/' || $basePath === '\\') ? '/' : rtrim($basePath, '/') . '/';
+
+                $adminUrl    = $protocol . '://' . $host . $basePath . $finalDir . '/admin/';
+                $mcpEndpoint = $protocol . '://' . $host . $basePath . $finalDir . '/mcp';
 
                 // ── Done! Show completion screen with credentials ──
                 $step = 'complete';
@@ -873,7 +880,7 @@ function getColorPreset(string $name): array
                         <input type="radio" name="storage_driver" value="file"
                                <?php echo ($_POST['storage_driver'] ?? 'file') === 'file' ? 'checked' : ''; ?>
                                id="storage_file">
-                        <span>Flat File (recommended)</span>
+                        <span>Flat File</span>
                     </label>
                     <label>
                         <input type="radio" name="storage_driver" value="database"
@@ -882,8 +889,29 @@ function getColorPreset(string $name): array
                         <span>MySQL / MariaDB</span>
                     </label>
                 </div>
-                <p class="small">Flat file works without a database. Choose MySQL for larger sites.</p>
             </div>
+
+            <div id="storageInfo" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+                <div style="padding:0.75rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:0.85rem;">
+                    <strong style="color:#2563eb;">Flat File</strong>
+                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#1e40af;">
+                        <li>No database required — simpler setup</li>
+                        <li>Easy to backup (just copy files)</li>
+                        <li>Ideal for small sites with few pages</li>
+                        <li>Not suited for large amounts of content</li>
+                    </ul>
+                </div>
+                <div style="padding:0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.85rem;">
+                    <strong style="color:#16a34a;">MySQL / MariaDB</strong>
+                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#14532d;">
+                        <li>Better performance with many pages</li>
+                        <li>Supports news posts, custom post types, etc.</li>
+                        <li>Advanced search and filtering capabilities</li>
+                        <li>Requires a MySQL or MariaDB server</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="small">You can change this later in Settings.</p>
 
             <!-- Database connection fields (shown/hidden via JS) -->
             <div class="db-fields" id="dbFields">
