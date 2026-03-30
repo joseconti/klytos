@@ -17,41 +17,128 @@
         sending: false,
         csrf: '',
         apiUrl: '',
+        inWelcome: true,
 
         init(container) {
             this.el.container = container;
             this.csrf = container.dataset.csrf || '';
             this.apiUrl = container.dataset.apiUrl || 'api/ai-chat.php';
 
-            // Cache DOM elements
+            // Cache DOM elements — Sidebar
             this.el.chatList = container.querySelector('.ai-chat-list');
+            this.el.newBtn = container.querySelector('.ai-chat-new-btn');
+
+            // Cache DOM elements — Welcome
+            this.el.welcome = document.getElementById('ai-chat-welcome');
+            this.el.greeting = document.getElementById('ai-chat-greeting');
+            this.el.welcomeTextarea = document.getElementById('ai-chat-welcome-textarea');
+            this.el.welcomeSendBtn = document.getElementById('ai-chat-welcome-send');
+
+            // Cache DOM elements — Chat View
+            this.el.chatView = document.getElementById('ai-chat-view');
             this.el.messages = container.querySelector('.ai-chat-messages');
             this.el.textarea = container.querySelector('.ai-chat-input textarea');
-            this.el.sendBtn = container.querySelector('.ai-chat-send-btn');
-            this.el.newBtn = container.querySelector('.ai-chat-new-btn');
+            this.el.sendBtn = container.querySelector('.ai-chat-input .ai-chat-send-btn');
             this.el.providerSelect = container.querySelector('#ai-provider-select');
+            this.el.providerSelectWelcome = container.querySelector('#ai-provider-select-welcome');
             this.el.usage = container.querySelector('.ai-chat-usage');
 
-            // Events
-            this.el.sendBtn.addEventListener('click', () => this.sendMessage());
-            this.el.textarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    this.sendMessage();
-                }
-            });
-            this.el.textarea.addEventListener('input', () => this.autoResize());
-            this.el.newBtn.addEventListener('click', () => this.newConversation());
-
-            if (this.el.providerSelect) {
-                this.el.providerSelect.addEventListener('change', () => this.switchProvider());
+            // Events — Chat View input
+            if (this.el.sendBtn) {
+                this.el.sendBtn.addEventListener('click', () => this.sendMessage());
             }
+            if (this.el.textarea) {
+                this.el.textarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                this.el.textarea.addEventListener('input', () => this.autoResizeEl(this.el.textarea));
+            }
+
+            // Events — Welcome input
+            if (this.el.welcomeSendBtn) {
+                this.el.welcomeSendBtn.addEventListener('click', () => this.sendFromWelcome());
+            }
+            if (this.el.welcomeTextarea) {
+                this.el.welcomeTextarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendFromWelcome();
+                    }
+                });
+                this.el.welcomeTextarea.addEventListener('input', () => this.autoResizeEl(this.el.welcomeTextarea));
+            }
+
+            // Events — Sidebar
+            if (this.el.newBtn) {
+                this.el.newBtn.addEventListener('click', () => this.newConversation());
+            }
+
+            // Sync provider selects
+            if (this.el.providerSelect && this.el.providerSelectWelcome) {
+                this.el.providerSelectWelcome.addEventListener('change', () => {
+                    this.el.providerSelect.value = this.el.providerSelectWelcome.value;
+                });
+                this.el.providerSelect.addEventListener('change', () => {
+                    this.el.providerSelectWelcome.value = this.el.providerSelect.value;
+                    this.switchProvider();
+                });
+            }
+
+            // Build greeting and show welcome
+            this.buildGreeting();
+            this.showWelcome();
 
             // Load conversations
             this.loadConversations();
         },
 
-        // ─── API Calls ───────────────────────────────────────────
+        // ─── View State ─────────────────────────────────────────
+
+        showWelcome() {
+            this.inWelcome = true;
+            if (this.el.welcome) this.el.welcome.style.display = '';
+            if (this.el.chatView) this.el.chatView.style.display = 'none';
+            if (this.el.welcomeTextarea) {
+                this.el.welcomeTextarea.value = '';
+                this.el.welcomeTextarea.focus();
+            }
+            // Deselect sidebar items
+            if (this.el.chatList) {
+                this.el.chatList.querySelectorAll('.ai-chat-item').forEach(el => {
+                    el.classList.remove('active');
+                });
+            }
+        },
+
+        showChat() {
+            this.inWelcome = false;
+            if (this.el.welcome) this.el.welcome.style.display = 'none';
+            if (this.el.chatView) this.el.chatView.style.display = '';
+            if (this.el.textarea) this.el.textarea.focus();
+        },
+
+        buildGreeting() {
+            if (!this.el.greeting) return;
+
+            const hour = new Date().getHours();
+            const lang = document.documentElement.lang || 'en';
+            const name = this.el.container.dataset.username || '';
+
+            let greeting;
+            if (lang.startsWith('es')) {
+                greeting = hour < 12 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
+            } else {
+                greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+            }
+
+            this.el.greeting.innerHTML = '<span class="ai-greeting-icon">\u2732</span> ' +
+                greeting + ', ' + this.escapeHtml(name);
+        },
+
+        // ─── API Calls ──────────────────────────────────────────
 
         async api(action, data = {}, method = 'POST') {
             const opts = { method, headers: {} };
@@ -69,7 +156,7 @@
             return res.json();
         },
 
-        // ���── Conversations ────────────────────────────────────────
+        // ─── Conversations ──────────────────────────────────────
 
         async loadConversations() {
             const result = await this.api('list_chats', {}, 'GET');
@@ -110,6 +197,10 @@
             if (!result.success || !result.chat) return;
 
             this.chatId = chatId;
+
+            // Switch to chat view
+            this.showChat();
+
             this.el.messages.innerHTML = '';
 
             // Mark active in sidebar
@@ -133,11 +224,7 @@
 
         async newConversation() {
             this.chatId = null;
-            this.el.messages.innerHTML = '';
-            this.el.chatList.querySelectorAll('.ai-chat-item').forEach(el => {
-                el.classList.remove('active');
-            });
-            this.el.textarea.focus();
+            this.showWelcome();
         },
 
         async deleteConversation(chatId, itemEl) {
@@ -148,20 +235,37 @@
 
             if (this.chatId === chatId) {
                 this.chatId = null;
-                this.el.messages.innerHTML = '';
+                this.showWelcome();
             }
         },
 
-        // ─── Sending Messages ─────────────────────────────────────
+        // ─── Sending Messages ───────────────────────────────────
+
+        sendFromWelcome() {
+            const text = this.el.welcomeTextarea ? this.el.welcomeTextarea.value.trim() : '';
+            if (!text || this.sending) return;
+
+            // Switch to chat view
+            this.showChat();
+            this.el.messages.innerHTML = '';
+
+            // Set the text in the chat textarea and send
+            if (this.el.textarea) {
+                this.el.textarea.value = text;
+            }
+            this.sendMessage();
+        },
 
         async sendMessage() {
-            const text = this.el.textarea.value.trim();
+            const text = this.el.textarea ? this.el.textarea.value.trim() : '';
             if (!text || this.sending) return;
 
             this.sending = true;
-            this.el.sendBtn.disabled = true;
-            this.el.textarea.value = '';
-            this.autoResize();
+            if (this.el.sendBtn) this.el.sendBtn.disabled = true;
+            if (this.el.textarea) {
+                this.el.textarea.value = '';
+                this.autoResizeEl(this.el.textarea);
+            }
 
             // Show user message immediately
             this.appendUserMessage(text);
@@ -208,11 +312,11 @@
             }
 
             this.sending = false;
-            this.el.sendBtn.disabled = false;
+            if (this.el.sendBtn) this.el.sendBtn.disabled = false;
             this.scrollToBottom();
         },
 
-        // ─── Provider Switching ───────────────────────────────────
+        // ─── Provider Switching ─────────────────────────────────
 
         async switchProvider() {
             if (!this.chatId) return;
@@ -231,7 +335,7 @@
             this.appendProviderChange('Switched to ' + label);
         },
 
-        // ─── Rendering ─────────���─────────────────────────────���───
+        // ─── Rendering ──────────────────────────────────────────
 
         appendUserMessage(text) {
             const div = document.createElement('div');
@@ -336,11 +440,9 @@
 
         appendError(text) {
             const div = document.createElement('div');
-            div.className = 'ai-msg ai-msg-assistant';
-            div.style.borderColor = 'var(--admin-error)';
-            div.style.color = 'var(--admin-error)';
+            div.className = 'ai-msg ai-msg-error';
             div.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' +
-                (typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(text) : text);
+                (typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(text) : this.escapeHtml(text));
             this.el.messages.appendChild(div);
         },
 
@@ -353,16 +455,24 @@
             return div;
         },
 
-        // ─── Helpers ─────────────────���────────────────────────────
+        // ─── Helpers ────────────────────────────────────────────
 
         scrollToBottom() {
-            this.el.messages.scrollTop = this.el.messages.scrollHeight;
+            if (this.el.messages) {
+                this.el.messages.scrollTop = this.el.messages.scrollHeight;
+            }
         },
 
-        autoResize() {
-            const ta = this.el.textarea;
-            ta.style.height = 'auto';
-            ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+        autoResizeEl(el) {
+            if (!el) return;
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+        },
+
+        escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
         },
     };
 

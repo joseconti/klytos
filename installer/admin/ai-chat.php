@@ -38,6 +38,9 @@ try {
     // Fail gracefully — show the chat page without provider.
 }
 
+$username = $app->getAuth()->getUsername();
+$userInitial = mb_strtoupper(mb_substr($username, 0, 1));
+
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
@@ -52,79 +55,102 @@ require_once __DIR__ . '/templates/sidebar.php';
     .admin-layout   { display: block !important; }
 </style>
 
-<div class="ai-chat-fullscreen-topbar">
-    <div class="ai-chat-fullscreen-brand">
-        <strong>Klytos</strong> <small>AI</small>
-    </div>
-    <div style="display:flex;align-items:center;gap:1rem;">
-        <a href="<?php echo klytos_esc_url($adminPath . 'index.php'); ?>" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">
-            <i class="fa-solid fa-arrow-left"></i>
-            <?php echo klytos_esc_html(__( 'ai_chat.classic_mode' )); ?>
-        </a>
-        <span style="font-size:0.85rem;color:var(--admin-text-muted);">
-            <?php echo klytos_esc_html( $app->getAuth()->getUsername() ); ?>
-        </span>
-        <a href="<?php echo klytos_esc_url($adminPath . 'logout.php'); ?>" class="btn btn-outline btn-sm">
-            <?php echo klytos_esc_html(__( 'auth.logout' )); ?>
-        </a>
-    </div>
-</div>
+<?php
+// Build the provider <option> list once, used in two selects.
+ob_start();
+foreach ($allProviders as $p):
+    $provConfigured = !empty($p['configured']);
+    $provId         = $p['id'] ?? '';
+    $provName       = $p['name'] ?? '';
+    $provModels     = $p['models'] ?? [];
+?>
+    <optgroup label="<?php echo klytos_esc_attr($provName); ?>">
+        <?php if ($provConfigured && !empty($provModels)): ?>
+            <?php foreach ($provModels as $model): ?>
+                <option value="<?php echo klytos_esc_attr($provId . '|' . ($model['id'] ?? '')); ?>"
+                    <?php echo ($active['provider'] === $provId && $active['model'] === ($model['id'] ?? '')) ? 'selected' : ''; ?>>
+                    <?php echo klytos_esc_html($model['name'] ?? $model['id'] ?? ''); ?>
+                </option>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <option disabled>-- <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></option>
+        <?php endif; ?>
+    </optgroup>
+<?php
+endforeach;
+$providerOptions = ob_get_clean();
+?>
 
-<div id="ai-chat-app"
-     class="ai-chat-layout"
-     data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
-     data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>">
+<div class="ai-chat-page-wrap">
 
-    <!-- Conversation Sidebar -->
-    <div class="ai-chat-sidebar">
-        <div class="ai-chat-sidebar-header">
-            <button class="btn btn-primary ai-chat-new-btn">
-                <i class="fa-solid fa-plus"></i>
-                <?php echo klytos_esc_html(__('ai_chat.new_conversation')); ?>
-            </button>
-        </div>
-        <div class="ai-chat-list"></div>
-    </div>
+    <div id="ai-chat-app"
+         class="ai-chat-page-wrap"
+         data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
+         data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>"
+         data-username="<?php echo klytos_esc_attr($username); ?>">
 
-    <!-- Main Chat Area -->
-    <div class="ai-chat-main">
-
-        <!-- Top Bar -->
-        <div class="ai-chat-topbar">
-            <div class="ai-chat-provider-select">
-                <label for="ai-provider-select" style="font-size: 0.85rem; font-weight: 500;">
-                    <i class="fa-solid fa-robot"></i>
-                </label>
-                <select id="ai-provider-select">
-                    <?php foreach ($allProviders as $p): ?>
-                        <?php
-                        $provConfigured = !empty($p['configured']);
-                        $provId         = $p['id'] ?? '';
-                        $provName       = $p['name'] ?? '';
-                        $provModels     = $p['models'] ?? [];
-                        ?>
-                        <optgroup label="<?php echo klytos_esc_attr($provName); ?>">
-                            <?php if ($provConfigured && !empty($provModels)): ?>
-                                <?php foreach ($provModels as $model): ?>
-                                    <option value="<?php echo klytos_esc_attr($provId . '|' . ($model['id'] ?? '')); ?>"
-                                        <?php echo ($active['provider'] === $provId && $active['model'] === ($model['id'] ?? '')) ? 'selected' : ''; ?>>
-                                        <?php echo klytos_esc_html($model['name'] ?? $model['id'] ?? ''); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option disabled>-- <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></option>
-                            <?php endif; ?>
-                        </optgroup>
-                    <?php endforeach; ?>
-                </select>
+        <!-- ─── Sidebar ──────────────────────────────────────────── -->
+        <div class="ai-chat-sidebar">
+            <div class="ai-chat-sidebar-header">
+                <button class="ai-chat-new-btn">
+                    <i class="fa-solid fa-plus"></i>
+                    <?php echo klytos_esc_html(__('ai_chat.new_conversation')); ?>
+                </button>
             </div>
-            <span class="ai-chat-usage"></span>
+
+            <div class="ai-chat-sidebar-section">
+                <div class="ai-chat-sidebar-nav">
+                    <button class="ai-chat-nav-item" disabled>
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <?php echo klytos_esc_html(__('ai_chat.search')); ?>
+                    </button>
+                    <a class="ai-chat-nav-item active" href="#">
+                        <i class="fa-regular fa-message"></i>
+                        <?php echo klytos_esc_html(__('ai_chat.chats')); ?>
+                    </a>
+                </div>
+
+                <div class="ai-chat-sidebar-label"><?php echo klytos_esc_html(__('ai_chat.recent')); ?></div>
+                <div class="ai-chat-list"></div>
+            </div>
+
+            <div class="ai-chat-sidebar-footer">
+                <div class="ai-chat-user-avatar"><?php echo klytos_esc_html($userInitial); ?></div>
+                <span class="ai-chat-user-name"><?php echo klytos_esc_html($username); ?></span>
+                <a href="<?php echo klytos_esc_url($adminPath . 'index.php'); ?>" class="ai-chat-settings-link" title="<?php echo klytos_esc_attr(__('ai_chat.classic_mode')); ?>">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </a>
+            </div>
         </div>
 
-        <!-- Messages -->
-        <div class="ai-chat-messages">
+        <!-- ─── Main Area ────────────────────────────────────────── -->
+        <div class="ai-chat-main">
+
+            <!-- Welcome Screen -->
+            <div class="ai-chat-welcome" id="ai-chat-welcome"<?php echo (!$hasProvider) ? ' style="display:none;"' : ''; ?>>
+                <div class="ai-chat-welcome-inner">
+                    <h1 class="ai-chat-greeting" id="ai-chat-greeting"></h1>
+                    <div class="ai-chat-welcome-input-wrap">
+                        <textarea id="ai-chat-welcome-textarea"
+                                  rows="1"
+                                  placeholder="<?php echo klytos_esc_attr(__('ai_chat.welcome_placeholder')); ?>"></textarea>
+                        <div class="ai-chat-welcome-actions">
+                            <div class="ai-chat-model-select">
+                                <select id="ai-provider-select-welcome">
+                                    <?php echo $providerOptions; ?>
+                                </select>
+                            </div>
+                            <button class="ai-chat-send-btn" id="ai-chat-welcome-send">
+                                <i class="fa-solid fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Provider State -->
             <?php if (!$hasProvider): ?>
-                <div class="ai-chat-no-provider">
+                <div class="ai-chat-no-provider" id="ai-chat-no-provider">
                     <h3><i class="fa-solid fa-robot" style="margin-right: 0.5rem; opacity: 0.5;"></i> <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></h3>
                     <p style="margin-top: 0.75rem;">
                         <?php echo klytos_esc_html(__('ai_chat.configure_key')); ?>
@@ -133,27 +159,34 @@ require_once __DIR__ . '/templates/sidebar.php';
                         </a>
                     </p>
                 </div>
-            <?php else: ?>
-                <div class="ai-chat-empty">
-                    <div>
-                        <h3><i class="fa-solid fa-comments" style="margin-right: 0.5rem; opacity: 0.4;"></i> <?php echo klytos_esc_html(__('ai_chat.title')); ?></h3>
-                        <p style="margin-top: 0.5rem;"><?php echo klytos_esc_html(__('ai_chat.placeholder')); ?></p>
+            <?php endif; ?>
+
+            <!-- Chat View (hidden by default) -->
+            <div class="ai-chat-view" id="ai-chat-view" style="display:none;">
+                <div class="ai-chat-view-topbar">
+                    <div class="ai-chat-model-select">
+                        <select id="ai-provider-select">
+                            <?php echo $providerOptions; ?>
+                        </select>
+                    </div>
+                    <span class="ai-chat-usage"></span>
+                </div>
+
+                <div class="ai-chat-messages"></div>
+
+                <div class="ai-chat-input">
+                    <div class="ai-chat-input-wrap">
+                        <textarea rows="1"
+                                  placeholder="<?php echo klytos_esc_attr(__('ai_chat.placeholder')); ?>"
+                                  <?php echo (!$hasProvider) ? 'disabled' : ''; ?>></textarea>
+                        <button class="ai-chat-send-btn"
+                                <?php echo (!$hasProvider) ? 'disabled' : ''; ?>>
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
                     </div>
                 </div>
-            <?php endif; ?>
-        </div>
-
-        <!-- Input -->
-        <div class="ai-chat-input">
-            <div class="ai-chat-input-wrap">
-                <textarea rows="1"
-                          placeholder="<?php echo klytos_esc_attr(__('ai_chat.placeholder')); ?>"
-                          <?php echo (!$hasProvider) ? 'disabled' : ''; ?>></textarea>
-                <button class="ai-chat-send-btn"
-                        <?php echo (!$hasProvider) ? 'disabled' : ''; ?>>
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
             </div>
+
         </div>
     </div>
 </div>

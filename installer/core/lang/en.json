@@ -365,7 +365,11 @@
     "no_provider": "No AI provider configured",
     "configure_key": "Configure an API key in",
     "ai_mode": "AI Mode",
-    "classic_mode": "Classic Mode"
+    "classic_mode": "Classic Mode",
+    "search": "Search",
+    "chats": "Chats",
+    "recent": "Recent",
+    "welcome_placeholder": "How can I help you today?"
   },
   "ai_keys": {
     "title": "AI API Connection",
