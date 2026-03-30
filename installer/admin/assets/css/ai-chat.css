@@ -6,10 +6,15 @@
  * @since   0.9.0
  */
 
-/* Layout */
+/* Layout — fills the admin-main container */
+.admin-main.ai-chat-page {
+    padding: 0;
+    overflow: hidden;
+}
+
 .ai-chat-layout {
     display: flex;
-    height: calc(100vh - 56px);
+    height: calc(100vh - 112px);
     overflow: hidden;
 }
 

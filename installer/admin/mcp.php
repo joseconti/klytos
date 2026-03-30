@@ -86,10 +86,8 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         $aiDefaultModel = $_POST['ai_default_model'] ?? '';
         if ( !empty( $aiProviderId ) && !empty( $aiApiKey ) ) {
             $aiKeys = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
-            $aiProviderRegistry = new \Klytos\Core\Ai\AiProviderRegistry();
-            $aiProvider = $aiProviderRegistry->get( $aiProviderId );
-            if ( $aiProvider && $aiProvider->validateKey( $aiApiKey ) ) {
-                $aiKeys->setKey( $aiProviderId, $aiApiKey, $aiDefaultModel ?: $aiProvider->getDefaultModel() );
+            if ( isset( \Klytos\Core\Ai\AiKeyManager::PROVIDERS[$aiProviderId] ) ) {
+                $aiKeys->setKey( $aiProviderId, $aiApiKey, $aiDefaultModel ?: $aiKeys->getDefaultModelForProvider( $aiProviderId ) );
                 $success = __( 'ai_keys.saved' );
             } else {
                 $error = __( 'ai_keys.invalid' );

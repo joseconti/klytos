@@ -34,6 +34,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <link rel="stylesheet" href="<?php echo klytos_esc_url($basePath . 'admin/assets/css/ai-chat.css'); ?>">
+<script nonce="<?php echo $cspNonce; ?>">document.querySelector('.admin-main').classList.add('ai-chat-page');</script>
 
 <div id="ai-chat-app"
      class="ai-chat-layout"
