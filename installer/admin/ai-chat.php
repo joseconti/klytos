@@ -7,7 +7,7 @@
  * @since   0.9.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.
@@ -38,12 +38,15 @@ try {
     // Fail gracefully — show the chat page without provider.
 }
 
-$username = $app->getAuth()->getUsername();
-$userInitial = mb_strtoupper(mb_substr($username, 0, 1));
+$currentUser  = klytos_current_user();
+$username     = (!empty($currentUser['display_name']) && ($currentUser['display_name'] ?? '') !== ($currentUser['username'] ?? ''))
+    ? $currentUser['display_name']
+    : $app->getAuth()->getUsername();
+$userInitial  = mb_strtoupper(mb_substr($username, 0, 1));
 
 // Panel routing (dashboard, settings, users)
 $panel = $_GET['panel'] ?? null;
-$validPanels = ['dashboard', 'settings', 'users'];
+$validPanels = ['dashboard', 'settings', 'users', 'profile'];
 if ($panel && !in_array($panel, $validPanels, true)) {
     $panel = null;
 }
@@ -136,6 +139,9 @@ $providerOptions = ob_get_clean();
                     </a>
                     <a href="<?php echo klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users'); ?>" class="ai-chat-popup-menu-item">
                         <i class="fa-solid fa-users"></i> <?php echo klytos_esc_html(__('ai_chat.users')); ?>
+                    </a>
+                    <a href="<?php echo klytos_esc_url($basePath . 'admin/ai-chat.php?panel=profile'); ?>" class="ai-chat-popup-menu-item">
+                        <i class="fa-solid fa-user-pen"></i> My Profile
                     </a>
                     <div class="ai-chat-popup-sep"></div>
                     <a href="<?php echo klytos_esc_url($adminPath . 'index.php'); ?>" class="ai-chat-popup-menu-item">

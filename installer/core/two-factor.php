@@ -23,7 +23,7 @@
  * @since   0.5.0
  *
  * @license    Elastic License 2.0 (ELv2) -- https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 Jose Conti -- https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.

@@ -4,7 +4,7 @@
  * Handles passkey registration and authentication challenges.
  *
  * @license    Elastic License 2.0 (ELv2)
- * @copyright  Copyright (c) 2025 Jose Conti
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 
 declare(strict_types=1);

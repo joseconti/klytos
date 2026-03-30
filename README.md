@@ -217,7 +217,7 @@ Klytos is released under the [Elastic License 2.0 (ELv2)](LICENSE).
 
 ## Author
 
-**Jose Conti** — [joseconti.com](https://joseconti.com)
+**José Conti** — [plugins.joseconti.com](https://plugins.joseconti.com) — [klytos.io](https://klytos.io)
 
 ---
 

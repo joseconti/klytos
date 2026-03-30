@@ -25,7 +25,7 @@
  * @since   2.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.
@@ -124,17 +124,31 @@ class UserManager
         // Generate a unique user ID (16 hex chars = 8 bytes of randomness).
         $userId = Helpers::randomHex(8);
 
+        $firstName = trim($data['first_name'] ?? '');
+        $lastName  = trim($data['last_name'] ?? '');
+
+        // Compute display_name from first/last name, or fall back to explicit value / username.
+        $displayName = trim($firstName . ' ' . $lastName);
+        if ($displayName === '') {
+            $displayName = trim($data['display_name'] ?? $username);
+        }
+
         $user = [
-            'id'           => $userId,
-            'username'     => $username,
-            'email'        => $email,
-            'display_name' => trim($data['display_name'] ?? $username),
-            'role'         => $role,
-            'pass_hash'    => password_hash($password, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]),
-            'status'       => 'active',
-            'created_at'   => Helpers::now(),
-            'updated_at'   => Helpers::now(),
-            'last_login'   => null,
+            'id'                     => $userId,
+            'username'               => $username,
+            'email'                  => $email,
+            'first_name'             => $firstName,
+            'last_name'              => $lastName,
+            'display_name'           => $displayName,
+            'role'                   => $role,
+            'pass_hash'              => password_hash($password, PASSWORD_BCRYPT, ['cost' => self::BCRYPT_COST]),
+            'status'                 => 'active',
+            'created_at'             => Helpers::now(),
+            'updated_at'             => Helpers::now(),
+            'last_login'             => null,
+            'password_reset_token'   => null,
+            'password_reset_expires' => null,
+            'force_logout_at'        => null,
         ];
 
         $this->storage->write(self::COLLECTION, $userId, $user);
@@ -161,15 +175,22 @@ class UserManager
         $user = $this->storage->read(self::COLLECTION, $userId);
 
         // Updatable fields (password is handled separately via changePassword).
-        $updatable = ['email', 'display_name', 'role', 'status'];
+        $updatable = ['email', 'display_name', 'first_name', 'last_name', 'role', 'status'];
 
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
                 // Validate specific fields.
                 if ($field === 'email') {
-                    if (empty(trim($data['email'])) || !Helpers::isEmail( $data['email'] )) {
+                    $newEmail = trim($data['email']);
+                    if (empty($newEmail) || !Helpers::isEmail( $newEmail )) {
                         throw new \InvalidArgumentException('A valid email address is required.');
                     }
+                    // Check email uniqueness (exclude the current user).
+                    $existing = $this->getByEmail($newEmail);
+                    if ($existing !== null && ($existing['id'] ?? '') !== $userId) {
+                        throw new \RuntimeException('Email already in use by another user.');
+                    }
+                    $data['email'] = $newEmail;
                 }
                 if ($field === 'role' && !in_array($data['role'], self::VALID_ROLES, true)) {
                     throw new \InvalidArgumentException('Invalid role.');
@@ -182,6 +203,14 @@ class UserManager
                 }
 
                 $user[$field] = $data[$field];
+            }
+        }
+
+        // Recompute display_name when first/last name changes.
+        if (array_key_exists('first_name', $data) || array_key_exists('last_name', $data)) {
+            $computed = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+            if ($computed !== '') {
+                $user['display_name'] = $computed;
             }
         }
 
@@ -377,6 +406,94 @@ class UserManager
         return true;
     }
 
+    // ─── Password Reset Tokens ───────────────────────────────────
+
+    /**
+     * Generate a password reset token for a user.
+     *
+     * The raw token is returned (to be sent via email). Only the SHA-256
+     * hash is stored, so a storage breach cannot be used to reset passwords.
+     *
+     * @param  string $userId User ID.
+     * @return string Raw token (64 hex chars).
+     */
+    public function generatePasswordResetToken(string $userId): string
+    {
+        $user = $this->storage->read(self::COLLECTION, $userId);
+
+        $rawToken = Helpers::randomHex(32);
+        $user['password_reset_token']   = hash('sha256', $rawToken);
+        $user['password_reset_expires'] = date('c', time() + 3600); // 1 hour.
+        $user['updated_at']             = Helpers::now();
+
+        $this->storage->write(self::COLLECTION, $userId, $user);
+
+        return $rawToken;
+    }
+
+    /**
+     * Validate a password reset token.
+     *
+     * @param  string $userId User ID.
+     * @param  string $token  Raw token from the reset URL.
+     * @return bool   True if the token is valid and not expired.
+     */
+    public function validatePasswordResetToken(string $userId, string $token): bool
+    {
+        try {
+            $user = $this->storage->read(self::COLLECTION, $userId);
+        } catch (\RuntimeException $e) {
+            return false;
+        }
+
+        $storedHash = $user['password_reset_token'] ?? '';
+        $expires    = $user['password_reset_expires'] ?? '';
+
+        if (empty($storedHash) || empty($expires)) {
+            return false;
+        }
+
+        if (strtotime($expires) < time()) {
+            return false;
+        }
+
+        return hash_equals($storedHash, hash('sha256', $token));
+    }
+
+    /**
+     * Consume (clear) a password reset token after successful use.
+     *
+     * @param string $userId User ID.
+     */
+    public function consumePasswordResetToken(string $userId): void
+    {
+        $user = $this->storage->read(self::COLLECTION, $userId);
+        $user['password_reset_token']   = null;
+        $user['password_reset_expires'] = null;
+        $user['updated_at']             = Helpers::now();
+
+        $this->storage->write(self::COLLECTION, $userId, $user);
+    }
+
+    // ─── Session Invalidation ────────────────────────────────────
+
+    /**
+     * Force-logout all active sessions for a user.
+     *
+     * Sets a timestamp; any session started before this time will be
+     * rejected by Auth::isAuthenticated().
+     *
+     * @param string $userId User ID.
+     */
+    public function forceLogoutAllSessions(string $userId): void
+    {
+        $user = $this->storage->read(self::COLLECTION, $userId);
+        $user['force_logout_at'] = Helpers::now();
+        $user['updated_at']      = Helpers::now();
+
+        $this->storage->write(self::COLLECTION, $userId, $user);
+    }
+
     // ─── Ownership ───────────────────────────────────────────────
 
     /**
@@ -514,16 +631,21 @@ class UserManager
         $userId = Helpers::randomHex(8);
 
         $user = [
-            'id'           => $userId,
-            'username'     => $config['admin_user'] ?? 'admin',
-            'email'        => $email,
-            'display_name' => $config['admin_user'] ?? 'Admin',
-            'role'         => 'owner',
-            'pass_hash'    => $config['admin_pass_hash'] ?? '',
-            'status'       => 'active',
-            'created_at'   => $config['installed_at'] ?? Helpers::now(),
-            'updated_at'   => Helpers::now(),
-            'last_login'   => null,
+            'id'                     => $userId,
+            'username'               => $config['admin_user'] ?? 'admin',
+            'email'                  => $email,
+            'first_name'             => '',
+            'last_name'              => '',
+            'display_name'           => $config['admin_user'] ?? 'Admin',
+            'role'                   => 'owner',
+            'pass_hash'              => $config['admin_pass_hash'] ?? '',
+            'status'                 => 'active',
+            'created_at'             => $config['installed_at'] ?? Helpers::now(),
+            'updated_at'             => Helpers::now(),
+            'last_login'             => null,
+            'password_reset_token'   => null,
+            'password_reset_expires' => null,
+            'force_logout_at'        => null,
         ];
 
         $this->storage->write(self::COLLECTION, $userId, $user);
@@ -543,7 +665,7 @@ class UserManager
      */
     private function sanitizeForOutput(array $user): array
     {
-        unset($user['pass_hash']);
+        unset($user['pass_hash'], $user['password_reset_token'], $user['password_reset_expires']);
         return $user;
     }
 }

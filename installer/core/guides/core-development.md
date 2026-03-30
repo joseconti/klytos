@@ -137,7 +137,7 @@ $this->storage->transaction(function($storage) { ... });   // Transaction
 - PHPDoc on every public method.
 - Namespace: `Klytos\Core` (autoloaded via kebab-case filenames).
 - License: Elastic License 2.0 (ELv2) header on every file.
-- Copyright: José Conti (https://joseconti.com).
+- Copyright: José Conti (https://plugins.joseconti.com — https://klytos.io).
 
 ## SEO Requirements for Built Pages
 

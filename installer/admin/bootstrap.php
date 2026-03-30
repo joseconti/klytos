@@ -8,7 +8,7 @@
  * @since   1.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.
@@ -105,7 +105,7 @@ try {
 // ─── Auth guard ──────────────────────────────────────────────
 // If not authenticated and not on login page, redirect to login.
 $currentScript = basename( $_SERVER['SCRIPT_NAME'] );
-if ( $currentScript !== 'login.php' && $currentScript !== 'logout.php' ) {
+if ( $currentScript !== 'login.php' && $currentScript !== 'logout.php' && $currentScript !== 'reset-password.php' ) {
     if ( ! $app->getAuth()->isAuthenticated() ) {
         $loginUrl = dirname( $_SERVER['SCRIPT_NAME'] ) . '/login.php';
         header( 'Location: ' . $loginUrl );

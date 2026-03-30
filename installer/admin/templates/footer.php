@@ -3,7 +3,7 @@
  * Klytos Admin — Footer Template
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 ?>
     </div><!-- /.admin-main -->

@@ -4,7 +4,7 @@
  * Uses the browser standalone API: wp.attachEditor( textarea ).
  * See: https://github.com/Automattic/isolated-block-editor
  *
- * @copyright 2024-2026 Jose Conti. All rights reserved.
+ * @copyright 2024-2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  * @license   Elastic License 2.0 (ELv2)
  * @version   2.0.0
  */

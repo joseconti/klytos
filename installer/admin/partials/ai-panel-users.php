@@ -36,6 +36,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ai_panel_user_action'
         } elseif ($action === 'activate') {
             $userManager->update($_POST['user_id'] ?? '', ['status' => 'active']);
             $usersSuccess = 'User activated.';
+        } elseif ($action === 'update_user') {
+            $updateData = [
+                'first_name' => $_POST['first_name'] ?? '',
+                'last_name'  => $_POST['last_name'] ?? '',
+                'email'      => $_POST['email'] ?? '',
+                'role'       => $_POST['role'] ?? '',
+            ];
+            $userManager->update($_POST['user_id'] ?? '', $updateData);
+            $newPassword = $_POST['password'] ?? '';
+            if (!empty($newPassword)) {
+                $userManager->changePassword($_POST['user_id'] ?? '', $newPassword);
+            }
+            $usersSuccess = 'User updated successfully.';
+        } elseif ($action === 'send_password_reset') {
+            $targetUserId = $_POST['user_id'] ?? '';
+            $targetUser   = $userManager->getById($targetUserId);
+            $token        = $userManager->generatePasswordResetToken($targetUserId);
+            $basePath2    = \Klytos\Core\Helpers::getBasePath();
+            $resetUrl     = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http')
+                . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')
+                . $basePath2 . 'admin/reset-password.php?user_id=' . urlencode($targetUserId) . '&token=' . urlencode($token);
+            $app->getMailer()->sendWithButton(
+                $targetUser['email'],
+                'Password Reset',
+                'Click the button below to reset your password. This link expires in 1 hour.',
+                'Reset Password',
+                $resetUrl
+            );
+            $usersSuccess = 'Password reset link sent.';
+        } elseif ($action === 'force_logout') {
+            $userManager->forceLogoutAllSessions($_POST['user_id'] ?? '');
+            $usersSuccess = 'All sessions closed for this user.';
         }
     } catch (\Throwable $e) {
         $usersError = $e->getMessage();
@@ -114,7 +146,15 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                                 <?php echo ucfirst(klytos_esc_html($user['status'] ?? 'active')); ?>
                             </span>
                         </td>
-                        <td>
+                        <td style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap;">
+                            <button type="button" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm btnAiEditUser"
+                                data-user-id="<?php echo klytos_esc_attr($user['id'] ?? ''); ?>"
+                                data-user-username="<?php echo klytos_esc_attr($user['username'] ?? ''); ?>"
+                                data-user-first-name="<?php echo klytos_esc_attr($user['first_name'] ?? ''); ?>"
+                                data-user-last-name="<?php echo klytos_esc_attr($user['last_name'] ?? ''); ?>"
+                                data-user-email="<?php echo klytos_esc_attr($user['email'] ?? ''); ?>"
+                                data-user-role="<?php echo klytos_esc_attr($user['role'] ?? 'viewer'); ?>"
+                            >Edit</button>
                             <?php if (($user['role'] ?? '') !== 'owner'): ?>
                                 <?php if (($user['status'] ?? 'active') === 'active'): ?>
                                     <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
@@ -131,8 +171,6 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                                         <button type="submit" class="ai-panel-btn ai-panel-btn-primary ai-panel-btn-sm">Activate</button>
                                     </form>
                                 <?php endif; ?>
-                            <?php else: ?>
-                                <span style="font-size:0.8rem;color:var(--chat-text-dim)">Owner</span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -185,6 +223,68 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
     </div>
 </div>
 
+<!-- Edit User Modal -->
+        <div class="ai-panel-modal-overlay" id="aiEditUserModal">
+            <div class="ai-panel-modal">
+                <h3>Edit User</h3>
+                <form method="post" action="<?php echo $panelUrl; ?>">
+                    <?php echo klytos_csrf_field(); ?>
+                    <input type="hidden" name="ai_panel_user_action" value="update_user">
+                    <input type="hidden" name="user_id" id="aiEditUserId">
+
+                    <div class="ai-panel-form-group">
+                        <label>Username</label>
+                        <input type="text" class="ai-panel-form-control" id="aiEditUsername" disabled>
+                    </div>
+                    <div class="ai-panel-grid-2">
+                        <div class="ai-panel-form-group">
+                            <label>First Name</label>
+                            <input type="text" name="first_name" class="ai-panel-form-control" id="aiEditFirstName">
+                        </div>
+                        <div class="ai-panel-form-group">
+                            <label>Last Name</label>
+                            <input type="text" name="last_name" class="ai-panel-form-control" id="aiEditLastName">
+                        </div>
+                    </div>
+                    <div class="ai-panel-form-group">
+                        <label>Email</label>
+                        <input type="email" name="email" class="ai-panel-form-control" id="aiEditEmail" required>
+                    </div>
+                    <div class="ai-panel-form-group">
+                        <label>Role</label>
+                        <select name="role" class="ai-panel-form-control" id="aiEditRole">
+                            <option value="editor">Editor</option>
+                            <option value="admin">Admin</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                    <div class="ai-panel-form-group">
+                        <label>New Password (leave blank to keep current)</label>
+                        <input type="password" name="password" class="ai-panel-form-control" minlength="12" data-klytos-pwgen data-klytos-pwgen-style="ai-panel">
+                    </div>
+                    <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+                        <button type="button" class="ai-panel-btn ai-panel-btn-outline" id="btnAiCancelEdit">Cancel</button>
+                        <button type="submit" class="ai-panel-btn ai-panel-btn-primary">Save Changes</button>
+                    </div>
+                </form>
+                <hr style="margin:1rem 0;border-color:var(--chat-border)">
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
+                        <?php echo klytos_csrf_field(); ?>
+                        <input type="hidden" name="ai_panel_user_action" value="send_password_reset">
+                        <input type="hidden" name="user_id" class="aiEditModalUserId">
+                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" onclick="return confirm('Send password reset link?')">Send Reset Link</button>
+                    </form>
+                    <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
+                        <?php echo klytos_csrf_field(); ?>
+                        <input type="hidden" name="ai_panel_user_action" value="force_logout">
+                        <input type="hidden" name="user_id" class="aiEditModalUserId">
+                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" onclick="return confirm('Close all active sessions?')">Close All Sessions</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
     var modal = document.getElementById('aiCreateUserModal');
@@ -193,5 +293,38 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
     if (btnOpen) btnOpen.addEventListener('click', function() { modal.classList.add('active'); });
     if (btnCancel) btnCancel.addEventListener('click', function() { modal.classList.remove('active'); });
     if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('active'); });
+
+    // Edit modal
+    var editModal = document.getElementById('aiEditUserModal');
+    var btnCancelEdit = document.getElementById('btnAiCancelEdit');
+
+    document.querySelectorAll('.btnAiEditUser').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.getElementById('aiEditUserId').value    = btn.dataset.userId;
+            document.getElementById('aiEditUsername').value   = btn.dataset.userUsername;
+            document.getElementById('aiEditFirstName').value = btn.dataset.userFirstName;
+            document.getElementById('aiEditLastName').value  = btn.dataset.userLastName;
+            document.getElementById('aiEditEmail').value     = btn.dataset.userEmail;
+
+            var roleSelect = document.getElementById('aiEditRole');
+            if (btn.dataset.userRole === 'owner') {
+                roleSelect.disabled = true;
+                roleSelect.innerHTML = '<option value="owner" selected>Owner</option>';
+            } else {
+                roleSelect.disabled = false;
+                roleSelect.innerHTML = '<option value="editor">Editor</option><option value="admin">Admin</option><option value="viewer">Viewer</option>';
+                roleSelect.value = btn.dataset.userRole;
+            }
+
+            document.querySelectorAll('.aiEditModalUserId').forEach(function(input) {
+                input.value = btn.dataset.userId;
+            });
+
+            editModal.classList.add('active');
+        });
+    });
+
+    if (btnCancelEdit) btnCancelEdit.addEventListener('click', function() { editModal.classList.remove('active'); });
+    if (editModal) editModal.addEventListener('click', function(e) { if (e.target === editModal) editModal.classList.remove('active'); });
 })();
 </script>
