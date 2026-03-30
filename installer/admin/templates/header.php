@@ -47,6 +47,7 @@ $version   = $app->getVersion();
             --admin-warning: #f59e0b;
             --admin-error: #ef4444;
             --admin-radius: 8px;
+            --admin-card-bg: #ffffff;
         }
         /* Dark theme overrides */
         [data-theme="dark"] {
@@ -63,6 +64,7 @@ $version   = $app->getVersion();
             --admin-success: #22c55e;
             --admin-warning: #f59e0b;
             --admin-error: #ef4444;
+            --admin-card-bg: #1e293b;
         }
         [data-theme="dark"] .alert-success { background: rgba(34,197,94,0.12); color: #86efac; border-color: rgba(34,197,94,0.3); }
         [data-theme="dark"] .alert-error   { background: rgba(239,68,68,0.12); color: #fca5a5; border-color: rgba(239,68,68,0.3); }
@@ -90,6 +92,9 @@ $version   = $app->getVersion();
         [data-theme="dark"] .form-control:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
         [data-theme="dark"] select.form-control option { background: #1e293b; color: #e2e8f0; }
         [data-theme="dark"] .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        [data-theme="dark"] .modal-overlay { background: rgba(0,0,0,0.7); }
+        [data-theme="dark"] .btn-outline { border-color: #334155; color: #e2e8f0; }
+        [data-theme="dark"] .btn-outline:hover { background: #334155; }
         [data-theme="dark"] .sidebar-brand { border-bottom-color: rgba(255,255,255,0.05); }
         [data-theme="dark"] tr:hover td { background: rgba(255,255,255,0.03); }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif; background: var(--admin-bg); color: var(--admin-text); line-height: 1.5; }
