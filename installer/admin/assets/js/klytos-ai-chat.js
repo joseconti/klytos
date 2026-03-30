@@ -134,8 +134,7 @@
                 greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
             }
 
-            this.el.greeting.innerHTML = '<span class="ai-greeting-icon">\u2732</span> ' +
-                greeting + ', ' + this.escapeHtml(name);
+            this.el.greeting.textContent = greeting + ', ' + name;
         },
 
         // ─── API Calls ──────────────────────────────────────────

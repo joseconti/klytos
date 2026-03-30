@@ -268,7 +268,10 @@ body:has(#ai-chat-app) {
 .ai-chat-welcome-inner {
     width: 100%;
     max-width: 680px;
-    text-align: center;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .ai-chat-greeting {
@@ -279,15 +282,12 @@ body:has(#ai-chat-app) {
     line-height: 1.3;
 }
 
-.ai-greeting-icon {
-    color: var(--chat-accent);
-    font-size: 1.8rem;
-    margin-right: 0.25rem;
-}
+/* Welcome Input */
 
 /* Welcome Input */
 .ai-chat-welcome-input-wrap {
     position: relative;
+    width: 100%;
     background: var(--chat-input-bg);
     border: 1px solid var(--chat-input-border);
     border-radius: var(--chat-radius);
