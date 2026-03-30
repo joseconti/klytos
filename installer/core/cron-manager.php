@@ -71,6 +71,9 @@ class CronManager
         $this->storage = $storage;
     }
 
+    /** @var bool Whether migration to ActionScheduler has been attempted. */
+    private bool $migrated = false;
+
     /**
      * Run all due tasks.
      *
@@ -81,6 +84,8 @@ class CronManager
      * 3. Only execute tasks that are actually due.
      *
      * A lock file prevents concurrent execution from multiple admin requests.
+     *
+     * After running legacy tasks, migrates core tasks to the ActionScheduler.
      *
      * @return array Results: ['executed' => [...task IDs...], 'errors' => [...]]
      */
@@ -133,6 +138,9 @@ class CronManager
 
             // Fire action so plugins know cron ran.
             Hooks::doAction('cron.run', $executed, $errors);
+
+            // Migrate core tasks to ActionScheduler (once).
+            $this->migrateToScheduler();
 
             return ['executed' => $executed, 'errors' => $errors];
 
@@ -278,5 +286,79 @@ class CronManager
         flock($handle, LOCK_UN);
         fclose($handle);
         @unlink($lockPath);
+    }
+
+    // ─── ActionScheduler Migration ──────────────────────────────
+
+    /**
+     * Migrate core cron tasks to the ActionScheduler as recurring actions.
+     * Runs once per request. Safe to call multiple times (idempotent).
+     */
+    private function migrateToScheduler(): void
+    {
+        if ($this->migrated) {
+            return;
+        }
+        $this->migrated = true;
+
+        try {
+            $scheduler = App::getInstance()->getActionScheduler();
+        } catch (\Throwable $e) {
+            return; // ActionScheduler not available yet.
+        }
+
+        // Map of core tasks: hook => [interval_seconds, group].
+        $coreMigrations = [
+            'klytos.analytics_prune'    => [86400, 'klytos-core'],
+            'klytos.audit_log_prune'    => [86400, 'klytos-core'],
+            'klytos.rate_limit_cleanup' => [3600,  'klytos-core'],
+        ];
+
+        foreach ($coreMigrations as $hook => [$interval, $group]) {
+            if (!$scheduler->isScheduled($hook, [], $group)) {
+                $scheduler->scheduleRecurring(
+                    time() + $interval,
+                    $interval,
+                    $hook,
+                    [],
+                    $group
+                );
+            }
+        }
+
+        // Register the hook callbacks for migrated tasks.
+        if (!Hooks::hasAction('klytos.analytics_prune')) {
+            Hooks::addAction('klytos.analytics_prune', function (): void {
+                $analytics = new AnalyticsManager($this->storage);
+                $analytics->prune(90);
+            });
+        }
+        if (!Hooks::hasAction('klytos.audit_log_prune')) {
+            Hooks::addAction('klytos.audit_log_prune', function (): void {
+                $auditLog = new AuditLog($this->storage);
+                $auditLog->prune(90);
+            });
+        }
+        if (!Hooks::hasAction('klytos.rate_limit_cleanup')) {
+            Hooks::addAction('klytos.rate_limit_cleanup', function (): void {
+                $rateLimitFile = $this->storage->getDataDir() . '/rate_limits.json';
+                if (file_exists($rateLimitFile)) {
+                    $data = json_decode(file_get_contents($rateLimitFile), true);
+                    if (is_array($data)) {
+                        $now = time();
+                        foreach ($data as $key => $entry) {
+                            $timestamps = $entry['timestamps'] ?? [];
+                            $timestamps = array_filter($timestamps, fn(int $t): bool => ($now - $t) < 60);
+                            if (empty($timestamps)) {
+                                unset($data[$key]);
+                            } else {
+                                $data[$key]['timestamps'] = array_values($timestamps);
+                            }
+                        }
+                        file_put_contents($rateLimitFile, json_encode($data), LOCK_EX);
+                    }
+                }
+            });
+        }
     }
 }

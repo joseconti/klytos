@@ -102,6 +102,13 @@ try {
     error_log( 'Klytos cron error: ' . $e->getMessage() );
 }
 
+// ─── Action Scheduler fallback (pseudo-cron) ────────────────
+try {
+    $app->getActionScheduler()->processQueueIfFallback();
+} catch ( \Throwable $e ) {
+    error_log( 'Klytos scheduler fallback error: ' . $e->getMessage() );
+}
+
 // ─── Auth guard ──────────────────────────────────────────────
 // If not authenticated and not on login page, redirect to login.
 $currentScript = basename( $_SERVER['SCRIPT_NAME'] );

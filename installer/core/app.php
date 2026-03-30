@@ -138,6 +138,9 @@ class App
     /** @var CronManager|null Pseudo-cron task scheduler. */
     private ?CronManager $cronManager = null;
 
+    /** @var ActionScheduler|null Action scheduler for server cron. */
+    private ?ActionScheduler $actionScheduler = null;
+
     /** @var AuditLog|null Activity audit trail. */
     private ?AuditLog $auditLog = null;
 
@@ -287,6 +290,7 @@ class App
         $this->analyticsManager    = new AnalyticsManager($this->storage);
         $this->webhookManager      = new WebhookManager($this->storage);
         $this->cronManager         = new CronManager($this->storage);
+        $this->actionScheduler     = new ActionScheduler($this->storage, $this->configPath);
         $this->auditLog            = new AuditLog($this->storage);
         $this->postTypeManager     = new PostTypeManager($this->storage);
 
@@ -472,6 +476,9 @@ class App
 
     /** Get the cron manager. */
     public function getCronManager(): CronManager { return $this->cronManager; }
+
+    /** Get the action scheduler. */
+    public function getActionScheduler(): ActionScheduler { return $this->actionScheduler; }
 
     /** Get the audit log. */
     public function getAuditLog(): AuditLog { return $this->auditLog; }
