@@ -590,8 +590,8 @@ require_once __DIR__ . '/templates/sidebar.php';
         <form method="POST" style="display: inline;">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="set_active_ai">
-            <input type="hidden" name="ai_provider" value="<?php echo klytos_attr_esc( $p['id'] ); ?>">
-            <input type="hidden" name="ai_model" value="<?php echo klytos_attr_esc( $p['default_model'] ); ?>">
+            <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
+            <input type="hidden" name="ai_model" value="<?php echo klytos_esc_attr( $p['default_model'] ); ?>">
             <button type="submit" class="btn btn-sm btn-outline"><?php echo klytos_esc_html( __( 'common.activate' ) ); ?></button>
         </form>
         <?php endif; ?>
@@ -600,7 +600,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <form method="POST" style="display: inline;" class="confirm-revoke-form">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="remove_ai_key">
-            <input type="hidden" name="ai_provider" value="<?php echo klytos_attr_esc( $p['id'] ); ?>">
+            <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
             <button type="submit" class="btn btn-sm btn-danger"><?php echo klytos_esc_html( __( 'ai_keys.remove' ) ); ?></button>
         </form>
 
@@ -609,7 +609,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <form method="POST">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="save_ai_key">
-            <input type="hidden" name="ai_provider" value="<?php echo klytos_attr_esc( $p['id'] ); ?>">
+            <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
             <div class="form-group">
                 <label>API Key</label>
                 <input type="password" name="ai_api_key" class="form-control" required placeholder="sk-...">
@@ -618,7 +618,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <label><?php echo klytos_esc_html( __( 'ai_keys.active_model' ) ); ?></label>
                 <select name="ai_default_model" class="form-control">
                     <?php foreach ( $p['models'] as $model ): ?>
-                        <option value="<?php echo klytos_attr_esc( $model['id'] ); ?>">
+                        <option value="<?php echo klytos_esc_attr( $model['id'] ); ?>">
                             <?php echo klytos_esc_html( $model['name'] ); ?>
                         </option>
                     <?php endforeach; ?>

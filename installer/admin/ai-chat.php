@@ -50,7 +50,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <div id="ai-chat-app"
      class="ai-chat-layout"
-     data-csrf="<?php echo klytos_attr_esc($_SESSION['klytos_csrf'] ?? ''); ?>"
+     data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
      data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>">
 
     <!-- Conversation Sidebar -->
@@ -81,10 +81,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                         $provName       = $p['name'] ?? '';
                         $provModels     = $p['models'] ?? [];
                         ?>
-                        <optgroup label="<?php echo klytos_attr_esc($provName); ?>">
+                        <optgroup label="<?php echo klytos_esc_attr($provName); ?>">
                             <?php if ($provConfigured && !empty($provModels)): ?>
                                 <?php foreach ($provModels as $model): ?>
-                                    <option value="<?php echo klytos_attr_esc($provId . '|' . ($model['id'] ?? '')); ?>"
+                                    <option value="<?php echo klytos_esc_attr($provId . '|' . ($model['id'] ?? '')); ?>"
                                         <?php echo ($active['provider'] === $provId && $active['model'] === ($model['id'] ?? '')) ? 'selected' : ''; ?>>
                                         <?php echo klytos_esc_html($model['name'] ?? $model['id'] ?? ''); ?>
                                     </option>
@@ -125,7 +125,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div class="ai-chat-input">
             <div class="ai-chat-input-wrap">
                 <textarea rows="1"
-                          placeholder="<?php echo klytos_attr_esc(__('ai_chat.placeholder')); ?>"
+                          placeholder="<?php echo klytos_esc_attr(__('ai_chat.placeholder')); ?>"
                           <?php echo (!$hasProvider) ? 'disabled' : ''; ?>></textarea>
                 <button class="ai-chat-send-btn"
                         <?php echo (!$hasProvider) ? 'disabled' : ''; ?>>
