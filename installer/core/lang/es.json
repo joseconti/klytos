@@ -200,7 +200,13 @@
     "smtp_none": "Ninguna (no recomendado)",
     "email_test": "Enviar email de prueba",
     "email_test_sent": "Email de prueba enviado a {email}.",
-    "email_test_failed": "Error al enviar el email de prueba. Revisa la configuracion."
+    "email_test_failed": "Error al enviar el email de prueba. Revisa la configuracion.",
+    "appearance_title": "Apariencia",
+    "appearance_choose": "Tema del panel de administracion",
+    "appearance_light": "Claro",
+    "appearance_light_desc": "Interfaz clasica clara. Limpia y luminosa, ideal para entornos bien iluminados.",
+    "appearance_dark": "Oscuro",
+    "appearance_dark_desc": "Interfaz oscura inspirada en el instalador. Reduce la fatiga visual en entornos con poca luz."
   },
   "assets": {
     "title": "Archivos",

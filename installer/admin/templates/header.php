@@ -16,13 +16,14 @@ use Klytos\Core\Helpers;
 
 $cspNonce = Auth::generateCspNonce();
 Auth::sendSecurityHeaders($cspNonce, $customCsp ?? null);
-$basePath  = Helpers::getBasePath();
-$adminPath = $basePath . 'admin/';
-$pageTitle = $pageTitle ?? __( 'dashboard.title' );
+$basePath    = Helpers::getBasePath();
+$adminPath   = $basePath . 'admin/';
+$pageTitle   = $pageTitle ?? __( 'dashboard.title' );
+$adminTheme  = $app->getSiteConfig()->getValue('admin_theme', 'light');
 $version   = $app->getVersion();
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $app->getI18n()->getLocale(); ?>">
+<html lang="<?php echo $app->getI18n()->getLocale(); ?>" data-theme="<?php echo klytos_esc_attr($adminTheme); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,6 +48,50 @@ $version   = $app->getVersion();
             --admin-error: #ef4444;
             --admin-radius: 8px;
         }
+        /* Dark theme overrides */
+        [data-theme="dark"] {
+            --admin-primary: #6366f1;
+            --admin-primary-hover: #8b5cf6;
+            --admin-bg: #0f172a;
+            --admin-surface: #1e293b;
+            --admin-sidebar: #0f172a;
+            --admin-sidebar-text: #94a3b8;
+            --admin-sidebar-active: #6366f1;
+            --admin-text: #e2e8f0;
+            --admin-text-muted: #94a3b8;
+            --admin-border: #334155;
+            --admin-success: #22c55e;
+            --admin-warning: #f59e0b;
+            --admin-error: #ef4444;
+        }
+        [data-theme="dark"] .alert-success { background: rgba(34,197,94,0.12); color: #86efac; border-color: rgba(34,197,94,0.3); }
+        [data-theme="dark"] .alert-error   { background: rgba(239,68,68,0.12); color: #fca5a5; border-color: rgba(239,68,68,0.3); }
+        [data-theme="dark"] .alert-warning { background: rgba(245,158,11,0.12); color: #fcd34d; border-color: rgba(245,158,11,0.3); }
+        [data-theme="dark"] .alert-info    { background: rgba(99,102,241,0.12); color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
+        [data-theme="dark"] .badge-published,
+        [data-theme="dark"] .badge-active    { background: rgba(34,197,94,0.15); color: #86efac; }
+        [data-theme="dark"] .badge-draft     { background: #334155; color: #94a3b8; }
+        [data-theme="dark"] .badge-inactive  { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        [data-theme="dark"] .badge-premium   { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        [data-theme="dark"] .badge-urgent    { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        [data-theme="dark"] .badge-high      { background: rgba(249,115,22,0.15); color: #fdba74; }
+        [data-theme="dark"] .badge-medium    { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+        [data-theme="dark"] .badge-low       { background: rgba(34,197,94,0.15); color: #86efac; }
+        [data-theme="dark"] .badge-owner     { background: rgba(124,58,237,0.15); color: #c4b5fd; }
+        [data-theme="dark"] .badge-admin     { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+        [data-theme="dark"] .badge-editor    { background: rgba(34,197,94,0.15); color: #86efac; }
+        [data-theme="dark"] .badge-viewer    { background: #334155; color: #94a3b8; }
+        [data-theme="dark"] .badge-open      { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+        [data-theme="dark"] .badge-in_progress { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        [data-theme="dark"] .badge-completed { background: rgba(34,197,94,0.15); color: #86efac; }
+        [data-theme="dark"] .badge-dismissed { background: #334155; color: #94a3b8; }
+        [data-theme="dark"] .token-display { background: #0f172a; color: #e2e8f0; }
+        [data-theme="dark"] .form-control  { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        [data-theme="dark"] .form-control:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+        [data-theme="dark"] select.form-control option { background: #1e293b; color: #e2e8f0; }
+        [data-theme="dark"] .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        [data-theme="dark"] .sidebar-brand { border-bottom-color: rgba(255,255,255,0.05); }
+        [data-theme="dark"] tr:hover td { background: rgba(255,255,255,0.03); }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif; background: var(--admin-bg); color: var(--admin-text); line-height: 1.5; }
         a { color: var(--admin-primary); text-decoration: none; }
         a:hover { text-decoration: underline; }
