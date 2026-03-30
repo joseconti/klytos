@@ -43,10 +43,32 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
 <link rel="stylesheet" href="<?php echo klytos_esc_url($basePath . 'admin/assets/css/ai-chat.css'); ?>">
-<script nonce="<?php echo $cspNonce; ?>">
-    var el = document.querySelector('.admin-main');
-    if (el) el.classList.add('ai-chat-page');
-</script>
+
+<style>
+    .admin-sidebar  { display: none !important; }
+    .admin-topbar   { display: none !important; }
+    .admin-content  { margin-left: 0 !important; }
+    .admin-main     { padding: 0 !important; }
+    .admin-layout   { display: block !important; }
+</style>
+
+<div class="ai-chat-fullscreen-topbar">
+    <div class="ai-chat-fullscreen-brand">
+        <strong>Klytos</strong> <small>AI</small>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+        <a href="<?php echo klytos_esc_url($adminPath . 'index.php'); ?>" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <?php echo klytos_esc_html(__( 'ai_chat.classic_mode' )); ?>
+        </a>
+        <span style="font-size:0.85rem;color:var(--admin-text-muted);">
+            <?php echo klytos_esc_html( $app->getAuth()->getUsername() ); ?>
+        </span>
+        <a href="<?php echo klytos_esc_url($adminPath . 'logout.php'); ?>" class="btn btn-outline btn-sm">
+            <?php echo klytos_esc_html(__( 'auth.logout' )); ?>
+        </a>
+    </div>
+</div>
 
 <div id="ai-chat-app"
      class="ai-chat-layout"

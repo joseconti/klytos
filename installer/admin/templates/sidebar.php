@@ -163,15 +163,6 @@ $sidebarItems = [
         'capability' => 'mcp.manage',
     ],
     [
-        'id'         => 'ai-chat',
-        'title'      => __( 'ai_chat.title' ),
-        'url'        => $adminPath . 'ai-chat.php',
-        'icon'       => 'fa-solid fa-comments',
-        'position'   => 76,
-        'section'    => 'system',
-        'capability' => null,
-    ],
-    [
         'id'         => 'security',
         'title'      => __( 'security.title' ),
         'url'        => $adminPath . 'security.php',
@@ -368,6 +359,10 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
             <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
+            <a href="<?php echo klytos_esc_url($adminPath . 'ai-chat.php'); ?>" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">
+                <i class="fa-solid fa-robot"></i>
+                <?php echo klytos_esc_html(__( 'ai_chat.ai_mode' )); ?>
+            </a>
             <span style="font-size:0.85rem;color:var(--admin-text-muted);">
                 <?php echo klytos_esc_html( $app->getAuth()->getUsername() ); ?>
             </span>

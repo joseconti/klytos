@@ -363,7 +363,9 @@
     "provider_changed": "Provider changed",
     "error": "An error occurred",
     "no_provider": "No AI provider configured",
-    "configure_key": "Configure an API key in"
+    "configure_key": "Configure an API key in",
+    "ai_mode": "AI Mode",
+    "classic_mode": "Classic Mode"
   },
   "ai_keys": {
     "title": "AI API Connection",

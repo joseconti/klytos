@@ -12,9 +12,45 @@
     overflow: hidden;
 }
 
+/* Fullscreen AI Mode topbar */
+.ai-chat-fullscreen-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    height: 56px;
+    background: var(--admin-sidebar);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.ai-chat-fullscreen-brand {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ai-chat-fullscreen-brand small {
+    opacity: 0.6;
+    font-weight: 400;
+    font-size: 0.85rem;
+}
+
+.ai-chat-fullscreen-topbar .btn-outline {
+    color: #cbd5e1;
+    border-color: #475569;
+}
+
+.ai-chat-fullscreen-topbar .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: #94a3b8;
+}
+
 .ai-chat-layout {
     display: flex;
-    height: calc(100vh - 112px);
+    height: calc(100vh - 56px);
     overflow: hidden;
 }
 
