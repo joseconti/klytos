@@ -81,13 +81,11 @@ endforeach;
 $providerOptions = ob_get_clean();
 ?>
 
-<div class="ai-chat-page-wrap">
-
-    <div id="ai-chat-app"
-         class="ai-chat-page-wrap"
-         data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
-         data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>"
-         data-username="<?php echo klytos_esc_attr($username); ?>">
+<div id="ai-chat-app"
+     class="ai-chat-page-wrap"
+     data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
+     data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>"
+     data-username="<?php echo klytos_esc_attr($username); ?>">
 
         <!-- ─── Sidebar ──────────────────────────────────────────── -->
         <div class="ai-chat-sidebar">
@@ -187,9 +185,8 @@ $providerOptions = ob_get_clean();
                 </div>
             </div>
 
-        </div>
-    </div>
-</div>
+        </div><!-- /.ai-chat-main -->
+    </div><!-- /#ai-chat-app -->
 
 <!-- Vendor JS (bundled) -->
 <script nonce="<?php echo $cspNonce; ?>" src="<?php echo klytos_esc_url($basePath . 'admin/assets/vendor/marked/marked.min.js'); ?>"></script>
