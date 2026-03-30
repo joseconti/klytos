@@ -475,11 +475,33 @@
         },
     };
 
+    // ─── Popup Menu ────────────────────────────────────────
+    function initPopupMenu() {
+        const footer = document.getElementById('ai-chat-footer-toggle');
+        const popup = document.getElementById('ai-chat-popup-menu');
+        if (!footer || !popup) return;
+
+        footer.addEventListener('click', function (e) {
+            // Don't toggle if clicking a link inside the popup
+            if (e.target.closest('.ai-chat-popup-menu-item')) return;
+            e.stopPropagation();
+            popup.classList.toggle('open');
+        });
+
+        // Close popup when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!footer.contains(e.target)) {
+                popup.classList.remove('open');
+            }
+        });
+    }
+
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('ai-chat-app');
         if (container) {
             Chat.init(container);
         }
+        initPopupMenu();
     });
 })();
