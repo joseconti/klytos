@@ -156,6 +156,9 @@ class App
     /** @var MetaManager|null Public Meta API manager. */
     private ?MetaManager $metaManager = null;
 
+    /** @var Ai\ChatEngine|null AI chat engine (lazy-loaded). */
+    private ?Ai\ChatEngine $chatEngine = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -481,6 +484,31 @@ class App
 
     /** Get the Meta API manager. */
     public function getMetaManager(): MetaManager { return $this->metaManager; }
+
+    /**
+     * Get the AI chat engine (lazy-loaded).
+     *
+     * Creates a shared ToolRegistry, AiProviderRegistry, AiKeyManager,
+     * and ChatEngine on first access.
+     */
+    public function getChatEngine(): Ai\ChatEngine
+    {
+        if ($this->chatEngine === null) {
+            // Load the vendorized SDK (soukicz/php-llm + Guzzle + dependencies).
+            $vendorAutoload = $this->rootPath . '/vendor-ai/autoload.php';
+            if (file_exists($vendorAutoload)) {
+                require_once $vendorAutoload;
+            }
+
+            $registry = new MCP\ToolRegistry($this);
+            $registry->registerAllTools();
+
+            $keys = new Ai\AiKeyManager($this->storage, $this->configPath);
+
+            $this->chatEngine = new Ai\ChatEngine($keys, $registry, $this);
+        }
+        return $this->chatEngine;
+    }
 
     /** Get the two-factor authentication manager. */
     public function getTwoFactor(): TwoFactor

@@ -80,8 +80,34 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         } else {
             $error = __( 'common.error' );
         }
+    } elseif ( $action === 'save_ai_key' ) {
+        $aiProviderId   = $_POST['ai_provider'] ?? '';
+        $aiApiKey       = $_POST['ai_api_key'] ?? '';
+        $aiDefaultModel = $_POST['ai_default_model'] ?? '';
+        if ( !empty( $aiProviderId ) && !empty( $aiApiKey ) ) {
+            $aiKeys = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
+            if ( isset( \Klytos\Core\Ai\AiKeyManager::PROVIDERS[$aiProviderId] ) ) {
+                $aiKeys->setKey( $aiProviderId, $aiApiKey, $aiDefaultModel ?: $aiKeys->getDefaultModelForProvider( $aiProviderId ) );
+                $success = __( 'ai_keys.saved' );
+            } else {
+                $error = __( 'ai_keys.invalid' );
+            }
+        }
+    } elseif ( $action === 'remove_ai_key' ) {
+        $aiProviderId = $_POST['ai_provider'] ?? '';
+        $aiKeys       = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
+        $aiKeys->removeKey( $aiProviderId );
+        $success = __( 'ai_keys.removed' );
+    } elseif ( $action === 'set_active_ai' ) {
+        $aiProviderId = $_POST['ai_provider'] ?? '';
+        $aiModelId    = $_POST['ai_model'] ?? '';
+        $aiKeys       = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
+        $aiKeys->setActive( $aiProviderId, $aiModelId );
+        $success = __( 'common.success' );
     }
 }
+
+$currentTab = $_GET['tab'] ?? 'mcp';
 
 $appPasswords = $auth->listAppPasswords();
 $oauthClients = $oauthServer->listClients();
@@ -103,6 +129,16 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php if ( $error ): ?>
     <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
+
+<!-- Tabs -->
+<div class="tabs">
+    <a class="tab <?php echo $currentTab === 'mcp' ? 'active' : ''; ?>"
+       href="<?php echo klytos_esc_url( $adminPath . 'mcp.php?tab=mcp' ); ?>">MCP</a>
+    <a class="tab <?php echo $currentTab === 'api-ia' ? 'active' : ''; ?>"
+       href="<?php echo klytos_esc_url( $adminPath . 'mcp.php?tab=api-ia' ); ?>"><?php echo klytos_esc_html( __( 'ai_keys.title' ) ); ?></a>
+</div>
+
+<?php if ( $currentTab === 'mcp' ): ?>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- QUICK START GUIDE                                              -->
@@ -499,5 +535,140 @@ require_once __DIR__ . '/templates/sidebar.php';
     });
 })();
 </script>
+
+<?php endif; // end tab=mcp ?>
+
+<?php if ( $currentTab === 'api-ia' ):
+    $aiActive       = ['provider' => null, 'model' => null];
+    $allAiProviders = [];
+    $aiUsage        = ['input_tokens' => 0, 'output_tokens' => 0, 'conversations' => 0, 'tool_executions' => 0];
+
+    try {
+        $aiKeys         = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
+        $aiActive       = $aiKeys->getActive();
+        $allAiProviders = $aiKeys->listProviders();
+        $currentUser    = klytos_current_user();
+        $aiUsage        = ( new \Klytos\Core\Ai\ChatManager( $app->getStorage() ) )
+                            ->getChatUsage( (int) ( $currentUser['id'] ?? 0 ), 'month' );
+    } catch ( \Throwable $e ) {
+        $error = 'AI module error: ' . $e->getMessage();
+    }
+?>
+
+<!-- Info notice -->
+<div class="alert alert-warning">
+    <?php echo klytos_esc_html( __( 'ai_keys.cost_notice' ) ); ?><br>
+    <?php echo klytos_esc_html( __( 'ai_keys.mcp_info' ) ); ?>
+</div>
+
+<!-- Providers list -->
+<?php foreach ( $allAiProviders as $p ):
+    $hasKey     = $aiKeys->hasKey( $p['id'] );
+    $maskedKey  = $aiKeys->getMasked( $p['id'] );
+    $isActive   = ( $aiActive['provider'] ?? '' ) === $p['id'];
+?>
+<div class="card" style="<?php echo $isActive ? 'border-left: 4px solid var(--admin-success);' : ''; ?>">
+    <div class="card-header">
+        <h3>
+            <span style="color: <?php echo $hasKey ? 'var(--admin-success)' : 'var(--admin-text-muted)'; ?>;">
+                <?php echo $hasKey ? '&#9679;' : '&#9675;'; ?>
+            </span>
+            <?php echo klytos_esc_html( $p['name'] ); ?>
+            <?php if ( $isActive ): ?>
+                <span class="badge-status badge-active" style="margin-left: 0.5rem;">Active</span>
+            <?php endif; ?>
+        </h3>
+    </div>
+
+    <?php if ( $hasKey ): ?>
+        <p style="margin-bottom: 0.75rem;">
+            <strong>API Key:</strong> <code><?php echo klytos_esc_html( $maskedKey ); ?></code>
+        </p>
+
+        <!-- Set as active -->
+        <?php if ( !$isActive ): ?>
+        <form method="POST" style="display: inline;">
+            <?php echo klytos_csrf_field(); ?>
+            <input type="hidden" name="action" value="set_active_ai">
+            <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
+            <input type="hidden" name="ai_model" value="<?php echo klytos_esc_attr( $p['default_model'] ); ?>">
+            <button type="submit" class="btn btn-sm btn-outline"><?php echo klytos_esc_html( __( 'common.activate' ) ); ?></button>
+        </form>
+        <?php endif; ?>
+
+        <!-- Remove key -->
+        <form method="POST" style="display: inline;" class="confirm-revoke-form">
+            <?php echo klytos_csrf_field(); ?>
+            <input type="hidden" name="action" value="remove_ai_key">
+            <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
+            <button type="submit" class="btn btn-sm btn-danger"><?php echo klytos_esc_html( __( 'ai_keys.remove' ) ); ?></button>
+        </form>
+
+    <?php else: ?>
+        <!-- Configure key form -->
+        <form method="POST">
+            <?php echo klytos_csrf_field(); ?>
+            <input type="hidden" name="action" value="save_ai_key">
+            <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" name="ai_api_key" class="form-control" required placeholder="sk-...">
+            </div>
+            <div class="form-group">
+                <label><?php echo klytos_esc_html( __( 'ai_keys.active_model' ) ); ?></label>
+                <select name="ai_default_model" class="form-control">
+                    <?php foreach ( $p['models'] as $model ): ?>
+                        <option value="<?php echo klytos_esc_attr( $model['id'] ); ?>">
+                            <?php echo klytos_esc_html( $model['name'] ); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><?php echo klytos_esc_html( __( 'ai_keys.save' ) ); ?></button>
+        </form>
+    <?php endif; ?>
+</div>
+<?php endforeach; ?>
+
+<!-- Usage stats -->
+<div class="card">
+    <div class="card-header"><h3><?php echo klytos_esc_html( __( 'ai_keys.usage_this_month' ) ); ?></h3></div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label"><?php echo klytos_esc_html( __( 'ai_keys.tokens_in' ) ); ?></div>
+            <div class="stat-value"><?php echo number_format( $aiUsage['input_tokens'] ); ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><?php echo klytos_esc_html( __( 'ai_keys.tokens_out' ) ); ?></div>
+            <div class="stat-value"><?php echo number_format( $aiUsage['output_tokens'] ); ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><?php echo klytos_esc_html( __( 'ai_keys.conversations' ) ); ?></div>
+            <div class="stat-value"><?php echo number_format( $aiUsage['conversations'] ); ?></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><?php echo klytos_esc_html( __( 'ai_keys.tools_executed' ) ); ?></div>
+            <div class="stat-value"><?php echo number_format( $aiUsage['tool_executions'] ); ?></div>
+        </div>
+    </div>
+</div>
+
+<!-- Privacy notice -->
+<div class="alert alert-info">
+    <?php echo klytos_esc_html( __( 'ai_keys.privacy_notice' ) ); ?>
+</div>
+
+<!-- Get API key links -->
+<div class="card">
+    <h3 style="margin-bottom: 0.75rem;"><?php echo klytos_esc_html( __( 'ai_keys.get_key' ) ); ?></h3>
+    <ul style="list-style: disc; padding-left: 1.5rem; font-size: 0.9rem;">
+        <li><strong>Anthropic:</strong> console.anthropic.com</li>
+        <li><strong>OpenAI:</strong> platform.openai.com</li>
+        <li><strong>Google:</strong> aistudio.google.com</li>
+        <li><strong>OpenRouter:</strong> openrouter.ai</li>
+    </ul>
+</div>
+
+<?php endif; // end tab=api-ia ?>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

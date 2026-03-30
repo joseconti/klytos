@@ -110,7 +110,7 @@
     "google_fonts_url": "Google Fonts URL"
   },
   "mcp": {
-    "title": "MCP Connection",
+    "title": "AI Connection",
     "endpoint": "MCP Endpoint",
     "endpoint_desc": "This is the URL that AI tools will use to connect to your site.",
     "quick_start": "Connect your AI in 2 steps",
@@ -350,5 +350,44 @@
     "all_ok": "All good",
     "missing_extension": "Missing extension: {ext}",
     "directory_not_writable": "Directory is not writable: {dir}"
+  },
+  "ai_chat": {
+    "title": "AI Chat",
+    "new_conversation": "New conversation",
+    "send": "Send",
+    "placeholder": "Write a message to control your site with AI...",
+    "no_conversations": "No conversations yet",
+    "delete_confirm": "Delete this conversation?",
+    "thinking": "Thinking...",
+    "tool_executed": "Tool executed",
+    "provider_changed": "Provider changed",
+    "error": "An error occurred",
+    "no_provider": "No AI provider configured",
+    "configure_key": "Configure an API key in",
+    "ai_mode": "AI Mode",
+    "classic_mode": "Classic Mode",
+    "search": "Search",
+    "chats": "Chats",
+    "recent": "Recent",
+    "welcome_placeholder": "How can I help you today?"
+  },
+  "ai_keys": {
+    "title": "AI API Connection",
+    "save": "Save API key",
+    "remove": "Remove",
+    "saved": "API key saved successfully.",
+    "removed": "API key removed.",
+    "invalid": "Invalid API key. Please check and try again.",
+    "privacy_notice": "Your API keys are stored encrypted in your installation. Klytos does not have access to your keys or conversations.",
+    "cost_notice": "The AI API has a per-token cost billed directly by your provider. If you already use Klytos via MCP from Claude.ai or another app, you do not need to configure an API key here.",
+    "mcp_info": "This option is for those who prefer to control Klytos directly from the admin panel.",
+    "get_key": "Don't have an API key? Get one from:",
+    "active_provider": "Active provider",
+    "active_model": "Active model",
+    "usage_this_month": "Usage this month",
+    "tokens_in": "Input tokens",
+    "tokens_out": "Output tokens",
+    "conversations": "Conversations",
+    "tools_executed": "Tools executed"
   }
 }
