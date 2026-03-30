@@ -539,12 +539,20 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php endif; // end tab=mcp ?>
 
 <?php if ( $currentTab === 'api-ia' ):
-    $aiKeys      = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
-    $aiActive    = $aiKeys->getActive();
-    $allAiProviders = $aiKeys->listProviders();
-    $currentUser    = klytos_current_user();
-    $aiUsage        = ( new \Klytos\Core\Ai\ChatManager( $app->getStorage() ) )
-                        ->getChatUsage( (int) ( $currentUser['id'] ?? 0 ), 'month' );
+    $aiActive       = ['provider' => null, 'model' => null];
+    $allAiProviders = [];
+    $aiUsage        = ['input_tokens' => 0, 'output_tokens' => 0, 'conversations' => 0, 'tool_executions' => 0];
+
+    try {
+        $aiKeys         = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
+        $aiActive       = $aiKeys->getActive();
+        $allAiProviders = $aiKeys->listProviders();
+        $currentUser    = klytos_current_user();
+        $aiUsage        = ( new \Klytos\Core\Ai\ChatManager( $app->getStorage() ) )
+                            ->getChatUsage( (int) ( $currentUser['id'] ?? 0 ), 'month' );
+    } catch ( \Throwable $e ) {
+        $error = 'AI module error: ' . $e->getMessage();
+    }
 ?>
 
 <!-- Info notice -->

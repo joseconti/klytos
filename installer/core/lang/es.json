@@ -110,7 +110,7 @@
     "google_fonts_url": "URL de Google Fonts"
   },
   "mcp": {
-    "title": "Conexión MCP",
+    "title": "Conexión IA",
     "endpoint": "Endpoint MCP",
     "endpoint_desc": "Esta es la URL que usarán las IAs para conectarse a tu sitio.",
     "quick_start": "Conecta tu IA en 2 pasos",
