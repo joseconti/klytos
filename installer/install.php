@@ -496,6 +496,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                // ── Deploy public files to the document root (parent directory) ──
+                // The admin dir lives inside the doc root. Public-facing files
+                // (index.html, .htaccess, css/) must be in the doc root itself.
+                $adminFinalPath = $dirRenamed ? $newDirPath : $rootPath;
+
+                // Move public/index.html → parent/index.html
+                $publicIndex = $adminFinalPath . '/public/index.html';
+                if (file_exists($publicIndex)) {
+                    @copy($publicIndex, $parentDir . '/index.html');
+                }
+
+                // Move public/css/ → parent/css/
+                $publicCss = $adminFinalPath . '/public/css';
+                if (is_dir($publicCss)) {
+                    if (!is_dir($parentDir . '/css')) {
+                        mkdir($parentDir . '/css', 0755, true);
+                    }
+                    $cssFiles = scandir($publicCss);
+                    if ($cssFiles) {
+                        foreach ($cssFiles as $cssFile) {
+                            if ($cssFile === '.' || $cssFile === '..') continue;
+                            @copy($publicCss . '/' . $cssFile, $parentDir . '/css/' . $cssFile);
+                        }
+                    }
+                }
+
+                // Create a root .htaccess for the public site.
+                $rootHtaccess = "# Klytos — Document Root\n"
+                    . "# Serves the public site. Admin panel is at /{$adminDirName}/\n\n"
+                    . "DirectoryIndex index.html index.php\n\n"
+                    . "# Deny access to sensitive files\n"
+                    . "<FilesMatch \"^\\.(htaccess|htpasswd|install\\.done\\.php)$\">\n"
+                    . "    Require all denied\n"
+                    . "</FilesMatch>\n";
+                if (!file_exists($parentDir . '/.htaccess')) {
+                    file_put_contents($parentDir . '/.htaccess', $rootHtaccess, LOCK_EX);
+                }
+
+                // ── Clean up: delete installer.php from document root ──
+                $installerFile = $parentDir . '/installer.php';
+                if (file_exists($installerFile)) {
+                    @unlink($installerFile);
+                }
+
                 // ── Build the admin URL (with the new or current dir name) ──
                 $protocol    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                 $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -611,64 +655,137 @@ function getColorPreset(string $name): array
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Klytos — Installation</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; line-height: 1.6; }
-        .installer { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
-        .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 2rem; margin-bottom: 1.5rem; }
-        .logo { text-align: center; margin-bottom: 2rem; }
-        .logo h1 { font-size: 2rem; font-weight: 700; color: #2563eb; }
-        .logo p { color: #64748b; font-size: 0.9rem; }
-        .steps { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
-        .step { flex: 1; text-align: center; padding: 0.75rem; border-radius: 8px; font-size: 0.85rem; font-weight: 500; background: #f1f5f9; color: #64748b; }
-        .step.active { background: #2563eb; color: #fff; }
-        .step.done { background: #22c55e; color: #fff; }
-        h2 { font-size: 1.3rem; margin-bottom: 1rem; }
-        h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
-        .form-group { margin-bottom: 1.25rem; }
-        label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.9rem; }
-        input[type="text"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
-            width: 100%; padding: 0.7rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem;
-            transition: border-color 0.2s;
+        *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #0f172a; color: #e2e8f0; line-height: 1.6; min-height: 100vh;
         }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .installer { max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+        .card {
+            background: #1e293b; border-radius: 1rem; border: 1px solid #334155;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4); padding: 2rem; margin-bottom: 1.5rem;
+        }
+        .logo { text-align: center; margin-bottom: 2rem; }
+        .logo-mark {
+            width: 80px; height: 80px; margin: 0 auto 1.5rem;
+            border-radius: 1.25rem; display: flex; align-items: center; justify-content: center;
+        }
+        .logo-mark img { width: 80px; height: 80px; border-radius: 1.25rem; }
+        .logo h1 { font-size: 1.5rem; font-weight: 700; color: #f8fafc; }
+        .logo p { color: #94a3b8; font-size: 0.925rem; }
+        .steps { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+        .step {
+            flex: 1; text-align: center; padding: 0.75rem; border-radius: 0.5rem;
+            font-size: 0.85rem; font-weight: 600; background: #334155; color: #64748b;
+            border: 1px solid #475569; transition: all 0.3s;
+        }
+        .step.active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+            border-color: transparent; box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+        }
+        .step.done { background: #22c55e; color: #fff; border-color: transparent; }
+        h2 { font-size: 1.3rem; margin-bottom: 1rem; color: #f8fafc; }
+        h3 { font-size: 1.1rem; margin: 1.5rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid #334155; color: #f8fafc; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.9rem; color: #e2e8f0; }
+        input[type="text"], input[type="password"], input[type="email"], input[type="number"], select, textarea {
+            width: 100%; padding: 0.7rem; border: 1px solid #334155; border-radius: 0.5rem;
+            font-size: 0.95rem; transition: border-color 0.2s;
+            background: #0f172a; color: #e2e8f0;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        select option { background: #1e293b; color: #e2e8f0; }
         textarea { resize: vertical; min-height: 80px; }
-        .btn { display: inline-block; padding: 0.75rem 1.5rem; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .btn:hover { background: #1d4ed8; }
-        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.875rem 2rem; border: none; border-radius: 0.625rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.25s; text-decoration: none;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        }
+        .btn:disabled {
+            opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none;
+        }
         .btn-block { width: 100%; text-align: center; }
         .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; }
-        .btn-secondary { background: #64748b; }
-        .btn-secondary:hover { background: #475569; }
-        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
-        .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-        .alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #64748b; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .alert { padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem; }
+        .alert-error { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .alert-error code { background: rgba(239,68,68,0.15); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125rem; }
+        .alert-success { background: rgba(34,197,94,0.12); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+        .alert-warning { background: rgba(245,158,11,0.12); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+        .alert-info { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
         .check-list { list-style: none; }
-        .check-list li { padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; }
-        .check-ok { color: #22c55e; font-weight: bold; }
-        .check-fail { color: #ef4444; font-weight: bold; }
+        .check-list li { padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; color: #94a3b8; }
+        .check-ok { color: #34d399; font-weight: bold; }
+        .check-fail { color: #f87171; font-weight: bold; }
         .color-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
-        .color-preset { width: 100%; aspect-ratio: 1; border-radius: 8px; border: 3px solid transparent; cursor: pointer; transition: border-color 0.2s; }
-        .color-preset.selected, .color-preset:hover { border-color: #2563eb; }
+        .color-preset { width: 100%; aspect-ratio: 1; border-radius: 0.5rem; border: 3px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .color-preset.selected, .color-preset:hover { border-color: #a5b4fc; box-shadow: 0 0 12px rgba(99,102,241,0.3); }
         .color-preset input { display: none; }
-        .token-box { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.85rem; word-break: break-all; margin: 1rem 0; }
-        .mcp-config { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.8rem; white-space: pre; overflow-x: auto; margin: 1rem 0; }
+        .token-box {
+            background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem;
+            padding: 1rem; font-family: monospace; font-size: 0.85rem;
+            word-break: break-all; margin: 1rem 0; color: #e2e8f0;
+        }
+        .token-box.highlight {
+            background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.3); color: #fcd34d;
+        }
+        .token-box.highlight a { color: #fbbf24; text-decoration: underline; }
+        .mcp-config {
+            background: #0f172a; color: #a5b4fc; border-radius: 0.5rem; border: 1px solid #334155;
+            padding: 1rem; font-family: monospace; font-size: 0.8rem;
+            white-space: pre; overflow-x: auto; margin: 1rem 0;
+        }
         .small { font-size: 0.8rem; color: #64748b; margin-top: 0.3rem; }
-        .db-fields { display: none; padding: 1rem; background: #f8fafc; border-radius: 8px; margin-top: 0.75rem; border: 1px solid #e2e8f0; }
+        .form-help { font-size: 0.8rem; color: #64748b; margin-top: 0.3rem; }
+        .form-help code { background: #334155; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8rem; color: #a5b4fc; }
+        .db-fields {
+            display: none; padding: 1rem; background: rgba(99,102,241,0.05);
+            border-radius: 0.5rem; margin-top: 0.75rem; border: 1px solid #334155;
+        }
         .db-fields.visible { display: block; }
-        .db-test-result { margin-top: 0.5rem; font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 6px; display: none; }
-        .db-test-result.success { display: block; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-        .db-test-result.error { display: block; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .db-test-result { margin-top: 0.5rem; font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; display: none; }
+        .db-test-result.success { display: block; background: rgba(34,197,94,0.12); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+        .db-test-result.error { display: block; background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
         .inline-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .storage-toggle { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-        .storage-toggle label { flex: 1; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; text-align: center; cursor: pointer; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; }
+        .storage-toggle label {
+            flex: 1; padding: 0.75rem; border: 2px solid #334155; border-radius: 0.5rem;
+            text-align: center; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+            transition: all 0.2s; color: #94a3b8; background: transparent;
+        }
         .storage-toggle input { display: none; }
         .storage-toggle input:checked + span { border: none; }
-        .storage-toggle label:has(input:checked) { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
+        .storage-toggle label:has(input:checked) {
+            border-color: #6366f1; background: rgba(99,102,241,0.15); color: #a5b4fc;
+        }
+        .storage-toggle label:hover { background: #334155; color: #e2e8f0; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+        .info-box {
+            padding: 0.75rem; border-radius: 0.5rem; font-size: 0.85rem;
+            background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+        }
+        .info-box strong { color: #a5b4fc; }
+        .info-box ul { margin: 0.5rem 0 0; padding-left: 1.2rem; color: #94a3b8; }
+        .info-box.alt {
+            background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2);
+        }
+        .info-box.alt strong { color: #86efac; }
     </style>
 </head>
 <body>
 <div class="installer">
     <div class="logo">
+        <div class="logo-mark"><img src="admin/assets/images/klytos-logo-120.png" alt="Klytos"></div>
         <h1>Klytos</h1>
         <p>AI-Powered CMS Installation</p>
     </div>
@@ -691,13 +808,13 @@ function getColorPreset(string $name): array
         <ul class="check-list">
             <li>
                 <span class="<?php echo $requirements['php_version']['ok'] ? 'check-ok' : 'check-fail'; ?>">
-                    <?php echo $requirements['php_version']['ok'] ? '[OK]' : '[FAIL]'; ?>
+                    <?php echo $requirements['php_version']['ok'] ? '&#10003;' : '&#10007;'; ?>
                 </span>
                 PHP 8.1+ (current: <?php echo $requirements['php_version']['current']; ?>)
             </li>
             <li>
                 <span class="<?php echo $requirements['extensions']['ok'] ? 'check-ok' : 'check-fail'; ?>">
-                    <?php echo $requirements['extensions']['ok'] ? '[OK]' : '[FAIL]'; ?>
+                    <?php echo $requirements['extensions']['ok'] ? '&#10003;' : '&#10007;'; ?>
                 </span>
                 Required extensions
                 <?php if (!$requirements['extensions']['ok']): ?>
@@ -831,19 +948,19 @@ function getColorPreset(string $name): array
                 </div>
             </div>
 
-            <div id="editorInfo" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
-                <div style="padding:0.75rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:0.85rem;">
-                    <strong style="color:#2563eb;">Gutenberg (Block Editor)</strong>
-                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#1e40af;">
+            <div id="editorInfo" class="info-grid">
+                <div class="info-box">
+                    <strong>Gutenberg (Block Editor)</strong>
+                    <ul>
                         <li>Visual drag-and-drop blocks</li>
                         <li>Rich layout options (columns, media, buttons...)</li>
                         <li>Structured content — ideal for AI-generated pages</li>
                         <li>Heavier interface — loads more resources</li>
                     </ul>
                 </div>
-                <div style="padding:0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.85rem;">
-                    <strong style="color:#16a34a;">TinyMCE (Classic Editor)</strong>
-                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#14532d;">
+                <div class="info-box alt">
+                    <strong>TinyMCE (Classic Editor)</strong>
+                    <ul>
                         <li>Familiar word-processor interface</li>
                         <li>Lightweight and fast</li>
                         <li>Simple HTML output — easy to style</li>
@@ -891,19 +1008,19 @@ function getColorPreset(string $name): array
                 </div>
             </div>
 
-            <div id="storageInfo" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
-                <div style="padding:0.75rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:0.85rem;">
-                    <strong style="color:#2563eb;">Flat File</strong>
-                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#1e40af;">
+            <div id="storageInfo" class="info-grid">
+                <div class="info-box">
+                    <strong>Flat File</strong>
+                    <ul>
                         <li>No database required — simpler setup</li>
                         <li>Easy to backup (just copy files)</li>
                         <li>Ideal for small sites with few pages</li>
                         <li>Not suited for large amounts of content</li>
                     </ul>
                 </div>
-                <div style="padding:0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.85rem;">
-                    <strong style="color:#16a34a;">MySQL / MariaDB</strong>
-                    <ul style="margin:0.5rem 0 0;padding-left:1.2rem;color:#14532d;">
+                <div class="info-box alt">
+                    <strong>MySQL / MariaDB</strong>
+                    <ul>
                         <li>Better performance with many pages</li>
                         <li>Supports news posts, custom post types, etc.</li>
                         <li>Advanced search and filtering capabilities</li>
@@ -1050,7 +1167,7 @@ function getColorPreset(string $name): array
     <div class="card">
         <h2>Klytos Installed Successfully</h2>
 
-        <p style="margin-bottom: 1rem;">Your CMS is ready. Save the information below.</p>
+        <p style="margin-bottom: 1rem; color: #94a3b8;">Your CMS is ready. Save the information below.</p>
 
         <div class="alert alert-warning">
             <strong>Important — Save your admin URL!</strong><br>
@@ -1059,10 +1176,10 @@ function getColorPreset(string $name): array
 
         <div class="form-group">
             <label>Admin Panel (secret URL)</label>
-            <div class="token-box" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">
+            <div class="token-box highlight">
                 <a href="<?php echo klytos_esc_url( $adminUrl ); ?>"><?php echo klytos_esc_html( $adminUrl ); ?></a>
             </div>
-            <p class="small" style="color:#92400e;">&#9888; Bookmark this URL. There is no public link to it.</p>
+            <p class="small" style="color:#fbbf24;">&#9888; Bookmark this URL. There is no public link to it.</p>
         </div>
 
         <div class="form-group">
@@ -1071,14 +1188,14 @@ function getColorPreset(string $name): array
         </div>
 
         <h3 style="margin-top:1.5rem">MCP Authentication</h3>
-        <p style="font-size:0.9rem;color:#64748b;margin-bottom:1rem">
-            Klytos supports <strong>Application Passwords</strong> (Basic Auth) and <strong>OAuth 2.0/2.1</strong> for MCP connections.
+        <p style="font-size:0.9rem;color:#94a3b8;margin-bottom:1rem">
+            Klytos supports <strong style="color:#e2e8f0;">Application Passwords</strong> (Basic Auth) and <strong style="color:#e2e8f0;">OAuth 2.0/2.1</strong> for MCP connections.
             You can create more Application Passwords or OAuth clients from the admin panel.
         </p>
 
         <div class="form-group">
             <label>Application Password (copy now — will not be shown again)</label>
-            <div class="token-box" style="background: #fef3c7; border-color: #fde68a; color: #92400e;">
+            <div class="token-box highlight">
                 <?php echo klytos_esc_html( $appPassword ?? '' ); ?>
             </div>
             <p class="small">User: <strong><?php echo klytos_esc_html( $adminUser ); ?></strong> — Use with HTTP Basic Auth.</p>
@@ -1111,9 +1228,9 @@ function getColorPreset(string $name): array
   -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'</div>
         </div>
 
-        <div class="alert alert-info" style="margin-top:1rem">
+        <div class="alert alert-info" style="margin-top:1rem;">
             <strong>OAuth 2.0/2.1</strong> is also available for advanced integrations.
-            Create OAuth clients from the admin panel → MCP section.
+            Create OAuth clients from the admin panel &rarr; MCP section.
             PKCE (S256) is required for all clients.
         </div>
 
