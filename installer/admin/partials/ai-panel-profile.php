@@ -4,7 +4,7 @@
  * Self-edit profile content rendered inside the AI chat interface.
  *
  * @package Klytos
- * @since   2.0.0
+ * @since   1.0.0
  */
 
 if (!isset($app)) { return; }

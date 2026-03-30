@@ -5,7 +5,7 @@
  * set global data, and get slot definitions.
  *
  * @package Klytos
- * @since   2.0.0
+ * @since   1.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io

@@ -7,7 +7,7 @@
  * NEVER touches: config/, data/, plugins/, public/assets/, backups/
  *
  * @package   Klytos
- * @since     2.0.0
+ * @since   1.0.0
  * @copyright 2024-2026 José Conti. All rights reserved.
  * @license   Elastic License 2.0 (ELv2)
  */
