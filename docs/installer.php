@@ -168,16 +168,22 @@ if ( isset( $_POST['action'] ) && $_POST['action'] === 'install' ) {
 		$source_dir = $source_dir . '/installer';
 	}
 
-	klytos_move_contents( $source_dir, __DIR__ );
+	// Extract into a dedicated "install" subdirectory so the CMS files
+	// don't mix with the current directory (which may contain other sites/files).
+	$install_dir = __DIR__ . '/install';
+	if ( ! is_dir( $install_dir ) ) {
+		mkdir( $install_dir, 0755, true );
+	}
+	klytos_move_contents( $source_dir, $install_dir );
 
 	// 6. Clean up temporary directory.
 	klytos_rmdir_recursive( $tmp_dir );
 
-	// 7. Build redirect URL.
+	// 7. Build redirect URL — point to install/install.php inside the new subdirectory.
 	$scheme      = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
 	$host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
 	$dir         = rtrim( dirname( $_SERVER['SCRIPT_NAME'] ), '/' );
-	$redirect    = $scheme . '://' . $host . $dir . '/' . KLYTOS_INSTALLER . '?lang=' . $lang;
+	$redirect    = $scheme . '://' . $host . $dir . '/install/' . KLYTOS_INSTALLER . '?lang=' . $lang;
 
 	echo json_encode( [ 'ok' => true, 'redirect' => $redirect ] );
 	exit;
