@@ -7,7 +7,7 @@
  * @since   0.9.0
  */
 
-defined('KLYTOS_LOADED') || die();
+if (!isset($app)) { return; }
 
 use Klytos\Core\UserManager;
 

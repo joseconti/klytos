@@ -7,7 +7,7 @@
  * @since   0.9.0
  */
 
-defined('KLYTOS_LOADED') || die();
+if (!isset($app)) { return; }
 
 $siteConfig = $app->getSiteConfig()->get();
 $pageCount  = $app->getPages()->count('all');

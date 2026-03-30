@@ -498,10 +498,13 @@
 
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
+        // Init popup menu first (works on all pages including panels)
+        initPopupMenu();
+
+        // Init chat only when not in a panel view
         const container = document.getElementById('ai-chat-app');
-        if (container) {
+        if (container && !container.querySelector('.ai-chat-panel')) {
             Chat.init(container);
         }
-        initPopupMenu();
     });
 })();
