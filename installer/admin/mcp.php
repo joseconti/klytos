@@ -569,6 +569,12 @@ require_once __DIR__ . '/templates/sidebar.php';
         'gemini'     => [ 'color' => 'gemini-color.webp' ],
         'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
     ];
+    $providerKeyUrls = [
+        'anthropic'  => 'https://console.anthropic.com',
+        'openai'     => 'https://platform.openai.com',
+        'gemini'     => 'https://aistudio.google.com',
+        'openrouter' => 'https://openrouter.ai',
+    ];
     $imgBase = \Klytos\Core\Helpers::getBasePath() . 'admin/assets/images/';
 ?>
 <?php foreach ( $allAiProviders as $p ):
@@ -580,9 +586,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card" style="<?php echo $isActive ? 'border-left: 4px solid var(--admin-success);' : ''; ?>">
     <div class="card-header">
         <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="color: <?php echo $hasKey ? 'var(--admin-success)' : 'var(--admin-text-muted)'; ?>;">
-                <?php echo $hasKey ? '&#9679;' : '&#9675;'; ?>
-            </span>
             <?php if ( $logo ) : ?>
                 <?php if ( isset( $logo['color'] ) ) : ?>
                     <img src="<?php echo klytos_esc_url( $imgBase . $logo['color'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo" style="height: 24px; width: auto;">
@@ -624,6 +627,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     <?php else: ?>
         <!-- Configure key form -->
+        <?php if ( isset( $providerKeyUrls[ $p['id'] ] ) ) : ?>
+            <p style="margin-bottom: 0.75rem; font-size: 0.85rem;">
+                Get your API key at <a href="<?php echo klytos_esc_url( $providerKeyUrls[ $p['id'] ] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo klytos_esc_html( str_replace( 'https://', '', $providerKeyUrls[ $p['id'] ] ) ); ?> ↗</a>
+            </p>
+        <?php endif; ?>
         <form method="POST">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="save_ai_key">
@@ -674,31 +682,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- Privacy notice -->
 <div class="alert alert-info">
     <?php echo klytos_esc_html( __( 'ai_keys.privacy_notice' ) ); ?>
-</div>
-
-<!-- Get API key links -->
-<div class="card">
-    <h3 style="margin-bottom: 0.75rem;"><?php echo klytos_esc_html( __( 'ai_keys.get_key' ) ); ?></h3>
-    <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">
-        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <img src="<?php echo klytos_esc_url( $imgBase . 'claude-color.webp' ); ?>" alt="Anthropic" class="ai-provider-logo" style="height: 18px; width: auto;">
-            <strong>Anthropic:</strong> console.anthropic.com
-        </li>
-        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <img src="<?php echo klytos_esc_url( $imgBase . 'openai-black.webp' ); ?>" alt="OpenAI" class="ai-provider-logo ai-logo-light" style="height: 18px; width: auto;">
-            <img src="<?php echo klytos_esc_url( $imgBase . 'openai-white.webp' ); ?>" alt="OpenAI" class="ai-provider-logo ai-logo-dark" style="height: 18px; width: auto;">
-            <strong>OpenAI:</strong> platform.openai.com
-        </li>
-        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <img src="<?php echo klytos_esc_url( $imgBase . 'gemini-color.webp' ); ?>" alt="Google Gemini" class="ai-provider-logo" style="height: 18px; width: auto;">
-            <strong>Google:</strong> aistudio.google.com
-        </li>
-        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <img src="<?php echo klytos_esc_url( $imgBase . 'openrouter-black.webp' ); ?>" alt="OpenRouter" class="ai-provider-logo ai-logo-light" style="height: 18px; width: auto;">
-            <img src="<?php echo klytos_esc_url( $imgBase . 'openrouter-white.webp' ); ?>" alt="OpenRouter" class="ai-provider-logo ai-logo-dark" style="height: 18px; width: auto;">
-            <strong>OpenRouter:</strong> openrouter.ai
-        </li>
-    </ul>
 </div>
 
 <?php endif; // end tab=api-ia ?>
