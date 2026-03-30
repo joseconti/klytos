@@ -121,18 +121,30 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div class="card-header"><h3>Server Cron Command</h3></div>
         <div style="padding:1rem">
             <p style="margin-bottom:1rem;color:var(--admin-text-muted);font-size:0.9rem">
-                Add one of the following commands to your server's crontab to process scheduled actions every minute.
+                Add one of the following commands to your server's crontab. Choose how often the cron should run:
             </p>
 
+            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem">Run every</label>
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+                <select id="cronInterval" class="form-control" style="width:auto;min-width:180px">
+                    <option value="1">1 minute</option>
+                    <option value="5" selected>5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                </select>
+            </div>
+
             <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem">HTTP (curl)</label>
-            <div class="token-display" id="cronCurl" style="margin-bottom:1rem;word-break:break-all">* * * * * curl -s "<?php echo klytos_esc_attr($siteUrl); ?>?route=cron&token=<?php echo klytos_esc_attr($cronToken); ?>" > /dev/null 2>&1</div>
+            <div class="token-display" id="cronCurl" style="margin-bottom:1rem;word-break:break-all"></div>
 
             <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem">CLI (PHP)</label>
-            <div class="token-display" id="cronCli" style="margin-bottom:1rem;word-break:break-all">* * * * * php <?php echo klytos_esc_html($cliPath); ?> cron:run --token=<?php echo klytos_esc_attr($cronToken); ?></div>
+            <div class="token-display" id="cronCli" style="margin-bottom:1rem;word-break:break-all"></div>
 
             <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
-                <button class="btn btn-outline btn-sm" onclick="copyText('cronCurl')">Copy HTTP</button>
-                <button class="btn btn-outline btn-sm" onclick="copyText('cronCli')">Copy CLI</button>
+                <button class="btn btn-outline btn-sm" id="copyCurl">Copy HTTP</button>
+                <button class="btn btn-outline btn-sm" id="copyCli">Copy CLI</button>
             </div>
         </div>
     </div>
@@ -174,7 +186,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="regenerate_token">
-                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Regenerate cron token? You will need to update the crontab on your server.')">
+                <button type="submit" class="btn btn-danger btn-sm" id="btnRegenToken">
                     Regenerate Token
                 </button>
             </form>
@@ -192,7 +204,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="toggle_fallback">
                 <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
-                    <input type="checkbox" name="fallback_enabled" value="1" <?php echo $fallbackEnabled ? 'checked' : ''; ?> onchange="this.form.submit()">
+                    <input type="checkbox" name="fallback_enabled" value="1" id="chkFallback" <?php echo $fallbackEnabled ? 'checked' : ''; ?>>
                     <span>Enable fallback pseudo-cron</span>
                 </label>
             </form>
@@ -233,7 +245,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <form method="post" style="display:inline">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="prune_completed">
-            <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Prune completed/failed/canceled actions older than 30 days?')">
+            <button type="submit" class="btn btn-outline btn-sm" id="btnPrune">
                 Prune Old Actions
             </button>
         </form>
@@ -364,6 +376,51 @@ function copyText(id) {
         document.body.removeChild(ta);
     }
 }
+
+// Cron interval selector
+var cronInterval = document.getElementById('cronInterval');
+var cronCurlEl   = document.getElementById('cronCurl');
+var cronCliEl    = document.getElementById('cronCli');
+var curlCmd      = <?php echo json_encode('curl -s "' . $siteUrl . '?route=cron&token=' . $cronToken . '" > /dev/null 2>&1'); ?>;
+var cliCmd       = <?php echo json_encode('php ' . $cliPath . ' cron:run --token=' . $cronToken); ?>;
+
+function cronSchedule(minutes) {
+    if (minutes <= 1)  return '* * * * *';
+    if (minutes === 60) return '0 * * * *';
+    return '*/' + minutes + ' * * * *';
+}
+
+function updateCronCommands() {
+    var mins     = parseInt(cronInterval.value, 10);
+    var schedule = cronSchedule(mins);
+    cronCurlEl.textContent = schedule + ' ' + curlCmd;
+    cronCliEl.textContent  = schedule + ' ' + cliCmd;
+}
+
+if (cronInterval) {
+    cronInterval.addEventListener('change', updateCronCommands);
+    updateCronCommands();
+}
+
+// Copy buttons
+var copyCurl = document.getElementById('copyCurl');
+if (copyCurl) copyCurl.addEventListener('click', function() { copyText('cronCurl'); });
+var copyCli = document.getElementById('copyCli');
+if (copyCli) copyCli.addEventListener('click', function() { copyText('cronCli'); });
+
+// Confirm dialogs
+var btnRegen = document.getElementById('btnRegenToken');
+if (btnRegen) btnRegen.addEventListener('click', function(e) {
+    if (!confirm('Regenerate cron token? You will need to update the crontab on your server.')) e.preventDefault();
+});
+var btnPrune = document.getElementById('btnPrune');
+if (btnPrune) btnPrune.addEventListener('click', function(e) {
+    if (!confirm('Prune completed/failed/canceled actions older than 30 days?')) e.preventDefault();
+});
+
+// Fallback checkbox auto-submit
+var chkFallback = document.getElementById('chkFallback');
+if (chkFallback) chkFallback.addEventListener('change', function() { this.form.submit(); });
 </script>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
