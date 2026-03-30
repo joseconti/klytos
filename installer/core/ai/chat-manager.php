@@ -217,6 +217,63 @@ class ChatManager
         ];
     }
 
+    /**
+     * Search conversations by title and message content.
+     *
+     * @param  int    $userId User ID.
+     * @param  string $query  Search term.
+     * @param  int    $limit  Maximum results.
+     * @return array  Matching conversations (without full message history).
+     */
+    public function searchChats(int $userId, string $query, int $limit = 30): array
+    {
+        $this->ensureTables();
+
+        if (empty(trim($query))) {
+            return [];
+        }
+
+        $all     = $this->storage->list(self::COLLECTION, ['user_id' => $userId], 0, 0);
+        $queryLc = mb_strtolower(trim($query));
+        $results = [];
+
+        foreach ($all as $chat) {
+            if (count($results) >= $limit) {
+                break;
+            }
+
+            $found = false;
+
+            // Search in title.
+            if (!empty($chat['title']) && mb_strpos(mb_strtolower($chat['title']), $queryLc) !== false) {
+                $found = true;
+            }
+
+            // Search in message content.
+            if (!$found) {
+                foreach ($chat['messages'] ?? [] as $msg) {
+                    $content = $msg['content'] ?? '';
+                    if (is_string($content) && mb_strpos(mb_strtolower($content), $queryLc) !== false) {
+                        $found = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($found) {
+                $messageCount = count($chat['messages'] ?? []);
+                unset($chat['messages']);
+                $chat['message_count'] = $messageCount;
+                $results[] = $chat;
+            }
+        }
+
+        // Sort by updated_at descending.
+        usort($results, fn(array $a, array $b) => strcmp($b['updated_at'] ?? '', $a['updated_at'] ?? ''));
+
+        return $results;
+    }
+
     // ─── Private ─────────────────────────────────────────────────
 
     /**

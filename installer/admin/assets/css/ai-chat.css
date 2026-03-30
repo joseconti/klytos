@@ -134,6 +134,39 @@ body:has(#ai-chat-app) {
     font-size: 0.85rem;
 }
 
+/* Search Box */
+.ai-chat-search-box {
+    padding: 0.35rem 0.75rem 0.25rem;
+}
+
+.ai-chat-search-input {
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    background: var(--chat-surface);
+    color: var(--chat-text);
+    border: 1px solid var(--chat-border);
+    border-radius: var(--chat-radius-xs);
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.ai-chat-search-input:focus {
+    border-color: var(--chat-input-border);
+}
+
+.ai-chat-search-input::placeholder {
+    color: var(--chat-text-dim);
+}
+
+.ai-chat-search-empty {
+    padding: 1rem 0.65rem;
+    color: var(--chat-text-dim);
+    font-size: 0.82rem;
+    text-align: center;
+}
+
 /* Sidebar Label */
 .ai-chat-sidebar-label {
     padding: 0.75rem 0.85rem 0.35rem;

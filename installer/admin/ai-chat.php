@@ -92,7 +92,8 @@ $providerOptions = ob_get_clean();
      class="ai-chat-page-wrap"
      data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
      data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>"
-     data-username="<?php echo klytos_esc_attr($username); ?>">
+     data-username="<?php echo klytos_esc_attr($username); ?>"
+     data-no-results="<?php echo klytos_esc_attr(__('ai_chat.no_results')); ?>">
 
         <!-- ─── Sidebar ──────────────────────────────────────────── -->
         <div class="ai-chat-sidebar">
@@ -105,17 +106,23 @@ $providerOptions = ob_get_clean();
 
             <div class="ai-chat-sidebar-section">
                 <div class="ai-chat-sidebar-nav">
-                    <button class="ai-chat-nav-item" disabled>
+                    <button class="ai-chat-nav-item" id="ai-chat-search-toggle">
                         <i class="fa-solid fa-magnifying-glass"></i>
                         <?php echo klytos_esc_html(__('ai_chat.search')); ?>
                     </button>
-                    <a class="ai-chat-nav-item active" href="#">
+                    <button class="ai-chat-nav-item active" id="ai-chat-chats-toggle">
                         <i class="fa-regular fa-message"></i>
                         <?php echo klytos_esc_html(__('ai_chat.chats')); ?>
-                    </a>
+                    </button>
                 </div>
 
-                <div class="ai-chat-sidebar-label"><?php echo klytos_esc_html(__('ai_chat.recent')); ?></div>
+                <div class="ai-chat-search-box" id="ai-chat-search-box" style="display:none;">
+                    <input type="text" class="ai-chat-search-input" id="ai-chat-search-input"
+                           placeholder="<?php echo klytos_esc_attr(__('ai_chat.search_placeholder')); ?>"
+                           autocomplete="off">
+                </div>
+
+                <div class="ai-chat-sidebar-label" id="ai-chat-sidebar-label"><?php echo klytos_esc_html(__('ai_chat.recent')); ?></div>
                 <div class="ai-chat-list"></div>
             </div>
 

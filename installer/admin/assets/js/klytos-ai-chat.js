@@ -27,6 +27,11 @@
             // Cache DOM elements — Sidebar
             this.el.chatList = container.querySelector('.ai-chat-list');
             this.el.newBtn = container.querySelector('.ai-chat-new-btn');
+            this.el.searchToggle = document.getElementById('ai-chat-search-toggle');
+            this.el.chatsToggle = document.getElementById('ai-chat-chats-toggle');
+            this.el.searchBox = document.getElementById('ai-chat-search-box');
+            this.el.searchInput = document.getElementById('ai-chat-search-input');
+            this.el.sidebarLabel = document.getElementById('ai-chat-sidebar-label');
 
             // Cache DOM elements — Welcome
             this.el.welcome = document.getElementById('ai-chat-welcome');
@@ -74,6 +79,19 @@
             // Events — Sidebar
             if (this.el.newBtn) {
                 this.el.newBtn.addEventListener('click', () => this.newConversation());
+            }
+            if (this.el.searchToggle) {
+                this.el.searchToggle.addEventListener('click', () => this.openSearch());
+            }
+            if (this.el.chatsToggle) {
+                this.el.chatsToggle.addEventListener('click', () => this.closeSearch());
+            }
+            if (this.el.searchInput) {
+                let debounce = null;
+                this.el.searchInput.addEventListener('input', () => {
+                    clearTimeout(debounce);
+                    debounce = setTimeout(() => this.performSearch(), 300);
+                });
             }
 
             // Sync provider selects
@@ -224,6 +242,53 @@
         async newConversation() {
             this.chatId = null;
             this.showWelcome();
+        },
+
+        // ─── Search ─────────────────────────────────────────────
+
+        openSearch() {
+            if (this.el.searchBox) this.el.searchBox.style.display = '';
+            if (this.el.sidebarLabel) this.el.sidebarLabel.style.display = 'none';
+            if (this.el.searchToggle) this.el.searchToggle.classList.add('active');
+            if (this.el.chatsToggle) this.el.chatsToggle.classList.remove('active');
+            if (this.el.searchInput) {
+                this.el.searchInput.value = '';
+                this.el.searchInput.focus();
+            }
+            this.el.chatList.innerHTML = '';
+        },
+
+        closeSearch() {
+            if (this.el.searchBox) this.el.searchBox.style.display = 'none';
+            if (this.el.sidebarLabel) this.el.sidebarLabel.style.display = '';
+            if (this.el.searchToggle) this.el.searchToggle.classList.remove('active');
+            if (this.el.chatsToggle) this.el.chatsToggle.classList.add('active');
+            if (this.el.searchInput) this.el.searchInput.value = '';
+            this.loadConversations();
+        },
+
+        async performSearch() {
+            const query = this.el.searchInput ? this.el.searchInput.value.trim() : '';
+            if (!query) {
+                this.el.chatList.innerHTML = '';
+                return;
+            }
+
+            const result = await this.api('search_chats', { q: query }, 'GET');
+            if (!result.success) return;
+
+            this.el.chatList.innerHTML = '';
+            const chats = result.chats || [];
+            if (chats.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'ai-chat-search-empty';
+                empty.textContent = this.el.container.dataset.noResults || 'No results found';
+                this.el.chatList.appendChild(empty);
+                return;
+            }
+            for (const chat of chats) {
+                this.renderChatItem(chat);
+            }
         },
 
         async deleteConversation(chatId, itemEl) {
@@ -501,9 +566,21 @@
         // Init popup menu first (works on all pages including panels)
         initPopupMenu();
 
-        // Init chat only when not in a panel view
         const container = document.getElementById('ai-chat-app');
-        if (container && !container.querySelector('.ai-chat-panel')) {
+        if (!container) return;
+
+        if (container.querySelector('.ai-chat-panel')) {
+            // Panel view — sidebar buttons navigate back to chat
+            const chatUrl = location.pathname.split('?')[0];
+            const newBtn = container.querySelector('.ai-chat-new-btn');
+            if (newBtn) {
+                newBtn.addEventListener('click', () => { location.href = chatUrl; });
+            }
+            const chatsLink = container.querySelector('.ai-chat-nav-item[href="#"]');
+            if (chatsLink) {
+                chatsLink.addEventListener('click', (e) => { e.preventDefault(); location.href = chatUrl; });
+            }
+        } else {
             Chat.init(container);
         }
     });

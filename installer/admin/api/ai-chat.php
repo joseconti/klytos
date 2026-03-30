@@ -79,6 +79,17 @@ try {
 
             Helpers::jsonResponse(['success' => true, 'chat' => $chat]);
 
+        } elseif ($action === 'search_chats') {
+            $query = trim($_GET['q'] ?? '');
+            if (empty($query)) {
+                Helpers::jsonResponse(['success' => true, 'chats' => []]);
+            }
+
+            $limit = (int) ($_GET['limit'] ?? 30);
+            $chats = $chatManager->searchChats($userId, $query, $limit);
+
+            Helpers::jsonResponse(['success' => true, 'chats' => $chats]);
+
         } elseif ($action === 'get_providers') {
             Helpers::jsonResponse([
                 'success'   => true,

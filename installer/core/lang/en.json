@@ -369,6 +369,8 @@
     "search": "Search",
     "chats": "Chats",
     "recent": "Recent",
+    "search_placeholder": "Search conversations...",
+    "no_results": "No results found",
     "welcome_placeholder": "How can I help you today?",
     "dashboard": "Dashboard",
     "settings": "Settings",
