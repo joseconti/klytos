@@ -11,7 +11,7 @@
  *   75 = MCP, 80 = Settings, 85-89 = Plugin items, 90 = Plugins, 98 = Updates.
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.
@@ -363,9 +363,15 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
                 <i class="fa-solid fa-robot"></i>
                 <?php echo klytos_esc_html(__( 'ai_chat.ai_mode' )); ?>
             </a>
-            <span style="font-size:0.85rem;color:var(--admin-text-muted);">
-                <?php echo klytos_esc_html( $app->getAuth()->getUsername() ); ?>
-            </span>
+            <?php
+                $currentUser  = klytos_current_user();
+                $displayLabel = !empty($currentUser['display_name']) && ($currentUser['display_name'] ?? '') !== ($currentUser['username'] ?? '')
+                    ? $currentUser['display_name']
+                    : $app->getAuth()->getUsername();
+            ?>
+            <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" style="font-size:0.85rem;color:var(--admin-text-muted);text-decoration:none;">
+                <?php echo klytos_esc_html( $displayLabel ); ?>
+            </a>
             <a href="<?php echo $adminPath; ?>logout.php" class="btn btn-outline btn-sm">
                 <?php echo __( 'auth.logout' ); ?>
             </a>

@@ -246,7 +246,7 @@ plugins/
   "description": "Copias de seguridad automáticas en Dropbox, Google Drive y OneDrive",
   "version": "1.0.0",
   "author": "José Conti",
-  "author_url": "https://joseconti.com",
+  "author_url": "https://plugins.joseconti.com",
   "premium": true,
   "item_name": "Klytos Cloud Backup",
   "requires_klytos": "2.0.0",

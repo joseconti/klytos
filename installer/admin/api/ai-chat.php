@@ -23,7 +23,7 @@
  * @since   0.9.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.
@@ -78,6 +78,17 @@ try {
             }
 
             Helpers::jsonResponse(['success' => true, 'chat' => $chat]);
+
+        } elseif ($action === 'search_chats') {
+            $query = trim($_GET['q'] ?? '');
+            if (empty($query)) {
+                Helpers::jsonResponse(['success' => true, 'chats' => []]);
+            }
+
+            $limit = (int) ($_GET['limit'] ?? 30);
+            $chats = $chatManager->searchChats($userId, $query, $limit);
+
+            Helpers::jsonResponse(['success' => true, 'chats' => $chats]);
 
         } elseif ($action === 'get_providers') {
             Helpers::jsonResponse([

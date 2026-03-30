@@ -7,7 +7,7 @@
  * @since   1.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
- * @copyright  Copyright (c) 2025 José Conti — https://joseconti.com
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  *             You may use this software under the Elastic License 2.0.
  *             You may NOT provide it as a hosted/managed service.
  *             You may NOT remove or circumvent plugin license key functionality.
@@ -263,6 +263,24 @@ class Auth
             return false;
         }
 
+        // Check force_logout_at (throttled to once per 60 seconds).
+        $userId = $_SESSION['klytos_user_id'] ?? null;
+        $lastForceCheck = $_SESSION['klytos_last_force_check'] ?? 0;
+
+        if ($userId && (time() - $lastForceCheck) > 60) {
+            $_SESSION['klytos_last_force_check'] = time();
+            try {
+                $user = $this->storage->read('users', $userId);
+                $forceAt = $user['force_logout_at'] ?? null;
+                if ($forceAt && ($_SESSION['klytos_login_time'] ?? 0) < strtotime($forceAt)) {
+                    $this->logout();
+                    return false;
+                }
+            } catch (\RuntimeException $e) {
+                // User not found in storage — ignore.
+            }
+        }
+
         // Update last activity
         $_SESSION['klytos_last_active'] = time();
 
@@ -303,6 +321,16 @@ class Auth
     public function getUsername(): string
     {
         return $_SESSION['klytos_user'] ?? '';
+    }
+
+    /**
+     * Get the currently logged-in user ID.
+     *
+     * @return string|null
+     */
+    public function getUserId(): ?string
+    {
+        return $_SESSION['klytos_user_id'] ?? null;
     }
 
     // ─── MCP Bearer Token Auth ─────────────────────────────────

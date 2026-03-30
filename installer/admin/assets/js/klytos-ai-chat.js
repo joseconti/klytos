@@ -27,6 +27,11 @@
             // Cache DOM elements — Sidebar
             this.el.chatList = container.querySelector('.ai-chat-list');
             this.el.newBtn = container.querySelector('.ai-chat-new-btn');
+            this.el.searchToggle = document.getElementById('ai-chat-search-toggle');
+            this.el.chatsToggle = document.getElementById('ai-chat-chats-toggle');
+            this.el.searchBox = document.getElementById('ai-chat-search-box');
+            this.el.searchInput = document.getElementById('ai-chat-search-input');
+            this.el.sidebarLabel = document.getElementById('ai-chat-sidebar-label');
 
             // Cache DOM elements — Welcome
             this.el.welcome = document.getElementById('ai-chat-welcome');
@@ -42,6 +47,12 @@
             this.el.providerSelect = container.querySelector('#ai-provider-select');
             this.el.providerSelectWelcome = container.querySelector('#ai-provider-select-welcome');
             this.el.usage = container.querySelector('.ai-chat-usage');
+
+            // Cache DOM elements — Chats Browser
+            this.el.browser = document.getElementById('ai-chat-browser');
+            this.el.browserList = document.getElementById('ai-chat-browser-list');
+            this.el.browserNewBtn = document.getElementById('ai-chat-browser-new');
+            this.el.browserSearchInput = document.getElementById('ai-chat-browser-search-input');
 
             // Events — Chat View input
             if (this.el.sendBtn) {
@@ -75,6 +86,31 @@
             if (this.el.newBtn) {
                 this.el.newBtn.addEventListener('click', () => this.newConversation());
             }
+            if (this.el.searchToggle) {
+                this.el.searchToggle.addEventListener('click', () => this.openSearch());
+            }
+            if (this.el.chatsToggle) {
+                this.el.chatsToggle.addEventListener('click', () => this.showBrowser());
+            }
+            if (this.el.searchInput) {
+                let debounce = null;
+                this.el.searchInput.addEventListener('input', () => {
+                    clearTimeout(debounce);
+                    debounce = setTimeout(() => this.performSearch(), 300);
+                });
+            }
+
+            // Events — Chats Browser
+            if (this.el.browserNewBtn) {
+                this.el.browserNewBtn.addEventListener('click', () => this.newConversation());
+            }
+            if (this.el.browserSearchInput) {
+                let browserDebounce = null;
+                this.el.browserSearchInput.addEventListener('input', () => {
+                    clearTimeout(browserDebounce);
+                    browserDebounce = setTimeout(() => this.browserSearch(), 300);
+                });
+            }
 
             // Sync provider selects
             if (this.el.providerSelect && this.el.providerSelectWelcome) {
@@ -101,6 +137,7 @@
             this.inWelcome = true;
             if (this.el.welcome) this.el.welcome.style.display = '';
             if (this.el.chatView) this.el.chatView.style.display = 'none';
+            if (this.el.browser) this.el.browser.style.display = 'none';
             if (this.el.welcomeTextarea) {
                 this.el.welcomeTextarea.value = '';
                 this.el.welcomeTextarea.focus();
@@ -117,7 +154,17 @@
             this.inWelcome = false;
             if (this.el.welcome) this.el.welcome.style.display = 'none';
             if (this.el.chatView) this.el.chatView.style.display = '';
+            if (this.el.browser) this.el.browser.style.display = 'none';
             if (this.el.textarea) this.el.textarea.focus();
+        },
+
+        showBrowser() {
+            this.inWelcome = false;
+            if (this.el.welcome) this.el.welcome.style.display = 'none';
+            if (this.el.chatView) this.el.chatView.style.display = 'none';
+            if (this.el.browser) this.el.browser.style.display = '';
+            if (this.el.browserSearchInput) this.el.browserSearchInput.value = '';
+            this.loadBrowser();
         },
 
         buildGreeting() {
@@ -224,6 +271,128 @@
         async newConversation() {
             this.chatId = null;
             this.showWelcome();
+        },
+
+        // ─── Search ─────────────────────────────────────────────
+
+        openSearch() {
+            if (this.el.searchBox) this.el.searchBox.style.display = '';
+            if (this.el.sidebarLabel) this.el.sidebarLabel.style.display = 'none';
+            if (this.el.searchToggle) this.el.searchToggle.classList.add('active');
+            if (this.el.chatsToggle) this.el.chatsToggle.classList.remove('active');
+            if (this.el.searchInput) {
+                this.el.searchInput.value = '';
+                this.el.searchInput.focus();
+            }
+            this.el.chatList.innerHTML = '';
+        },
+
+        closeSearch() {
+            if (this.el.searchBox) this.el.searchBox.style.display = 'none';
+            if (this.el.sidebarLabel) this.el.sidebarLabel.style.display = '';
+            if (this.el.searchToggle) this.el.searchToggle.classList.remove('active');
+            if (this.el.chatsToggle) this.el.chatsToggle.classList.add('active');
+            if (this.el.searchInput) this.el.searchInput.value = '';
+            this.loadConversations();
+        },
+
+        async performSearch() {
+            const query = this.el.searchInput ? this.el.searchInput.value.trim() : '';
+            if (!query) {
+                this.el.chatList.innerHTML = '';
+                return;
+            }
+
+            const result = await this.api('search_chats', { q: query }, 'GET');
+            if (!result.success) return;
+
+            this.el.chatList.innerHTML = '';
+            const chats = result.chats || [];
+            if (chats.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'ai-chat-search-empty';
+                empty.textContent = this.el.container.dataset.noResults || 'No results found';
+                this.el.chatList.appendChild(empty);
+                return;
+            }
+            for (const chat of chats) {
+                this.renderChatItem(chat);
+            }
+        },
+
+        // ─── Chats Browser ──────────────────────────────────────
+
+        async loadBrowser() {
+            const result = await this.api('list_chats', { limit: 100 }, 'GET');
+            if (!result.success) return;
+            this.renderBrowserList(result.chats || []);
+        },
+
+        async browserSearch() {
+            const query = this.el.browserSearchInput ? this.el.browserSearchInput.value.trim() : '';
+            if (!query) {
+                this.loadBrowser();
+                return;
+            }
+            const result = await this.api('search_chats', { q: query }, 'GET');
+            if (!result.success) return;
+            this.renderBrowserList(result.chats || []);
+        },
+
+        renderBrowserList(chats) {
+            if (!this.el.browserList) return;
+            this.el.browserList.innerHTML = '';
+
+            if (chats.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'ai-chat-search-empty';
+                empty.textContent = this.el.container.dataset.noResults || 'No results found';
+                this.el.browserList.appendChild(empty);
+                return;
+            }
+
+            for (const chat of chats) {
+                this.renderBrowserItem(chat);
+            }
+        },
+
+        renderBrowserItem(chat) {
+            const item = document.createElement('div');
+            item.className = 'ai-chat-browser-item';
+            item.addEventListener('click', () => this.loadConversation(chat.id));
+
+            const title = document.createElement('div');
+            title.className = 'ai-chat-browser-item-title';
+            title.textContent = chat.title || 'New conversation';
+
+            const meta = document.createElement('div');
+            meta.className = 'ai-chat-browser-item-meta';
+            meta.textContent = this.formatRelativeTime(chat.updated_at);
+
+            item.appendChild(title);
+            item.appendChild(meta);
+            this.el.browserList.appendChild(item);
+        },
+
+        formatRelativeTime(isoDate) {
+            if (!isoDate) return '';
+            const now = new Date();
+            const date = new Date(isoDate);
+            const diffMs = now - date;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffH = Math.floor(diffMin / 60);
+            const diffD = Math.floor(diffH / 24);
+
+            const lang = document.documentElement.lang || 'en';
+            const isEs = lang.startsWith('es');
+
+            if (diffMin < 1) return isEs ? 'Ahora mismo' : 'Just now';
+            if (diffMin < 60) return isEs ? `Hace ${diffMin} min` : `${diffMin}m ago`;
+            if (diffH < 24) return isEs ? `Hace ${diffH}h` : `${diffH}h ago`;
+            if (diffD === 1) return isEs ? 'Ayer' : 'Yesterday';
+            if (diffD < 7) return isEs ? `Hace ${diffD} días` : `${diffD}d ago`;
+
+            return date.toLocaleDateString(lang, { day: 'numeric', month: 'short' });
         },
 
         async deleteConversation(chatId, itemEl) {
@@ -475,10 +644,47 @@
         },
     };
 
+    // ─── Popup Menu ────────────────────────────────────────
+    function initPopupMenu() {
+        const footer = document.getElementById('ai-chat-footer-toggle');
+        const popup = document.getElementById('ai-chat-popup-menu');
+        if (!footer || !popup) return;
+
+        footer.addEventListener('click', function (e) {
+            // Don't toggle if clicking a link inside the popup
+            if (e.target.closest('.ai-chat-popup-menu-item')) return;
+            e.stopPropagation();
+            popup.classList.toggle('open');
+        });
+
+        // Close popup when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!footer.contains(e.target)) {
+                popup.classList.remove('open');
+            }
+        });
+    }
+
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
+        // Init popup menu first (works on all pages including panels)
+        initPopupMenu();
+
         const container = document.getElementById('ai-chat-app');
-        if (container) {
+        if (!container) return;
+
+        if (container.querySelector('.ai-chat-panel')) {
+            // Panel view — sidebar buttons navigate back to chat
+            const chatUrl = location.pathname.split('?')[0];
+            const newBtn = container.querySelector('.ai-chat-new-btn');
+            if (newBtn) {
+                newBtn.addEventListener('click', () => { location.href = chatUrl; });
+            }
+            const chatsLink = container.querySelector('.ai-chat-nav-item[href="#"]');
+            if (chatsLink) {
+                chatsLink.addEventListener('click', (e) => { e.preventDefault(); location.href = chatUrl; });
+            }
+        } else {
             Chat.init(container);
         }
     });

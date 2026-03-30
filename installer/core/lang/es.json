@@ -369,7 +369,14 @@
     "search": "Buscar",
     "chats": "Chats",
     "recent": "Recientes",
-    "welcome_placeholder": "¿Cómo puedo ayudarle hoy?"
+    "search_placeholder": "Buscar conversaciones...",
+    "search_in_chats": "Buscar en tus chats...",
+    "your_conversations": "Tus conversaciones",
+    "no_results": "Sin resultados",
+    "welcome_placeholder": "¿Cómo puedo ayudarle hoy?",
+    "dashboard": "Panel de control",
+    "settings": "Ajustes",
+    "users": "Usuarios"
   },
   "ai_keys": {
     "title": "Conexion API IA",
