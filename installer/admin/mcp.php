@@ -562,17 +562,35 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Providers list -->
+<?php
+    $providerLogos = [
+        'anthropic'  => [ 'color' => 'claude-color.webp' ],
+        'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
+        'gemini'     => [ 'color' => 'gemini-color.webp' ],
+        'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
+    ];
+    $imgBase = \Klytos\Core\Helpers::getBasePath() . 'admin/assets/images/';
+?>
 <?php foreach ( $allAiProviders as $p ):
     $hasKey     = $aiKeys->hasKey( $p['id'] );
     $maskedKey  = $aiKeys->getMasked( $p['id'] );
     $isActive   = ( $aiActive['provider'] ?? '' ) === $p['id'];
+    $logo       = $providerLogos[ $p['id'] ] ?? null;
 ?>
 <div class="card" style="<?php echo $isActive ? 'border-left: 4px solid var(--admin-success);' : ''; ?>">
     <div class="card-header">
-        <h3>
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
             <span style="color: <?php echo $hasKey ? 'var(--admin-success)' : 'var(--admin-text-muted)'; ?>;">
                 <?php echo $hasKey ? '&#9679;' : '&#9675;'; ?>
             </span>
+            <?php if ( $logo ) : ?>
+                <?php if ( isset( $logo['color'] ) ) : ?>
+                    <img src="<?php echo klytos_esc_url( $imgBase . $logo['color'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo" style="height: 24px; width: auto;">
+                <?php else : ?>
+                    <img src="<?php echo klytos_esc_url( $imgBase . $logo['light'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo ai-logo-light" style="height: 24px; width: auto;">
+                    <img src="<?php echo klytos_esc_url( $imgBase . $logo['dark'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo ai-logo-dark" style="height: 24px; width: auto;">
+                <?php endif; ?>
+            <?php endif; ?>
             <?php echo klytos_esc_html( $p['name'] ); ?>
             <?php if ( $isActive ): ?>
                 <span class="badge-status badge-active" style="margin-left: 0.5rem;">Active</span>
@@ -661,11 +679,25 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- Get API key links -->
 <div class="card">
     <h3 style="margin-bottom: 0.75rem;"><?php echo klytos_esc_html( __( 'ai_keys.get_key' ) ); ?></h3>
-    <ul style="list-style: disc; padding-left: 1.5rem; font-size: 0.9rem;">
-        <li><strong>Anthropic:</strong> console.anthropic.com</li>
-        <li><strong>OpenAI:</strong> platform.openai.com</li>
-        <li><strong>Google:</strong> aistudio.google.com</li>
-        <li><strong>OpenRouter:</strong> openrouter.ai</li>
+    <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">
+        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <img src="<?php echo klytos_esc_url( $imgBase . 'claude-color.webp' ); ?>" alt="Anthropic" class="ai-provider-logo" style="height: 18px; width: auto;">
+            <strong>Anthropic:</strong> console.anthropic.com
+        </li>
+        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <img src="<?php echo klytos_esc_url( $imgBase . 'openai-black.webp' ); ?>" alt="OpenAI" class="ai-provider-logo ai-logo-light" style="height: 18px; width: auto;">
+            <img src="<?php echo klytos_esc_url( $imgBase . 'openai-white.webp' ); ?>" alt="OpenAI" class="ai-provider-logo ai-logo-dark" style="height: 18px; width: auto;">
+            <strong>OpenAI:</strong> platform.openai.com
+        </li>
+        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <img src="<?php echo klytos_esc_url( $imgBase . 'gemini-color.webp' ); ?>" alt="Google Gemini" class="ai-provider-logo" style="height: 18px; width: auto;">
+            <strong>Google:</strong> aistudio.google.com
+        </li>
+        <li style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <img src="<?php echo klytos_esc_url( $imgBase . 'openrouter-black.webp' ); ?>" alt="OpenRouter" class="ai-provider-logo ai-logo-light" style="height: 18px; width: auto;">
+            <img src="<?php echo klytos_esc_url( $imgBase . 'openrouter-white.webp' ); ?>" alt="OpenRouter" class="ai-provider-logo ai-logo-dark" style="height: 18px; width: auto;">
+            <strong>OpenRouter:</strong> openrouter.ai
+        </li>
     </ul>
 </div>
 

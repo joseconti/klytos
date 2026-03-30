@@ -23,6 +23,8 @@
             this.el.container = container;
             this.csrf = container.dataset.csrf || '';
             this.apiUrl = container.dataset.apiUrl || 'api/ai-chat.php';
+            this.imgBase = container.dataset.imgBase || '';
+            this.providerLogos = JSON.parse(container.dataset.providerLogos || '{}');
 
             // Cache DOM elements — Sidebar
             this.el.chatList = container.querySelector('.ai-chat-list');
@@ -46,6 +48,8 @@
             this.el.sendBtn = container.querySelector('.ai-chat-input .ai-chat-send-btn');
             this.el.providerSelect = container.querySelector('#ai-provider-select');
             this.el.providerSelectWelcome = container.querySelector('#ai-provider-select-welcome');
+            this.el.providerLogo = document.getElementById('ai-chat-provider-logo');
+            this.el.providerLogoWelcome = document.getElementById('ai-chat-provider-logo-welcome');
             this.el.usage = container.querySelector('.ai-chat-usage');
 
             // Cache DOM elements — Chats Browser
@@ -116,12 +120,17 @@
             if (this.el.providerSelect && this.el.providerSelectWelcome) {
                 this.el.providerSelectWelcome.addEventListener('change', () => {
                     this.el.providerSelect.value = this.el.providerSelectWelcome.value;
+                    this.updateProviderLogo();
                 });
                 this.el.providerSelect.addEventListener('change', () => {
                     this.el.providerSelectWelcome.value = this.el.providerSelect.value;
+                    this.updateProviderLogo();
                     this.switchProvider();
                 });
             }
+
+            // Set initial provider logo
+            this.updateProviderLogo();
 
             // Build greeting and show welcome
             this.buildGreeting();
@@ -484,6 +493,32 @@
             this.scrollToBottom();
         },
 
+        // ─── Provider Logo ──────────────────────────────────────
+
+        updateProviderLogo() {
+            const select = this.el.providerSelect || this.el.providerSelectWelcome;
+            if (!select) return;
+
+            const val = select.value || '';
+            const provider = val.split('|')[0];
+            const logos = this.providerLogos[provider];
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+            [this.el.providerLogo, this.el.providerLogoWelcome].forEach(img => {
+                if (!img) return;
+                if (!logos) {
+                    img.style.display = 'none';
+                    return;
+                }
+                if (logos.color) {
+                    img.src = this.imgBase + logos.color;
+                } else {
+                    img.src = this.imgBase + (isDark ? logos.dark : logos.light);
+                }
+                img.style.display = 'inline';
+            });
+        },
+
         // ─── Provider Switching ─────────────────────────────────
 
         async switchProvider() {
@@ -602,7 +637,23 @@
         appendProviderChange(text) {
             const div = document.createElement('div');
             div.className = 'ai-provider-change';
-            div.textContent = text;
+
+            // Extract provider from selected value and add logo
+            const select = this.el.providerSelect;
+            if (select) {
+                const provider = (select.value || '').split('|')[0];
+                const logos = this.providerLogos[provider];
+                if (logos) {
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    const img = document.createElement('img');
+                    img.className = 'ai-provider-change-logo';
+                    img.style.cssText = 'height: 16px; width: auto; vertical-align: middle; margin-right: 0.35rem;';
+                    img.src = this.imgBase + (logos.color || (isDark ? logos.dark : logos.light));
+                    div.appendChild(img);
+                }
+            }
+
+            div.appendChild(document.createTextNode(text));
             this.el.messages.appendChild(div);
         },
 

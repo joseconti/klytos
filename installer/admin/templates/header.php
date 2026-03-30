@@ -97,6 +97,13 @@ $version   = $app->getVersion();
         [data-theme="dark"] .btn-outline:hover { background: #334155; }
         [data-theme="dark"] .sidebar-brand { border-bottom-color: rgba(255,255,255,0.05); }
         [data-theme="dark"] tr:hover td { background: rgba(255,255,255,0.03); }
+
+        /* AI provider logos — theme-aware visibility */
+        .ai-logo-dark  { display: none; }
+        .ai-logo-light { display: inline; }
+        [data-theme="dark"] .ai-logo-dark  { display: inline; }
+        [data-theme="dark"] .ai-logo-light { display: none; }
+
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif; background: var(--admin-bg); color: var(--admin-text); line-height: 1.5; }
         a { color: var(--admin-primary); text-decoration: none; }
         a:hover { text-decoration: underline; }

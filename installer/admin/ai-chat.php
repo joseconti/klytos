@@ -57,6 +57,16 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <link rel="stylesheet" href="<?php echo klytos_esc_url($basePath . 'admin/assets/css/ai-chat.css'); ?>">
 
+<?php
+    $providerLogos = [
+        'anthropic'  => [ 'color' => 'claude-color.webp' ],
+        'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
+        'gemini'     => [ 'color' => 'gemini-color.webp' ],
+        'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
+    ];
+    $imgBase = $basePath . 'admin/assets/images/';
+?>
+
 <style>
     .admin-sidebar  { display: none !important; }
     .admin-topbar   { display: none !important; }
@@ -96,7 +106,9 @@ $providerOptions = ob_get_clean();
      data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
      data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>"
      data-username="<?php echo klytos_esc_attr($username); ?>"
-     data-no-results="<?php echo klytos_esc_attr(__('ai_chat.no_results')); ?>">
+     data-no-results="<?php echo klytos_esc_attr(__('ai_chat.no_results')); ?>"
+     data-img-base="<?php echo klytos_esc_url($imgBase); ?>"
+     data-provider-logos="<?php echo klytos_esc_attr(json_encode($providerLogos)); ?>">
 
         <!-- ─── Sidebar ──────────────────────────────────────────── -->
         <div class="ai-chat-sidebar">
@@ -192,6 +204,7 @@ $providerOptions = ob_get_clean();
                                       placeholder="<?php echo klytos_esc_attr(__('ai_chat.welcome_placeholder')); ?>"></textarea>
                             <div class="ai-chat-welcome-actions">
                                 <div class="ai-chat-model-select">
+                                    <img class="ai-chat-provider-logo" id="ai-chat-provider-logo-welcome" src="" alt="" style="height: 20px; width: auto; display: none;">
                                     <select id="ai-provider-select-welcome">
                                         <?php echo $providerOptions; ?>
                                     </select>
@@ -221,6 +234,7 @@ $providerOptions = ob_get_clean();
                 <div class="ai-chat-view" id="ai-chat-view" style="display:none;">
                     <div class="ai-chat-view-topbar">
                         <div class="ai-chat-model-select">
+                            <img class="ai-chat-provider-logo" id="ai-chat-provider-logo" src="" alt="" style="height: 20px; width: auto; display: none;">
                             <select id="ai-provider-select">
                                 <?php echo $providerOptions; ?>
                             </select>
