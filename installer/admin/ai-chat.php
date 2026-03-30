@@ -156,6 +156,26 @@ $providerOptions = ob_get_clean();
                 <?php require_once __DIR__ . '/partials/ai-panel-' . $panel . '.php'; ?>
             <?php else: ?>
 
+                <!-- Chats Browser (hidden by default) -->
+                <div class="ai-chat-browser" id="ai-chat-browser" style="display:none;">
+                    <div class="ai-chat-browser-header">
+                        <h1><?php echo klytos_esc_html(__('ai_chat.chats')); ?></h1>
+                        <button class="ai-chat-browser-new-btn" id="ai-chat-browser-new">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="ai-chat-browser-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="ai-chat-browser-search-input"
+                               placeholder="<?php echo klytos_esc_attr(__('ai_chat.search_in_chats')); ?>"
+                               autocomplete="off">
+                    </div>
+                    <div class="ai-chat-browser-label">
+                        <?php echo klytos_esc_html(__('ai_chat.your_conversations')); ?>
+                    </div>
+                    <div class="ai-chat-browser-list" id="ai-chat-browser-list"></div>
+                </div>
+
                 <!-- Welcome Screen -->
                 <div class="ai-chat-welcome" id="ai-chat-welcome"<?php echo (!$hasProvider) ? ' style="display:none;"' : ''; ?>>
                     <div class="ai-chat-welcome-inner">

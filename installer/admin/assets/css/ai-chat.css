@@ -289,6 +289,128 @@ body:has(#ai-chat-app) {
     background: var(--chat-bg);
 }
 
+/* ─── Chats Browser ──────────────────────────────────────── */
+.ai-chat-browser {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 1rem;
+    overflow-y: auto;
+}
+
+.ai-chat-browser-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.ai-chat-browser-header h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--chat-text);
+    margin: 0;
+}
+
+.ai-chat-browser-new-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--chat-border);
+    background: transparent;
+    color: var(--chat-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.ai-chat-browser-new-btn:hover {
+    background: var(--chat-surface);
+    border-color: var(--chat-input-border);
+}
+
+.ai-chat-browser-search {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.ai-chat-browser-search i {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--chat-text-dim);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+
+.ai-chat-browser-search input {
+    width: 100%;
+    padding: 0.7rem 0.9rem 0.7rem 2.4rem;
+    background: var(--chat-surface);
+    color: var(--chat-text);
+    border: 1px solid var(--chat-border);
+    border-radius: var(--chat-radius);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.ai-chat-browser-search input:focus {
+    border-color: var(--chat-accent);
+}
+
+.ai-chat-browser-search input::placeholder {
+    color: var(--chat-text-dim);
+}
+
+.ai-chat-browser-label {
+    font-size: 0.78rem;
+    color: var(--chat-text-muted);
+    padding: 0.25rem 0 0.5rem;
+}
+
+.ai-chat-browser-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.ai-chat-browser-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.85rem 0.5rem;
+    border-bottom: 1px solid var(--chat-border);
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: var(--chat-radius-xs);
+}
+
+.ai-chat-browser-item:hover {
+    background: var(--chat-surface);
+}
+
+.ai-chat-browser-item-title {
+    font-size: 0.92rem;
+    color: var(--chat-text);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-chat-browser-item-meta {
+    font-size: 0.78rem;
+    color: var(--chat-text-dim);
+}
+
 /* ─── Welcome Screen ──────────────────────────────────────── */
 .ai-chat-welcome {
     flex: 1;
