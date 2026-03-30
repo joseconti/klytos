@@ -18,5 +18,6 @@ document.querySelectorAll('.confirm-revoke-form').forEach(function(form) {
     });
 });
 </script>
+<script src="<?php echo $adminPath ?? ''; ?>assets/js/klytos-password.js" nonce="<?php echo $cspNonce ?? ''; ?>"></script>
 </body>
 </html>

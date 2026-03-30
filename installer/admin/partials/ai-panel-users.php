@@ -164,7 +164,7 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                     </div>
                     <div class="ai-panel-form-group">
                         <label>Password (min 12 characters)</label>
-                        <input type="password" name="password" class="ai-panel-form-control" required minlength="12">
+                        <input type="password" name="password" class="ai-panel-form-control" required minlength="12" data-klytos-pwgen data-klytos-pwgen-style="ai-panel">
                     </div>
                     <div class="ai-panel-form-group">
                         <label>Role</label>

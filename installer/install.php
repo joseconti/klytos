@@ -765,7 +765,8 @@ function getColorPreset(string $name): array
             <div class="form-group">
                 <label for="admin_pass">Password (min 12 characters)</label>
                 <input type="password" id="admin_pass" name="admin_pass"
-                       required minlength="12" autocomplete="new-password">
+                       required minlength="12" autocomplete="new-password"
+                       data-klytos-pwgen data-klytos-pwgen-confirm="#admin_pass_confirm">
             </div>
 
             <div class="form-group">
@@ -1101,5 +1102,6 @@ function getColorPreset(string $name): array
     <?php endif; ?>
 
 </div>
+<script src="admin/assets/js/klytos-password.js"></script>
 </body>
 </html>

@@ -219,7 +219,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
             <div class="form-group">
                 <label>Password (min 12 characters)</label>
-                <input type="password" name="password" class="form-control" required minlength="12">
+                <input type="password" name="password" class="form-control" required minlength="12" data-klytos-pwgen>
             </div>
 
             <div class="form-group">
