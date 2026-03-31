@@ -159,6 +159,9 @@ class App
     /** @var MetaManager|null Public Meta API manager. */
     private ?MetaManager $metaManager = null;
 
+    /** @var TemplateResolver|null Template resolution with 4-level hierarchy. */
+    private ?TemplateResolver $templateResolver = null;
+
     /** @var Ai\ChatEngine|null AI chat engine (lazy-loaded). */
     private ?Ai\ChatEngine $chatEngine = null;
 
@@ -308,6 +311,20 @@ class App
         // so deleting an entity deletes its meta too. No cleanup hook needed.
         $this->optionsManager = new OptionsManager($this->storage);
         $this->metaManager    = new MetaManager($this->storage);
+
+        // Step 10d: Initialize TemplateResolver (before plugins so they can register templates).
+        $this->templateResolver = new TemplateResolver($this);
+        // Lazy-create custom-templates/ for existing installations that upgraded.
+        Helpers::ensureWritableDir($this->rootPath . '/custom-templates');
+        Helpers::ensureWritableDir($this->rootPath . '/custom-templates/parts');
+
+        // Register listener to rebuild frontend assets when plugins change.
+        $appRef = $this;
+        Hooks::addAction('build.assets_changed', function () use ($appRef): void {
+            $buildEngine = new BuildEngine($appRef);
+            $buildEngine->buildHooksJs();
+            $buildEngine->buildPluginsCss();
+        });
 
         // Step 11: Discover and load active plugins.
         // Plugins register their hooks/filters in their init.php files.
@@ -565,6 +582,9 @@ class App
 
     /** Get the templates/ directory path. */
     public function getTemplatesPath(): string { return $this->templatesPath; }
+
+    /** Get the TemplateResolver instance. */
+    public function getTemplateResolver(): TemplateResolver { return $this->templateResolver; }
 
     /**
      * Get the base URL path (auto-detected from the HTTP request).

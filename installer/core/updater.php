@@ -766,8 +766,8 @@ class Updater
             }
         }
 
-        // Directories to backup (code only, never data).
-        $dirs = [ 'core', 'admin', 'templates' ];
+        // Directories to backup (code + user customizations).
+        $dirs = [ 'core', 'admin', 'templates', 'custom-templates' ];
         foreach ( $dirs as $dir ) {
             $src = $this->rootPath . '/' . $dir;
             if ( is_dir( $src ) ) {
