@@ -589,6 +589,7 @@ class UserManager
             'forms.manage'     => ['owner', 'admin'],
             'webhooks.manage'  => ['owner', 'admin'],
             'updates.manage'   => ['owner'],
+            'terminal.access'   => ['owner'],
         ];
 
         // Allow plugins to extend capabilities.

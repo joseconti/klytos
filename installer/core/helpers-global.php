@@ -366,6 +366,7 @@ function klytos_has_permission(string $permission): bool
         'forms.manage'    => ['owner', 'admin'],
         'webhooks.manage' => ['owner', 'admin'],
         'updates.manage'  => ['owner'],
+        'terminal.access'   => ['owner'],
     ];
 
     // Allow plugins to extend or modify capabilities.

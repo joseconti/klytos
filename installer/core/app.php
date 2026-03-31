@@ -165,6 +165,9 @@ class App
     /** @var Ai\ChatEngine|null AI chat engine (lazy-loaded). */
     private ?Ai\ChatEngine $chatEngine = null;
 
+    /** @var TerminalExecutor|null Pseudo-terminal command executor (lazy-loaded). */
+    private ?TerminalExecutor $terminalExecutor = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -532,6 +535,16 @@ class App
             $this->chatEngine = new Ai\ChatEngine($keys, $registry, $this);
         }
         return $this->chatEngine;
+    }
+
+    /** Get the terminal executor (lazy-loaded). */
+    public function getTerminalExecutor(): TerminalExecutor
+    {
+        if ($this->terminalExecutor === null) {
+            require_once $this->corePath . '/terminal-executor.php';
+            $this->terminalExecutor = new TerminalExecutor($this);
+        }
+        return $this->terminalExecutor;
     }
 
     /** Get the two-factor authentication manager. */

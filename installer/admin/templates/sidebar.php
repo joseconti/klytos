@@ -209,6 +209,20 @@ $sidebarItems = [
     ],
 ];
 
+// Terminal: only visible if user has 2FA active + terminal.access permission.
+$terminalUser = klytos_current_user();
+if ( ! empty( $terminalUser['two_factor']['enabled'] ) && klytos_has_permission( 'terminal.access' ) ) {
+    $sidebarItems[] = [
+        'id'         => 'terminal',
+        'title'      => 'Terminal',
+        'url'        => $adminPath . 'terminal.php',
+        'icon'       => 'fa-solid fa-terminal',
+        'position'   => 95,
+        'section'    => 'system',
+        'capability' => 'terminal.access',
+    ];
+}
+
 // Dynamic: add custom post types to the sidebar menu.
 // Each custom post type gets its own menu item with taxonomy children.
 try {
