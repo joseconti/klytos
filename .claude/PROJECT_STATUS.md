@@ -1,7 +1,16 @@
 # Klytos CMS — Estado del Proyecto
 
-> Última actualización: 2026-03-26
+> Última actualización: 2026-03-31
 > Repositorio: /Users/joseconti/Documents/GitHub/klytos
+
+## REGLA CRÍTICA: Skills Siempre Actualizados
+
+**OBLIGATORIO**: Cada vez que se añada, modifique o elimine funcionalidad en Klytos (core, plugins, MCP tools, admin, hooks, CSS, templates, APIs), se DEBE:
+1. **Actualizar** el SKILL existente afectado en `.claude/skills/`
+2. **Crear** un nuevo SKILL si la funcionalidad no está cubierta
+3. **Eliminar/modificar** el SKILL si se ha eliminado funcionalidad
+
+Los SKILLs son la documentación principal para que IAs y desarrolladores sepan cómo trabajar con Klytos. Si están desactualizados, las IAs generarán código incorrecto.
 
 ## Qué es Klytos
 

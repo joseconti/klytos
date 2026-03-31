@@ -28,7 +28,7 @@
  *   php cli.php status
  *
  * @package Klytos
- * @since   2.0.0
+ * @since   1.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
@@ -89,6 +89,7 @@ match ($command) {
     'status'       => cmdStatus($app),
     'version'      => cmdVersion($app),
     'cache:clear'  => cmdCacheClear($app),
+    'cron:run'     => cmdCronRun($app, $options),
     'help', '--help', '-h' => cmdHelp(),
     default        => cliError("Unknown command: {$command}. Run 'php cli.php help' for usage."),
 };
@@ -261,6 +262,36 @@ function cmdVersion(App $app): void
     echo "Klytos {$app->getVersion()}\n";
 }
 
+function cmdCronRun(App $app, array $options): void
+{
+    $token = $options['token'] ?? '';
+
+    if (empty($token)) {
+        cliError('Usage: php cli.php cron:run --token=<cron_token>');
+    }
+
+    $scheduler = $app->getActionScheduler();
+
+    if (!$scheduler->verifyCronToken($token)) {
+        cliError('Invalid cron token.');
+    }
+
+    cliInfo('Processing action scheduler queue...');
+    $results = $scheduler->processQueue();
+
+    $processed = $results['processed'] ?? 0;
+    $failed    = $results['failed'] ?? 0;
+
+    if ($failed > 0) {
+        cliWarning("Processed: {$processed}, Failed: {$failed}");
+        foreach ($results['errors'] as $id => $err) {
+            cliError("  - {$id}: {$err}");
+        }
+    } else {
+        cliSuccess("Queue processed: {$processed} actions executed.");
+    }
+}
+
 function cmdCacheClear(App $app): void
 {
     // Clear rate limit data.
@@ -300,6 +331,7 @@ function cmdHelp(): void
     status             System status overview
     version            Show version
     cache:clear        Clear caches
+    cron:run           Run scheduled actions (--token=<token>)
     help               This help message
 
   \033[33mExamples:\033[0m

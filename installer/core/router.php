@@ -55,6 +55,10 @@ class Router
                 $this->handleOAuthMetadata();
                 break;
 
+            case 'cron':
+                $this->handleCron();
+                break;
+
             case 'install':
                 $this->handleInstall();
                 break;
@@ -352,6 +356,47 @@ class Router
         }
 
         readfile($path);
+        exit;
+    }
+
+    /**
+     * Handle cron endpoint: process the action scheduler queue.
+     * Protected by a secret token passed as ?token= query parameter.
+     */
+    private function handleCron(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        // Validate cron token.
+        $token = $_GET['token'] ?? '';
+
+        if (empty($token)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Missing token.']);
+            exit;
+        }
+
+        $scheduler = $this->app->getActionScheduler();
+
+        if (!$scheduler->verifyCronToken($token)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Invalid token.']);
+            exit;
+        }
+
+        // Process the queue.
+        $results = $scheduler->processQueue();
+
+        // Find next due action.
+        $nextDue = null;
+        $pending = $scheduler->listActions(['status' => 'pending'], 1);
+        if (!empty($pending)) {
+            $nextDue = $pending[0]['scheduled_at'] ?? null;
+        }
+
+        $results['next_due'] = $nextDue;
+
+        echo json_encode($results);
         exit;
     }
 

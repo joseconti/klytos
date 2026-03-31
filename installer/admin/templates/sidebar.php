@@ -136,6 +136,15 @@ $sidebarItems = [
 
     // ── System section ──
     [
+        'id'         => 'scheduled-actions',
+        'title'      => 'Scheduled Actions',
+        'url'        => $adminPath . 'scheduled-actions.php',
+        'icon'       => 'fa-solid fa-clock',
+        'position'   => 63,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'webhooks',
         'title'      => 'Webhooks',
         'url'        => $adminPath . 'webhooks.php',

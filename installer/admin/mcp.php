@@ -8,7 +8,7 @@
  * 2. OAuth 2.0/2.1 (advanced) — For developers building integrations.
  *
  * @package Klytos
- * @since   2.0.0
+ * @since   1.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
@@ -562,17 +562,38 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Providers list -->
+<?php
+    $providerLogos = [
+        'anthropic'  => [ 'color' => 'claude-color.webp' ],
+        'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
+        'gemini'     => [ 'color' => 'gemini-color.webp' ],
+        'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
+    ];
+    $providerKeyUrls = [
+        'anthropic'  => 'https://console.anthropic.com',
+        'openai'     => 'https://platform.openai.com',
+        'gemini'     => 'https://aistudio.google.com',
+        'openrouter' => 'https://openrouter.ai',
+    ];
+    $imgBase = \Klytos\Core\Helpers::getBasePath() . 'admin/assets/images/';
+?>
 <?php foreach ( $allAiProviders as $p ):
     $hasKey     = $aiKeys->hasKey( $p['id'] );
     $maskedKey  = $aiKeys->getMasked( $p['id'] );
     $isActive   = ( $aiActive['provider'] ?? '' ) === $p['id'];
+    $logo       = $providerLogos[ $p['id'] ] ?? null;
 ?>
 <div class="card" style="<?php echo $isActive ? 'border-left: 4px solid var(--admin-success);' : ''; ?>">
     <div class="card-header">
-        <h3>
-            <span style="color: <?php echo $hasKey ? 'var(--admin-success)' : 'var(--admin-text-muted)'; ?>;">
-                <?php echo $hasKey ? '&#9679;' : '&#9675;'; ?>
-            </span>
+        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+            <?php if ( $logo ) : ?>
+                <?php if ( isset( $logo['color'] ) ) : ?>
+                    <img src="<?php echo klytos_esc_url( $imgBase . $logo['color'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo" style="height: 24px; width: auto;">
+                <?php else : ?>
+                    <img src="<?php echo klytos_esc_url( $imgBase . $logo['light'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo ai-logo-light" style="height: 24px; width: auto;">
+                    <img src="<?php echo klytos_esc_url( $imgBase . $logo['dark'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo ai-logo-dark" style="height: 24px; width: auto;">
+                <?php endif; ?>
+            <?php endif; ?>
             <?php echo klytos_esc_html( $p['name'] ); ?>
             <?php if ( $isActive ): ?>
                 <span class="badge-status badge-active" style="margin-left: 0.5rem;">Active</span>
@@ -606,6 +627,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     <?php else: ?>
         <!-- Configure key form -->
+        <?php if ( isset( $providerKeyUrls[ $p['id'] ] ) ) : ?>
+            <p style="margin-bottom: 0.75rem; font-size: 0.85rem;">
+                Get your API key at <a href="<?php echo klytos_esc_url( $providerKeyUrls[ $p['id'] ] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo klytos_esc_html( str_replace( 'https://', '', $providerKeyUrls[ $p['id'] ] ) ); ?> ↗</a>
+            </p>
+        <?php endif; ?>
         <form method="POST">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="save_ai_key">
@@ -656,17 +682,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- Privacy notice -->
 <div class="alert alert-info">
     <?php echo klytos_esc_html( __( 'ai_keys.privacy_notice' ) ); ?>
-</div>
-
-<!-- Get API key links -->
-<div class="card">
-    <h3 style="margin-bottom: 0.75rem;"><?php echo klytos_esc_html( __( 'ai_keys.get_key' ) ); ?></h3>
-    <ul style="list-style: disc; padding-left: 1.5rem; font-size: 0.9rem;">
-        <li><strong>Anthropic:</strong> console.anthropic.com</li>
-        <li><strong>OpenAI:</strong> platform.openai.com</li>
-        <li><strong>Google:</strong> aistudio.google.com</li>
-        <li><strong>OpenRouter:</strong> openrouter.ai</li>
-    </ul>
 </div>
 
 <?php endif; // end tab=api-ia ?>

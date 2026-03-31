@@ -200,7 +200,13 @@
     "smtp_none": "None (not recommended)",
     "email_test": "Send test email",
     "email_test_sent": "Test email sent to {email}.",
-    "email_test_failed": "Failed to send test email. Check your configuration."
+    "email_test_failed": "Failed to send test email. Check your configuration.",
+    "appearance_title": "Appearance",
+    "appearance_choose": "Admin panel theme",
+    "appearance_light": "Light",
+    "appearance_light_desc": "Classic light interface. Clean and bright, ideal for well-lit environments.",
+    "appearance_dark": "Dark",
+    "appearance_dark_desc": "Dark interface inspired by the installer. Reduces eye strain in low-light environments."
   },
   "assets": {
     "title": "Files",

@@ -13,7 +13,7 @@
  * so these functions are available in every plugin's init.php.
  *
  * @package Klytos
- * @since   2.0.0
+ * @since   1.0.0
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
@@ -569,4 +569,87 @@ function klytos_delete_meta(string $collection, string $entityId, string $key): 
 function klytos_get_all_meta(string $collection, string $entityId): array
 {
     return App::getInstance()->getMetaManager()->getAll($collection, $entityId);
+}
+
+// ─── Action Scheduler API ───────────────────────────────────
+// Schedule, cancel, and query scheduled actions.
+// Actions are executed by the server's native cron or the fallback pseudo-cron.
+
+/**
+ * Schedule a one-time action.
+ *
+ * @param  int    $timestamp Unix timestamp when the action should run.
+ * @param  string $hook      Hook name to fire on execution.
+ * @param  array  $args      Arguments passed to the hook callbacks.
+ * @param  string $group     Group name for organization (optional).
+ * @return string The action ID.
+ */
+function klytos_schedule_single_action(int $timestamp, string $hook, array $args = [], string $group = ''): string
+{
+    return App::getInstance()->getActionScheduler()->scheduleSingle($timestamp, $hook, $args, $group);
+}
+
+/**
+ * Schedule a recurring action.
+ *
+ * @param  int    $timestamp       Unix timestamp for the first run.
+ * @param  int    $intervalSeconds Seconds between recurring runs (minimum 60).
+ * @param  string $hook            Hook name to fire on execution.
+ * @param  array  $args            Arguments passed to the hook callbacks.
+ * @param  string $group           Group name for organization (optional).
+ * @return string The action ID.
+ */
+function klytos_schedule_recurring_action(int $timestamp, int $intervalSeconds, string $hook, array $args = [], string $group = ''): string
+{
+    return App::getInstance()->getActionScheduler()->scheduleRecurring($timestamp, $intervalSeconds, $hook, $args, $group);
+}
+
+/**
+ * Cancel a scheduled action by ID.
+ *
+ * @param  string $actionId Action ID.
+ * @return bool   True if the action was canceled.
+ */
+function klytos_cancel_scheduled_action(string $actionId): bool
+{
+    return App::getInstance()->getActionScheduler()->cancel($actionId);
+}
+
+/**
+ * Unschedule all pending actions for a hook.
+ *
+ * @param  string $hook  Hook name.
+ * @param  array  $args  Arguments to match (empty = any).
+ * @param  string $group Group to match (empty = any).
+ * @return int    Number of actions unscheduled.
+ */
+function klytos_unschedule_all_actions(string $hook, array $args = [], string $group = ''): int
+{
+    return App::getInstance()->getActionScheduler()->unscheduleAll($hook, $args, $group);
+}
+
+/**
+ * Get the Unix timestamp of the next scheduled action for a hook.
+ *
+ * @param  string   $hook  Hook name.
+ * @param  array    $args  Arguments to match (empty = any).
+ * @param  string   $group Group to match (empty = any).
+ * @return int|null Unix timestamp, or null if not scheduled.
+ */
+function klytos_next_scheduled_action(string $hook, array $args = [], string $group = ''): ?int
+{
+    return App::getInstance()->getActionScheduler()->nextScheduled($hook, $args, $group);
+}
+
+/**
+ * Check if an action is currently scheduled (pending) for a hook.
+ *
+ * @param  string $hook  Hook name.
+ * @param  array  $args  Arguments to match (empty = any).
+ * @param  string $group Group to match (empty = any).
+ * @return bool
+ */
+function klytos_is_scheduled_action(string $hook, array $args = [], string $group = ''): bool
+{
+    return App::getInstance()->getActionScheduler()->isScheduled($hook, $args, $group);
 }

@@ -89,6 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         }
         $app->getSiteConfig()->set(['languages' => $languages]);
         $success = __( 'common.success' );
+    } elseif ($section === 'appearance') {
+        $themeValue = $_POST['admin_theme'] ?? 'light';
+        if (!in_array($themeValue, ['light', 'dark'], true)) {
+            $themeValue = 'light';
+        }
+        $app->getSiteConfig()->set(['admin_theme' => $themeValue]);
+        $success = __('common.success');
     } elseif ($section === 'editor') {
         $editorValue = $_POST['editor'] ?? 'gutenberg';
         if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
@@ -296,6 +303,31 @@ function addLanguageRow() {
     list.appendChild(div);
 }
 </script>
+
+<!-- Appearance -->
+<div class="card">
+    <div class="card-header"><h3><?php echo __('settings.appearance_title'); ?></h3></div>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="section" value="appearance">
+        <div class="form-group">
+            <label><?php echo __('settings.appearance_choose'); ?></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
+                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['admin_theme'] ?? 'light') === 'light' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
+                    <input type="radio" name="admin_theme" value="light" <?php echo ($siteConfig['admin_theme'] ?? 'light') === 'light' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
+                    <strong><i class="fa-solid fa-sun" style="margin-right:0.25rem;"></i> <?php echo __('settings.appearance_light'); ?></strong>
+                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('settings.appearance_light_desc'); ?></p>
+                </label>
+                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['admin_theme'] ?? 'light') === 'dark' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
+                    <input type="radio" name="admin_theme" value="dark" <?php echo ($siteConfig['admin_theme'] ?? 'light') === 'dark' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
+                    <strong><i class="fa-solid fa-moon" style="margin-right:0.25rem;"></i> <?php echo __('settings.appearance_dark'); ?></strong>
+                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('settings.appearance_dark_desc'); ?></p>
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
+    </form>
+</div>
 
 <!-- Content Editor -->
 <div class="card">

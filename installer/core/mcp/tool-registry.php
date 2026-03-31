@@ -256,6 +256,7 @@ class ToolRegistry
             'page-template-tools.php',
             'analytics-tools.php',
             'webhook-tools.php',
+            'scheduler-tools.php',
             'plugin-tools.php',
             'guide-tools.php',
             'post-type-tools.php',
