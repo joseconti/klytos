@@ -238,6 +238,21 @@ function klytos_plugin_path(string $pluginId, string $path = ''): string
 }
 
 /**
+ * Get a plugin's parsed header data (name, version, author, etc.).
+ *
+ * Returns the merged manifest: PHP header fields + klytos-plugin.json extension fields.
+ * The PHP header is the canonical source for identity fields.
+ *
+ * @param  string $pluginId Plugin ID (directory name).
+ * @return array  Plugin data, or empty array if not found.
+ */
+function klytos_get_plugin_data(string $pluginId): array
+{
+    $manifest = App::getInstance()->getPluginLoader()->getManifest($pluginId);
+    return $manifest ?? [];
+}
+
+/**
  * Get the current Klytos version.
  *
  * @return string Semantic version (e.g. '0.4.2').

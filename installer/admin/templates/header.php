@@ -19,7 +19,9 @@ Auth::sendSecurityHeaders($cspNonce, $customCsp ?? null);
 $basePath    = Helpers::getBasePath();
 $adminPath   = $basePath . 'admin/';
 $pageTitle   = $pageTitle ?? __( 'dashboard.title' );
+$pageTitle   = Hooks::applyFilters('admin.page_title', $pageTitle);
 $adminTheme  = $app->getSiteConfig()->getValue('admin_theme', 'light');
+$adminTheme  = Hooks::applyFilters('admin.theme', $adminTheme);
 $version   = $app->getVersion();
 ?>
 <!DOCTYPE html>
@@ -28,8 +30,16 @@ $version   = $app->getVersion();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <?php Hooks::doAction('admin.head_meta', $cspNonce); ?>
     <title><?php echo klytos_esc_html( $pageTitle ); ?> — Klytos Admin</title>
     <link rel="stylesheet" href="<?php echo klytos_esc_url( Helpers::getBasePath() . 'admin/assets/vendor/fontawesome/css/all.min.css' ); ?>">
+    <?php
+    // Filter: plugins can add stylesheet URLs to this array.
+    $adminStylesheets = Hooks::applyFilters('admin.stylesheets', []);
+    foreach ($adminStylesheets as $stylesheetUrl) {
+        echo '<link rel="stylesheet" href="' . klytos_esc_url($stylesheetUrl) . '">' . "\n    ";
+    }
+    ?>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -355,6 +365,7 @@ $version   = $app->getVersion();
             .action-bar { flex-direction: column; gap: 0.75rem; align-items: stretch; }
         }
     </style>
+<?php Hooks::doAction('admin.head', $cspNonce); ?>
 </head>
 <body>
 <div class="admin-layout">

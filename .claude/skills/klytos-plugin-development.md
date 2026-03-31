@@ -12,12 +12,28 @@ Klytos is an **AI-First CMS** controlled via MCP (Model Context Protocol). Plugi
 
 **Key principle**: Every feature should be exposed as an MCP tool FIRST, admin UI second.
 
+## Plugin Identification (IMMUTABLE CONTRACT)
+
+A Klytos plugin is identified by a directory `plugins/{plugin-id}/` containing a PHP file named `{plugin-id}.php` with a `Plugin Name:` header in its docblock. This contract can NEVER change.
+
+### Minimum Viable Plugin
+
+```php
+<?php
+// plugins/hello-world/hello-world.php
+/**
+ * Plugin Name: Hello World
+ */
+```
+
+That's it. Klytos discovers it, lists it in admin, and allows activation.
+
 ## Plugin Structure
 
 ```
 plugins/{plugin-id}/
-├── klytos-plugin.json   ← REQUIRED: manifest with metadata
-├── init.php             ← REQUIRED: entry point, registers all hooks
+├── {plugin-id}.php      ← REQUIRED: identification + entry point (PHP header)
+├── klytos-plugin.json   ← OPTIONAL: extended metadata (admin_pages, mcp_tools, etc.)
 ├── install.php          ← Optional: runs on first activation
 ├── deactivate.php       ← Optional: runs on deactivation
 ├── uninstall.php        ← Optional: removes plugin data permanently
@@ -29,44 +45,68 @@ plugins/{plugin-id}/
 ├── lang/                ← Optional: translation files
 │   ├── en.json
 │   └── es.json
-└── src/                 ← Optional: PHP source classes
-    └── MyManager.php
+├── src/                 ← Optional: PHP source classes
+│   └── MyManager.php
+├── templates/           ← Optional: HTML templates
+└── migrations/          ← Optional: data migrations
 ```
 
-## Manifest (klytos-plugin.json)
+## PHP Header (Canonical Identity)
+
+The main PHP file MUST contain a docblock with at least `Plugin Name:`. All other fields are optional.
+
+```php
+<?php
+// plugins/my-plugin/my-plugin.php
+/**
+ * Plugin Name: My Plugin
+ * Plugin URI: https://example.com/my-plugin
+ * Description: What this plugin does.
+ * Version: 1.0.0
+ * Author: Author Name
+ * Author URI: https://example.com
+ * Requires Klytos: 0.15.0
+ * Requires PHP: 8.1
+ * License: ELv2
+ * Text Domain: my-plugin
+ * Premium: false
+ */
+```
+
+## Extended Manifest (klytos-plugin.json) — OPTIONAL
+
+For complex structured data that doesn't fit in a PHP header comment. The `id` field is NOT needed — it's derived from the directory name. Identity fields in the JSON are ignored (the PHP header is canonical).
 
 ```json
 {
-  "id": "my-plugin",
-  "name": "My Plugin",
-  "version": "1.0.0",
-  "description": "What this plugin does",
-  "author": "Author Name",
-  "author_url": "https://example.com",
-  "requires_klytos": "2.0.0",
-  "requires_php": "8.1",
-  "premium": false,
-  "item_name": "My Plugin",
   "permissions": ["pages.edit"],
-  "admin_page": {
-    "title": "My Plugin",
-    "icon": "P",
-    "position": 86,
-    "section": "system"
-  },
+  "admin_pages": [
+    {
+      "id": "my-plugin-settings",
+      "title": "My Plugin",
+      "icon": "P",
+      "position": 86,
+      "section": "system"
+    }
+  ],
   "mcp_tools": ["my_plugin_do_something"]
 }
 ```
 
-**IMPORTANT**: The `id` field MUST match the directory name exactly.
+## Main Plugin File — Entry Point
 
-## init.php — Entry Point
-
-This is where ALL hooks are registered. It runs every time Klytos loads (if the plugin is active).
+The `{plugin-id}.php` file is both the identification AND the entry point. All hooks are registered here. It runs every time Klytos loads (if the plugin is active).
 
 ```php
 <?php
-// plugins/my-plugin/init.php
+// plugins/my-plugin/my-plugin.php
+/**
+ * Plugin Name: My Plugin
+ * Version: 1.0.0
+ * Author: Author Name
+ * Requires Klytos: 0.15.0
+ * Requires PHP: 8.1
+ */
 
 // 1. Register admin sidebar menu item
 klytos_add_filter('admin.sidebar_items', function (array $items): array {
@@ -155,6 +195,7 @@ klytos_url($path)         → Full site URL
 klytos_admin_url($path)   → Full admin URL
 klytos_plugin_url($id, $path) → Public URL for plugin assets
 klytos_plugin_path($id, $path) → Filesystem path for plugin files
+klytos_get_plugin_data($id)   → Plugin header data (name, version, author, etc.)
 klytos_version()          → Current Klytos version
 klytos_is_admin()         → True if in admin context
 klytos_is_mcp()           → True if in MCP context

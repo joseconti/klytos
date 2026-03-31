@@ -393,32 +393,41 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
 </aside>
 
 <div class="admin-content">
+    <?php Hooks::doAction('admin.topbar_before'); ?>
     <div class="admin-topbar">
         <div style="display:flex;align-items:center;gap:0.75rem;">
             <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
+            <?php echo Hooks::applyFilters('admin.topbar_left', ''); ?>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
-            <a href="<?php echo klytos_esc_url($adminPath . 'ai-chat.php'); ?>" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">
-                <i class="fa-solid fa-robot"></i>
-                <?php echo klytos_esc_html(__( 'ai_chat.ai_mode' )); ?>
-            </a>
+            <?php
+            $aiButtonHtml = '<a href="' . klytos_esc_url($adminPath . 'ai-chat.php') . '" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">'
+                          . '<i class="fa-solid fa-robot"></i> '
+                          . klytos_esc_html(__( 'ai_chat.ai_mode' ))
+                          . '</a>';
+            echo Hooks::applyFilters('admin.topbar_ai_button', $aiButtonHtml);
+            ?>
+            <?php echo Hooks::applyFilters('admin.topbar_actions', ''); ?>
             <?php
                 $currentUser  = klytos_current_user();
                 $displayLabel = !empty($currentUser['display_name']) && ($currentUser['display_name'] ?? '') !== ($currentUser['username'] ?? '')
                     ? $currentUser['display_name']
                     : $app->getAuth()->getUsername();
+                $displayLabel = Hooks::applyFilters('admin.topbar_user_display', $displayLabel, $currentUser);
             ?>
             <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" style="font-size:0.85rem;color:var(--admin-text-muted);text-decoration:none;">
                 <?php echo klytos_esc_html( $displayLabel ); ?>
             </a>
+            <?php echo Hooks::applyFilters('admin.topbar_right', ''); ?>
             <a href="<?php echo $adminPath; ?>logout.php" class="btn btn-outline btn-sm">
                 <?php echo __( 'auth.logout' ); ?>
             </a>
         </div>
     </div>
+    <?php Hooks::doAction('admin.topbar_after'); ?>
     <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
     (function() {
         var sidebar  = document.getElementById('sidebar');
