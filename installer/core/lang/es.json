@@ -217,7 +217,11 @@
     "appearance_light": "Claro",
     "appearance_light_desc": "Interfaz clasica clara. Limpia y luminosa, ideal para entornos bien iluminados.",
     "appearance_dark": "Oscuro",
-    "appearance_dark_desc": "Interfaz oscura inspirada en el instalador. Reduce la fatiga visual en entornos con poca luz."
+    "appearance_dark_desc": "Interfaz oscura inspirada en el instalador. Reduce la fatiga visual en entornos con poca luz.",
+    "developer": "Desarrollador",
+    "developer_mode": "Activar modo desarrollador",
+    "developer_mode_help": "Activa el registro de logs y las herramientas de depuracion. Solo visible para owners y admins.",
+    "developer_mode_warning": "El modo desarrollador esta activo. Esto anade overhead a cada peticion. Desactivalo en produccion."
   },
   "assets": {
     "title": "Archivos",
@@ -428,7 +432,7 @@
     "file_deleted": "Archivo de log eliminado.",
     "all_deleted": "Todos los archivos de log eliminados.",
     "dev_mode_off_title": "Modo desarrollador desactivado",
-    "dev_mode_off_desc": "Los registros solo se generan cuando el modo desarrollador esta activo. Ve a Ajustes → Desarrollador para activarlo."
+    "dev_mode_off_desc": "Los registros solo se generan cuando el modo desarrollador esta activo. Ve a Configuración → Desarrollador para activarlo."
   },
   "plugins": {
     "enable_logs": "Activar Logs",

@@ -105,6 +105,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         }
         $app->getSiteConfig()->set(['editor' => $editorValue]);
         $success = __('common.success');
+    } elseif ($section === 'developer') {
+        $app->getSiteConfig()->set([
+            'developer' => [
+                'developer_mode' => (bool) ($_POST['developer_mode'] ?? false),
+            ],
+        ]);
+        $success = __( 'common.success' );
     } elseif ($section === 'ai') {
         $generator = new \Klytos\Core\AiImageGenerator(
             $app->getStorage(),
@@ -393,6 +400,34 @@ function addLanguageRow() {
     </form>
 </div>
 <?php klytos_do_action('admin.settings.after_section', 'ai'); ?>
+
+<?php if (klytos_has_permission( 'site.configure' )): ?>
+<?php klytos_do_action('admin.settings.before_section', 'developer'); ?>
+<?php $devConfig = $siteConfig['developer'] ?? []; ?>
+<!-- Developer -->
+<div class="card">
+    <div class="card-header"><h3><?php echo __( 'settings.developer' ); ?></h3></div>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="section" value="developer">
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" name="developer_mode" value="1" <?php echo !empty( $devConfig['developer_mode'] ) ? 'checked' : ''; ?>>
+                <?php echo __( 'settings.developer_mode' ); ?>
+            </label>
+            <p class="form-help"><?php echo __( 'settings.developer_mode_help' ); ?></p>
+        </div>
+        <?php if (!empty( $devConfig['developer_mode'] )): ?>
+            <div style="padding: 0.75rem; margin-bottom: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; border-radius: 6px; font-size: 0.85rem;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i>
+                <?php echo __( 'settings.developer_mode_warning' ); ?>
+            </div>
+        <?php endif; ?>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+    </form>
+</div>
+<?php klytos_do_action('admin.settings.after_section', 'developer'); ?>
+<?php endif; ?>
 
 <?php klytos_do_action('admin.settings.render_custom_sections', $siteConfig); ?>
 

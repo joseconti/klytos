@@ -217,7 +217,11 @@
     "appearance_light": "Light",
     "appearance_light_desc": "Classic light interface. Clean and bright, ideal for well-lit environments.",
     "appearance_dark": "Dark",
-    "appearance_dark_desc": "Dark interface inspired by the installer. Reduces eye strain in low-light environments."
+    "appearance_dark_desc": "Dark interface inspired by the installer. Reduces eye strain in low-light environments.",
+    "developer": "Developer",
+    "developer_mode": "Enable Developer Mode",
+    "developer_mode_help": "Activates debug logging and profiling tools. Only visible to owners and admins.",
+    "developer_mode_warning": "Developer Mode is active. This adds overhead to every request. Disable it in production."
   },
   "assets": {
     "title": "Files",
