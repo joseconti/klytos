@@ -285,16 +285,11 @@ require_once __DIR__ . '/templates/sidebar.php';
             </p>
             <div class="plugin-upload-area" id="plugin-upload-area">
                 <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--admin-text-muted); margin-bottom: 0.5rem;"></i>
-                <p style="margin: 0; font-size: 0.9rem;">Drop a ZIP file here or click to browse</p>
-                <input type="file" id="plugin-install-file" accept=".zip" style="display: none;">
-                <p id="plugin-install-filename" style="margin: 0.5rem 0 0; font-weight: 600; display: none;"></p>
+                <p style="margin: 0; font-size: 0.9rem;">Drop one or more ZIP files here, or click to browse</p>
+                <input type="file" id="plugin-install-file" accept=".zip" multiple style="display: none;">
             </div>
-            <div id="plugin-install-progress" style="display: none; margin-top: 1rem;">
-                <div class="plugin-progress-bar">
-                    <div class="plugin-progress-fill" id="plugin-progress-fill"></div>
-                </div>
-                <p id="plugin-install-status" style="font-size: 0.85rem; color: var(--admin-text-muted); margin: 0.5rem 0 0;"></p>
-            </div>
+            <div id="plugin-install-file-list" class="plugin-install-file-list" style="display: none;"></div>
+            <div id="plugin-install-progress" style="display: none; margin-top: 1rem;"></div>
         </div>
         <div class="plugin-delete-modal-footer">
             <button type="button" class="btn btn-outline" id="plugin-install-cancel">Cancel</button>
