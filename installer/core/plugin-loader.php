@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Plugin Loader
  * Discovers, validates, and loads plugins from the plugins/ directory.
@@ -226,7 +227,7 @@ class PluginLoader
             $this->loadedPlugins[$pluginId] = $manifest;
 
             // Fire action to notify that this plugin was loaded.
-            Hooks::doAction('plugin.loaded', $pluginId, $manifest);
+            klytos_do_action('plugin.loaded', $pluginId, $manifest);
 
             return true;
 
@@ -280,10 +281,10 @@ class PluginLoader
         $this->saveState($state);
 
         // Fire activation action (plugins can listen to set up their own hooks).
-        Hooks::doAction('plugin.activated', $pluginId, $manifest);
+        klytos_do_action('plugin.activated', $pluginId, $manifest);
 
         // Rebuild frontend assets (klytos-hooks.js, plugins.css).
-        Hooks::doAction('build.assets_changed');
+        klytos_do_action('build.assets_changed');
 
         return ['success' => true, 'error' => null];
     }
@@ -323,10 +324,10 @@ class PluginLoader
         // Retrieve manifest for the action (may be null if deleted).
         $manifest = $this->getManifest($pluginId);
 
-        Hooks::doAction('plugin.deactivated', $pluginId, $manifest);
+        klytos_do_action('plugin.deactivated', $pluginId, $manifest);
 
         // Rebuild frontend assets (klytos-hooks.js, plugins.css).
-        Hooks::doAction('build.assets_changed');
+        klytos_do_action('build.assets_changed');
 
         return ['success' => true, 'error' => null];
     }
@@ -361,7 +362,7 @@ class PluginLoader
         unset($state['activated_at'][$pluginId]);
         $this->saveState($state);
 
-        Hooks::doAction('plugin.uninstalled', $pluginId);
+        klytos_do_action('plugin.uninstalled', $pluginId);
 
         return ['success' => true, 'error' => null];
     }
@@ -383,7 +384,7 @@ class PluginLoader
             return ['success' => false, 'error' => "Plugin directory not found: {$pluginId}"];
         }
 
-        Hooks::doAction('plugin.before_delete', $pluginId);
+        klytos_do_action('plugin.before_delete', $pluginId);
 
         // Recursive delete (same pattern as Updater::deleteDir).
         $items = new \RecursiveIteratorIterator(
@@ -403,7 +404,7 @@ class PluginLoader
             return ['success' => false, 'error' => "Failed to delete plugin directory: {$pluginId}"];
         }
 
-        Hooks::doAction('plugin.deleted', $pluginId);
+        klytos_do_action('plugin.deleted', $pluginId);
 
         return ['success' => true, 'error' => null];
     }
@@ -486,7 +487,7 @@ class PluginLoader
         rename($extractRoot, $pluginDir);
         $this->removeDirectory($tmpDir);
 
-        Hooks::doAction('plugin.installed', $pluginId, $isUpdate);
+        klytos_do_action('plugin.installed', $pluginId, $isUpdate);
 
         return ['success' => true, 'error' => null, 'plugin_id' => $pluginId];
     }
@@ -528,7 +529,7 @@ class PluginLoader
         // Purge old backups (keep only MAX_BACKUPS_PER_PLUGIN).
         $this->purgeOldBackups($pluginId);
 
-        Hooks::doAction('plugin.backup_created', $pluginId, $backupName);
+        klytos_do_action('plugin.backup_created', $pluginId, $backupName);
 
         return ['success' => true, 'error' => null, 'backup_name' => $backupName];
     }
@@ -614,7 +615,7 @@ class PluginLoader
             return ['success' => false, 'error' => 'Failed to restore plugin files'];
         }
 
-        Hooks::doAction('plugin.restored', $pluginId, $backupName);
+        klytos_do_action('plugin.restored', $pluginId, $backupName);
 
         return ['success' => true, 'error' => null];
     }

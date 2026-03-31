@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Theme Manager
  * Manages visual theme configuration: colors, fonts, layout.
@@ -38,10 +39,12 @@ class ThemeManager
     public function get(): array
     {
         if (!$this->storage->exists(self::COLLECTION, self::ID)) {
-            return $this->getDefaults();
+            return klytos_apply_filters('theme.data', $this->getDefaults());
         }
 
-        return array_merge($this->getDefaults(), $this->storage->read(self::COLLECTION, self::ID));
+        $themeData = array_merge($this->getDefaults(), $this->storage->read(self::COLLECTION, self::ID));
+
+        return klytos_apply_filters('theme.data', $themeData);
     }
 
     /**
@@ -52,10 +55,14 @@ class ThemeManager
      */
     public function set(array $data): array
     {
+        klytos_do_action('theme.before_save', $data);
+
         $current = $this->get();
         $theme   = $this->mergeTheme($current, $data);
 
         $this->storage->write(self::COLLECTION, self::ID, $theme);
+
+        klytos_do_action('theme.after_save', $theme);
 
         return $theme;
     }
@@ -68,6 +75,8 @@ class ThemeManager
      */
     public function setColors(array $colors): array
     {
+        klytos_do_action('theme.before_save', $colors);
+
         $theme = $this->get();
 
         foreach ($colors as $key => $value) {
@@ -77,6 +86,8 @@ class ThemeManager
         }
 
         $this->storage->write(self::COLLECTION, self::ID, $theme);
+
+        klytos_do_action('theme.after_save', $theme);
 
         return $theme;
     }
@@ -89,6 +100,8 @@ class ThemeManager
      */
     public function setFonts(array $fonts): array
     {
+        klytos_do_action('theme.before_save', $fonts);
+
         $theme = $this->get();
 
         $allowed = [
@@ -104,6 +117,8 @@ class ThemeManager
 
         $this->storage->write(self::COLLECTION, self::ID, $theme);
 
+        klytos_do_action('theme.after_save', $theme);
+
         return $theme;
     }
 
@@ -115,6 +130,8 @@ class ThemeManager
      */
     public function setLayout(array $layout): array
     {
+        klytos_do_action('theme.before_save', $layout);
+
         $theme = $this->get();
 
         $allowed = [
@@ -129,6 +146,8 @@ class ThemeManager
         }
 
         $this->storage->write(self::COLLECTION, self::ID, $theme);
+
+        klytos_do_action('theme.after_save', $theme);
 
         return $theme;
     }

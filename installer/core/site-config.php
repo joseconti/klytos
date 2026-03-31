@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Site Configuration Manager
  * Reads and writes global site metadata and settings.

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Tool Registry
  * Registers and dispatches MCP tools.
@@ -99,7 +100,7 @@ class ToolRegistry
         }
 
         // Hook: allow plugins to add their own MCP tools to the list.
-        $list = \Klytos\Core\Hooks::applyFilters( 'mcp.tools_list', $list );
+        $list = klytos_apply_filters( 'mcp.tools_list', $list );
 
         // Sanitize plugin-added tools too.
         foreach ( $list as &$entry ) {
@@ -160,10 +161,10 @@ class ToolRegistry
         // Hook: allow plugins to handle MCP tool calls.
         // If a plugin handles the tool, it returns a non-null result.
         // This allows plugins to register tools dynamically.
-        $pluginResult = \Klytos\Core\Hooks::applyFilters('mcp.handle_tool', null, $name, $params);
+        $pluginResult = klytos_apply_filters('mcp.handle_tool', null, $name, $params);
         if ($pluginResult !== null) {
             // Plugin handled this tool — apply response filter and return.
-            $pluginResult = \Klytos\Core\Hooks::applyFilters('mcp.tool_response', $pluginResult, $name);
+            $pluginResult = klytos_apply_filters('mcp.tool_response', $pluginResult, $name);
             return $pluginResult;
         }
 
@@ -172,7 +173,7 @@ class ToolRegistry
         }
 
         // Fire action: a tool is being called (for logging/auditing).
-        \Klytos\Core\Hooks::doAction('mcp.tool_called', $name, $params);
+        klytos_do_action('mcp.tool_called', $name, $params);
 
         $handler = $this->tools[$name]['handler'];
 
@@ -190,7 +191,7 @@ class ToolRegistry
             ];
 
             // Hook: allow plugins to modify tool responses before sending.
-            $response = \Klytos\Core\Hooks::applyFilters('mcp.tool_response', $response, $name);
+            $response = klytos_apply_filters('mcp.tool_response', $response, $name);
 
             return $response;
         } catch (\InvalidArgumentException $e) {

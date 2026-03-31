@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Page Template Manager
  * Manages page templates: recipes that define which blocks appear and in what order.
@@ -93,11 +94,11 @@ class PageTemplateManager
             'updated_at'   => Helpers::now(),
         ];
 
-        Hooks::doAction('page_template.before_save', $template);
+        klytos_do_action('page_template.before_save', $template);
 
         $this->storage->write(self::COLLECTION, $type, $template);
 
-        Hooks::doAction('page_template.after_save', $template);
+        klytos_do_action('page_template.after_save', $template);
 
         return $template;
     }
@@ -251,7 +252,7 @@ class PageTemplateManager
 
         $this->storage->write(self::COLLECTION, $type, $template);
 
-        Hooks::doAction('page_template.approved', $template);
+        klytos_do_action('page_template.approved', $template);
 
         return $template;
     }
@@ -272,7 +273,7 @@ class PageTemplateManager
         $structure = $template['structure'] ?? [];
 
         // Allow plugins to modify the template structure before rendering.
-        $structure = Hooks::applyFilters('page_template.structure', $structure, $type);
+        $structure = klytos_apply_filters('page_template.structure', $structure, $type);
 
         // Sort blocks by order.
         usort($structure, fn(array $a, array $b): int =>
@@ -303,7 +304,7 @@ class PageTemplateManager
         $wrapperHtml = $template['wrapper_html'] ?? '{{blocks_html}}';
 
         // Allow plugins to modify the wrapper before insertion.
-        $wrapperHtml = Hooks::applyFilters('page_template.wrapper_html', $wrapperHtml, $type);
+        $wrapperHtml = klytos_apply_filters('page_template.wrapper_html', $wrapperHtml, $type);
 
         $html = str_replace('{{blocks_html}}', $blocksHtml, $wrapperHtml);
 
@@ -357,7 +358,7 @@ class PageTemplateManager
         $types = $this->list('all');
 
         // Allow plugins to register additional template types.
-        $types = Hooks::applyFilters('page_template.available_types', $types);
+        $types = klytos_apply_filters('page_template.available_types', $types);
 
         return $types;
     }

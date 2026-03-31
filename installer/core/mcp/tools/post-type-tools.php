@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Post Type Tools
  * CRUD operations for custom post types, taxonomies, and taxonomy terms via MCP.

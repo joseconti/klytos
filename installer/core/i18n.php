@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Internationalization System
  * Loads and resolves translation strings from JSON files.

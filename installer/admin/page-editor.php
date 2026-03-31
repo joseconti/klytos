@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Page Editor (Gutenberg / TinyMCE)
  *
@@ -309,6 +310,7 @@ $pageTitle_header = $adminPageTitle;
 include __DIR__ . '/templates/header.php';
 include __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.editor.before' ); ?>
 
 <!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
 <style>
@@ -390,6 +392,7 @@ include __DIR__ . '/templates/sidebar.php';
                 <div class="klytos-editor-body">
 
                     <!-- Main Canvas (Gutenberg) -->
+                    <?php klytos_do_action( 'editor.before_canvas', $page ?? null, $isEditing ?? false ); ?>
                     <div class="klytos-editor-canvas">
                         <div id="klytos-editor-container"></div>
 
@@ -412,7 +415,8 @@ include __DIR__ . '/templates/sidebar.php';
                         }
                         if (!empty($cfDefs)):
                             require_once __DIR__ . '/includes/custom-field-renderer.php';
-                        ?>
+                            ?>
+                            <?php klytos_do_action( 'editor.before_custom_fields', $page ?? null, $isEditing ?? false ); ?>
                         <div class="klytos-custom-fields" style="padding:1.5rem 2rem;border-top:1px solid var(--admin-border, #e2e8f0);background:var(--admin-surface, #fff);">
                             <h3 style="margin:0 0 1rem 0;font-size:0.95rem;font-weight:600;color:var(--admin-text, #1e293b);">Custom Fields</h3>
                             <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem;">
@@ -422,8 +426,10 @@ include __DIR__ . '/templates/sidebar.php';
                             </div>
                         </div>
                         <?php endif; ?>
+                        <?php klytos_do_action( 'editor.after_custom_fields', $page ?? null, $isEditing ?? false ); ?>
 
                     </div>
+                    <?php klytos_do_action( 'editor.after_canvas', $page ?? null, $isEditing ?? false ); ?>
 
                     <!-- ─── Klytos Sidebar ─── -->
                     <div class="klytos-sidebar" id="klytos-sidebar">
@@ -501,6 +507,7 @@ include __DIR__ . '/templates/sidebar.php';
                                 </div>
                             </details>
 
+                            <?php klytos_do_action( 'editor.sidebar.before_seo', $page ?? null, $isEditing ?? false ); ?>
                             <!-- SEO: Meta Description -->
                             <div class="klytos-editor-settings__section">
                                 <h3 class="klytos-editor-settings__heading">Meta Description</h3>
@@ -531,6 +538,7 @@ include __DIR__ . '/templates/sidebar.php';
                                     <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
                                 </div>
                             </div>
+                            <?php klytos_do_action( 'editor.sidebar.after_seo', $page ?? null, $isEditing ?? false ); ?>
 
                             <?php
                             // Taxonomies section in sidebar.
@@ -566,22 +574,22 @@ include __DIR__ . '/templates/sidebar.php';
                                     } catch (\Throwable $e) {
                                         // No terms.
                                     }
-                            ?>
+                                    ?>
                             <div class="klytos-editor-settings__section">
                                 <h3 class="klytos-editor-settings__heading"><?php echo klytos_esc_html($taxName); ?></h3>
-                                <?php if (!empty($availableTerms)): ?>
-                                    <?php if ($isHierarchical): ?>
+                                    <?php if (!empty($availableTerms)): ?>
+                                        <?php if ($isHierarchical): ?>
                                         <!-- Hierarchical: checkboxes (like WP categories) -->
                                         <div style="max-height:180px;overflow-y:auto;padding:0.25rem 0;">
-                                        <?php foreach ($availableTerms as $term): ?>
+                                            <?php foreach ($availableTerms as $term): ?>
                                             <label style="display:flex;align-items:center;gap:0.5rem;padding:0.15rem 0;cursor:pointer;font-weight:400;font-size:0.85rem;">
                                                 <input type="checkbox" name="tax_<?php echo klytos_esc_attr($taxId); ?>[]" value="<?php echo klytos_esc_attr($term['slug']); ?>"
                                                     <?php echo in_array($term['slug'], $currentTerms, true) ? 'checked' : ''; ?>>
                                                 <?php echo klytos_esc_html($term['name'] ?? $term['slug']); ?>
                                             </label>
-                                        <?php endforeach; ?>
+                                            <?php endforeach; ?>
                                         </div>
-                                    <?php else: ?>
+                                        <?php else: ?>
                                         <!-- Flat: tag-like multi-select -->
                                         <select name="tax_<?php echo klytos_esc_attr($taxId); ?>[]" class="klytos-editor-settings__input" multiple size="<?php echo min(count($availableTerms), 6); ?>">
                                             <?php foreach ($availableTerms as $term): ?>
@@ -592,15 +600,16 @@ include __DIR__ . '/templates/sidebar.php';
                                             <?php endforeach; ?>
                                         </select>
                                         <div class="form-help" style="font-size:0.75rem;">Hold Ctrl/Cmd to select multiple.</div>
-                                    <?php endif; ?>
-                                <?php else: ?>
+                                        <?php endif; ?>
+                                    <?php else: ?>
                                     <p style="font-size:0.85rem;color:var(--admin-text-muted);">No terms available. <a href="taxonomy.php?post_type=<?php echo urlencode($pagePostType); ?>&taxonomy=<?php echo urlencode($taxId); ?>">Add terms</a></p>
-                                <?php endif; ?>
+                                    <?php endif; ?>
                             </div>
-                            <?php
+                                    <?php
                                 endforeach;
                             endif;
                             ?>
+                            <?php klytos_do_action( 'editor.sidebar.after_panels', $page ?? null, $isEditing ?? false ); ?>
 
                                 </div>
                             </div>
@@ -1016,4 +1025,5 @@ include __DIR__ . '/templates/sidebar.php';
 } )();
 </script>
 
+<?php klytos_do_action( 'admin.editor.after' ); ?>
 <?php include __DIR__ . '/templates/footer.php'; ?>

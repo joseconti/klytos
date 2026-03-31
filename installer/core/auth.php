@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Authentication
  * Handles admin login sessions and MCP bearer token validation.
@@ -92,6 +93,9 @@ class Auth
             ];
         }
 
+        // Pre-hook: allow plugins to act before credential validation.
+        klytos_do_action('auth.before_login', $username);
+
         $validUser = $this->config['admin_user'] ?? '';
         $validHash = $this->config['admin_pass_hash'] ?? '';
 
@@ -130,6 +134,9 @@ class Auth
 
             // Generate CSRF token
             $_SESSION['klytos_csrf'] = Helpers::randomHex(32);
+
+            // Post-hook: notify plugins of successful login.
+            klytos_do_action('auth.after_login', $username, $userId);
 
             return [
                 'success'      => true,
@@ -176,6 +183,9 @@ class Auth
         $_SESSION['klytos_login_time']  = time();
         $_SESSION['klytos_last_active'] = time();
         $_SESSION['klytos_csrf']        = Helpers::randomHex(32);
+
+        // Post-hook: notify plugins of successful login after 2FA completion.
+        klytos_do_action('auth.after_login', $username, $userId);
     }
 
     /**
@@ -227,6 +237,9 @@ class Auth
      */
     public function logout(): void
     {
+        // Pre-hook: allow plugins to act before session destruction.
+        klytos_do_action('user.logout', $_SESSION['klytos_user'] ?? '', $_SESSION['klytos_user_id'] ?? '');
+
         $_SESSION = [];
 
         if (ini_get('session.use_cookies')) {

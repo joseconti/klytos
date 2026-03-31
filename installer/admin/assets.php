@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Asset Management
  *
@@ -59,6 +60,7 @@ $csrf      = $auth->getCsrfToken();
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.assets.before' ); ?>
 
 <?php if ($success): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -201,4 +203,5 @@ require_once __DIR__ . '/templates/sidebar.php';
 })();
 </script>
 
+<?php klytos_do_action( 'admin.assets.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

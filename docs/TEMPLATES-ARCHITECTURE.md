@@ -236,7 +236,7 @@ class TemplateResolver
         }
 
         // 2. Parts de plugins (via filtro)
-        $pluginPart = Hooks::applyFilters('template_part.' . $partName, null);
+        $pluginPart = klytos_apply_filters('template_part.' . $partName, null);
         if ($pluginPart !== null) {
             return $pluginPart;
         }
@@ -938,7 +938,7 @@ function klytos_register_templates(string $pluginId, array $templates): void
  */
 function klytos_register_template_part(string $partName, callable $callback, int $priority = 10): void
 {
-    Hooks::addFilter('template_part.' . $partName, $callback, $priority);
+    klytos_add_filter('template_part.' . $partName, $callback, $priority);
 }
 
 /**
@@ -977,7 +977,7 @@ function klytos_enqueue_script(string $handle, string $src, array $deps = [], st
 ```
 BuildEngine::buildAll()
 │
-├── 1. Hooks::doAction('build.before')
+├── 1. klytos_do_action('build.before')
 │
 ├── 2. buildHooksJs()         ← NUEVO: genera /assets/js/klytos-hooks.js
 ├── 3. buildPluginsCss()      ← NUEVO: genera /assets/css/plugins.css
@@ -996,7 +996,7 @@ BuildEngine::buildAll()
 ├── 8. generateLlmsTxt()       (existente)
 ├── 9. updateBuildTimestamp()   (existente)
 │
-└── 10. Hooks::doAction('build.after')
+└── 10. klytos_do_action('build.after')
 ```
 
 ---

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos -- Two-Factor Authentication Manager
  * Supports three 2FA methods: TOTP, Magic Link (email), and Passkeys (WebAuthn).

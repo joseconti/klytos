@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Helper Functions
  * Utility functions used across the application.
@@ -385,6 +386,9 @@ class Helpers
             'woff', 'woff2', 'ttf', 'eot',
             'mp4', 'webm', 'mp3', 'ogg',
         ];
+
+        // Allow plugins to extend or restrict the allowed extensions.
+        $allowed = klytos_apply_filters('asset.allowed_types', $allowed);
 
         return in_array(self::getExtension($filename), $allowed, true);
     }

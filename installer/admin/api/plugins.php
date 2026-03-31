@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — Plugins Endpoint
  * Handles all plugin operations via AJAX: activate, deactivate, delete, uninstall,
@@ -26,7 +27,6 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
-use Klytos\Core\Hooks;
 
 header('Content-Type: application/json; charset=utf-8');
 

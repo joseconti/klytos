@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — AI Chat Endpoint
  * AJAX endpoint for the integrated AI chat in the admin panel.

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Updater via GitHub Releases
  *
@@ -12,7 +13,7 @@
  * @license   Elastic License 2.0 (ELv2)
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace Klytos\Core;
 
@@ -175,7 +176,8 @@ class Updater
             $log     = $data['entries'] ?? [];
             $changed = false;
             foreach ( $log as &$entry ) {
-                if ( ! empty( $entry['backup_path'] )
+                if (
+                    ! empty( $entry['backup_path'] )
                     && $entry['backup_path'] !== '—'
                     && in_array( $entry['backup_path'], $deletedNames, true )
                 ) {

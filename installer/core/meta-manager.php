@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Meta Manager
  * Public API for attaching arbitrary metadata to any entity.
@@ -65,7 +66,7 @@ class MetaManager
         $meta  = $record[self::META_FIELD] ?? [];
         $value = $meta[$key] ?? null;
 
-        return Hooks::applyFilters('meta.get', $value, $collection, $entityId, $key);
+        return klytos_apply_filters('meta.get', $value, $collection, $entityId, $key);
     }
 
     /**
@@ -106,14 +107,14 @@ class MetaManager
 
         $record = $this->storage->read($collection, $entityId);
 
-        Hooks::doAction('meta.before_set', $collection, $entityId, $key, $value);
+        klytos_do_action('meta.before_set', $collection, $entityId, $key, $value);
 
         $record[self::META_FIELD]       = $record[self::META_FIELD] ?? [];
         $record[self::META_FIELD][$key] = $value;
 
         $this->storage->write($collection, $entityId, $record);
 
-        Hooks::doAction('meta.after_set', $collection, $entityId, $key, $value);
+        klytos_do_action('meta.after_set', $collection, $entityId, $key, $value);
     }
 
     /**
@@ -144,7 +145,7 @@ class MetaManager
             return false;
         }
 
-        Hooks::doAction('meta.before_delete', $collection, $entityId, $key);
+        klytos_do_action('meta.before_delete', $collection, $entityId, $key);
 
         unset($record[self::META_FIELD][$key]);
 
@@ -155,7 +156,7 @@ class MetaManager
 
         $this->storage->write($collection, $entityId, $record);
 
-        Hooks::doAction('meta.after_delete', $collection, $entityId, $key);
+        klytos_do_action('meta.after_delete', $collection, $entityId, $key);
 
         return true;
     }

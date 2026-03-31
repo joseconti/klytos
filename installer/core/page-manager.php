@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Page Manager
  * CRUD operations for site pages.
@@ -60,12 +61,12 @@ class PageManager
         $page['updated_at'] = Helpers::now();
 
         // Hook: allow plugins to modify page data before saving.
-        Hooks::doAction('page.before_save', $page, 'create');
+        klytos_do_action('page.before_save', $page, 'create');
 
         $this->storage->write(self::COLLECTION, $slug, $page);
 
         // Hook: notify plugins that a page was created.
-        Hooks::doAction('page.after_save', $page, 'create');
+        klytos_do_action('page.after_save', $page, 'create');
 
         return $page;
     }
@@ -118,12 +119,12 @@ class PageManager
         $page['updated_at'] = Helpers::now();
 
         // Hook: allow plugins to modify page data before saving.
-        Hooks::doAction('page.before_save', $page, 'update');
+        klytos_do_action('page.before_save', $page, 'update');
 
         $this->storage->write(self::COLLECTION, $slug, $page);
 
         // Hook: notify plugins that a page was updated.
-        Hooks::doAction('page.after_save', $page, 'update');
+        klytos_do_action('page.after_save', $page, 'update');
 
         return $page;
     }
@@ -139,13 +140,13 @@ class PageManager
         $slug = Helpers::sanitizeSlug($slug);
 
         // Hook: notify plugins before page deletion.
-        Hooks::doAction('page.before_delete', $slug);
+        klytos_do_action('page.before_delete', $slug);
 
         $result = $this->storage->delete(self::COLLECTION, $slug);
 
         if ($result) {
             // Hook: notify plugins after page deletion.
-            Hooks::doAction('page.after_delete', $slug);
+            klytos_do_action('page.after_delete', $slug);
         }
 
         return $result;

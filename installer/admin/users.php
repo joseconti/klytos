@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — User Management
  * List, create, edit, and manage users with role-based access control.
@@ -123,6 +124,7 @@ $roleFilter = $_GET['role'] ?? 'all';
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.users.before' ); ?>
 
 <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -187,8 +189,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </thead>
                 <tbody>
                     <?php foreach ($users as $user):
-                        if ($roleFilter !== 'all' && ($user['role'] ?? '') !== $roleFilter) continue;
-                    ?>
+                        if ($roleFilter !== 'all' && ($user['role'] ?? '') !== $roleFilter) {
+                            continue;
+                        }
+                        ?>
                     <tr>
                         <td>
                             <strong><?php echo klytos_esc_html( $user['display_name'] ?? $user['username'] ?? ''); ?></strong>
@@ -297,6 +301,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="update_user">
             <input type="hidden" name="user_id" id="editUserId">
+            <?php klytos_do_action( 'admin.users.edit_form.before_fields', $users ); ?>
 
             <div class="form-group">
                 <label>Username</label>
@@ -333,6 +338,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <input type="password" name="password" class="form-control" minlength="12" data-klytos-pwgen>
             </div>
 
+            <?php klytos_do_action( 'admin.users.edit_form.after_fields', $users ); ?>
             <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
                 <button type="button" class="btn btn-outline" id="btnCancelEdit">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -434,4 +440,5 @@ require_once __DIR__ . '/templates/sidebar.php';
 })();
 </script>
 
+<?php klytos_do_action( 'admin.users.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

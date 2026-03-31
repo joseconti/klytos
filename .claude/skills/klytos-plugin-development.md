@@ -167,12 +167,16 @@ klytos_add_action('page.after_save', function (array $page, string $action): voi
 
 ## Available Hook Functions
 
+> **IMPORTANT**: ALWAYS use the global `klytos_*` functions below. NEVER use `Hooks::` class methods directly.
+
 ### Actions (fire-and-forget)
 ```php
 klytos_add_action(string $hook, callable $callback, int $priority = 10): void
 klytos_do_action(string $hook, mixed ...$args): void
 klytos_remove_action(string $hook, callable $callback): bool
 klytos_has_action(string $hook): bool
+klytos_remove_all_actions(string $hook): void
+klytos_did_action(string $hook): int
 ```
 
 ### Filters (modify data)
@@ -181,6 +185,7 @@ klytos_add_filter(string $hook, callable $callback, int $priority = 10): void
 klytos_apply_filters(string $hook, mixed $value, mixed ...$args): mixed
 klytos_remove_filter(string $hook, callable $callback): bool
 klytos_has_filter(string $hook): bool
+klytos_remove_all_filters(string $hook): void
 ```
 
 ## Core Service Accessors

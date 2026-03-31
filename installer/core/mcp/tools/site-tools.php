@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Site Tools
  * Global site configuration via MCP.

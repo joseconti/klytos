@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Task Management Tools
  * Tools: klytos_list_tasks, klytos_get_task, klytos_update_task, klytos_complete_task.

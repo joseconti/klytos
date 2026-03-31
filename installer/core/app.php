@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Application Bootstrap
  * Main entry point that initializes all core components.
@@ -282,7 +283,7 @@ class App
 
         // Step 9: Load the Hook engine and global helper functions.
         // These MUST be loaded BEFORE managers and plugins because managers
-        // call Hooks::doAction() and Hooks::applyFilters() in their methods.
+        // call klytos_do_action() and klytos_apply_filters() in their methods.
         require_once $this->corePath . '/hooks.php';
         require_once $this->corePath . '/helpers-global.php';
         require_once $this->corePath . '/helpers-security.php';
@@ -323,7 +324,7 @@ class App
 
         // Register listener to rebuild frontend assets when plugins change.
         $appRef = $this;
-        Hooks::addAction('build.assets_changed', function () use ($appRef): void {
+        klytos_add_action('build.assets_changed', function () use ($appRef): void {
             $buildEngine = new BuildEngine($appRef);
             $buildEngine->buildHooksJs();
             $buildEngine->buildPluginsCss();
@@ -342,7 +343,7 @@ class App
 
         // Step 11: Fire the 'klytos.init' action — signals that all core
         // services are ready. Plugins can use this to run post-load setup.
-        Hooks::doAction('klytos.init', $this);
+        klytos_do_action('klytos.init', $this);
     }
 
     /**
@@ -429,88 +430,166 @@ class App
     // ─── Service Getters ────────────────────────────────────────
 
     /** Get the AES-256-GCM encryption engine. */
-    public function getEncryption(): Encryption { return $this->encryption; }
+    public function getEncryption(): Encryption
+    {
+        return $this->encryption;
+    }
 
     /**
      * Get the storage layer (FileStorage or DatabaseStorage).
      *
      * @return StorageInterface
      */
-    public function getStorage(): StorageInterface { return $this->storage; }
+    public function getStorage(): StorageInterface
+    {
+        return $this->storage;
+    }
 
     /** Get the license manager. */
-    public function getLicense(): License { return $this->license; }
+    public function getLicense(): License
+    {
+        return $this->license;
+    }
 
     /** Get the i18n engine. */
-    public function getI18n(): I18n { return $this->i18n; }
+    public function getI18n(): I18n
+    {
+        return $this->i18n;
+    }
 
     /** Get the authentication manager. */
-    public function getAuth(): Auth { return $this->auth; }
+    public function getAuth(): Auth
+    {
+        return $this->auth;
+    }
 
     /** Get the plugin loader. */
-    public function getPluginLoader(): PluginLoader { return $this->pluginLoader; }
+    public function getPluginLoader(): PluginLoader
+    {
+        return $this->pluginLoader;
+    }
 
     /** Get the page manager. */
-    public function getPages(): PageManager { return $this->pages; }
+    public function getPages(): PageManager
+    {
+        return $this->pages;
+    }
 
     /** Get the theme manager. */
-    public function getTheme(): ThemeManager { return $this->theme; }
+    public function getTheme(): ThemeManager
+    {
+        return $this->theme;
+    }
 
     /** Get the menu manager. */
-    public function getMenu(): MenuManager { return $this->menu; }
+    public function getMenu(): MenuManager
+    {
+        return $this->menu;
+    }
 
     /** Get the site configuration manager. */
-    public function getSiteConfig(): SiteConfig { return $this->siteConfig; }
+    public function getSiteConfig(): SiteConfig
+    {
+        return $this->siteConfig;
+    }
 
     /** Get the asset manager. */
-    public function getAssets(): AssetManager { return $this->assets; }
+    public function getAssets(): AssetManager
+    {
+        return $this->assets;
+    }
 
     /** Get the updater. */
-    public function getUpdater(): Updater { return $this->updater; }
+    public function getUpdater(): Updater
+    {
+        return $this->updater;
+    }
 
     /** Get the decrypted main configuration array. */
-    public function getConfig(): array { return $this->config ?? []; }
+    public function getConfig(): array
+    {
+        return $this->config ?? [];
+    }
 
     // ─── v2.0 Manager Getters ───────────────────────────────────
 
     /** Get the user manager. */
-    public function getUserManager(): UserManager { return $this->userManager; }
+    public function getUserManager(): UserManager
+    {
+        return $this->userManager;
+    }
 
     /** Get the task manager. */
-    public function getTaskManager(): TaskManager { return $this->taskManager; }
+    public function getTaskManager(): TaskManager
+    {
+        return $this->taskManager;
+    }
 
     /** Get the version manager. */
-    public function getVersionManager(): VersionManager { return $this->versionManager; }
+    public function getVersionManager(): VersionManager
+    {
+        return $this->versionManager;
+    }
 
     /** Get the block manager. */
-    public function getBlockManager(): BlockManager { return $this->blockManager; }
+    public function getBlockManager(): BlockManager
+    {
+        return $this->blockManager;
+    }
 
     /** Get the page template manager. */
-    public function getPageTemplateManager(): PageTemplateManager { return $this->pageTemplateManager; }
+    public function getPageTemplateManager(): PageTemplateManager
+    {
+        return $this->pageTemplateManager;
+    }
 
     /** Get the analytics manager. */
-    public function getAnalyticsManager(): AnalyticsManager { return $this->analyticsManager; }
+    public function getAnalyticsManager(): AnalyticsManager
+    {
+        return $this->analyticsManager;
+    }
 
     /** Get the webhook manager. */
-    public function getWebhookManager(): WebhookManager { return $this->webhookManager; }
+    public function getWebhookManager(): WebhookManager
+    {
+        return $this->webhookManager;
+    }
 
     /** Get the cron manager. */
-    public function getCronManager(): CronManager { return $this->cronManager; }
+    public function getCronManager(): CronManager
+    {
+        return $this->cronManager;
+    }
 
     /** Get the action scheduler. */
-    public function getActionScheduler(): ActionScheduler { return $this->actionScheduler; }
+    public function getActionScheduler(): ActionScheduler
+    {
+        return $this->actionScheduler;
+    }
 
     /** Get the audit log. */
-    public function getAuditLog(): AuditLog { return $this->auditLog; }
+    public function getAuditLog(): AuditLog
+    {
+        return $this->auditLog;
+    }
 
     /** Get the post type manager. */
-    public function getPostTypeManager(): PostTypeManager { return $this->postTypeManager; }
+    public function getPostTypeManager(): PostTypeManager
+    {
+        return $this->postTypeManager;
+    }
 
     /** Get the Options API manager. */
-    public function getOptionsManager(): OptionsManager { return $this->optionsManager; }
+    public function getOptionsManager(): OptionsManager
+    {
+        return $this->optionsManager;
+    }
 
     /** Get the Meta API manager. */
-    public function getMetaManager(): MetaManager { return $this->metaManager; }
+    public function getMetaManager(): MetaManager
+    {
+        return $this->metaManager;
+    }
 
     /**
      * Get the AI chat engine (lazy-loaded).
@@ -576,28 +655,52 @@ class App
     // ─── Path Getters ───────────────────────────────────────────
 
     /** Get the Klytos root directory path. */
-    public function getRootPath(): string { return $this->rootPath; }
+    public function getRootPath(): string
+    {
+        return $this->rootPath;
+    }
 
     /** Get the config/ directory path. */
-    public function getConfigPath(): string { return $this->configPath; }
+    public function getConfigPath(): string
+    {
+        return $this->configPath;
+    }
 
     /** Get the data/ directory path. */
-    public function getDataPath(): string { return $this->dataPath; }
+    public function getDataPath(): string
+    {
+        return $this->dataPath;
+    }
 
     /** Get the public/ directory path (static site output). */
-    public function getPublicPath(): string { return $this->publicPath; }
+    public function getPublicPath(): string
+    {
+        return $this->publicPath;
+    }
 
     /** Get the core/ directory path (PHP source). */
-    public function getCorePath(): string { return $this->corePath; }
+    public function getCorePath(): string
+    {
+        return $this->corePath;
+    }
 
     /** Get the backups/ directory path. */
-    public function getBackupsPath(): string { return $this->backupsPath; }
+    public function getBackupsPath(): string
+    {
+        return $this->backupsPath;
+    }
 
     /** Get the templates/ directory path. */
-    public function getTemplatesPath(): string { return $this->templatesPath; }
+    public function getTemplatesPath(): string
+    {
+        return $this->templatesPath;
+    }
 
     /** Get the TemplateResolver instance. */
-    public function getTemplateResolver(): TemplateResolver { return $this->templateResolver; }
+    public function getTemplateResolver(): TemplateResolver
+    {
+        return $this->templateResolver;
+    }
 
     /**
      * Get the base URL path (auto-detected from the HTTP request).

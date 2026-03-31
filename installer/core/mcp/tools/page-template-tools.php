@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Page Template Tools
  * Tools for managing page templates: create, update, get, list, delete, add/remove/reorder

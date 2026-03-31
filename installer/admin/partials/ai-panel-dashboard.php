@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — AI Panel: Dashboard
  * Dashboard content rendered inside the AI chat interface.
@@ -7,7 +8,9 @@
  * @since   0.9.0
  */
 
-if (!isset($app)) { return; }
+if (!isset($app)) {
+    return;
+}
 
 $siteConfig = $app->getSiteConfig()->get();
 $pageCount  = $app->getPages()->count('all');

@@ -601,7 +601,7 @@ public function buildReplacements(array $page, array $siteConfig, string $menuHt
     return [
         '{{site_name}}'         => Helpers::escHtml($siteConfig['site_name'] ?? ''),
         '{{page_title}}'        => Helpers::escHtml($page['title'] ?? ''),
-        '{{page_content}}'      => Hooks::applyFilters('page.content', $page['content_html'] ?? '', $page),
+        '{{page_content}}'      => klytos_apply_filters('page.content', $page['content_html'] ?? '', $page),
         // ... todas las demas variables existentes
     ];
 }
@@ -801,7 +801,7 @@ require_once $pluginPagePath;
 
 Actualmente los plugins usan el filtro `admin.sidebar_items` manualmente. Se anade lectura automatica del campo `admin_pages` del manifiesto, ANTES de aplicar el filtro (para que el filtro pueda modificar lo que el manifiesto declaro).
 
-Anadir este bloque despues de la generacion de custom post types y ANTES de la linea `$sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);`:
+Anadir este bloque despues de la generacion de custom post types y ANTES de la linea `$sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);`:
 
 ```php
 // Dinamico: leer admin_pages de los manifiestos de plugins activos.
@@ -851,7 +851,7 @@ try {
 }
 
 // EXISTENTE (no mover): filtro para que los plugins modifiquen el sidebar
-$sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);
+$sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);
 ```
 
 ### 3.3. Formato del campo admin_pages en klytos-plugin.json
@@ -990,11 +990,11 @@ class FrontendUserManager
         ];
 
         // Permitir que plugins modifiquen los datos antes de guardar
-        $user = Hooks::applyFilters('frontend_user.before_create', $user);
+        $user = klytos_apply_filters('frontend_user.before_create', $user);
 
         $this->storage->write(self::COLLECTION, $id, $user);
 
-        Hooks::doAction('frontend_user.created', $user);
+        klytos_do_action('frontend_user.created', $user);
 
         // Devolver sin pass_hash
         unset($user['pass_hash']);
@@ -1052,7 +1052,7 @@ class FrontendUserManager
 
         $this->storage->write(self::COLLECTION, $id, $user);
 
-        Hooks::doAction('frontend_user.updated', $user);
+        klytos_do_action('frontend_user.updated', $user);
 
         unset($user['pass_hash']);
         return $user;
@@ -1116,11 +1116,11 @@ class FrontendUserManager
     {
         $user = $this->storage->read(self::COLLECTION, $id);
 
-        Hooks::doAction('frontend_user.before_delete', $user);
+        klytos_do_action('frontend_user.before_delete', $user);
 
         $result = $this->storage->delete(self::COLLECTION, $id);
 
-        Hooks::doAction('frontend_user.deleted', $id);
+        klytos_do_action('frontend_user.deleted', $id);
 
         return $result;
     }
@@ -1263,7 +1263,7 @@ class FrontendAuth
         // Reset intentos fallidos
         klytos_delete_option($attemptKey);
 
-        Hooks::doAction('frontend_user.logged_in', $user);
+        klytos_do_action('frontend_user.logged_in', $user);
 
         return [
             'success' => true,
@@ -1291,7 +1291,7 @@ class FrontendAuth
         }
 
         if ($userId) {
-            Hooks::doAction('frontend_user.logged_out', $userId);
+            klytos_do_action('frontend_user.logged_out', $userId);
         }
     }
 

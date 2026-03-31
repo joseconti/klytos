@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos -- Terminal Executor
  * Pseudo-terminal that executes exclusively Klytos CLI commands.
@@ -49,7 +50,7 @@ class TerminalExecutor
 
         // Allow plugins to register additional commands.
         // Plugins: klytos_add_filter('terminal.commands', fn($cmds) => [...])
-        $this->commands = Hooks::applyFilters( 'terminal.commands', $this->commands );
+        $this->commands = klytos_apply_filters( 'terminal.commands', $this->commands );
     }
 
     /**
@@ -144,6 +145,9 @@ class TerminalExecutor
 
         // 7. Execute.
         try {
+            // Hook: allow plugins to act before command execution.
+            klytos_do_action( 'terminal.before_execute', $commandName, $args );
+
             ob_start();
             $handler = $cmdConfig['handler'];
             $result  = $handler( $args, $flags, $this );
@@ -151,6 +155,12 @@ class TerminalExecutor
 
             // Handler may return string or use echo (captured by ob).
             $output = is_string( $result ) ? $result : $buffered;
+
+            // Hook: allow plugins to act after command execution.
+            klytos_do_action( 'terminal.after_execute', $commandName, $output );
+
+            // Hook: allow plugins to filter the command output.
+            $output = klytos_apply_filters( 'terminal.command_output', $output, $commandName );
 
             // 8. Update last command timestamp.
             $_SESSION['klytos_terminal_last_command'] = $timestamp;
@@ -563,7 +573,7 @@ class TerminalExecutor
                     $categories[ $cat ][ $name ] = $config;
                 }
 
-                $categoryLabels = Hooks::applyFilters( 'terminal.category_labels', [
+                $categoryLabels = klytos_apply_filters( 'terminal.category_labels', [
                     'general' => 'General',
                     'build'   => 'Build',
                     'content' => 'Contenido',

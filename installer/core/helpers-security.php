@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Security Helper Functions
  * Global sanitization, escaping, and validation functions for plugin developers.

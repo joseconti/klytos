@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Menu Manager
  * Manages site navigation menus.

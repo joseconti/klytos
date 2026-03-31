@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — Autosave Endpoint
  * Saves page content automatically every 60 seconds from the admin editor.

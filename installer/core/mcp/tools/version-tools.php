@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Version History Tools
  * Tools: klytos_list_versions, klytos_get_version, klytos_restore_version, klytos_diff_versions.

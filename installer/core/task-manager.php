@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Task Manager
  * CRUD for review tasks and front-end annotations.
@@ -100,7 +101,7 @@ class TaskManager
 
         $this->storage->write(self::COLLECTION, $taskId, $task);
 
-        Hooks::doAction('task.created', $task);
+        klytos_do_action('task.created', $task);
 
         return $task;
     }
@@ -163,7 +164,7 @@ class TaskManager
     {
         $task = $this->update($taskId, ['status' => 'completed']);
 
-        Hooks::doAction('task.completed', $task);
+        klytos_do_action('task.completed', $task);
 
         return $task;
     }

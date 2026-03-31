@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — AI Key Manager
  * Manages encrypted API keys for AI providers.

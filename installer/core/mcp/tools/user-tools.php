@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP User Management Tools
  * Tools: klytos_list_users, klytos_create_user, klytos_update_user.

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Post Type Manager
  * CRUD operations for custom post types, taxonomies, and custom fields.
@@ -93,11 +94,11 @@ class PostTypeManager
         $postType['created_at'] = Helpers::now();
         $postType['updated_at'] = Helpers::now();
 
-        Hooks::doAction('post_type.before_save', $postType, 'create');
+        klytos_do_action('post_type.before_save', $postType, 'create');
 
         $this->storage->write(self::COLLECTION, $id, $postType);
 
-        Hooks::doAction('post_type.after_save', $postType, 'create');
+        klytos_do_action('post_type.after_save', $postType, 'create');
 
         return $postType;
     }
@@ -129,11 +130,11 @@ class PostTypeManager
 
         $postType['updated_at'] = Helpers::now();
 
-        Hooks::doAction('post_type.before_save', $postType, 'update');
+        klytos_do_action('post_type.before_save', $postType, 'update');
 
         $this->storage->write(self::COLLECTION, $id, $postType);
 
-        Hooks::doAction('post_type.after_save', $postType, 'update');
+        klytos_do_action('post_type.after_save', $postType, 'update');
 
         return $postType;
     }
@@ -157,14 +158,14 @@ class PostTypeManager
             throw new \InvalidArgumentException("Post type not found: {$id}");
         }
 
-        Hooks::doAction('post_type.before_delete', $id);
+        klytos_do_action('post_type.before_delete', $id);
 
         $result = $this->storage->delete(self::COLLECTION, $id);
 
         if ($result) {
             // Also delete all taxonomy term data for this post type.
             $this->deleteAllTerms($id);
-            Hooks::doAction('post_type.after_delete', $id);
+            klytos_do_action('post_type.after_delete', $id);
         }
 
         return $result;
@@ -246,9 +247,11 @@ class PostTypeManager
         $postType['taxonomies'][] = $taxData;
         $postType['updated_at']   = Helpers::now();
 
+        klytos_do_action('taxonomy.before_save', $postTypeId, $taxData, 'create');
+
         $this->storage->write(self::COLLECTION, $postTypeId, $postType);
 
-        Hooks::doAction('taxonomy.after_save', $postTypeId, $taxData, 'create');
+        klytos_do_action('taxonomy.after_save', $postTypeId, $taxData, 'create');
 
         return $postType;
     }
@@ -285,9 +288,12 @@ class PostTypeManager
         }
 
         $postType['updated_at'] = Helpers::now();
+
+        klytos_do_action('taxonomy.before_save', $postTypeId, $taxonomyId, 'update');
+
         $this->storage->write(self::COLLECTION, $postTypeId, $postType);
 
-        Hooks::doAction('taxonomy.after_save', $postTypeId, $taxonomyId, 'update');
+        klytos_do_action('taxonomy.after_save', $postTypeId, $taxonomyId, 'update');
 
         return $postType;
     }
@@ -314,7 +320,7 @@ class PostTypeManager
         // Delete all terms for this taxonomy.
         $this->deleteTermsForTaxonomy($postTypeId, $taxonomyId);
 
-        Hooks::doAction('taxonomy.after_delete', $postTypeId, $taxonomyId);
+        klytos_do_action('taxonomy.after_delete', $postTypeId, $taxonomyId);
 
         return $postType;
     }
@@ -363,9 +369,11 @@ class PostTypeManager
             'updated_at'  => Helpers::now(),
         ];
 
+        klytos_do_action('term.before_save', $postTypeId, $taxonomyId, $termData, 'create');
+
         $this->storage->write($collection, $slug, $termData);
 
-        Hooks::doAction('term.after_save', $postTypeId, $taxonomyId, $termData, 'create');
+        klytos_do_action('term.after_save', $postTypeId, $taxonomyId, $termData, 'create');
 
         return $termData;
     }
@@ -391,9 +399,12 @@ class PostTypeManager
         }
 
         $term['updated_at'] = Helpers::now();
+
+        klytos_do_action('term.before_save', $postTypeId, $taxonomyId, $term, 'update');
+
         $this->storage->write($collection, $termSlug, $term);
 
-        Hooks::doAction('term.after_save', $postTypeId, $taxonomyId, $term, 'update');
+        klytos_do_action('term.after_save', $postTypeId, $taxonomyId, $term, 'update');
 
         return $term;
     }
@@ -409,12 +420,12 @@ class PostTypeManager
             throw new \InvalidArgumentException("Term '{$termSlug}' not found.");
         }
 
-        Hooks::doAction('term.before_delete', $postTypeId, $taxonomyId, $termSlug);
+        klytos_do_action('term.before_delete', $postTypeId, $taxonomyId, $termSlug);
 
         $result = $this->storage->delete($collection, $termSlug);
 
         if ($result) {
-            Hooks::doAction('term.after_delete', $postTypeId, $taxonomyId, $termSlug);
+            klytos_do_action('term.after_delete', $postTypeId, $taxonomyId, $termSlug);
         }
 
         return $result;
@@ -679,9 +690,11 @@ class PostTypeManager
         $postType['custom_fields'][] = $fieldData;
         $postType['updated_at']      = Helpers::now();
 
+        klytos_do_action('custom_field.before_save', $postTypeId, $fieldData, 'create');
+
         $this->storage->write(self::COLLECTION, $postTypeId, $postType);
 
-        Hooks::doAction('custom_field.after_save', $postTypeId, $fieldData, 'create');
+        klytos_do_action('custom_field.after_save', $postTypeId, $fieldData, 'create');
 
         return $postType;
     }
@@ -728,9 +741,12 @@ class PostTypeManager
 
         $postType['custom_fields'] = $fields;
         $postType['updated_at']    = Helpers::now();
+
+        klytos_do_action('custom_field.before_save', $postTypeId, $fieldId, 'update');
+
         $this->storage->write(self::COLLECTION, $postTypeId, $postType);
 
-        Hooks::doAction('custom_field.after_save', $postTypeId, $fieldId, 'update');
+        klytos_do_action('custom_field.after_save', $postTypeId, $fieldId, 'update');
 
         return $postType;
     }
@@ -746,6 +762,8 @@ class PostTypeManager
     {
         $postType = $this->get($postTypeId);
 
+        klytos_do_action('custom_field.before_delete', $postTypeId, $fieldId);
+
         $postType['custom_fields'] = array_values(array_filter(
             $postType['custom_fields'] ?? [],
             fn(array $cf) => ($cf['id'] ?? '') !== $fieldId
@@ -754,7 +772,7 @@ class PostTypeManager
         $postType['updated_at'] = Helpers::now();
         $this->storage->write(self::COLLECTION, $postTypeId, $postType);
 
-        Hooks::doAction('custom_field.after_delete', $postTypeId, $fieldId);
+        klytos_do_action('custom_field.after_delete', $postTypeId, $fieldId);
 
         return $postType;
     }
@@ -841,7 +859,7 @@ class PostTypeManager
         $postType['updated_at']    = Helpers::now();
         $this->storage->write(self::COLLECTION, $postTypeId, $postType);
 
-        Hooks::doAction('custom_field.after_reorder', $postTypeId, $fieldIds);
+        klytos_do_action('custom_field.after_reorder', $postTypeId, $fieldIds);
 
         return $postType;
     }

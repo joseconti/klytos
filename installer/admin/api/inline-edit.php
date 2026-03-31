@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — Inline Edit Endpoint
  * Receives content changes from the front-end inline editor (klytos-inline-editor.js).

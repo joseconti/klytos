@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Custom Field Renderer
  * Renders HTML form inputs for each custom field type in the page/entry editor.

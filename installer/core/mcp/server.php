@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Server
  * Streamable HTTP implementation of the Model Context Protocol.
@@ -151,12 +152,14 @@ class Server
         // Handle known notifications silently.
         if ( $isNotification ) {
             // Accept known MCP notifications without response.
-            if ( in_array( $method, [
+            if (
+                in_array( $method, [
                 'notifications/initialized',
                 'notifications/cancelled',
                 'notifications/progress',
                 'notifications/roots/list_changed',
-            ], true ) ) {
+                ], true )
+            ) {
                 http_response_code( 204 );
                 exit;
             }

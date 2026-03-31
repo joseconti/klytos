@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Block Data Editor
  * Edit the global data for a specific block (scope=global).
@@ -14,7 +15,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
@@ -92,6 +93,7 @@ try {
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.block_data.before' ); ?>
 
 <div style="margin-bottom:1rem;">
     <a href="blocks.php" style="color:var(--admin-primary);text-decoration:none;">&larr; <?php echo __( 'design.blocks' ); ?></a>
@@ -120,7 +122,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     $type    = $slot['type'] ?? 'text';
                     $value   = $globalData[ $name ] ?? ( $slot['default'] ?? '' );
                     $inputId = 'field-' . $name;
-                ?>
+                    ?>
                     <div class="form-group" style="margin-bottom:1rem;">
                         <label for="<?php echo klytos_esc_attr( $inputId ); ?>" style="display:block;font-weight:500;margin-bottom:0.3rem;">
                             <?php echo klytos_esc_html( $label ); ?>
@@ -175,4 +177,5 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 </div>
 
+<?php klytos_do_action( 'admin.block_data.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

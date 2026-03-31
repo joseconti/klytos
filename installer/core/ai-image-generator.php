@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — AI Image Generator
  * Integration with Google Gemini (Nano Banana) for image generation.

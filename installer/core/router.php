@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Request Router
  * Routes incoming HTTP requests to the appropriate handler.
@@ -38,6 +39,9 @@ class Router
         // Get the route from query string (set by .htaccess) or parse from URI
         $route = $_GET['route'] ?? $this->parseRoute();
 
+        // Hook: allow plugins to act before the route is dispatched.
+        klytos_do_action( 'router.before_dispatch', $route );
+
         switch ($route) {
             case 'mcp':
                 $this->handleMcp();
@@ -74,6 +78,9 @@ class Router
                 $this->handlePublic($route);
                 break;
         }
+
+        // Hook: allow plugins to act after the route is dispatched.
+        klytos_do_action( 'router.after_dispatch', $route );
     }
 
     /**

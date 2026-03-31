@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API -- Terminal Endpoint
  * Receives commands from the web terminal and returns output.

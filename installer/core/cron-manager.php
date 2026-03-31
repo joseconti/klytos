@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Pseudo-Cron Manager
  * Executes scheduled tasks on admin page loads (no real cron daemon needed).
@@ -137,7 +138,7 @@ class CronManager
             $this->saveState($state);
 
             // Fire action so plugins know cron ran.
-            Hooks::doAction('cron.run', $executed, $errors);
+            klytos_do_action('cron.run', $executed, $errors);
 
             // Migrate core tasks to ActionScheduler (once).
             $this->migrateToScheduler();
@@ -204,7 +205,7 @@ class CronManager
 
         // Allow plugins to register their own cron tasks.
         // Each task must have: id (string), callback (callable), interval (string).
-        $allTasks = Hooks::applyFilters('cron.tasks', $coreTasks);
+        $allTasks = klytos_apply_filters('cron.tasks', $coreTasks);
 
         return $allTasks;
     }
@@ -327,20 +328,20 @@ class CronManager
         }
 
         // Register the hook callbacks for migrated tasks.
-        if (!Hooks::hasAction('klytos.analytics_prune')) {
-            Hooks::addAction('klytos.analytics_prune', function (): void {
+        if (!klytos_has_action('klytos.analytics_prune')) {
+            klytos_add_action('klytos.analytics_prune', function (): void {
                 $analytics = new AnalyticsManager($this->storage);
                 $analytics->prune(90);
             });
         }
-        if (!Hooks::hasAction('klytos.audit_log_prune')) {
-            Hooks::addAction('klytos.audit_log_prune', function (): void {
+        if (!klytos_has_action('klytos.audit_log_prune')) {
+            klytos_add_action('klytos.audit_log_prune', function (): void {
                 $auditLog = new AuditLog($this->storage);
                 $auditLog->prune(90);
             });
         }
-        if (!Hooks::hasAction('klytos.rate_limit_cleanup')) {
-            Hooks::addAction('klytos.rate_limit_cleanup', function (): void {
+        if (!klytos_has_action('klytos.rate_limit_cleanup')) {
+            klytos_add_action('klytos.rate_limit_cleanup', function (): void {
                 $rateLimitFile = $this->storage->getDataDir() . '/rate_limits.json';
                 if (file_exists($rateLimitFile)) {
                     $data = json_decode(file_get_contents($rateLimitFile), true);

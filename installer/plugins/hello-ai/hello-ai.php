@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Hello AI
  * Plugin URI: https://klytos.io/plugins/hello-ai

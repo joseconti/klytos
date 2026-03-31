@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Password Reset Page
  * Public page (no auth required) for resetting a user's password via token.

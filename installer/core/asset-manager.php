@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Asset Manager
  * Manages uploaded files (images, CSS, JS, fonts, etc.)
@@ -56,6 +57,9 @@ class AssetManager
             throw new \RuntimeException('File type not allowed: ' . Helpers::getExtension($filename));
         }
 
+        // Fire before_upload action (after validation, before file write).
+        klytos_do_action('asset.before_upload', $filename, $directory);
+
         // Auto-organize images by date: images/2026/04/filename.jpg
         // This keeps the uploads directory clean and browsable over time.
         if ($directory === 'images') {
@@ -95,7 +99,7 @@ class AssetManager
 
         $relativePath = "assets/{$directory}/{$filename}";
 
-        return [
+        $result = [
             'filename'      => $filename,
             'directory'     => $directory,
             'path'          => $relativePath,
@@ -104,6 +108,10 @@ class AssetManager
             'mime_type'     => $this->getMimeType($targetPath),
             'uploaded_at'   => Helpers::now(),
         ];
+
+        klytos_do_action('asset.after_upload', $result, $filename);
+
+        return $result;
     }
 
     /**
@@ -135,7 +143,15 @@ class AssetManager
             return false;
         }
 
-        return file_exists($path) && unlink($path);
+        klytos_do_action('asset.before_delete', $path);
+
+        $deleted = file_exists($path) && unlink($path);
+
+        if ($deleted) {
+            klytos_do_action('asset.after_delete', $path);
+        }
+
+        return $deleted;
     }
 
     /**
@@ -167,7 +183,7 @@ class AssetManager
                     'filename'  => $file->getFilename(),
                     'path'      => $relativePath,
                     'size'      => $file->getSize(),
-                    'size_human'=> Helpers::formatBytes($file->getSize()),
+                    'size_human' => Helpers::formatBytes($file->getSize()),
                     'mime_type' => $this->getMimeType($file->getPathname()),
                     'modified'  => date('c', $file->getMTime()),
                 ];

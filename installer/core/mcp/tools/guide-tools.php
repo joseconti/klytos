@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Guide Tools
  *
@@ -14,7 +15,7 @@
  * @license   Elastic License 2.0 (ELv2)
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace Klytos\Core\MCP\Tools;
 

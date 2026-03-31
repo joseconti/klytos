@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — User Profile
  * Self-edit profile page for the currently logged-in user.
@@ -71,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.profile.before' ); ?>
 
 <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html($success); ?></div>
@@ -82,6 +84,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card" style="max-width:600px;">
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
+        <?php klytos_do_action( 'admin.profile.before_fields', $user ); ?>
 
         <div class="form-group">
             <label>Username</label>
@@ -116,10 +119,12 @@ require_once __DIR__ . '/templates/sidebar.php';
             <input type="password" name="new_password" class="form-control" minlength="12" data-klytos-pwgen>
         </div>
 
+        <?php klytos_do_action( 'admin.profile.after_fields', $user ); ?>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
             <button type="submit" class="btn btn-primary">Save Profile</button>
         </div>
     </form>
 </div>
 
+<?php klytos_do_action( 'admin.profile.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

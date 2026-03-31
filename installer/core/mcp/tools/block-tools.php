@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Block Management Tools
  * Tools for the modular block system: create, update, get, list, delete, preview,

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Settings
  *
@@ -20,6 +21,7 @@ $success   = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     $section = $_POST['section'] ?? '';
+    klytos_do_action('admin.settings.before_save', $section, $_POST);
 
     if ($section === 'general') {
         $app->getSiteConfig()->set([
@@ -111,6 +113,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         $generator->setApiKey(trim($_POST['gemini_api_key'] ?? ''));
         $success = __( 'ai_images.api_key_saved' );
     }
+
+    klytos_do_action('admin.settings.after_save', $section, $_POST);
 }
 
 $siteConfig = $app->getSiteConfig()->get();
@@ -126,11 +130,13 @@ $aiApiKey = $aiGenerator->getApiKey();
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.settings.before' ); ?>
 
 <?php if ($success): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'general'); ?>
 <!-- General Settings -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'settings.title' ); ?></h3></div>
@@ -161,7 +167,9 @@ require_once __DIR__ . '/templates/sidebar.php';
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'general'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'social'); ?>
 <!-- Social -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'settings.social' ); ?></h3></div>
@@ -179,7 +187,9 @@ require_once __DIR__ . '/templates/sidebar.php';
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'social'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'analytics'); ?>
 <!-- Analytics -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'settings.analytics' ); ?></h3></div>
@@ -197,7 +207,9 @@ require_once __DIR__ . '/templates/sidebar.php';
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'analytics'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'email'); ?>
 <!-- Email / SMTP -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('settings.email_title'); ?></h3></div>
@@ -259,7 +271,9 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'email'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'languages'); ?>
 <!-- Languages -->
 <div class="card">
     <div class="card-header"><h3>Languages</h3></div>
@@ -276,11 +290,15 @@ require_once __DIR__ . '/templates/sidebar.php';
             foreach ($languages as $i => $lang): ?>
                 <div class="form-group" style="display:flex;gap:0.5rem;align-items:end;">
                     <div>
-                        <?php if ($i === 0): ?><label>Code</label><?php endif; ?>
+                        <?php if ($i === 0):
+                            ?><label>Code</label><?php
+                        endif; ?>
                         <input type="text" name="lang_code[]" class="form-control" value="<?php echo klytos_esc_attr($lang['code'] ?? ''); ?>" placeholder="es" style="width:80px;">
                     </div>
                     <div style="flex:1;">
-                        <?php if ($i === 0): ?><label>Name</label><?php endif; ?>
+                        <?php if ($i === 0):
+                            ?><label>Name</label><?php
+                        endif; ?>
                         <input type="text" name="lang_name[]" class="form-control" value="<?php echo klytos_esc_attr($lang['name'] ?? ''); ?>" placeholder="Espanol">
                     </div>
                 </div>
@@ -303,7 +321,9 @@ function addLanguageRow() {
     list.appendChild(div);
 }
 </script>
+<?php klytos_do_action('admin.settings.after_section', 'languages'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'appearance'); ?>
 <!-- Appearance -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('settings.appearance_title'); ?></h3></div>
@@ -328,7 +348,9 @@ function addLanguageRow() {
         <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'appearance'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'editor'); ?>
 <!-- Content Editor -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('editor.title'); ?></h3></div>
@@ -353,7 +375,9 @@ function addLanguageRow() {
         <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'editor'); ?>
 
+<?php klytos_do_action('admin.settings.before_section', 'ai'); ?>
 <!-- AI API Key -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'ai_images.title' ); ?> — API</h3></div>
@@ -368,5 +392,9 @@ function addLanguageRow() {
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
 </div>
+<?php klytos_do_action('admin.settings.after_section', 'ai'); ?>
 
+<?php klytos_do_action('admin.settings.render_custom_sections', $siteConfig); ?>
+
+<?php klytos_do_action( 'admin.settings.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

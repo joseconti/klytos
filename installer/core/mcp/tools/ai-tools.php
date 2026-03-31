@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP AI Tools
  * Read-only tools for querying AI chat configuration and usage.

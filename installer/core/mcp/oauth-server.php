@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — OAuth 2.0/2.1 Authorization Server
  * Implements Authorization Code + PKCE (S256), Client Credentials, and Refresh Token flows.

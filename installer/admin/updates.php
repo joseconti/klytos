@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Updates (via GitHub Releases)
  *
@@ -6,7 +7,7 @@
  * @license   Elastic License 2.0 (ELv2)
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
@@ -107,7 +108,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php
             $currentChannelLabel = Updater::versionChannel( $currentVersion );
             if ( $currentChannelLabel !== 'stable' ):
-            ?>
+                ?>
                 <span class="badge-status badge-draft" style="margin-left:0.5rem;"><?php echo klytos_esc_html( strtoupper( $currentChannelLabel ) ); ?></span>
             <?php endif; ?>
         </div>
@@ -186,7 +187,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php
             $releaseChannel = $updateInfo['release_channel'] ?? 'stable';
             if ( $releaseChannel !== 'stable' ):
-            ?>
+                ?>
                 <span class="badge-status <?php echo $releaseChannel === 'beta' ? 'badge-urgent' : 'badge-draft'; ?>" style="margin-left:0.5rem;">
                     <?php echo klytos_esc_html( strtoupper( $releaseChannel ) ); ?>
                 </span>
@@ -271,7 +272,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                             'rollback' => 'badge-draft',
                             default    => 'badge-urgent',
                         };
-                        ?>
+    ?>
                         <span class="badge-status <?php echo $statusClass; ?>">
                             <?php echo klytos_esc_html( ucfirst( $entry['status'] ?? 'unknown' ) ); ?>
                         </span>

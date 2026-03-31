@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Storage Layer
  * CRUD operations over encrypted JSON files.

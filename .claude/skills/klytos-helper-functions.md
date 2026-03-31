@@ -60,6 +60,35 @@ klytos_has_filter(string $hook): bool
 ```
 Check if any callbacks are registered for a filter hook.
 
+### Bulk Removal
+
+```php
+klytos_remove_all_actions(string $hook): void
+```
+Remove ALL callbacks from an action hook. Use with caution.
+
+```php
+klytos_remove_all_filters(string $hook): void
+```
+Remove ALL callbacks from a filter hook. Use with caution.
+
+### Debugging / Introspection
+
+```php
+klytos_did_action(string $hook): int
+```
+Check how many times an action has been fired in this request.
+
+```php
+klytos_get_fired_actions(): array
+```
+Get all actions that have been fired. Returns `['hook' => fire_count, ...]`.
+
+```php
+klytos_get_registered_hooks(): array
+```
+Get all registered hooks and callback counts. Returns `['actions' => [...], 'filters' => [...]]`.
+
 ### Example
 
 ```php
@@ -73,6 +102,9 @@ klytos_add_filter('page.content', function (string $html): string {
     return '<div class="wrapper">' . $html . '</div>';
 });
 ```
+
+> **IMPORTANT**: ALWAYS use the global `klytos_*` functions. NEVER use `Hooks::` class methods directly.
+> The `Hooks` class is an internal engine — all code must use the `klytos_*` wrappers.
 
 ---
 

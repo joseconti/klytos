@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin -- Terminal Page
  * Integrated pseudo-terminal for executing Klytos CLI commands from the browser.
@@ -49,7 +50,7 @@ if ( ! $has2fa ) : ?>
         </p>
     </div>
 </div>
-<?php require_once __DIR__ . '/templates/footer.php';
+    <?php require_once __DIR__ . '/templates/footer.php';
     return;
 endif;
 

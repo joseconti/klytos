@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — License Manager
  * Activation and verification against plugins.joseconti.com.

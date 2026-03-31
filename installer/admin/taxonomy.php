@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Taxonomy Terms Management
  *

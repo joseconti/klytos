@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — oEmbed Proxy
  *
@@ -168,7 +169,8 @@ echo json_encode( $data );
  * @param  string $url
  * @return string|false Response body, or false on failure.
  */
-function fetchUrl( string $url ) {
+function fetchUrl( string $url )
+{
     // Prefer cURL — works on virtually all hosts, handles HTTPS properly.
     if ( function_exists( 'curl_init' ) ) {
         $ch = curl_init( $url );
@@ -225,7 +227,8 @@ function fetchUrl( string $url ) {
  * @param  string $url
  * @return string|null
  */
-function discoverOembed( string $url ): ?string {
+function discoverOembed( string $url ): ?string
+{
     $html = fetchUrl( $url );
 
     if ( ! $html ) {
@@ -233,11 +236,13 @@ function discoverOembed( string $url ): ?string {
     }
 
     // Look for oEmbed link tag.
-    if ( preg_match(
-        '/<link[^>]+type=["\']application\/json\+oembed["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
-        $html,
-        $matches
-    ) ) {
+    if (
+        preg_match(
+            '/<link[^>]+type=["\']application\/json\+oembed["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+            $html,
+            $matches
+        )
+    ) {
         return html_entity_decode( $matches[1] );
     }
 

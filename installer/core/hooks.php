@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Hook Engine
  * WordPress-inspired action/filter system for extensibility.

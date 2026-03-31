@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Plugins Management
  * Lists installed plugins with AJAX-powered actions: activate, deactivate, delete, bulk operations.
@@ -18,7 +19,6 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
-use Klytos\Core\Hooks;
 
 $pageTitle    = 'Plugins';
 $auth         = $app->getAuth();
@@ -37,7 +37,7 @@ $columns = [
     'status'  => __( 'common.status' ),
     'actions' => __( 'common.actions' ),
 ];
-$columns = Hooks::applyFilters( 'admin.plugins_columns', $columns );
+$columns = klytos_apply_filters( 'admin.plugins_columns', $columns );
 
 // ─── Bulk actions (filterable) ───────────────────────────────
 $bulkActions = [
@@ -46,11 +46,12 @@ $bulkActions = [
     'deactivate' => 'Deactivate',
     'delete'     => 'Delete',
 ];
-$bulkActions = Hooks::applyFilters( 'admin.plugins_page_actions', $bulkActions );
+$bulkActions = klytos_apply_filters( 'admin.plugins_page_actions', $bulkActions );
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.plugins.before' ); ?>
 
 <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-plugins.css' ); ?>" nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 
@@ -84,7 +85,6 @@ require_once __DIR__ . '/templates/sidebar.php';
             No plugins installed. Visit the <a href="https://klytos.io/plugins" target="_blank" rel="noopener">Marketplace</a> to find plugins.
         </p>
     <?php else: ?>
-
         <!-- Bulk action bar -->
         <div class="plugin-bulk-bar">
             <label>
@@ -99,7 +99,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <button type="button" class="btn btn-outline btn-sm" id="plugin-bulk-apply" disabled>Apply</button>
         </div>
 
-        <?php Hooks::doAction( 'admin.plugins_before_table' ); ?>
+        <?php klytos_do_action( 'admin.plugins_before_table' ); ?>
 
         <div class="table-wrap">
             <table class="admin-table" id="plugins-table">
@@ -118,7 +118,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <?php foreach ($plugins as $plugin): ?>
                         <?php
                         // Allow plugins to modify row data.
-                        $plugin = Hooks::applyFilters( 'admin.plugins_row_data', $plugin );
+                        $plugin = klytos_apply_filters( 'admin.plugins_row_data', $plugin );
 
                         // Build row actions.
                         $rowActions = [];
@@ -141,7 +141,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                             'label' => 'Delete',
                             'class' => 'btn btn-danger btn-sm',
                         ];
-                        $rowActions = Hooks::applyFilters( 'admin.plugins_row_actions', $rowActions, $plugin['id'], $plugin );
+                        $rowActions = klytos_apply_filters( 'admin.plugins_row_actions', $rowActions, $plugin['id'], $plugin );
                         ?>
                         <tr class="plugin-row" data-plugin="<?php echo klytos_esc_attr( $plugin['id'] ); ?>" data-plugin-name="<?php echo klytos_esc_attr( $plugin['name'] ); ?>">
                             <?php foreach ($columns as $key => $colLabel): ?>
@@ -220,7 +220,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
                                 <?php else: ?>
                                     <?php // Custom column added by plugins. ?>
-                                    <td><?php Hooks::doAction( 'admin.plugins_column_' . $key, $plugin ); ?></td>
+                                    <td><?php klytos_do_action( 'admin.plugins_column_' . $key, $plugin ); ?></td>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>
@@ -229,7 +229,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             </table>
         </div>
 
-        <?php Hooks::doAction( 'admin.plugins_after_table' ); ?>
+        <?php klytos_do_action( 'admin.plugins_after_table' ); ?>
 
     <?php endif; ?>
 </div>
@@ -310,6 +310,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <script src="<?php echo klytos_esc_url( $adminPath . 'assets/js/klytos-plugins.js' ); ?>" nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>"></script>
-<?php Hooks::doAction( 'admin.plugins_page_scripts', $cspNonce ); ?>
+<?php klytos_do_action( 'admin.plugins_page_scripts', $cspNonce ); ?>
 
+<?php klytos_do_action( 'admin.plugins.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

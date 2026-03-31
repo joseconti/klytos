@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Template Tools
  * HTML template management via MCP.

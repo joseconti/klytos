@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Global Helper Functions
  * Convenience wrappers for the Hook engine and core services.
@@ -126,6 +127,61 @@ function klytos_has_action(string $hook): bool
 function klytos_has_filter(string $hook): bool
 {
     return Hooks::hasFilter($hook);
+}
+
+/**
+ * Remove ALL callbacks from an action hook.
+ *
+ * Use with caution — this removes callbacks from all plugins.
+ *
+ * @param string $hook Hook name.
+ */
+function klytos_remove_all_actions( string $hook ): void
+{
+    Hooks::removeAllActions( $hook );
+}
+
+/**
+ * Remove ALL callbacks from a filter hook.
+ *
+ * Use with caution — this removes callbacks from all plugins.
+ *
+ * @param string $hook Hook name.
+ */
+function klytos_remove_all_filters( string $hook ): void
+{
+    Hooks::removeAllFilters( $hook );
+}
+
+/**
+ * Check how many times an action has been fired in this request.
+ *
+ * @param  string $hook Hook name.
+ * @return int    Number of times doAction() was called for this hook.
+ */
+function klytos_did_action( string $hook ): int
+{
+    return Hooks::didAction( $hook );
+}
+
+/**
+ * Get all actions that have been fired in this request.
+ *
+ * @return array<string, int> Hook name => fire count.
+ */
+function klytos_get_fired_actions(): array
+{
+    return Hooks::getFiredActions();
+}
+
+/**
+ * Get a list of all registered hooks (actions + filters) and their callback counts.
+ *
+ * @return array ['actions' => ['hook.name' => count, ...], 'filters' => [...]]
+ */
+function klytos_get_registered_hooks(): array
+{
+    return Hooks::getRegisteredHooks();
 }
 
 // ─── Core Service Accessors ──────────────────────────────────
@@ -696,5 +752,43 @@ function klytos_register_templates(string $pluginId, array $templates): void
  */
 function klytos_register_template_part(string $partName, callable $callback, int $priority = 10): void
 {
-    Hooks::addFilter('template_part.' . $partName, $callback, $priority);
+    klytos_add_filter( 'template_part.' . $partName, $callback, $priority );
+}
+
+// ─── Admin Page Detection ─────────────────────────────────────
+
+/**
+ * Get the current admin page identifier.
+ *
+ * Returns the basename of the current admin script without `.php`,
+ * e.g. 'settings', 'users', 'dashboard' (index maps to 'dashboard').
+ *
+ * @return string Current admin page name, or empty string if not in admin.
+ * @since  0.16.0
+ */
+function klytos_current_admin_page(): string
+{
+    return $GLOBALS['klytos_admin_page'] ?? '';
+}
+
+/**
+ * Check whether the current admin page matches the given identifier.
+ *
+ * Supports exact match ('settings') and prefix match ('settings.*')
+ * via wildcard at the end.
+ *
+ * @param string $page Page identifier to check against.
+ * @return bool
+ * @since  0.16.0
+ */
+function klytos_is_admin_page(string $page): bool
+{
+    $current = $GLOBALS['klytos_admin_page'] ?? '';
+    if ($current === '') {
+        return false;
+    }
+    if (str_ends_with($page, '.*')) {
+        return str_starts_with($current, substr($page, 0, -1));
+    }
+    return $current === $page;
 }

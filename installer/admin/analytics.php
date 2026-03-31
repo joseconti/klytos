@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Analytics Dashboard
  * Privacy-first analytics: pageviews, unique visitors, top pages, referrers, devices.
@@ -41,6 +42,7 @@ $summary = $analytics->getSummary($dateFrom, $dateTo);
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.analytics.before' ); ?>
 
 <!-- Privacy badge -->
 <div class="alert alert-info" style="display:flex;align-items:center;gap:0.75rem">
@@ -189,4 +191,5 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 <?php endif; ?>
 
+<?php klytos_do_action( 'admin.analytics.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

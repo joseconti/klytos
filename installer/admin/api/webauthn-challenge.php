@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — WebAuthn Challenge Endpoint
  * Handles passkey registration and authentication challenges.

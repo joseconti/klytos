@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Version Manager
  * Page version history with save, restore, diff, and prune capabilities.

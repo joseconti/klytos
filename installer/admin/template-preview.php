@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Template Preview
  * Full-page preview of a page template with block structure sidebar.
@@ -14,7 +15,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 

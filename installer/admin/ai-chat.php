@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — AI Chat
  * Integrated AI chat for controlling the CMS from the admin panel.
@@ -65,7 +66,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
     ];
     $imgBase = $basePath . 'admin/assets/images/';
-?>
+    ?>
 
 <style>
     .admin-sidebar  { display: none !important; }
@@ -83,7 +84,7 @@ foreach ($allProviders as $p):
     $provId         = $p['id'] ?? '';
     $provName       = $p['name'] ?? '';
     $provModels     = $p['models'] ?? [];
-?>
+    ?>
     <optgroup label="<?php echo klytos_esc_attr($provName); ?>">
         <?php if ($provConfigured && !empty($provModels)): ?>
             <?php foreach ($provModels as $model): ?>
@@ -96,7 +97,7 @@ foreach ($allProviders as $p):
             <option disabled>-- <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></option>
         <?php endif; ?>
     </optgroup>
-<?php
+    <?php
 endforeach;
 $providerOptions = ob_get_clean();
 ?>
@@ -173,7 +174,6 @@ $providerOptions = ob_get_clean();
                 <!-- Panel View -->
                 <?php require_once __DIR__ . '/partials/ai-panel-' . $panel . '.php'; ?>
             <?php else: ?>
-
                 <!-- Chats Browser (hidden by default) -->
                 <div class="ai-chat-browser" id="ai-chat-browser" style="display:none;">
                     <div class="ai-chat-browser-header">

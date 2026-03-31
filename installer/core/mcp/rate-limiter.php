@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Rate Limiter
  * Sliding-window rate limiter using flat-file storage.
