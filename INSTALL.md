@@ -1,5 +1,22 @@
 # Klytos — Installation Guide
 
+## Quick install (recommended)
+
+The easiest way to install Klytos is using the standalone installer:
+
+1. Download `installer.php` from the [klytos-installer](https://github.com/joseconti/klytos-installer) repository.
+2. Upload it to the root of your domain via FTP, SFTP, or SSH.
+3. Open `https://yourdomain.com/installer.php` in your browser.
+4. Follow the on-screen instructions.
+
+The installer will download Klytos, check requirements, and guide you through the full setup — no manual file extraction or permission changes needed.
+
+---
+
+## Manual installation
+
+If you prefer to install Klytos manually, follow the steps below.
+
 ## Requirements
 
 - **PHP 8.1** or higher

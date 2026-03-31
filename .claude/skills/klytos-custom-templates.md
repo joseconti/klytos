@@ -398,12 +398,87 @@ installer/
 
 ---
 
+## v2.0 Block-Based Page Rendering
+
+Pages can now use structured block content (v2.0) instead of raw HTML (v1.0).
+
+### Page Data Format (v2.0)
+
+```json
+{
+  "slug": "index",
+  "template": "home",
+  "content": {
+    "hero": { "heading": "Welcome", "subheading": "...", "cta_text": "Contact", "cta_url": "/contact/" },
+    "testimonials": { "heading": "Reviews", "testimonials_html": "..." }
+  }
+}
+```
+
+- **v2.0 detection:** `PageManager::hasBlockContent($page)` — returns true when `$page['content']` is a non-empty array.
+- **Backward compatible:** Pages with only `content_html` (v1.0) continue to work unchanged.
+- **Build engine** checks: if page has `content` + `template`, it uses `PageTemplateManager::renderPage()` to assemble blocks; otherwise uses raw `content_html`.
+
+### Smart Rebuild
+
+Global blocks (header, footer, top-bar) inject HTML comment markers:
+```html
+<!--klytos:block:footer-->..content..<!--/klytos:block:footer-->
+```
+
+`BuildEngine::smartRebuildBlock($blockId)` finds and replaces these markers across all generated HTML files (~50ms for 100 pages) without a full rebuild.
+
+### Block CSS/JS Aggregation
+
+- `blocks.css` — aggregated CSS from all active blocks → `assets/css/blocks.css`
+- `blocks.js` — aggregated JS from blocks that have JS → `assets/js/blocks.js`
+- Template placeholders: `{{blocks_css_link}}`, `{{blocks_js_script}}`
+
+### New MCP Build Tools
+
+| Tool | Description |
+|------|-------------|
+| `klytos_rebuild_block` | Smart rebuild a global block across all HTML files |
+| `klytos_rebuild_css` | Regenerate theme CSS + block CSS without full rebuild |
+
+### PageTemplateManager New Methods
+
+- `preview(string $type): string` — Render template with sample_data.
+- `previewWithData(string $type, array $data): string` — Render with custom data.
+
+### Admin Pages
+
+- `admin/blocks.php` — Block listing grouped by category (structure, content, interaction, social-proof, custom).
+- `admin/block-data.php?id=footer` — Edit global block data with form + live preview + "Save & Rebuild".
+- `admin/template-preview.php?type=home` — Full template preview with block structure sidebar.
+
+### Core Blocks (23 total)
+
+| Category | Blocks |
+|----------|--------|
+| structure | header, footer, breadcrumb, cookie-banner, top-bar, menu, sidebar |
+| content | hero, text-block, image-text, gallery, video-embed, blog-list |
+| interaction | cta, faq-accordion, stats-counter, contact-form |
+| social-proof | testimonials, team-grid, logo-bar, map-embed |
+
+### Additional Hooks (v2.0)
+
+| Hook | Type | Purpose |
+|------|------|---------|
+| `page_template.structure` | filter | Modify template block structure before rendering |
+| `block.css` | filter | Modify a block's CSS during aggregation |
+| `build.global_blocks` | filter | Modify cached global block HTML during build |
+
+---
+
 ## Source Files
 
 - Template resolver: `core/template-resolver.php`
 - Build engine: `core/build-engine.php`
 - Page template manager: `core/page-template-manager.php`
 - Block manager: `core/block-manager.php`
+- Page manager: `core/page-manager.php`
+- Seed data: `core/seed-data.php`
 - HTML templates: `templates/`
 - Template parts: `templates/parts/`
 - Custom templates: `custom-templates/`
@@ -411,3 +486,7 @@ installer/
 - Helper functions: `core/helpers-global.php`
 - MCP template tools: `core/mcp/tools/page-template-tools.php`
 - MCP block tools: `core/mcp/tools/block-tools.php`
+- MCP build tools: `core/mcp/tools/build-tools.php`
+- Admin blocks: `admin/blocks.php`
+- Admin block data: `admin/block-data.php`
+- Admin template preview: `admin/template-preview.php`

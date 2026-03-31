@@ -43,6 +43,9 @@ class BuildEngine
     /** @var string Path to HTML templates. */
     private string $templatesPath;
 
+    /** @var array Cached rendered HTML for global-scope blocks (populated during buildAll). */
+    private array $globalBlocksCache = [];
+
     public function __construct(App $app)
     {
         $this->app           = $app;
@@ -75,6 +78,15 @@ class BuildEngine
 
         // 1c. Generate plugin CSS (plugins.css)
         $this->buildPluginsCss();
+
+        // 1d. Generate block CSS (blocks.css)
+        $this->generateBlocksCss();
+
+        // 1e. Generate block JS (blocks.js)
+        $this->generateBlocksJs();
+
+        // 1f. Pre-render global blocks (scope=global) and cache in memory.
+        $this->globalBlocksCache = $this->cacheGlobalBlocks();
 
         // 2. Get global data
         $siteConfig = $this->app->getSiteConfig()->get();
@@ -158,7 +170,7 @@ class BuildEngine
     /**
      * Generate the CSS file from the theme.
      */
-    private function generateCss(): void
+    public function generateCss(): void
     {
         $theme     = $this->app->getTheme();
         $variables = $theme->generateCssVariables();
@@ -264,8 +276,15 @@ class BuildEngine
         $pluginHeadHtml    = Hooks::applyFilters('build.head_html', '');
         $pluginBodyEndHtml = Hooks::applyFilters('build.body_end_html', '');
 
+        // Determine page content: v2.0 block assembly or v1.0 raw HTML.
+        if (PageManager::hasBlockContent($page) && !empty($page['template'])) {
+            $pageContent = $this->renderBlockContent($page);
+        } else {
+            $pageContent = $page['content_html'] ?? '';
+        }
+
         // Allow plugins to modify the page content before rendering.
-        $pageContent = Hooks::applyFilters('page.content', $page['content_html'] ?? '', $page);
+        $pageContent = Hooks::applyFilters('page.content', $pageContent, $page);
 
         // Build smart title separator: skip " — Site Name" if page title already contains site name.
         $rawSiteName  = $siteConfig['site_name'] ?? '';
@@ -309,6 +328,8 @@ class BuildEngine
             '{{plugin_head_html}}'     => $pluginHeadHtml,
             '{{plugin_body_end_html}}' => $pluginBodyEndHtml,
             '{{plugin_css_link}}'      => $this->buildPluginCssLink($basePath),
+            '{{blocks_css_link}}'      => $this->buildBlocksCssLink($basePath),
+            '{{blocks_js_script}}'     => $this->buildBlocksJsTag($basePath),
             '{{hooks_js_script}}'      => $this->buildHooksJsTag($basePath),
         ];
 
@@ -661,6 +682,215 @@ class BuildEngine
         file_put_contents($this->outputPath . '/sitemap.xml', $xml, LOCK_EX);
     }
 
+    // ─── Block System (v2.0) ───────────────────────────────────
+
+    /**
+     * Render page content by assembling blocks from the page template.
+     *
+     * Used for v2.0 pages that have structured block content
+     * instead of raw content_html.
+     *
+     * @param  array  $page Page data with 'content' and 'template'.
+     * @return string Rendered HTML from assembled blocks.
+     */
+    private function renderBlockContent(array $page): string
+    {
+        $templateManager = $this->app->getPageTemplateManager();
+        return $templateManager->renderPage($page['template'], $page);
+    }
+
+    /**
+     * Pre-render all global-scope blocks and cache the HTML.
+     *
+     * Called once during buildAll() so global blocks (header, footer, etc.)
+     * are not re-rendered for every page.
+     *
+     * @return array Map of block_id => rendered HTML.
+     */
+    private function cacheGlobalBlocks(): array
+    {
+        $blockManager = $this->app->getBlockManager();
+        $allBlocks    = $blockManager->list('all', 'active');
+        $cache        = [];
+
+        foreach ($allBlocks as $block) {
+            if (($block['scope'] ?? '') !== 'global') {
+                continue;
+            }
+
+            $blockId   = $block['id'] ?? '';
+            $globalData = $blockManager->getGlobalData($blockId);
+
+            try {
+                $cache[$blockId] = $blockManager->render($blockId, $globalData);
+            } catch (\RuntimeException $e) {
+                $cache[$blockId] = "<!-- Global block '{$blockId}' render error -->";
+            }
+        }
+
+        return Hooks::applyFilters('build.global_blocks', $cache);
+    }
+
+    /**
+     * Smart rebuild: replace a single global block across all generated HTML files.
+     *
+     * Uses the HTML comment markers (<!--klytos:block:NAME-->) injected by
+     * BlockManager::render() to find and replace the block content without
+     * a full site rebuild.
+     *
+     * @param  string $blockId Block ID to rebuild.
+     * @return array  Result with block_id and files_updated count.
+     */
+    public function smartRebuildBlock(string $blockId): array
+    {
+        $blockManager = $this->app->getBlockManager();
+        $globalData   = $blockManager->getGlobalData($blockId);
+        $newHtml      = $blockManager->render($blockId, $globalData);
+
+        $pattern = '/<!--klytos:block:' . preg_quote($blockId, '/') . '-->.*?<!--\/klytos:block:' . preg_quote($blockId, '/') . '-->/s';
+
+        $filesUpdated = 0;
+        $iterator     = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->outputPath, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->getExtension() !== 'html') {
+                continue;
+            }
+
+            $html = file_get_contents($file->getPathname());
+            if (str_contains($html, "<!--klytos:block:{$blockId}-->")) {
+                $html = preg_replace($pattern, $newHtml, $html);
+                file_put_contents($file->getPathname(), $html, LOCK_EX);
+                $filesUpdated++;
+            }
+        }
+
+        return [
+            'block_id'      => $blockId,
+            'files_updated' => $filesUpdated,
+        ];
+    }
+
+    /**
+     * Generate /assets/css/blocks.css
+     *
+     * Aggregates CSS from all active blocks into a single file.
+     */
+    public function generateBlocksCss(): void
+    {
+        $blockManager = $this->app->getBlockManager();
+        $allBlocks    = $blockManager->list('all', 'active');
+        $outputDir    = $this->outputPath . '/assets/css';
+
+        $css        = "/* Generated by Klytos Build Engine — Block CSS */\n\n";
+        $hasContent = false;
+
+        foreach ($allBlocks as $block) {
+            $blockCss = $block['css'] ?? '';
+            if (empty($blockCss)) {
+                continue;
+            }
+
+            $blockId  = $block['id'] ?? 'unknown';
+            $blockCss = Hooks::applyFilters('block.css', $blockCss, $blockId);
+
+            $css .= "/* --- Block: {$blockId} --- */\n";
+            $css .= $blockCss . "\n\n";
+            $hasContent = true;
+        }
+
+        Helpers::ensureWritableDir($outputDir);
+
+        if ($hasContent) {
+            file_put_contents($outputDir . '/blocks.css', $css, LOCK_EX);
+            $version = substr(md5($css), 0, 8);
+            klytos_set_option('klytos_blocks_css_version', $version);
+        } else {
+            $blocksFile = $outputDir . '/blocks.css';
+            if (file_exists($blocksFile)) {
+                unlink($blocksFile);
+            }
+            klytos_set_option('klytos_blocks_css_version', '');
+        }
+    }
+
+    /**
+     * Generate /assets/js/blocks.js
+     *
+     * Aggregates JS from all active blocks that have JS into a single file.
+     */
+    public function generateBlocksJs(): void
+    {
+        $blockManager = $this->app->getBlockManager();
+        $allBlocks    = $blockManager->list('all', 'active');
+        $outputDir    = $this->outputPath . '/assets/js';
+
+        $js         = "/* Generated by Klytos Build Engine — Block JS */\n\n";
+        $hasContent = false;
+
+        foreach ($allBlocks as $block) {
+            $blockJs = $block['js'] ?? '';
+            if (empty($blockJs)) {
+                continue;
+            }
+
+            $blockId = $block['id'] ?? 'unknown';
+            $js .= "// --- Block: {$blockId} ---\n";
+            $js .= $blockJs . "\n\n";
+            $hasContent = true;
+        }
+
+        Helpers::ensureWritableDir($outputDir);
+
+        if ($hasContent) {
+            file_put_contents($outputDir . '/blocks.js', $js, LOCK_EX);
+            $version = substr(md5($js), 0, 8);
+            klytos_set_option('klytos_blocks_js_version', $version);
+        } else {
+            $blocksFile = $outputDir . '/blocks.js';
+            if (file_exists($blocksFile)) {
+                unlink($blocksFile);
+            }
+            klytos_set_option('klytos_blocks_js_version', '');
+        }
+    }
+
+    /**
+     * Build the <link> tag for blocks.css if blocks have CSS.
+     *
+     * @param  string $basePath Site base path.
+     * @return string HTML link tag or empty string.
+     */
+    private function buildBlocksCssLink(string $basePath): string
+    {
+        $version = klytos_get_option('klytos_blocks_css_version', '');
+        if (empty($version)) {
+            return '';
+        }
+        $href = $basePath . 'assets/css/blocks.css?v=' . $version;
+        return '<link rel="stylesheet" href="' . Helpers::escUrl($href) . '">';
+    }
+
+    /**
+     * Build the <script> tag for blocks.js if blocks have JS.
+     *
+     * @param  string $basePath Site base path.
+     * @return string HTML script tag or empty string.
+     */
+    private function buildBlocksJsTag(string $basePath): string
+    {
+        $version = klytos_get_option('klytos_blocks_js_version', '');
+        if (empty($version)) {
+            return '';
+        }
+        $src = $basePath . 'assets/js/blocks.js?v=' . $version;
+        return '<script src="' . Helpers::escUrl($src) . '" defer></script>';
+    }
+
+    // ─── Styles ─────────────────────────────────────────────────
+
     /**
      * Base CSS reset and responsive styles.
      */
@@ -974,6 +1204,7 @@ CSS;
   {{seo_meta_tags}}
   {{google_fonts_html}}
   <link rel="stylesheet" href="{{base_path}}assets/css/style.css">
+  {{blocks_css_link}}
   {{hreflang_tags}}
   {{head_scripts}}
   {{plugin_head_html}}
@@ -989,6 +1220,7 @@ CSS;
   </div>
   {{custom_css}}
   {{custom_js}}
+  {{blocks_js_script}}
   <script src="{{base_path}}assets/js/klytos-analytics.js" defer></script>
   {{body_scripts}}
   {{plugin_body_end_html}}

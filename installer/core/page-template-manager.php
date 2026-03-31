@@ -271,6 +271,9 @@ class PageTemplateManager
         $template = $this->get($type);
         $structure = $template['structure'] ?? [];
 
+        // Allow plugins to modify the template structure before rendering.
+        $structure = Hooks::applyFilters('page_template.structure', $structure, $type);
+
         // Sort blocks by order.
         usort($structure, fn(array $a, array $b): int =>
             ($a['order'] ?? 0) <=> ($b['order'] ?? 0)
@@ -357,6 +360,29 @@ class PageTemplateManager
         $types = Hooks::applyFilters('page_template.available_types', $types);
 
         return $types;
+    }
+
+    /**
+     * Preview a template using sample data from each block.
+     *
+     * @param  string $type Template type.
+     * @return string Rendered HTML with sample data.
+     */
+    public function preview(string $type): string
+    {
+        return $this->renderPage($type, []);
+    }
+
+    /**
+     * Preview a template with custom content data.
+     *
+     * @param  string $type Template type.
+     * @param  array  $data Block data keyed by block_id.
+     * @return string Rendered HTML with provided data.
+     */
+    public function previewWithData(string $type, array $data): string
+    {
+        return $this->renderPage($type, ['content' => $data]);
     }
 
     // ─── Internal ────────────────────────────────────────────────
