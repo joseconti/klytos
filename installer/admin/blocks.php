@@ -76,8 +76,8 @@ require_once __DIR__ . '/templates/sidebar.php';
             <h3><?php echo klytos_esc_html( $previewId ); ?> — <?php echo __( 'common.preview' ); ?></h3>
             <a href="<?php echo klytos_esc_url( strtok( $_SERVER['REQUEST_URI'], '?' ) ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.close' ); ?></a>
         </div>
-        <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;padding:2rem;">
-            <?php echo $previewHtml; ?>
+        <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;">
+            <iframe srcdoc="<?php echo klytos_esc_attr( '<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;padding:2rem;margin:0;}</style></head><body>' . $previewHtml . '</body></html>' ); ?>" style="width:100%;height:300px;border:none;"></iframe>
         </div>
     </div>
 <?php endif; ?>

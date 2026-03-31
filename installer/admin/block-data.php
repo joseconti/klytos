@@ -131,7 +131,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 id="<?php echo klytos_esc_attr( $inputId ); ?>"
                                 name="<?php echo klytos_esc_attr( $name ); ?>"
                                 rows="5"
-                                class="form-input"
+                                class="form-control"
                                 style="width:100%;font-family:monospace;font-size:0.85rem;"
                             ><?php echo klytos_esc_html( (string) $value ); ?></textarea>
                         <?php elseif ( $type === 'boolean' ): ?>
@@ -145,7 +145,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 id="<?php echo klytos_esc_attr( $inputId ); ?>"
                                 name="<?php echo klytos_esc_attr( $name ); ?>"
                                 value="<?php echo klytos_esc_attr( (string) $value ); ?>"
-                                class="form-input"
+                                class="form-control"
                                 style="width:100%;"
                             >
                         <?php endif; ?>
@@ -165,11 +165,11 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div class="card-header">
             <h3><?php echo __( 'common.preview' ); ?></h3>
         </div>
-        <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;padding:1.5rem;">
+        <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;">
             <?php if ( !empty( $previewHtml ) ): ?>
-                <?php echo $previewHtml; ?>
+                <iframe srcdoc="<?php echo klytos_esc_attr( '<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;padding:1.5rem;margin:0;}</style></head><body>' . $previewHtml . '</body></html>' ); ?>" style="width:100%;height:300px;border:none;"></iframe>
             <?php else: ?>
-                <p style="color:var(--admin-text-muted);text-align:center;">No preview available.</p>
+                <p style="color:var(--admin-text-muted);text-align:center;padding:2rem;">No preview available.</p>
             <?php endif; ?>
         </div>
     </div>
