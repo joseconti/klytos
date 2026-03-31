@@ -298,13 +298,17 @@
     text-align: center;
 }
 
-/* Ensure body has room for the bar */
+/* Ensure body and sidebar have room for the bar */
 body.has-devbar {
     padding-bottom: 36px;
 }
 
-body.has-devbar.devbar-expanded {
-    padding-bottom: calc( 36px + 40vh );
+body.has-devbar .admin-sidebar {
+    padding-bottom: 44px;
+}
+
+body.has-devbar .admin-main {
+    padding-bottom: 44px;
 }
 
 /* ------------------------------------------------------------------ */
