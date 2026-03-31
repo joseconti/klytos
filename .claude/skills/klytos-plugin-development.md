@@ -448,26 +448,36 @@ klytos_register_translations('my-plugin', klytos_plugin_path('my-plugin', 'lang'
 
 ### Translation File Format
 
+Both flat dot-notation keys and nested arrays are supported:
+
 ```json
+// FLAT FORMAT (recommended for plugins — simpler):
 {
-    "settings": {
-        "title": "My Plugin Settings",
+    "my_plugin.settings_title": "My Plugin Settings",
+    "my_plugin.save": "Save Changes",
+    "my_plugin.success": "Operation completed"
+}
+
+// NESTED FORMAT (also works):
+{
+    "my_plugin": {
+        "settings_title": "My Plugin Settings",
         "save": "Save Changes"
-    },
-    "messages": {
-        "success": "Operation completed successfully"
     }
 }
 ```
 
+**IMPORTANT**: Use underscores (`_`) in translation keys, not hyphens. The key prefix should match a consistent namespace for your plugin (e.g. `my_plugin.`). The dot is the separator for nested lookup.
+
 ### Using Plugin Translations
 
-Plugin translations are namespaced under the plugin ID:
-
 ```php
-// Access with: pluginId.key
-echo __('my-plugin.settings.title');   // → "My Plugin Settings"
-echo __('my-plugin.messages.success'); // → "Operation completed"
+// Keys use dot-notation — the I18n system resolves them:
+echo __('my_plugin.settings_title');  // → "My Plugin Settings"
+echo __('my_plugin.success');         // → "Operation completed"
+
+// With replacements:
+echo __('my_plugin.greeting', ['name' => 'José']);  // → "Hello, José!"
 ```
 
 ## Installing Plugins via ZIP
