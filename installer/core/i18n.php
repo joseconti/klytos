@@ -116,6 +116,23 @@ class I18n
     }
 
     /**
+     * Merge plugin translations into the active strings.
+     *
+     * Plugin translations are stored under a namespace prefix so they
+     * don't collide with core keys: "pluginId.key" → value.
+     *
+     * @param string $namespace Plugin ID used as namespace prefix.
+     * @param array  $data      Flat or nested translation array to merge.
+     */
+    public function mergeTranslations(string $namespace, array $data): void
+    {
+        $this->strings[$namespace] = array_replace_recursive(
+            $this->strings[$namespace] ?? [],
+            $data
+        );
+    }
+
+    /**
      * Load a locale file and return its contents.
      *
      * @param  string $locale
