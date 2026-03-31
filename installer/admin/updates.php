@@ -343,7 +343,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <!-- Result message (hidden initially) -->
         <div id="updateResult" style="display:none;margin-top:1.5rem;padding:1rem;border-radius:var(--admin-radius);text-align:center;font-weight:600;"></div>
         <div id="updateResultAction" style="display:none;margin-top:1rem;text-align:center;">
-            <button type="button" class="btn btn-primary" onclick="location.reload();"><?php echo klytos_esc_html( __( 'common.reload' ) ); ?></button>
+            <button type="button" class="btn btn-primary" id="btnReloadPage"><?php echo klytos_esc_html( __( 'common.reload' ) ); ?></button>
         </div>
     </div>
 </div>
@@ -351,6 +351,14 @@ require_once __DIR__ . '/templates/sidebar.php';
 <script nonce="<?php echo $cspNonce; ?>">
 ( function() {
     var csrfToken = '<?php echo klytos_esc_attr( $csrf ); ?>';
+
+    // ── Reload button ─────────────────────────────────────────
+    var btnReload = document.getElementById( 'btnReloadPage' );
+    if ( btnReload ) {
+        btnReload.addEventListener( 'click', function() {
+            location.reload();
+        } );
+    }
 
     // ── Update via AJAX with progress overlay ─────────────────
     var btnUpdate = document.getElementById( 'btnUpdate' );
