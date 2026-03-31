@@ -11,28 +11,25 @@
 (function(global) {
     'use strict';
 
-    // Error correction level M (15% recovery).
-    var EC_LEVEL = 0; // 0=M index for our tables
-
-    // Version capacity table: max data bytes for EC level M in byte mode.
-    // Versions 1-10 (we only need up to ~100 bytes for TOTP URIs).
-    var VERSION_DATA_CAPACITY = [0, 16, 28, 44, 64, 86, 108, 124, 154, 182, 216];
-    var VERSION_EC_CODEWORDS  = [0, 10, 16, 26, 18, 24, 18,  20,  24,  30,  18];
-    var VERSION_EC_BLOCKS     = [0,  1,  1,  1,  2,  2,  4,   4,   4,   5,   5];
+    // Version capacity table: max data codewords for EC level M (byte mode).
+    // Versions 1-10 — sufficient for TOTP URIs (~150 bytes).
+    var VERSION_DATA_CAPACITY   = [0, 16, 28, 44, 64, 86, 108, 124, 154, 182, 216];
+    var VERSION_EC_CODEWORDS    = [0, 10, 16, 26, 18, 24,  16,  18,  22,  22,  26];
+    var VERSION_EC_BLOCKS       = [0,  1,  1,  1,  2,  2,   4,   4,   4,   5,   5];
     var VERSION_TOTAL_CODEWORDS = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346];
 
-    // Alignment pattern positions per version.
+    // Alignment pattern center positions per version.
     var ALIGNMENT_POSITIONS = [
         [], [], [6,18], [6,22], [6,26], [6,30], [6,34],
         [6,22,38], [6,24,42], [6,26,46], [6,28,50]
     ];
 
-    // Format info bits for mask 0-7 with EC level M.
+    // Pre-computed format info bits for mask 0-7 with EC level M (includes BCH + XOR mask).
     var FORMAT_INFO = [
         0x5412, 0x5125, 0x5E7C, 0x5B4B, 0x45F9, 0x40CE, 0x4F97, 0x4AA0
     ];
 
-    // Version info bits for versions 7-10.
+    // Pre-computed version info bits for versions 7-10.
     var VERSION_INFO = [
         0, 0, 0, 0, 0, 0, 0, 0x07C94, 0x085BC, 0x09A99, 0x0A4D3
     ];
@@ -56,9 +53,8 @@
         return GF_EXP[(GF_LOG[a] + GF_LOG[b]) % 255];
     }
 
-    // Reed-Solomon: generate EC codewords.
+    // Reed-Solomon: generate EC codewords for a data block.
     function rsEncode(data, ecCount) {
-        // Build generator polynomial.
         var gen = [1];
         for (var i = 0; i < ecCount; i++) {
             var newGen = new Array(gen.length + 1).fill(0);
@@ -84,15 +80,15 @@
         return padded.slice(data.length);
     }
 
-    // Determine minimum QR version for data length.
+    // Determine minimum QR version for data length (byte mode).
     function getVersion(dataLen) {
         for (var v = 1; v <= 10; v++) {
             if (VERSION_DATA_CAPACITY[v] >= dataLen) return v;
         }
-        return 10; // max we support
+        return 10;
     }
 
-    // Encode data in byte mode.
+    // Encode text in byte mode, returning data codewords array.
     function encodeData(text, version) {
         var totalDataCodewords = VERSION_DATA_CAPACITY[version];
         var bits = [];
@@ -100,14 +96,14 @@
         // Mode indicator: byte mode = 0100
         bits.push(0, 1, 0, 0);
 
-        // Character count (8 bits for versions 1-9, 16 bits for 10+)
+        // Character count (8 bits for V1-9, 16 bits for V10+)
         var countBits = version <= 9 ? 8 : 16;
         var len = text.length;
         for (var i = countBits - 1; i >= 0; i--) {
             bits.push((len >> i) & 1);
         }
 
-        // Data
+        // Data bytes
         for (var i = 0; i < text.length; i++) {
             var byte = text.charCodeAt(i);
             for (var j = 7; j >= 0; j--) {
@@ -123,7 +119,7 @@
         // Pad to byte boundary
         while (bits.length % 8 !== 0) bits.push(0);
 
-        // Pad bytes
+        // Pad codewords (0xEC, 0x11 alternating)
         var padBytes = [0xEC, 0x11];
         var pi = 0;
         while (bits.length < maxBits) {
@@ -132,7 +128,7 @@
             pi++;
         }
 
-        // Convert to byte array
+        // Convert bit array to byte array
         var codewords = [];
         for (var i = 0; i < bits.length; i += 8) {
             var b = 0;
@@ -143,7 +139,7 @@
         return codewords;
     }
 
-    // Build the QR matrix.
+    // Build the complete QR matrix for the given text.
     function buildMatrix(text) {
         var version = getVersion(text.length);
         var size = 17 + version * 4;
@@ -151,7 +147,7 @@
         var ecCount = VERSION_EC_CODEWORDS[version];
         var numBlocks = VERSION_EC_BLOCKS[version];
 
-        // Split into blocks and compute EC.
+        // Split data into blocks and compute EC for each.
         var blockSize = Math.floor(dataCodewords.length / numBlocks);
         var largeBlocks = dataCodewords.length % numBlocks;
         var blocks = [];
@@ -166,7 +162,7 @@
             offset += bLen;
         }
 
-        // Interleave data blocks.
+        // Interleave data codewords across blocks.
         var interleaved = [];
         var maxBlockLen = blocks[blocks.length - 1].length;
         for (var i = 0; i < maxBlockLen; i++) {
@@ -174,14 +170,14 @@
                 if (i < blocks[j].length) interleaved.push(blocks[j][i]);
             }
         }
-        // Interleave EC blocks.
+        // Interleave EC codewords.
         for (var i = 0; i < ecCount; i++) {
             for (var j = 0; j < numBlocks; j++) {
                 interleaved.push(ecBlocks[j][i]);
             }
         }
 
-        // Create matrix (null = not yet placed).
+        // Create empty matrix and reserved-flag grid.
         var matrix = [];
         var reserved = [];
         for (var r = 0; r < size; r++) {
@@ -189,7 +185,7 @@
             reserved[r] = new Array(size).fill(false);
         }
 
-        // Place finder patterns.
+        // ── Finder patterns (3 corners) ──
         function placeFinder(row, col) {
             for (var r = -1; r <= 7; r++) {
                 for (var c = -1; c <= 7; c++) {
@@ -207,7 +203,7 @@
         placeFinder(0, size - 7);
         placeFinder(size - 7, 0);
 
-        // Place alignment patterns.
+        // ── Alignment patterns ──
         var alignPos = ALIGNMENT_POSITIONS[version];
         if (alignPos.length > 0) {
             for (var i = 0; i < alignPos.length; i++) {
@@ -225,7 +221,7 @@
             }
         }
 
-        // Place timing patterns.
+        // ── Timing patterns ──
         for (var i = 8; i < size - 8; i++) {
             if (!reserved[6][i]) {
                 matrix[6][i] = (i % 2 === 0) ? 1 : 0;
@@ -237,20 +233,26 @@
             }
         }
 
-        // Dark module.
+        // ── Dark module ──
         matrix[size - 8][8] = 1;
         reserved[size - 8][8] = true;
 
-        // Reserve format info areas.
-        for (var i = 0; i < 9; i++) {
-            if (i < size) { reserved[8][i] = true; reserved[i][8] = true; }
+        // ── Reserve format info areas ──
+        // Top-left: row 8 (cols 0-8) and col 8 (rows 0-8)
+        for (var i = 0; i <= 8; i++) {
+            reserved[8][i] = true;
+            reserved[i][8] = true;
         }
+        // Top-right: row 8, cols size-8 to size-1
         for (var i = 0; i < 8; i++) {
             reserved[8][size - 8 + i] = true;
+        }
+        // Bottom-left: col 8, rows size-7 to size-1
+        for (var i = 0; i < 7; i++) {
             reserved[size - 7 + i][8] = true;
         }
 
-        // Reserve version info areas (versions 7+).
+        // ── Reserve version info areas (V7+) ──
         if (version >= 7) {
             for (var i = 0; i < 6; i++) {
                 for (var j = 0; j < 3; j++) {
@@ -260,7 +262,7 @@
             }
         }
 
-        // Place data bits.
+        // ── Place data bits (right-to-left, bottom-to-top zigzag) ──
         var bitIndex = 0;
         var totalBits = interleaved.length * 8;
         var col = size - 1;
@@ -288,7 +290,7 @@
             col -= 2;
         }
 
-        // Apply best mask (try all 8, pick lowest penalty).
+        // ── Apply best mask (lowest penalty score) ──
         var bestMask = 0;
         var bestPenalty = Infinity;
         var bestMatrix = null;
@@ -333,7 +335,7 @@
 
     function placeFormatInfo(matrix, size, mask) {
         var bits = FORMAT_INFO[mask];
-        // Around top-left finder.
+        // Top-left: 15 bits around the finder pattern.
         var positions = [
             [8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],
             [7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]
@@ -342,10 +344,11 @@
             var bit = (bits >> (14 - i)) & 1;
             matrix[positions[i][0]][positions[i][1]] = bit;
         }
-        // Around bottom-left and top-right finders.
+        // Bottom-left (col 8, rows size-1 down to size-7).
         for (var i = 0; i < 7; i++) {
             matrix[size - 1 - i][8] = (bits >> i) & 1;
         }
+        // Top-right (row 8, cols size-8 to size-1).
         for (var i = 7; i < 15; i++) {
             matrix[8][size - 15 + i] = (bits >> i) & 1;
         }
@@ -366,7 +369,7 @@
     function calcPenalty(matrix, size) {
         var penalty = 0;
 
-        // Rule 1: runs of same color.
+        // Rule 1: runs of 5+ same-color modules.
         for (var r = 0; r < size; r++) {
             var count = 1;
             for (var c = 1; c < size; c++) {
@@ -392,7 +395,7 @@
             }
         }
 
-        // Rule 2: 2x2 blocks.
+        // Rule 2: 2x2 same-color blocks.
         for (var r = 0; r < size - 1; r++) {
             for (var c = 0; c < size - 1; c++) {
                 var v = matrix[r][c];
@@ -402,11 +405,10 @@
             }
         }
 
-        // Simplified Rule 3 & 4 (skip for brevity — mask selection still works well).
         return penalty;
     }
 
-    // Render QR matrix as inline SVG element.
+    // Render QR matrix as inline SVG string.
     function renderSVG(qr, moduleSize, quietZone) {
         moduleSize = moduleSize || 4;
         quietZone = quietZone || 4;
@@ -427,7 +429,7 @@
 
         return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + totalSize + ' ' + totalSize +
                '" width="' + totalSize + '" height="' + totalSize + '" shape-rendering="crispEdges">' +
-               '<rect width="100%" height="100%" fill="#ffffff"/>' +
+               '<rect width="100%" height="100%" fill="#ffffff" rx="8"/>' +
                '<g fill="#000000">' + rects.join('') + '</g></svg>';
     }
 
