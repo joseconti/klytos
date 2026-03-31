@@ -194,9 +194,15 @@ class BlockManager
         $block = $this->get($blockId);
         $html  = $block['html'] ?? '';
 
-        // If this is a global block and no data provided, use global_data.
-        if ($block['scope'] === 'global' && empty($data)) {
-            $data = $block['global_data'] ?? $block['sample_data'] ?? [];
+        // If no data provided, fall back to stored data.
+        // Global blocks: prefer global_data, then sample_data.
+        // Other blocks: use sample_data so previews are not blank.
+        if (empty($data)) {
+            if ($block['scope'] === 'global') {
+                $data = $block['global_data'] ?? $block['sample_data'] ?? [];
+            } else {
+                $data = $block['sample_data'] ?? [];
+            }
         }
 
         // Replace slot placeholders with data values.
