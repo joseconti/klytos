@@ -112,6 +112,17 @@ class Logger
      */
     public function write( string $level, string $message, array $context = [], string $source = 'core' ): void
     {
+        // ── Condition 1: Developer Mode must be active (cheap check first) ──
+        $devMode = $this->siteConfig->getValue( 'developer.developer_mode', false );
+        if ( ! $devMode ) {
+            return;
+        }
+
+        // ── Condition 2: Plugin source must have logging enabled ──
+        if ( $source !== 'core' && ! $this->isPluginLoggingEnabled( $source ) ) {
+            return;
+        }
+
         // ── Filter: allow plugins to modify or suppress the entry ──
         $entry = klytos_apply_filters( 'logger.before_write', [
             'level'   => $level,
@@ -129,17 +140,6 @@ class Logger
         $message = $entry['message'] ?? $message;
         $context = $entry['context'] ?? $context;
         $source  = $entry['source']  ?? $source;
-
-        // ── Condition 1: Developer Mode must be active ──
-        $devMode = $this->siteConfig->getValue( 'developer.developer_mode', false );
-        if ( ! $devMode ) {
-            return;
-        }
-
-        // ── Condition 2: Plugin source must have logging enabled ──
-        if ( $source !== 'core' && ! $this->isPluginLoggingEnabled( $source ) ) {
-            return;
-        }
 
         // ── Validate level ──
         if ( ! in_array( $level, self::LEVELS, true ) ) {

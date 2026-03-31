@@ -88,6 +88,11 @@ class SiteConfig
             $current['email'] = array_merge($current['email'], $data['email']);
         }
 
+        // Nested: developer
+        if (isset($data['developer']) && is_array($data['developer'])) {
+            $current['developer'] = array_merge($current['developer'] ?? [], $data['developer']);
+        }
+
         // Languages list
         if (array_key_exists('languages', $data)) {
             $current['languages'] = $data['languages'];
@@ -174,6 +179,9 @@ class SiteConfig
                 'smtp_user'     => '',         // SMTP username
                 'smtp_pass'     => '',         // SMTP password
                 'smtp_security' => 'tls',      // 'tls', 'ssl', or ''
+            ],
+            'developer'        => [
+                'developer_mode' => false,
             ],
             'languages'        => [],
             'last_build'       => null,
