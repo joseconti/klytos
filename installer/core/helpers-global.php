@@ -213,13 +213,17 @@ function klytos_admin_url(string $path = ''): string
  * Get the public URL for a plugin's assets directory.
  *
  * @param  string $pluginId Plugin ID (from klytos-plugin.json).
- * @param  string $path     Relative path within the plugin's assets/ dir.
- * @return string Full URL to the plugin asset.
+ * @param  string $path     Relative path within the plugin directory (e.g. 'assets/css/style.css').
+ * @return string Full URL to the plugin file.
  */
 function klytos_plugin_url(string $pluginId, string $path = ''): string
 {
     $basePath = \Klytos\Core\Helpers::getBasePath();
-    return $basePath . 'plugins/' . urlencode($pluginId) . '/assets/' . ltrim($path, '/');
+    $url = $basePath . 'plugins/' . urlencode($pluginId);
+    if ($path !== '') {
+        $url .= '/' . ltrim($path, '/');
+    }
+    return $url;
 }
 
 /**
