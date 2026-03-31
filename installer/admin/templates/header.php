@@ -13,6 +13,7 @@
 
 use Klytos\Core\Auth;
 use Klytos\Core\Helpers;
+use Klytos\Core\Hooks;
 
 $cspNonce = Auth::generateCspNonce();
 Auth::sendSecurityHeaders($cspNonce, $customCsp ?? null);

@@ -19,6 +19,6 @@ document.querySelectorAll('.confirm-revoke-form').forEach(function(form) {
 });
 </script>
 <script src="<?php echo $adminPath ?? ''; ?>assets/js/klytos-password.js" nonce="<?php echo $cspNonce ?? ''; ?>"></script>
-<?php Hooks::doAction('admin.footer', $cspNonce ?? ''); ?>
+<?php \Klytos\Core\Hooks::doAction('admin.footer', $cspNonce ?? ''); ?>
 </body>
 </html>
