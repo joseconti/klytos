@@ -98,6 +98,18 @@ $version   = $app->getVersion();
         [data-theme="dark"] .sidebar-brand { border-bottom-color: rgba(255,255,255,0.05); }
         [data-theme="dark"] tr:hover td { background: rgba(255,255,255,0.03); }
 
+        /* Security page — dark mode overrides */
+        [data-theme="dark"] .security-status-active { background: rgba(34,197,94,0.15); color: #86efac; }
+        [data-theme="dark"] .security-status-inactive { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        [data-theme="dark"] .security-method-badge { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+        [data-theme="dark"] .security-active-text { color: #86efac; }
+        [data-theme="dark"] .security-recovery-card { border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+        [data-theme="dark"] .security-recovery-text { color: #fcd34d; }
+        [data-theme="dark"] .security-recovery-code { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        [data-theme="dark"] .totp-setup-box { background: #0f172a; }
+        [data-theme="dark"] .totp-manual-key { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        [data-theme="dark"] .security-danger-card { border-color: rgba(239,68,68,0.4); }
+
         /* AI provider logos — theme-aware visibility */
         .ai-logo-dark  { display: none; }
         .ai-logo-light { display: inline; }
@@ -272,6 +284,10 @@ $version   = $app->getVersion();
             .stats-grid { grid-template-columns: 1fr; }
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
         }
+
+        /* Security page */
+        .totp-setup-box { background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; }
+        .totp-manual-key { display: block; background: #fff; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; word-break: break-all; border: 1px solid #e5e7eb; }
 
         /* Code/Mono */
         .mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; }
