@@ -31,6 +31,7 @@
     "preview": "Preview",
     "download": "Download",
     "upload": "Upload",
+    "reload": "Reload page",
     "copy": "Copy",
     "copied": "Copied",
     "required": "Required",
@@ -166,7 +167,16 @@
     "update_failed": "Update failed: {error}",
     "major_warning": "This is a major update. A full backup is recommended.",
     "changelog": "Release notes",
-    "history": "Update history"
+    "history": "Update history",
+    "progress_checking": "Checking requirements",
+    "progress_backup": "Creating backup",
+    "progress_downloading": "Downloading update",
+    "progress_installing": "Installing files",
+    "progress_verifying": "Verifying installation",
+    "progress_done": "Update complete!",
+    "progress_error": "Update failed",
+    "progress_title": "Updating Klytos",
+    "progress_do_not_close": "Please do not close this window"
   },
   "settings": {
     "title": "Settings",

@@ -31,6 +31,7 @@
     "preview": "Vista previa",
     "download": "Descargar",
     "upload": "Subir",
+    "reload": "Recargar página",
     "copy": "Copiar",
     "copied": "Copiado",
     "required": "Obligatorio",
@@ -166,7 +167,16 @@
     "update_failed": "Error en la actualización: {error}",
     "major_warning": "Esta es una actualización mayor. Se recomienda hacer un backup completo.",
     "changelog": "Notas de la versión",
-    "history": "Historial de actualizaciones"
+    "history": "Historial de actualizaciones",
+    "progress_checking": "Comprobando requisitos",
+    "progress_backup": "Creando backup",
+    "progress_downloading": "Descargando actualización",
+    "progress_installing": "Instalando archivos",
+    "progress_verifying": "Verificando instalación",
+    "progress_done": "¡Actualización completada!",
+    "progress_error": "Error en la actualización",
+    "progress_title": "Actualizando Klytos",
+    "progress_do_not_close": "Por favor, no cierres esta ventana"
   },
   "settings": {
     "title": "Configuración",
