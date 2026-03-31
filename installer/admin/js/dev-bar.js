@@ -12,8 +12,9 @@
 
     class KlytosDevBar {
 
-        constructor( data ) {
-            this.data = data;
+        constructor( raw ) {
+            // Flatten the nested toArray() structure into a flat object for rendering.
+            this.data = this._flatten( raw );
             this.expanded = this._loadState();
             this.activeTab = 'performance';
             this.el = null;
@@ -165,42 +166,25 @@
 
         _renderStorage() {
             const d = this.data;
+            const ops = d.storage?.operations ?? [];
 
-            if ( !d.storage || ( !d.storage.cache && !d.storage.session && !d.storage.options ) ) {
-                return '<div class="devbar-empty">No storage data available.</div>';
+            if ( ops.length === 0 ) {
+                return '<div class="devbar-empty">No storage operations recorded.</div>';
             }
 
-            let html = '';
-
-            // Cache info
-            if ( d.storage.cache ) {
-                html += '<div class="devbar-section-title">Cache</div>';
-                html += '<table class="devbar-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
-                Object.entries( d.storage.cache ).forEach( ( [ key, val ] ) => {
-                    html += `<tr><td>${ this._esc( key ) }</td><td>${ this._esc( String( val ) ) }</td></tr>`;
-                } );
-                html += '</tbody></table>';
-            }
-
-            // Session info
-            if ( d.storage.session ) {
-                html += '<div class="devbar-section-title">Session</div>';
-                html += '<table class="devbar-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
-                Object.entries( d.storage.session ).forEach( ( [ key, val ] ) => {
-                    html += `<tr><td>${ this._esc( key ) }</td><td>${ this._esc( String( val ) ) }</td></tr>`;
-                } );
-                html += '</tbody></table>';
-            }
-
-            // Options
-            if ( d.storage.options ) {
-                html += '<div class="devbar-section-title">Options</div>';
-                html += '<table class="devbar-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
-                Object.entries( d.storage.options ).forEach( ( [ key, val ] ) => {
-                    html += `<tr><td>${ this._esc( key ) }</td><td>${ this._esc( String( val ) ) }</td></tr>`;
-                } );
-                html += '</tbody></table>';
-            }
+            let html = `<div class="devbar-section-title">${ d.queries_count } operations in ${ this._formatMs( d.queries_time_ms ) }</div>`;
+            html += '<table class="devbar-table"><thead><tr><th>#</th><th>Type</th><th>Collection</th><th>Time</th><th>Caller</th></tr></thead><tbody>';
+            ops.forEach( ( op, i ) => {
+                const slow = ( op.duration_ms ?? 0 ) > 50 ? ' style="color:#ef4444"' : '';
+                html += `<tr>
+                    <td class="col-number">${ i + 1 }</td>
+                    <td>${ this._esc( op.type ?? '' ) }</td>
+                    <td>${ this._esc( op.collection ?? '' ) }</td>
+                    <td class="col-number"${ slow }>${ this._formatMs( op.duration_ms ) }</td>
+                    <td style="font-size:0.75rem;color:#94a3b8">${ this._esc( op.caller ?? '' ) }</td>
+                </tr>`;
+            } );
+            html += '</tbody></table>';
 
             return html;
         }
@@ -208,17 +192,20 @@
         _renderHooks() {
             const d = this.data;
 
-            if ( !d.hooks || d.hooks.length === 0 ) {
+            const hooks = Array.isArray( d.hooks ) ? d.hooks : ( d.hooks?.fired ?? [] );
+
+            if ( hooks.length === 0 ) {
                 return '<div class="devbar-empty">No hooks data available.</div>';
             }
 
-            let html = '<table class="devbar-table"><thead><tr><th>#</th><th>Hook</th><th>Listeners</th><th>Time</th></tr></thead><tbody>';
-            d.hooks.forEach( ( hook, i ) => {
+            let html = '<table class="devbar-table"><thead><tr><th>#</th><th>Hook</th><th>Type</th><th>Callbacks</th><th>Time</th></tr></thead><tbody>';
+            hooks.forEach( ( hook, i ) => {
                 html += `<tr>
                     <td class="col-number">${ i + 1 }</td>
-                    <td>${ this._esc( hook.name ?? hook.hook ?? '' ) }</td>
-                    <td class="col-number">${ hook.listeners ?? hook.count ?? '-' }</td>
-                    <td class="col-number">${ hook.time_ms !== undefined ? this._formatMs( hook.time_ms ) : '-' }</td>
+                    <td>${ this._esc( hook.name ?? '' ) }</td>
+                    <td>${ this._esc( hook.type ?? '' ) }</td>
+                    <td class="col-number">${ hook.callbacks ?? hook.listeners ?? '-' }</td>
+                    <td class="col-number">${ hook.duration_ms !== undefined ? this._formatMs( hook.duration_ms ) : '-' }</td>
                 </tr>`;
             } );
             html += '</tbody></table>';
@@ -292,6 +279,52 @@
             this.el.querySelectorAll( '.devbar-tab-pane' ).forEach( ( pane ) => {
                 pane.classList.toggle( 'is-active', pane.dataset.pane === tabName );
             } );
+        }
+
+        /* ---------------------------------------------------------- */
+        /*  Data flattening                                            */
+        /* ---------------------------------------------------------- */
+
+        /**
+         * Flatten the nested toArray() structure from DevBar into the flat
+         * property names that the rendering methods expect.
+         */
+        _flatten( raw ) {
+            const meta = raw.meta ?? {};
+            const perf = raw.performance ?? {};
+            const stor = raw.storage ?? {};
+            const hooks = raw.hooks ?? {};
+
+            return {
+                // Meta
+                php_version:     meta.php_version ?? '',
+                klytos_version:  meta.klytos_version ?? '',
+                storage_backend: meta.storage_backend ?? 'file',
+                current_page:    meta.page ?? '',
+                slow_threshold:  meta.slow_threshold ?? 200,
+                // Performance
+                request_time_ms: perf.execution_time_ms ?? 0,
+                memory_usage:    perf.memory_usage ?? 0,
+                memory_peak:     perf.memory_peak ?? 0,
+                memory_formatted:      perf.memory_formatted ?? '',
+                memory_peak_formatted: perf.memory_peak_formatted ?? '',
+                cpu_user_time:   perf.cpu_user_time,
+                cpu_system_time: perf.cpu_system_time,
+                included_files_count: perf.included_files_count ?? 0,
+                // Storage
+                queries_count:   stor.total_ops ?? 0,
+                queries_time_ms: stor.total_time_ms ?? 0,
+                storage:         stor,
+                // Hooks
+                hooks_count:     hooks.total_fired ?? 0,
+                hooks:           hooks,
+                // Logs, deprecations, cache, timers (pass through)
+                logs:            raw.logs ?? [],
+                deprecations:    raw.deprecations ?? [],
+                cache:           raw.cache ?? {},
+                timers:          raw.timers ?? [],
+                assets:          raw.assets ?? [],
+            };
         }
 
         /* ---------------------------------------------------------- */
