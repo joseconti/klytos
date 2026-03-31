@@ -98,6 +98,18 @@ $version   = $app->getVersion();
         [data-theme="dark"] .sidebar-brand { border-bottom-color: rgba(255,255,255,0.05); }
         [data-theme="dark"] tr:hover td { background: rgba(255,255,255,0.03); }
 
+        /* Security page — dark mode overrides */
+        [data-theme="dark"] .security-status-active { background: rgba(34,197,94,0.15); color: #86efac; }
+        [data-theme="dark"] .security-status-inactive { background: rgba(239,68,68,0.15); color: #fca5a5; }
+        [data-theme="dark"] .security-method-badge { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+        [data-theme="dark"] .security-active-text { color: #86efac; }
+        [data-theme="dark"] .security-recovery-card { border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+        [data-theme="dark"] .security-recovery-text { color: #fcd34d; }
+        [data-theme="dark"] .security-recovery-code { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        [data-theme="dark"] .totp-setup-box { background: #0f172a; }
+        [data-theme="dark"] .totp-manual-key { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+        [data-theme="dark"] .security-danger-card { border-color: rgba(239,68,68,0.4); }
+
         /* AI provider logos — theme-aware visibility */
         .ai-logo-dark  { display: none; }
         .ai-logo-light { display: inline; }
@@ -164,6 +176,22 @@ $version   = $app->getVersion();
 
         .admin-sidebar.collapsed .sidebar-item-wrap:hover .sidebar-tooltip { display: block; }
         .admin-main { padding: 1.5rem; min-width: 0; overflow-x: auto; }
+
+        /* Sidebar search */
+        .sidebar-search { padding: 0.75rem 1rem; }
+        .sidebar-search-wrap { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--admin-radius); padding: 0.4rem 0.65rem; transition: border-color 0.15s, background 0.15s; }
+        .sidebar-search-wrap:focus-within { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+        .sidebar-search-icon { color: rgba(255,255,255,0.4); font-size: 0.8rem; flex-shrink: 0; }
+        .sidebar-search-wrap input { background: none; border: none; outline: none; color: #fff; font-size: 0.82rem; width: 100%; }
+        .sidebar-search-wrap input::placeholder { color: rgba(255,255,255,0.35); }
+        .sidebar-search-kbd { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 4px; font-family: inherit; flex-shrink: 0; line-height: 1.4; border: 1px solid rgba(255,255,255,0.1); }
+        .admin-sidebar.collapsed .sidebar-search { display: none; }
+        .sidebar-item-wrap.search-hidden { display: none; }
+        .sidebar-section.search-hidden { display: none; }
+        .sidebar-search-no-results { padding: 1rem 1.5rem; color: rgba(255,255,255,0.4); font-size: 0.82rem; text-align: center; display: none; }
+        .sidebar-search-no-results.visible { display: block; }
+        /* Force show children during search */
+        .sidebar-item-wrap.search-child-match a.sidebar-child { display: flex !important; }
 
         /* Sidebar */
         .sidebar-brand { padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -238,6 +266,7 @@ $version   = $app->getVersion();
             .admin-sidebar .sidebar-brand { padding: 1.25rem 0; text-align: center; }
             .admin-sidebar .sidebar-brand h2 { font-size: 0.9rem; }
             .admin-sidebar .sidebar-brand small { display: none; }
+            .admin-sidebar .sidebar-search { display: none; }
             .admin-sidebar .sidebar-section { font-size: 0; padding: 0.5rem 0 0.25rem; text-align: center; }
             .admin-sidebar .sidebar-section::after { content: ''; display: block; width: 24px; height: 1px; background: rgba(255,255,255,0.15); margin: 0 auto; }
             .admin-sidebar .sidebar-nav a { justify-content: center; padding: 0.65rem 0; }
@@ -255,6 +284,10 @@ $version   = $app->getVersion();
             .stats-grid { grid-template-columns: 1fr; }
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
         }
+
+        /* Security page */
+        .totp-setup-box { background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; }
+        .totp-manual-key { display: block; background: #fff; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; word-break: break-all; border: 1px solid #e5e7eb; }
 
         /* Code/Mono */
         .mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; }

@@ -237,6 +237,9 @@ class PluginLoader
         // Fire activation action (plugins can listen to set up their own hooks).
         Hooks::doAction('plugin.activated', $pluginId, $manifest);
 
+        // Rebuild frontend assets (klytos-hooks.js, plugins.css).
+        Hooks::doAction('build.assets_changed');
+
         return ['success' => true, 'error' => null];
     }
 
@@ -276,6 +279,9 @@ class PluginLoader
         $manifest = $this->getManifest($pluginId);
 
         Hooks::doAction('plugin.deactivated', $pluginId, $manifest);
+
+        // Rebuild frontend assets (klytos-hooks.js, plugins.css).
+        Hooks::doAction('build.assets_changed');
 
         return ['success' => true, 'error' => null];
     }

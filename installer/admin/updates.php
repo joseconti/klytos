@@ -232,14 +232,12 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     <!-- Update button -->
     <?php if ( ! empty( $updateInfo['download_url'] ) ): ?>
-        <form method="post">
-            <?php echo klytos_csrf_field(); ?>
-            <input type="hidden" name="action" value="install">
-            <input type="hidden" name="download_url" value="<?php echo klytos_esc_attr( $updateInfo['download_url'] ); ?>">
-            <button type="submit" class="btn btn-primary" id="btnUpdate" style="font-size:1rem;padding:0.75rem 2rem;">
-                <?php echo __( 'updates.update_now' ); ?>: v<?php echo klytos_esc_html( $updateInfo['new_version'] ); ?>
-            </button>
-        </form>
+        <button type="button" class="btn btn-primary" id="btnUpdate"
+            style="font-size:1rem;padding:0.75rem 2rem;"
+            data-download-url="<?php echo klytos_esc_attr( $updateInfo['download_url'] ); ?>"
+            data-new-version="<?php echo klytos_esc_attr( $updateInfo['new_version'] ); ?>">
+            <?php echo __( 'updates.update_now' ); ?>: v<?php echo klytos_esc_html( $updateInfo['new_version'] ); ?>
+        </button>
     <?php endif; ?>
 </div>
 <?php endif; ?>
@@ -279,7 +277,11 @@ require_once __DIR__ . '/templates/sidebar.php';
                         </span>
                     </td>
                     <td>
-                        <?php if ( ! empty( $entry['backup_path'] ) && $entry['backup_path'] !== '—' ): ?>
+                        <?php
+                        $hasBackup    = ! empty( $entry['backup_path'] ) && $entry['backup_path'] !== '—';
+                        $backupExists = $hasBackup && is_dir( $updater->getBackupsDir() . '/' . $entry['backup_path'] );
+                        ?>
+                        <?php if ( $backupExists ): ?>
                             <div style="display:flex;align-items:center;gap:0.5rem;">
                                 <span class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $entry['backup_path'] ); ?></span>
                                 <form method="post" style="display:inline;" class="form-confirm-restore">
@@ -289,6 +291,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                                     <button type="submit" class="btn btn-outline btn-sm">Restore</button>
                                 </form>
                             </div>
+                        <?php elseif ( $hasBackup ): ?>
+                            <span class="mono" style="font-size:0.8rem;color:var(--admin-text-muted);">
+                                <?php echo klytos_esc_html( $entry['backup_path'] ); ?> (deleted)
+                            </span>
                         <?php else: ?>
                             <span style="color:var(--admin-text-muted);">—</span>
                         <?php endif; ?>
@@ -301,23 +307,196 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 <?php endif; ?>
 
+<!-- Update Progress Overlay -->
+<div id="updateOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div style="background:var(--admin-card-bg, #1e293b);border-radius:var(--admin-radius);padding:2.5rem;max-width:480px;width:90%;box-shadow:0 25px 50px rgba(0,0,0,0.4);">
+        <h3 id="updateOverlayTitle" style="margin:0 0 0.5rem;font-size:1.25rem;text-align:center;">
+            <?php echo klytos_esc_html( __( 'updates.progress_title' ) ); ?>
+        </h3>
+        <p id="updateOverlaySubtitle" style="margin:0 0 2rem;text-align:center;font-size:0.85rem;color:var(--admin-text-muted);">
+            <?php echo klytos_esc_html( __( 'updates.progress_do_not_close' ) ); ?>
+        </p>
+
+        <div id="updateSteps" style="display:flex;flex-direction:column;gap:1rem;">
+            <div class="update-step" data-step="0" style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="step-icon" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;background:var(--admin-border);color:var(--admin-text-muted);transition:all 0.3s;">1</span>
+                <span class="step-label" style="font-size:0.95rem;color:var(--admin-text-muted);transition:color 0.3s;"><?php echo klytos_esc_html( __( 'updates.progress_checking' ) ); ?></span>
+            </div>
+            <div class="update-step" data-step="1" style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="step-icon" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;background:var(--admin-border);color:var(--admin-text-muted);transition:all 0.3s;">2</span>
+                <span class="step-label" style="font-size:0.95rem;color:var(--admin-text-muted);transition:color 0.3s;"><?php echo klytos_esc_html( __( 'updates.progress_backup' ) ); ?></span>
+            </div>
+            <div class="update-step" data-step="2" style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="step-icon" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;background:var(--admin-border);color:var(--admin-text-muted);transition:all 0.3s;">3</span>
+                <span class="step-label" style="font-size:0.95rem;color:var(--admin-text-muted);transition:color 0.3s;"><?php echo klytos_esc_html( __( 'updates.progress_downloading' ) ); ?></span>
+            </div>
+            <div class="update-step" data-step="3" style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="step-icon" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;background:var(--admin-border);color:var(--admin-text-muted);transition:all 0.3s;">4</span>
+                <span class="step-label" style="font-size:0.95rem;color:var(--admin-text-muted);transition:color 0.3s;"><?php echo klytos_esc_html( __( 'updates.progress_installing' ) ); ?></span>
+            </div>
+            <div class="update-step" data-step="4" style="display:flex;align-items:center;gap:0.75rem;">
+                <span class="step-icon" style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;background:var(--admin-border);color:var(--admin-text-muted);transition:all 0.3s;">5</span>
+                <span class="step-label" style="font-size:0.95rem;color:var(--admin-text-muted);transition:color 0.3s;"><?php echo klytos_esc_html( __( 'updates.progress_verifying' ) ); ?></span>
+            </div>
+        </div>
+
+        <!-- Result message (hidden initially) -->
+        <div id="updateResult" style="display:none;margin-top:1.5rem;padding:1rem;border-radius:var(--admin-radius);text-align:center;font-weight:600;"></div>
+        <div id="updateResultAction" style="display:none;margin-top:1rem;text-align:center;">
+            <button type="button" class="btn btn-primary" id="btnReloadPage"><?php echo klytos_esc_html( __( 'common.reload' ) ); ?></button>
+        </div>
+    </div>
+</div>
+
 <script nonce="<?php echo $cspNonce; ?>">
 ( function() {
-    // Confirm before updating.
-    var btnUpdate = document.getElementById( 'btnUpdate' );
-    if ( btnUpdate ) {
-        btnUpdate.closest( 'form' ).addEventListener( 'submit', function( e ) {
-            if ( ! confirm( 'Update Klytos? A backup will be created automatically before updating.' ) ) {
-                e.preventDefault();
-                return;
-            }
-            btnUpdate.textContent = '<?php echo __( 'updates.updating' ); ?>';
-            btnUpdate.style.opacity = '0.7';
-            btnUpdate.style.pointerEvents = 'none';
+    var csrfToken = '<?php echo klytos_esc_attr( $csrf ); ?>';
+
+    // ── Reload button ─────────────────────────────────────────
+    var btnReload = document.getElementById( 'btnReloadPage' );
+    if ( btnReload ) {
+        btnReload.addEventListener( 'click', function() {
+            location.reload();
         } );
     }
 
-    // Confirm before restoring a backup.
+    // ── Update via AJAX with progress overlay ─────────────────
+    var btnUpdate = document.getElementById( 'btnUpdate' );
+    if ( btnUpdate ) {
+        btnUpdate.addEventListener( 'click', function() {
+            if ( ! confirm( 'Update Klytos? A backup will be created automatically before updating.' ) ) {
+                return;
+            }
+
+            var downloadUrl = btnUpdate.getAttribute( 'data-download-url' );
+            var overlay     = document.getElementById( 'updateOverlay' );
+            var steps       = document.querySelectorAll( '.update-step' );
+            var currentStep = 0;
+            var stepTimer;
+            var requestDone = false;
+            var requestResult = null;
+
+            // Show overlay.
+            overlay.style.display = 'flex';
+            btnUpdate.style.opacity = '0.7';
+            btnUpdate.style.pointerEvents = 'none';
+
+            // Activate a step (highlight current, mark previous as done).
+            function activateStep( index ) {
+                steps.forEach( function( step, i ) {
+                    var icon  = step.querySelector( '.step-icon' );
+                    var label = step.querySelector( '.step-label' );
+                    if ( i < index ) {
+                        // Done.
+                        icon.textContent = '\u2713';
+                        icon.style.background = '#22c55e';
+                        icon.style.color = '#fff';
+                        label.style.color = 'var(--admin-text)';
+                    } else if ( i === index ) {
+                        // Active (spinner via animation).
+                        icon.textContent = '';
+                        icon.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+                        icon.style.color = '#fff';
+                        icon.style.animation = 'updatePulse 1s infinite';
+                        label.style.color = 'var(--admin-text)';
+                        label.style.fontWeight = '600';
+                    } else {
+                        // Pending.
+                        icon.textContent = String( i + 1 );
+                        icon.style.background = 'var(--admin-border)';
+                        icon.style.color = 'var(--admin-text-muted)';
+                        icon.style.animation = '';
+                        label.style.color = 'var(--admin-text-muted)';
+                        label.style.fontWeight = '';
+                    }
+                } );
+            }
+
+            // Advance steps on a timer (simulated progress).
+            var stepDelays = [ 0, 2000, 4000, 6000, 10000 ];
+            function scheduleStep( index ) {
+                if ( index >= steps.length ) return;
+                stepTimer = setTimeout( function() {
+                    if ( requestDone ) return;
+                    currentStep = index;
+                    activateStep( index );
+                    scheduleStep( index + 1 );
+                }, index === 0 ? 0 : stepDelays[ index ] - stepDelays[ index - 1 ] );
+            }
+
+            scheduleStep( 0 );
+
+            // Send AJAX request.
+            fetch( 'api/update-install.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify( { download_url: downloadUrl } )
+            } )
+            .then( function( response ) { return response.json(); } )
+            .then( function( data ) {
+                requestDone = true;
+                clearTimeout( stepTimer );
+
+                if ( data.success ) {
+                    // Mark all steps done.
+                    steps.forEach( function( step ) {
+                        var icon  = step.querySelector( '.step-icon' );
+                        var label = step.querySelector( '.step-label' );
+                        icon.textContent = '\u2713';
+                        icon.style.background = '#22c55e';
+                        icon.style.color = '#fff';
+                        icon.style.animation = '';
+                        label.style.color = 'var(--admin-text)';
+                        label.style.fontWeight = '';
+                    } );
+
+                    // Show success result.
+                    var resultEl = document.getElementById( 'updateResult' );
+                    resultEl.style.display = 'block';
+                    resultEl.style.background = 'rgba(34,197,94,0.15)';
+                    resultEl.style.color = '#22c55e';
+                    resultEl.textContent = '<?php echo klytos_esc_html( __( 'updates.progress_done' ) ); ?>';
+
+                    document.getElementById( 'updateOverlaySubtitle' ).style.display = 'none';
+                    document.getElementById( 'updateResultAction' ).style.display = 'block';
+                } else {
+                    showError( data.error || 'Unknown error' );
+                }
+            } )
+            .catch( function( err ) {
+                requestDone = true;
+                clearTimeout( stepTimer );
+                showError( err.message || 'Network error' );
+            } );
+
+            function showError( message ) {
+                // Mark current step as failed.
+                steps.forEach( function( step, i ) {
+                    var icon = step.querySelector( '.step-icon' );
+                    icon.style.animation = '';
+                    if ( i === currentStep ) {
+                        icon.textContent = '\u2717';
+                        icon.style.background = '#ef4444';
+                        icon.style.color = '#fff';
+                    }
+                } );
+
+                var resultEl = document.getElementById( 'updateResult' );
+                resultEl.style.display = 'block';
+                resultEl.style.background = 'rgba(239,68,68,0.15)';
+                resultEl.style.color = '#ef4444';
+                resultEl.textContent = '<?php echo klytos_esc_html( __( 'updates.progress_error' ) ); ?>: ' + message;
+
+                document.getElementById( 'updateOverlaySubtitle' ).style.display = 'none';
+                document.getElementById( 'updateResultAction' ).style.display = 'block';
+            }
+        } );
+    }
+
+    // ── Confirm before restoring a backup ─────────────────────
     document.querySelectorAll( '.form-confirm-restore' ).forEach( function( form ) {
         form.addEventListener( 'submit', function( e ) {
             if ( ! confirm( 'Restore this backup? Current code files (core/, admin/, templates/) will be overwritten with the backup version.' ) ) {
@@ -326,7 +505,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         } );
     } );
 
-    // Highlight selected channel radio.
+    // ── Highlight selected channel radio ──────────────────────
     document.querySelectorAll( 'input[name="channel"]' ).forEach( function( radio ) {
         radio.addEventListener( 'change', function() {
             document.querySelectorAll( 'input[name="channel"]' ).forEach( function( r ) {
@@ -337,5 +516,12 @@ require_once __DIR__ . '/templates/sidebar.php';
     } );
 } )();
 </script>
+
+<style nonce="<?php echo $cspNonce; ?>">
+@keyframes updatePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+}
+</style>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

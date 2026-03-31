@@ -70,6 +70,12 @@ class BuildEngine
         // 1. Generate CSS
         $this->generateCss();
 
+        // 1b. Generate plugin hook JS (klytos-hooks.js)
+        $this->buildHooksJs();
+
+        // 1c. Generate plugin CSS (plugins.css)
+        $this->buildPluginsCss();
+
         // 2. Get global data
         $siteConfig = $this->app->getSiteConfig()->get();
         $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getBasePath());
@@ -224,8 +230,10 @@ class BuildEngine
      */
     private function renderTemplate(array $page, array $siteConfig, string $menuHtml, array $theme): string
     {
-        $templateName = $page['template'] ?? 'default';
-        $templateHtml = $this->loadTemplate($templateName);
+        $templateHtml = $this->resolveTemplateForPage($page);
+
+        // Process template parts ({{klytos_part:X}}) BEFORE variable replacement.
+        $templateHtml = $this->processTemplateParts($templateHtml);
 
         // Build hreflang tags
         $hreflangHtml = $this->buildHreflangTags($page, $siteConfig);
@@ -300,6 +308,8 @@ class BuildEngine
             '{{breadcrumbs}}'          => $breadcrumbHtml,
             '{{plugin_head_html}}'     => $pluginHeadHtml,
             '{{plugin_body_end_html}}' => $pluginBodyEndHtml,
+            '{{plugin_css_link}}'      => $this->buildPluginCssLink($basePath),
+            '{{hooks_js_script}}'      => $this->buildHooksJsTag($basePath),
         ];
 
         $html = $templateHtml;
@@ -315,30 +325,208 @@ class BuildEngine
      */
     private function loadTemplate(string $name): string
     {
-        // Check custom templates first
-        try {
-            $data = $this->app->getStorage()->read('templates.json.enc');
-            if (isset($data['templates'][$name])) {
-                return $data['templates'][$name]['html'];
+        return $this->app->getTemplateResolver()->resolve($name);
+    }
+
+    /**
+     * Resolve the template for a page using post type hierarchy.
+     *
+     * Candidate chain (first match wins):
+     * 1. single-{post_type}-{slug}  (e.g. single-product-camiseta-azul)
+     * 2. single-{post_type}         (e.g. single-product)
+     * 3. Page's chosen template      (from admin editor)
+     * 4. default
+     *
+     * @param  array  $page Page data array.
+     * @return string Template HTML content.
+     */
+    private function resolveTemplateForPage(array $page): string
+    {
+        $postType = $page['post_type'] ?? 'page';
+        $slug     = $page['slug'] ?? '';
+        $resolver = $this->app->getTemplateResolver();
+
+        $candidates = [];
+
+        // Post-type-specific templates (only for non-page types).
+        if ($postType !== 'page') {
+            if (!empty($slug)) {
+                $candidates[] = "single-{$postType}-{$slug}";
             }
-        } catch (\RuntimeException $e) {
-            // No custom templates
+            $candidates[] = "single-{$postType}";
         }
 
-        // Check built-in templates
-        $file = $this->templatesPath . '/' . $name . '.html';
-        if (file_exists($file)) {
-            return file_get_contents($file);
+        // User-chosen template from the editor.
+        $chosen = $page['template'] ?? 'default';
+        if ($chosen !== 'default') {
+            $candidates[] = $chosen;
         }
 
-        // Fallback to default
-        $defaultFile = $this->templatesPath . '/default.html';
-        if (file_exists($defaultFile)) {
-            return file_get_contents($defaultFile);
+        // Ultimate fallback.
+        $candidates[] = 'default';
+
+        // Try each candidate through the resolver.
+        foreach ($candidates as $name) {
+            $html = $resolver->resolve($name);
+            if (!empty($html)) {
+                return $html;
+            }
         }
 
-        // Ultimate fallback
-        return $this->getMinimalTemplate();
+        return $resolver->resolve('default');
+    }
+
+    /**
+     * Process template parts: replace {{klytos_part:NAME}} with resolved content.
+     * Parts are resolved via the TemplateResolver hierarchy (custom > plugin > core).
+     * Must be called BEFORE variable replacement so parts can contain {{variables}}.
+     *
+     * @param  string $templateHtml Raw template HTML.
+     * @return string Template with parts inlined.
+     */
+    public function processTemplateParts(string $templateHtml): string
+    {
+        $resolver     = $this->app->getTemplateResolver();
+        $resolvedParts = [];
+
+        return preg_replace_callback(
+            '/\{\{klytos_part:([a-zA-Z0-9_\-]+)\}\}/',
+            function (array $matches) use ($resolver, &$resolvedParts): string {
+                $partName = $matches[1];
+
+                // Prevent infinite recursion.
+                if (isset($resolvedParts[$partName])) {
+                    return '';
+                }
+                $resolvedParts[$partName] = true;
+
+                $partHtml = $resolver->resolvePart($partName);
+
+                return $partHtml ?? '';
+            },
+            $templateHtml
+        );
+    }
+
+    /**
+     * Generate /assets/js/klytos-hooks.js
+     * Concatenates the prelude, plugin hook registrations, and executor.
+     * Regenerated during buildAll() and when a plugin is activated/deactivated.
+     */
+    public function buildHooksJs(): void
+    {
+        $corePath   = $this->app->getCorePath();
+        $pluginsDir = $this->app->getRootPath() . '/plugins';
+        $outputDir  = $this->outputPath . '/assets/js';
+
+        // Read prelude and executor from core assets.
+        $preludeFile  = $corePath . '/assets/klytos-hooks-prelude.js';
+        $executorFile = $corePath . '/assets/klytos-hooks-executor.js';
+
+        if (!file_exists($preludeFile) || !file_exists($executorFile)) {
+            return;
+        }
+
+        $js = file_get_contents($preludeFile);
+
+        // Append hook registrations from each active plugin.
+        $pluginLoader  = $this->app->getPluginLoader();
+        $activePlugins = $pluginLoader->getActivePlugins();
+
+        foreach ($activePlugins as $pluginId => $manifest) {
+            $hooksFile = $pluginsDir . '/' . $pluginId . '/assets/js/hooks.js';
+            if (file_exists($hooksFile)) {
+                $version = $manifest['version'] ?? '0.0.0';
+                $js .= "\n    // --- Plugin: {$pluginId} (v{$version}) ---\n";
+                $js .= file_get_contents($hooksFile);
+            }
+        }
+
+        // Append executor.
+        $js .= file_get_contents($executorFile);
+
+        // Write output.
+        Helpers::ensureWritableDir($outputDir);
+        file_put_contents($outputDir . '/klytos-hooks.js', $js, LOCK_EX);
+
+        // Store version hash for cache-busting.
+        $version = substr(md5($js), 0, 8);
+        klytos_set_option('klytos_hooks_js_version', $version);
+    }
+
+    /**
+     * Generate /assets/css/plugins.css
+     * Concatenates CSS from all active plugins.
+     * Regenerated during buildAll() and when a plugin is activated/deactivated.
+     */
+    public function buildPluginsCss(): void
+    {
+        $pluginsDir = $this->app->getRootPath() . '/plugins';
+        $outputDir  = $this->outputPath . '/assets/css';
+
+        $pluginLoader  = $this->app->getPluginLoader();
+        $activePlugins = $pluginLoader->getActivePlugins();
+
+        $css = "/* Generated automatically by Klytos. Do not edit. */\n\n";
+        $hasContent = false;
+
+        foreach ($activePlugins as $pluginId => $manifest) {
+            $cssDir = $pluginsDir . '/' . $pluginId . '/assets/css';
+            if (is_dir($cssDir)) {
+                foreach (glob($cssDir . '/*.css') as $file) {
+                    $css .= "/* --- {$pluginId}: " . basename($file) . " --- */\n";
+                    $css .= file_get_contents($file) . "\n\n";
+                    $hasContent = true;
+                }
+            }
+        }
+
+        Helpers::ensureWritableDir($outputDir);
+
+        if ($hasContent) {
+            file_put_contents($outputDir . '/plugins.css', $css, LOCK_EX);
+            $version = substr(md5($css), 0, 8);
+            klytos_set_option('klytos_plugins_css_version', $version);
+        } else {
+            // Remove stale file if no plugins have CSS.
+            $pluginsCssFile = $outputDir . '/plugins.css';
+            if (file_exists($pluginsCssFile)) {
+                unlink($pluginsCssFile);
+            }
+            klytos_set_option('klytos_plugins_css_version', '');
+        }
+    }
+
+    /**
+     * Build the <link> tag for plugins.css if the file exists.
+     *
+     * @param  string $basePath Site base path.
+     * @return string HTML link tag or empty string.
+     */
+    private function buildPluginCssLink(string $basePath): string
+    {
+        $version = klytos_get_option('klytos_plugins_css_version', '');
+        if (empty($version)) {
+            return '';
+        }
+        $href = $basePath . 'assets/css/plugins.css?v=' . $version;
+        return '<link rel="stylesheet" href="' . Helpers::escUrl($href) . '">';
+    }
+
+    /**
+     * Build the <script> tag for klytos-hooks.js if the file exists.
+     *
+     * @param  string $basePath Site base path.
+     * @return string HTML script tag or empty string.
+     */
+    private function buildHooksJsTag(string $basePath): string
+    {
+        $version = klytos_get_option('klytos_hooks_js_version', '');
+        if (empty($version)) {
+            return '';
+        }
+        $src = $basePath . 'assets/js/klytos-hooks.js?v=' . $version;
+        return '<script src="' . Helpers::escUrl($src) . '" defer></script>';
     }
 
     /**

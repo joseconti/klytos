@@ -324,6 +324,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Helpers::ensureWritableDir($rootPath . '/public/js');
                 Helpers::ensureWritableDir($rootPath . '/public/assets/images');
 
+                // Create custom-templates directory (protected from updates).
+                Helpers::ensureWritableDir($rootPath . '/custom-templates');
+                Helpers::ensureWritableDir($rootPath . '/custom-templates/parts');
+
                 $langCode = klytos_esc_attr( substr($adminLang, 0, 2) );
                 $safeName = klytos_esc_html( $siteName );
 

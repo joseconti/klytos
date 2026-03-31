@@ -366,6 +366,7 @@ function klytos_has_permission(string $permission): bool
         'forms.manage'    => ['owner', 'admin'],
         'webhooks.manage' => ['owner', 'admin'],
         'updates.manage'  => ['owner'],
+        'terminal.access'   => ['owner'],
     ];
 
     // Allow plugins to extend or modify capabilities.
@@ -652,4 +653,29 @@ function klytos_next_scheduled_action(string $hook, array $args = [], string $gr
 function klytos_is_scheduled_action(string $hook, array $args = [], string $group = ''): bool
 {
     return App::getInstance()->getActionScheduler()->isScheduled($hook, $args, $group);
+}
+
+// ─── Template API ──────────────────────────────────────────────
+
+/**
+ * Register templates provided by a plugin.
+ *
+ * @param string $pluginId  Plugin ID.
+ * @param array  $templates Array of templates: name => [name, description, file, dynamic, post_type].
+ */
+function klytos_register_templates(string $pluginId, array $templates): void
+{
+    App::getInstance()->getTemplateResolver()->registerPluginTemplates($pluginId, $templates);
+}
+
+/**
+ * Register or modify a template part via filter.
+ *
+ * @param string   $partName Part name (e.g. 'header').
+ * @param callable $callback Function that receives the current HTML and returns the modified HTML.
+ * @param int      $priority Execution priority (lower = earlier).
+ */
+function klytos_register_template_part(string $partName, callable $callback, int $priority = 10): void
+{
+    Hooks::addFilter('template_part.' . $partName, $callback, $priority);
 }

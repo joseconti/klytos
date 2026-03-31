@@ -209,6 +209,17 @@ $sidebarItems = [
     ],
 ];
 
+// Terminal: visible for owners. 2FA is checked on the page itself.
+$sidebarItems[] = [
+    'id'         => 'terminal',
+    'title'      => 'Terminal',
+    'url'        => $adminPath . 'terminal.php',
+    'icon'       => 'fa-solid fa-terminal',
+    'position'   => 95,
+    'section'    => 'system',
+    'capability' => 'terminal.access',
+];
+
 // Dynamic: add custom post types to the sidebar menu.
 // Each custom post type gets its own menu item with taxonomy children.
 try {
@@ -331,6 +342,20 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
         <small>v<?php echo klytos_esc_html( $app->getVersion() ); ?></small>
     </div>
 
+	<div class="sidebar-search" id="sidebarSearch">
+		<div class="sidebar-search-wrap">
+			<i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
+			<?php
+			$search_placeholder = __( 'common.search' );
+			if ( empty( $search_placeholder ) ) {
+				$search_placeholder = 'Search';
+			}
+			?>
+			<input type="text" id="sidebarSearchInput" placeholder="<?php echo klytos_esc_attr( $search_placeholder ); ?>…" autocomplete="off" spellcheck="false">
+			<kbd class="sidebar-search-kbd">/</kbd>
+		</div>
+	</div>
+
     <nav class="sidebar-nav">
         <?php if (!empty($sections['content'])): ?>
             <div class="sidebar-section"><?php echo __( 'common.name' ); ?></div>
@@ -356,6 +381,9 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
                 <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
         <?php endforeach; ?>
+        <div class="sidebar-search-no-results" id="sidebarNoResults">
+            <?php echo klytos_esc_html( __( 'common.no_results' ) ); ?>
+        </div>
     </nav>
 </aside>
 
@@ -410,6 +438,118 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
             var collapsed = !sidebar.classList.contains('collapsed');
             apply(collapsed);
             localStorage.setItem(KEY, collapsed ? '1' : '0');
+        });
+
+        // Sidebar search filter.
+        var searchInput  = document.getElementById('sidebarSearchInput');
+        var searchKbd    = sidebar.querySelector('.sidebar-search-kbd');
+        var noResults    = document.getElementById('sidebarNoResults');
+        var nav          = sidebar.querySelector('.sidebar-nav');
+        var allItems     = nav.querySelectorAll('.sidebar-item-wrap');
+        var allSections  = nav.querySelectorAll('.sidebar-section');
+
+        function filterSidebar() {
+            var query = searchInput.value.trim().toLowerCase();
+
+            if (!query) {
+                // Reset: show all, remove search classes.
+                allItems.forEach(function(wrap) {
+                    wrap.classList.remove('search-hidden', 'search-child-match');
+                });
+                allSections.forEach(function(sec) {
+                    sec.classList.remove('search-hidden');
+                });
+                noResults.classList.remove('visible');
+                return;
+            }
+
+            var anyVisible = false;
+
+            allItems.forEach(function(wrap) {
+                var mainLink  = wrap.querySelector('a:not(.sidebar-child):not(.tooltip-title):not(.tooltip-child)');
+                var label     = mainLink ? (mainLink.querySelector('.sidebar-label') || mainLink).textContent.toLowerCase() : '';
+                var children  = wrap.querySelectorAll('a.sidebar-child');
+                var childMatch = false;
+
+                // Also check tooltip children (for collapsed items with inactive parents).
+                var tooltipChildren = wrap.querySelectorAll('.sidebar-tooltip .tooltip-child');
+
+                children.forEach(function(child) {
+                    if (child.textContent.toLowerCase().indexOf(query) !== -1) {
+                        childMatch = true;
+                    }
+                });
+                if (!childMatch) {
+                    tooltipChildren.forEach(function(tc) {
+                        if (tc.textContent.toLowerCase().indexOf(query) !== -1) {
+                            childMatch = true;
+                        }
+                    });
+                }
+
+                if (label.indexOf(query) !== -1 || childMatch) {
+                    wrap.classList.remove('search-hidden');
+                    anyVisible = true;
+                    if (childMatch) {
+                        wrap.classList.add('search-child-match');
+                    } else {
+                        wrap.classList.remove('search-child-match');
+                    }
+                } else {
+                    wrap.classList.add('search-hidden');
+                    wrap.classList.remove('search-child-match');
+                }
+            });
+
+            // Hide section headers if all their items are hidden.
+            allSections.forEach(function(sec) {
+                var next = sec.nextElementSibling;
+                var sectionHasVisible = false;
+                while (next && !next.classList.contains('sidebar-section')) {
+                    if (next.classList.contains('sidebar-item-wrap') && !next.classList.contains('search-hidden')) {
+                        sectionHasVisible = true;
+                    }
+                    next = next.nextElementSibling;
+                }
+                if (sectionHasVisible) {
+                    sec.classList.remove('search-hidden');
+                } else {
+                    sec.classList.add('search-hidden');
+                }
+            });
+
+            if (anyVisible) {
+                noResults.classList.remove('visible');
+            } else {
+                noResults.classList.add('visible');
+            }
+        }
+
+        searchInput.addEventListener('input', filterSidebar);
+
+        // Hide kbd hint when input is focused/has value.
+        searchInput.addEventListener('focus', function() { searchKbd.style.display = 'none'; });
+        searchInput.addEventListener('blur', function() {
+            if (!searchInput.value) { searchKbd.style.display = ''; }
+        });
+
+        // Keyboard shortcut: "/" to focus search, Escape to clear & blur.
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                var tag = (e.target.tagName || '').toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+                e.preventDefault();
+                if (sidebar.classList.contains('collapsed')) {
+                    apply(false);
+                    localStorage.setItem(KEY, '0');
+                }
+                searchInput.focus();
+            }
+            if (e.key === 'Escape' && document.activeElement === searchInput) {
+                searchInput.value = '';
+                filterSidebar();
+                searchInput.blur();
+            }
         });
 
         // Position tooltips vertically when hovering sidebar items.
