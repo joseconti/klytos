@@ -167,6 +167,29 @@ class Updater
         foreach ( $toDelete as $backup ) {
             $this->deleteDir( $backup['path'] );
         }
+
+        // Mark deleted backups in the update log.
+        $deletedNames = array_map( fn( $b ) => $b['name'], $toDelete );
+        try {
+            $data    = $this->storage->readFrom( $this->configPath, 'update_log.json.enc' );
+            $log     = $data['entries'] ?? [];
+            $changed = false;
+            foreach ( $log as &$entry ) {
+                if ( ! empty( $entry['backup_path'] )
+                    && $entry['backup_path'] !== '—'
+                    && in_array( $entry['backup_path'], $deletedNames, true )
+                ) {
+                    $entry['backup_path'] = '—';
+                    $changed              = true;
+                }
+            }
+            unset( $entry );
+            if ( $changed ) {
+                $this->storage->writeTo( $this->configPath, 'update_log.json.enc', [ 'entries' => $log ] );
+            }
+        } catch ( \RuntimeException $e ) {
+            // Log file doesn't exist or is unreadable — nothing to clean up.
+        }
     }
 
     /**
@@ -866,6 +889,16 @@ class Updater
         }
 
         return $backups;
+    }
+
+    /**
+     * Get the path to the backups directory.
+     *
+     * @return string Absolute path to the backups directory.
+     */
+    public function getBackupsDir(): string
+    {
+        return $this->rootPath . '/backups';
     }
 
     /**

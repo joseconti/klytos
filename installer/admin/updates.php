@@ -279,7 +279,11 @@ require_once __DIR__ . '/templates/sidebar.php';
                         </span>
                     </td>
                     <td>
-                        <?php if ( ! empty( $entry['backup_path'] ) && $entry['backup_path'] !== '—' ): ?>
+                        <?php
+                        $hasBackup    = ! empty( $entry['backup_path'] ) && $entry['backup_path'] !== '—';
+                        $backupExists = $hasBackup && is_dir( $updater->getBackupsDir() . '/' . $entry['backup_path'] );
+                        ?>
+                        <?php if ( $backupExists ): ?>
                             <div style="display:flex;align-items:center;gap:0.5rem;">
                                 <span class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $entry['backup_path'] ); ?></span>
                                 <form method="post" style="display:inline;" class="form-confirm-restore">
@@ -289,6 +293,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                                     <button type="submit" class="btn btn-outline btn-sm">Restore</button>
                                 </form>
                             </div>
+                        <?php elseif ( $hasBackup ): ?>
+                            <span class="mono" style="font-size:0.8rem;color:var(--admin-text-muted);">
+                                <?php echo klytos_esc_html( $entry['backup_path'] ); ?> (deleted)
+                            </span>
                         <?php else: ?>
                             <span style="color:var(--admin-text-muted);">—</span>
                         <?php endif; ?>
