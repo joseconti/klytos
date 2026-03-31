@@ -172,6 +172,9 @@ class App
     /** @var Logger|null Debug logging system (lazy-loaded). */
     private ?Logger $logger = null;
 
+    /** @var DevBar|null Developer bar metrics collector (only when dev mode is active). */
+    private ?DevBar $devBar = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -332,6 +335,28 @@ class App
             $buildEngine->buildHooksJs();
             $buildEngine->buildPluginsCss();
         });
+
+        // Step 10e: Initialize Developer Mode (DevBar + ProfilingStorage).
+        // Must happen AFTER siteConfig is ready but BEFORE plugins load
+        // so that plugin operations are captured by ProfilingStorage.
+        $devConfig = $this->siteConfig->getValue('developer.developer_mode', false);
+        if ($devConfig) {
+            require_once $this->corePath . '/dev-bar.php';
+            require_once $this->corePath . '/profiling-storage.php';
+            $this->devBar = DevBar::getInstance();
+
+            // Read slow threshold from config.
+            $slowThreshold = (int) $this->siteConfig->getValue('developer.devbar_log_slow_threshold', 200);
+            $this->devBar->setSlowThreshold($slowThreshold);
+
+            // Wrap storage with profiling layer.
+            $this->storage = new ProfilingStorage($this->storage, $this->devBar);
+
+            // Instrument the hook system.
+            klytos_set_profiler(function (string $hookName, string $type, int $count, float $duration) {
+                DevBar::getInstance()->logHook($hookName, $type, $count, $duration);
+            });
+        }
 
         // Step 11: Discover and load active plugins.
         // Plugins register their hooks/filters in their init.php files.

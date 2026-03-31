@@ -483,6 +483,20 @@ function klytos_register_translations(string $pluginId, string $langDir): void
     }
 }
 
+// ─── Profiler ────────────────────────────────────────────────
+
+/**
+ * Set a profiler callback for measuring hook execution times.
+ *
+ * Used by DevBar to instrument the hook system when Developer Mode is active.
+ *
+ * @param \Closure $fn Callback: function(string $hookName, string $type, int $count, float $duration)
+ */
+function klytos_set_profiler( \Closure $fn ): void
+{
+    Hooks::setProfiler( $fn );
+}
+
 // ─── Logging ─────────────────────────────────────────────────
 
 /**
