@@ -914,5 +914,173 @@ klytos_add_filter('mcp.handle_tool', function (?array $result, string $tool, arr
 
 ---
 
+---
+
+## Hooks anadidos en v0.16.0
+
+### Helpers de deteccion de pagina
+
+```php
+klytos_current_admin_page(): string   // Devuelve 'settings', 'users', 'dashboard', etc.
+klytos_is_admin_page(string $page): bool  // Soporta exacto ('settings') y prefix ('settings.*')
+```
+
+### Admin Page Detection
+
+| Hook | Tipo | Descripcion |
+|------|------|-------------|
+| `admin.page.before_content` | action | Antes del contenido en CUALQUIER pagina admin. Args: `$currentPage` |
+| `admin.page.after_content` | action | Despues del contenido en CUALQUIER pagina admin. Args: `$currentPage` |
+
+### Hooks Before/After por pagina admin (36 hooks)
+
+Cada pagina tiene `admin.{pagename}.before` y `admin.{pagename}.after`:
+`dashboard`, `pages`, `editor`, `settings`, `users`, `theme`, `assets`, `blocks`, `block_data`, `templates`, `plugins`, `analytics`, `security`, `mcp`, `webhooks`, `tasks`, `post_types`, `profile`.
+
+### Topbar Center
+
+| Hook | Tipo | Descripcion |
+|------|------|-------------|
+| `admin.topbar_center` | filter | Contenido del centro del topbar |
+
+### Sidebar Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `admin.sidebar.before` | action | — |
+| `admin.sidebar.after` | action | — |
+| `admin.sidebar.before_search` | action | — |
+| `admin.sidebar.after_search` | action | — |
+| `admin.sidebar.before_section` | action | `$sectionName` |
+| `admin.sidebar.after_section` | action | `$sectionName` |
+| `admin.sidebar.footer` | action | — |
+
+### Data Layer Pre-hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `user.before_create` | action | `$user` |
+| `user.before_update` | action | `$userId, $data, $existingUser` |
+| `user.before_delete` | action | `$userId, $user` |
+| `user.role_changed` | action | `$userId, $newRole, $oldRole` |
+| `taxonomy.before_save` | action | `$postTypeId, $taxData, $action` |
+| `term.before_save` | action | `$postTypeId, $taxonomyId, $termData, $action` |
+| `custom_field.before_save` | action | `$postTypeId, $fieldData, $action` |
+| `custom_field.before_delete` | action | `$postTypeId, $fieldId` |
+
+### Auth/Login Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `auth.before_login` | action | `$username` |
+| `auth.after_login` | action | `$username, $userId` |
+| `user.logout` | action | `$username, $userId` |
+| `login.head` | action | — |
+| `login.before_form` | action | — |
+| `login.after_fields` | action | — |
+| `login.after_form` | action | — |
+| `login.footer` | action | — |
+
+### Settings Extensible
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `admin.settings.before_save` | action | `$section, $_POST` |
+| `admin.settings.after_save` | action | `$section, $_POST` |
+| `admin.settings.before_section` | action | `$sectionName` (general, social, analytics, email, languages, appearance, editor, ai) |
+| `admin.settings.after_section` | action | `$sectionName` |
+| `admin.settings.render_custom_sections` | action | `$siteConfig` |
+
+### Dashboard Hooks
+
+| Hook | Tipo |
+|------|------|
+| `admin.dashboard.before_stats` | action |
+| `admin.dashboard.after_stats` | action |
+| `admin.dashboard.before_widgets` | action |
+| `admin.dashboard.after_widgets` | action |
+
+### Editor Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `editor.before_canvas` | action | `$page, $isEditing` |
+| `editor.after_canvas` | action | `$page, $isEditing` |
+| `editor.before_custom_fields` | action | `$page, $isEditing` |
+| `editor.after_custom_fields` | action | `$page, $isEditing` |
+| `editor.sidebar.before_seo` | action | `$page, $isEditing` |
+| `editor.sidebar.after_seo` | action | `$page, $isEditing` |
+| `editor.sidebar.after_panels` | action | `$page, $isEditing` |
+
+### User/Profile Form Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `admin.users.edit_form.before_fields` | action | `$editUser` |
+| `admin.users.edit_form.after_fields` | action | `$editUser` |
+| `admin.profile.before_fields` | action | `$user` |
+| `admin.profile.after_fields` | action | `$user` |
+
+### Theme Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `theme.before_save` | action | `$data` |
+| `theme.after_save` | action | `$theme` |
+| `theme.data` | filter | `$themeData` |
+
+### Build Hooks (per-page)
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `build.page.before` | action | `$page` |
+| `build.page.after` | action | `$page, $outputPath` |
+| `build.page.output` | filter | `$html, $page` |
+
+### Asset Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `asset.before_upload` | action | `$filename, $directory` |
+| `asset.after_upload` | action | `$result, $filename` |
+| `asset.before_delete` | action | `$path` |
+| `asset.after_delete` | action | `$path` |
+| `asset.allowed_types` | filter | `$allowedExtensions` |
+
+### Terminal Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `terminal.before_execute` | action | `$commandName, $args` |
+| `terminal.after_execute` | action | `$commandName, $output` |
+| `terminal.command_output` | filter | `$output, $commandName` |
+
+### Router Hooks
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `router.before_dispatch` | action | `$route` |
+| `router.after_dispatch` | action | `$route` |
+
+### Webhook Lifecycle
+
+| Hook | Tipo | Args |
+|------|------|------|
+| `webhook.before_create` | action | `$data` |
+| `webhook.after_create` | action | `$webhook` |
+| `webhook.before_delete` | action | `$webhookId` |
+| `webhook.after_delete` | action | `$webhookId` |
+
+### Security/Webhooks Admin
+
+| Hook | Tipo |
+|------|------|
+| `admin.security.before_2fa` | action |
+| `admin.security.after_2fa` | action |
+| `admin.webhooks.before_form` | action |
+| `admin.webhooks.after_form` | action |
+
+---
+
 *Referencia para desarrolladores de plugins de Klytos.*
-*Versión: 2.0.0 — Fecha: 2026-03-26*
+*Version: 3.0.0 — Fecha: 2026-03-31*

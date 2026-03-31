@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Bootstrap
  * Common initialization for all admin pages.
@@ -15,7 +16,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 $rootPath = dirname( __DIR__ );
 
@@ -24,7 +25,8 @@ $rootPath = dirname( __DIR__ );
 // Before boot(): klytos_i18n is null → returns fallback label.
 // After boot(): klytos_i18n is the real I18n instance → returns translation.
 if ( ! function_exists( '__' ) ) {
-    function __( string $key, array $replacements = [] ): string {
+    function __( string $key, array $replacements = [] ): string
+    {
         if ( isset( $GLOBALS['klytos_i18n'] ) && $GLOBALS['klytos_i18n'] !== null ) {
             return $GLOBALS['klytos_i18n']->get( $key, $replacements );
         }

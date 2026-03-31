@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — JSON-RPC 2.0 Parser/Builder
  * Handles parsing and building JSON-RPC 2.0 messages for MCP.

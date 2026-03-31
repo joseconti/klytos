@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Security Settings
  * Two-factor authentication configuration for the current user.
@@ -125,6 +126,7 @@ $totpSetupUri    = $_SESSION['klytos_totp_setup_uri'] ?? null;
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.security.before' ); ?>
 
 <?php if ($success): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html($success); ?></div>
@@ -147,6 +149,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     <p class="security-recovery-text" style="color:#92400e;font-size:0.85rem;"><?php echo __('security.recovery_codes_count', ['count' => count($recoveryCodes)]); ?></p>
 </div>
 <?php endif; ?>
+
+<?php klytos_do_action( 'admin.security.before_2fa' ); ?>
 
 <!-- ─── 2FA Status Overview ─── -->
 <div class="card">
@@ -360,5 +364,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     </form>
 </div>
 <?php endif; ?>
+
+<?php klytos_do_action( 'admin.security.after_2fa' ); ?>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

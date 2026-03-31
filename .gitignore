@@ -61,6 +61,7 @@ installer/public/assets/uploads/
 # Core-bundled plugins can be tracked selectively.
 installer/plugins/*/
 !installer/plugins/.htaccess
+!installer/plugins/hello-ai/
 
 # ─── Install file (renamed after install) ────────────────────
 installer/.install.done.php

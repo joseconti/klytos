@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Chat Manager
  * Persistence layer for AI chat conversations.

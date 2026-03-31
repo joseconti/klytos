@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Action Scheduler
  * Schedule and execute one-time or recurring actions via server cron.
@@ -114,7 +115,7 @@ class ActionScheduler
 
         $this->storage->write(self::COLLECTION, $id, $action);
 
-        Hooks::doAction('scheduler.action_created', $action);
+        klytos_do_action('scheduler.action_created', $action);
 
         return $id;
     }
@@ -162,7 +163,7 @@ class ActionScheduler
 
         $this->storage->write(self::COLLECTION, $id, $action);
 
-        Hooks::doAction('scheduler.action_created', $action);
+        klytos_do_action('scheduler.action_created', $action);
 
         return $id;
     }
@@ -190,7 +191,7 @@ class ActionScheduler
 
         $this->storage->write(self::COLLECTION, $actionId, $action);
 
-        Hooks::doAction('scheduler.action_canceled', $action);
+        klytos_do_action('scheduler.action_canceled', $action);
 
         return true;
     }
@@ -398,7 +399,7 @@ class ActionScheduler
 
             // Fire completion action.
             $results = ['processed' => $processed, 'failed' => $failed, 'errors' => $errors];
-            Hooks::doAction('scheduler.batch_complete', $results);
+            klytos_do_action('scheduler.batch_complete', $results);
 
             return $results;
 
@@ -454,7 +455,7 @@ class ActionScheduler
         try {
             // Execute: fire the hook with arguments.
             $hookArgs = $action['args'] ?? [];
-            Hooks::doAction($action['hook'], ...$hookArgs);
+            klytos_do_action($action['hook'], ...$hookArgs);
 
             // Success: mark complete.
             $action['status']       = 'complete';
@@ -465,7 +466,7 @@ class ActionScheduler
 
             $this->storage->write(self::COLLECTION, $actionId, $action);
 
-            Hooks::doAction('scheduler.action_complete', $action);
+            klytos_do_action('scheduler.action_complete', $action);
 
             // For recurring actions, schedule the next occurrence.
             if ($action['type'] === 'recurring' && !empty($action['interval'])) {
@@ -512,7 +513,7 @@ class ActionScheduler
 
             $this->storage->write(self::COLLECTION, $actionId, $action);
 
-            Hooks::doAction('scheduler.action_failed', $action, $e);
+            klytos_do_action('scheduler.action_failed', $action, $e);
 
             return ['success' => false, 'error' => $errorMessage];
         }

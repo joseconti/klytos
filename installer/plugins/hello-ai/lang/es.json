@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hello AI",
+    "hello_ai.modal_title": "Hello AI",
+    "hello_ai.welcome_message": "¡Hola! Soy <strong>Hello AI</strong>, un plugin de demostración para Klytos. Escribe cualquier cosa y te responderé. ¡Prueba a decir <em>hola</em>!",
+    "hello_ai.input_placeholder": "Escribe un mensaje...",
+    "hello_ai.response_1": "¡Hola! Me alegro de verte por aquí. ¡Klytos es un CMS increíble!",
+    "hello_ai.response_2": "¡Hola! ¿Sabías que este plugin se descubre por su cabecera PHP? ¡No necesita JSON!",
+    "hello_ai.response_3": "¡Hey! Soy un plugin de demostración que funciona con el contrato inmutable de plugins.",
+    "hello_ai.response_4": "¡Saludos! El sistema de plugins de Klytos está inspirado en WordPress pero construido para la era de la IA.",
+    "hello_ai.response_5": "¡Hola, humano! Vivo en plugins/hello-ai/hello-ai.php y eso es todo lo que Klytos necesita para encontrarme.",
+    "hello_ai.response_6": "¡Hola! Dato curioso: toda mi identificación es solo \"Plugin Name: Hello AI\" en un comentario PHP.",
+    "hello_ai.response_7": "¡Hey! Soy la prueba de que los plugins de Klytos pueden ser tan simples o complejos como quieras.",
+    "hello_ai.response_8": "¡Hola! Este plugin soporta múltiples idiomas. ¡Prueba a cambiar al inglés!",
+    "hello_ai.smart_hello": "¡Hola! Encantado de conocerte. Soy un plugin de demostración de Klytos.",
+    "hello_ai.smart_hi": "¡Hola! Bienvenido a Hello AI.",
+    "hello_ai.smart_klytos": "Klytos es un CMS AI-First controlado por MCP. Bastante genial, ¿no?",
+    "hello_ai.smart_plugin": "Los plugins en Klytos solo necesitan un archivo PHP con una cabecera \"Plugin Name:\". ¡Así de simple!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) es cómo los asistentes de IA hablan con Klytos. ¡Es el futuro!",
+    "hello_ai.smart_help": "Solo soy una demo, pero el chat de IA real está en AI-Mode. ¡Pruébalo!",
+    "hello_ai.smart_bye": "¡Adiós! Gracias por probar Hello AI. ¡Hasta la próxima!",
+    "hello_ai.smart_translate": "Este plugin usa klytos_register_translations() y la función __() para i18n. ¡Mira la carpeta lang/!"
+}

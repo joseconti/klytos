@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Build Engine
  * Generates the static HTML site from data, templates, and theme.
@@ -68,7 +69,7 @@ class BuildEngine
         $errors     = [];
 
         // Fire build.before hook for plugins.
-        Hooks::doAction('build.before');
+        klytos_do_action('build.before');
 
         // 1. Generate CSS
         $this->generateCss();
@@ -98,7 +99,9 @@ class BuildEngine
 
         foreach ($pages as $page) {
             try {
+                klytos_do_action('build.page.before', $page);
                 $this->writePageHtml($page, $siteConfig, $menuHtml, $theme);
+                klytos_do_action('build.page.after', $page, $this->outputPath);
                 $pagesBuilt++;
             } catch (\Exception $e) {
                 $errors[] = [
@@ -121,7 +124,7 @@ class BuildEngine
         $this->app->getSiteConfig()->updateBuildTimestamp();
 
         // 8. Fire build.after hook for plugins.
-        Hooks::doAction('build.after', $pagesBuilt, $errors);
+        klytos_do_action('build.after', $pagesBuilt, $errors);
 
         $durationMs = round((microtime(true) - $startTime) * 1000);
 
@@ -222,6 +225,9 @@ class BuildEngine
         $html = $this->renderTemplate($page, $siteConfig, $menuHtml, $theme);
         $slug = $page['slug'] ?? 'index';
 
+        // Allow plugins to modify the final HTML before writing to disk.
+        $html = klytos_apply_filters('build.page.output', $html, $page);
+
         if ($slug === 'index') {
             // Homepage goes directly to /index.html at the web root.
             $filePath = $this->outputPath . '/index.html';
@@ -273,8 +279,8 @@ class BuildEngine
         );
 
         // Allow plugins to inject content into <head> and before </body>.
-        $pluginHeadHtml    = Hooks::applyFilters('build.head_html', '');
-        $pluginBodyEndHtml = Hooks::applyFilters('build.body_end_html', '');
+        $pluginHeadHtml    = klytos_apply_filters('build.head_html', '');
+        $pluginBodyEndHtml = klytos_apply_filters('build.body_end_html', '');
 
         // Determine page content: v2.0 block assembly or v1.0 raw HTML.
         if (PageManager::hasBlockContent($page) && !empty($page['template'])) {
@@ -284,7 +290,7 @@ class BuildEngine
         }
 
         // Allow plugins to modify the page content before rendering.
-        $pageContent = Hooks::applyFilters('page.content', $pageContent, $page);
+        $pageContent = klytos_apply_filters('page.content', $pageContent, $page);
 
         // Build smart title separator: skip " — Site Name" if page title already contains site name.
         $rawSiteName  = $siteConfig['site_name'] ?? '';
@@ -665,7 +671,7 @@ class BuildEngine
         }
 
         // Allow plugins to add custom URLs to the sitemap.
-        $pluginUrls = Hooks::applyFilters('build.sitemap_urls', []);
+        $pluginUrls = klytos_apply_filters('build.sitemap_urls', []);
         foreach ($pluginUrls as $pluginUrl) {
             $xml .= "  <url>\n";
             $xml .= "    <loc>" . Helpers::escUrl($pluginUrl['loc'] ?? '') . "</loc>\n";
@@ -728,7 +734,7 @@ class BuildEngine
             }
         }
 
-        return Hooks::applyFilters('build.global_blocks', $cache);
+        return klytos_apply_filters('build.global_blocks', $cache);
     }
 
     /**
@@ -794,7 +800,7 @@ class BuildEngine
             }
 
             $blockId  = $block['id'] ?? 'unknown';
-            $blockCss = Hooks::applyFilters('block.css', $blockCss, $blockId);
+            $blockCss = klytos_apply_filters('block.css', $blockCss, $blockId);
 
             $css .= "/* --- Block: {$blockId} --- */\n";
             $css .= $blockCss . "\n\n";
@@ -1069,9 +1075,11 @@ CSS;
 
             // Strip HTML tags but preserve structure with newlines.
             $textContent = strip_tags(
-                str_replace(['<br>', '<br/>', '<br />', '</p>', '</div>', '</li>', '</h1>', '</h2>', '</h3>', '</h4>'],
-                            ["\n", "\n", "\n", "\n\n", "\n", "\n", "\n\n", "\n\n", "\n\n", "\n\n"],
-                            $content)
+                str_replace(
+                    ['<br>', '<br/>', '<br />', '</p>', '</div>', '</li>', '</h1>', '</h2>', '</h3>', '</h4>'],
+                    ["\n", "\n", "\n", "\n\n", "\n", "\n", "\n\n", "\n\n", "\n\n", "\n\n"],
+                    $content
+                )
             );
             $textContent = trim(preg_replace('/\n{3,}/', "\n\n", $textContent));
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — AI Panel: Profile
  * Self-edit profile content rendered inside the AI chat interface.
@@ -7,7 +8,9 @@
  * @since   1.0.0
  */
 
-if (!isset($app)) { return; }
+if (!isset($app)) {
+    return;
+}
 
 use Klytos\Core\UserManager;
 
@@ -17,7 +20,9 @@ $profileError   = '';
 $csrf           = $app->getAuth()->getCsrfToken();
 
 $userId = $app->getAuth()->getUserId();
-if (!$userId) { return; }
+if (!$userId) {
+    return;
+}
 
 $user = $userManager->getById($userId);
 $profileUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=profile');

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Options Manager
  * Public API for storing and retrieving arbitrary key-value options.
@@ -58,7 +59,7 @@ class OptionsManager
         // Check the in-memory cache first (avoids repeated reads in the same request).
         if (isset($this->cacheHits[$key])) {
             $value = $this->cache[$key];
-            return Hooks::applyFilters('option.get', $value, $key);
+            return klytos_apply_filters('option.get', $value, $key);
         }
 
         // Read from storage.
@@ -78,7 +79,7 @@ class OptionsManager
         $this->cache[$key]     = $value;
         $this->cacheHits[$key] = true;
 
-        return Hooks::applyFilters('option.get', $value, $key);
+        return klytos_apply_filters('option.get', $value, $key);
     }
 
     /**
@@ -94,7 +95,7 @@ class OptionsManager
         // Retrieve old value for hooks.
         $oldValue = $this->get($key);
 
-        Hooks::doAction('option.before_set', $key, $value, $oldValue);
+        klytos_do_action('option.before_set', $key, $value, $oldValue);
 
         $now    = Helpers::now();
         $exists = $this->storage->exists(self::COLLECTION, $key);
@@ -112,7 +113,7 @@ class OptionsManager
         $this->cache[$key]     = $value;
         $this->cacheHits[$key] = true;
 
-        Hooks::doAction('option.after_set', $key, $value, $oldValue);
+        klytos_do_action('option.after_set', $key, $value, $oldValue);
     }
 
     /**
@@ -129,14 +130,14 @@ class OptionsManager
             return false;
         }
 
-        Hooks::doAction('option.before_delete', $key);
+        klytos_do_action('option.before_delete', $key);
 
         $this->storage->delete(self::COLLECTION, $key);
 
         // Remove from cache.
         unset($this->cache[$key], $this->cacheHits[$key]);
 
-        Hooks::doAction('option.after_delete', $key);
+        klytos_do_action('option.after_delete', $key);
 
         return true;
     }

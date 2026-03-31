@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Task Management
  * Review tasks and annotations: list, filter, complete, and manage.
@@ -70,6 +71,7 @@ $totalCount   = $taskManager->count('all');
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.tasks.before' ); ?>
 
 <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -167,4 +169,5 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php endforeach; ?>
 <?php endif; ?>
 
+<?php klytos_do_action( 'admin.tasks.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

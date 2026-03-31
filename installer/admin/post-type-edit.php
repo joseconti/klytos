@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Edit Post Type
  *
@@ -157,7 +158,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php foreach ($languages as $lang):
                 $code = $lang['code'] ?? '';
                 $langSlug = $postType['slug_i18n'][$code] ?? '';
-            ?>
+                ?>
                 <div class="form-group">
                     <label><?php echo klytos_esc_html($lang['name'] ?? $code); ?> (<?php echo klytos_esc_html($code); ?>)</label>
                     <input type="text" name="slug_i18n_<?php echo klytos_esc_attr($code); ?>" class="form-control" value="<?php echo klytos_esc_attr($langSlug); ?>" placeholder="<?php echo klytos_esc_attr($postType['slug'] ?? ''); ?>">

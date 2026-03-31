@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Asset Tools
  * File upload and management via MCP.

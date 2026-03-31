@@ -1,8 +1,18 @@
-Order deny,allow
-Deny from all
+# ─── Klytos Plugins Directory ─────────────────────────────────
+# Allow all static assets by default.
+# Block only executable/dangerous files.
 
-# Allow access to plugin assets (CSS, JS, images)
-<FilesMatch "\.(css|js|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf)$">
-    Order allow,deny
-    Allow from all
-</FilesMatch>
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|phtml|php[0-9]|pht|phar|cgi|pl|py|rb|sh|bash|exe|bat|cmd|com|vbs|wsf|ps1)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Apache 2.2 fallback
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(php|phtml|php[0-9]|pht|phar|cgi|pl|py|rb|sh|bash|exe|bat|cmd|com|vbs|wsf|ps1)$">
+        Order deny,allow
+        Deny from all
+    </FilesMatch>
+</IfModule>

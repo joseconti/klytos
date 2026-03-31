@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Page Tools
  * CRUD operations for site pages via MCP.

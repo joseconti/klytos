@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Login Page
  * Handles password login + two-factor authentication challenge.
@@ -164,6 +165,7 @@ if ($show2fa) {
         .tfa-subtitle { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem; }
         input[type="text"].code-input { text-align: center; font-size: 1.5rem; letter-spacing: 0.3em; font-family: monospace; }
     </style>
+<?php klytos_do_action('login.head'); ?>
 </head>
 <body>
     <div class="login-card">
@@ -181,6 +183,7 @@ if ($show2fa) {
 
         <?php if (!$show2fa): ?>
         <!-- ─── Password Login Form ─── -->
+            <?php klytos_do_action('login.before_form'); ?>
         <form method="post">
             <div class="form-group">
                 <label for="username"><?php echo __( 'auth.username' ); ?></label>
@@ -192,30 +195,32 @@ if ($show2fa) {
                 <input type="password" id="password" name="password" required>
             </div>
 
+            <?php klytos_do_action('login.after_fields'); ?>
             <button type="submit" class="btn"><?php echo __( 'auth.login' ); ?></button>
         </form>
+            <?php klytos_do_action('login.after_form'); ?>
 
         <?php else: ?>
         <!-- ─── Two-Factor Authentication ─── -->
         <p class="tfa-subtitle"><?php echo __('security.2fa_verify_title'); ?></p>
 
-        <?php if (count($methods2fa) > 1 || in_array('email', $methods2fa, true)): ?>
+            <?php if (count($methods2fa) > 1 || in_array('email', $methods2fa, true)): ?>
         <div class="method-tabs">
-            <?php if (in_array('totp', $methods2fa, true)): ?>
+                <?php if (in_array('totp', $methods2fa, true)): ?>
                 <button type="button" class="method-tab active" data-method="totp"><?php echo __('security.method_totp'); ?></button>
-            <?php endif; ?>
-            <?php if (in_array('passkey', $methods2fa, true)): ?>
+                <?php endif; ?>
+                <?php if (in_array('passkey', $methods2fa, true)): ?>
                 <button type="button" class="method-tab<?php echo !in_array('totp', $methods2fa, true) ? ' active' : ''; ?>" data-method="passkey"><?php echo __('security.method_passkey'); ?></button>
-            <?php endif; ?>
-            <?php if (in_array('email', $methods2fa, true)): ?>
+                <?php endif; ?>
+                <?php if (in_array('email', $methods2fa, true)): ?>
                 <button type="button" class="method-tab" data-method="email"><?php echo __('security.method_email'); ?></button>
-            <?php endif; ?>
+                <?php endif; ?>
             <button type="button" class="method-tab" data-method="recovery"><?php echo __('security.method_recovery'); ?></button>
         </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
         <!-- TOTP Panel -->
-        <?php if (in_array('totp', $methods2fa, true)): ?>
+            <?php if (in_array('totp', $methods2fa, true)): ?>
         <div class="method-panel active" id="panel-totp">
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
@@ -232,10 +237,10 @@ if ($show2fa) {
                 <button type="submit" class="link-emergency"><?php echo __('security.emergency_email_link'); ?></button>
             </form>
         </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
         <!-- Passkey Panel -->
-        <?php if (in_array('passkey', $methods2fa, true)): ?>
+            <?php if (in_array('passkey', $methods2fa, true)): ?>
         <div class="method-panel<?php echo !in_array('totp', $methods2fa, true) ? ' active' : ''; ?>" id="panel-passkey">
             <p style="text-align:center;color:#64748b;margin-bottom:1rem;"><?php echo __('security.passkey_prompt'); ?></p>
             <button type="button" class="btn" id="passkey-auth-btn"><?php echo __('security.use_passkey'); ?></button>
@@ -250,10 +255,10 @@ if ($show2fa) {
                 <button type="submit" class="link-emergency"><?php echo __('security.emergency_email_link'); ?></button>
             </form>
         </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
         <!-- Email (Magic Link) Panel -->
-        <?php if (in_array('email', $methods2fa, true)): ?>
+            <?php if (in_array('email', $methods2fa, true)): ?>
         <div class="method-panel" id="panel-email">
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
@@ -262,7 +267,7 @@ if ($show2fa) {
                 <button type="submit" class="btn"><?php echo __('security.send_magic_link'); ?></button>
             </form>
         </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
         <!-- Recovery Code Panel -->
         <div class="method-panel" id="panel-recovery">
@@ -292,7 +297,7 @@ if ($show2fa) {
         });
 
         // Passkey WebAuthn authentication
-        <?php if (in_array('passkey', $methods2fa, true)): ?>
+            <?php if (in_array('passkey', $methods2fa, true)): ?>
         document.getElementById('passkey-auth-btn').addEventListener('click', async function() {
             try {
                 var resp = await fetch('<?php echo $basePath; ?>admin/api/webauthn-challenge.php', {
@@ -342,9 +347,10 @@ if ($show2fa) {
             for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
             return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         }
-        <?php endif; ?>
+            <?php endif; ?>
         </script>
         <?php endif; ?>
     </div>
+<?php klytos_do_action('login.footer'); ?>
 </body>
 </html>

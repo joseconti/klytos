@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Authentication
  * Multi-method authentication for the MCP endpoint.

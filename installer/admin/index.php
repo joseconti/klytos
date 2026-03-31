@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Dashboard
  *
@@ -36,6 +37,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && ( $_POST['action'] ?? '' ) === 'en
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
+klytos_do_action( 'admin.dashboard.before' );
 
 // Show noindex warning banner.
 if ( ! $indexingEnabled ) : ?>
@@ -57,6 +59,7 @@ if ( ! $indexingEnabled ) : ?>
 </div>
 <?php endif; ?>
 
+<?php klytos_do_action('admin.dashboard.before_stats'); ?>
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-label"><?php echo __( 'dashboard.total_pages' ); ?></div>
@@ -90,7 +93,9 @@ if ( ! $indexingEnabled ) : ?>
         <div class="stat-detail">PHP <?php echo PHP_VERSION; ?></div>
     </div>
 </div>
+<?php klytos_do_action('admin.dashboard.after_stats'); ?>
 
+<?php klytos_do_action('admin.dashboard.before_widgets'); ?>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
     <div class="card">
         <div class="card-header">
@@ -116,5 +121,7 @@ if ( ! $indexingEnabled ) : ?>
         </table>
     </div>
 </div>
+<?php klytos_do_action('admin.dashboard.after_widgets'); ?>
 
+<?php klytos_do_action( 'admin.dashboard.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

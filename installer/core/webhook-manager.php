@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Webhook Manager
  * Core infrastructure for sending event notifications to external URLs.
@@ -98,6 +99,9 @@ class WebhookManager
      */
     public function create(array $data): array
     {
+        // Hook: allow plugins to act before a webhook is created.
+        klytos_do_action( 'webhook.before_create', $data );
+
         $url    = trim($data['url'] ?? '');
         $events = $data['events'] ?? [];
 
@@ -140,6 +144,9 @@ class WebhookManager
 
         $this->storage->write(self::COLLECTION, $webhookId, $webhook);
 
+        // Hook: allow plugins to act after a webhook is created.
+        klytos_do_action( 'webhook.after_create', $webhook );
+
         return $webhook;
     }
 
@@ -175,7 +182,15 @@ class WebhookManager
      */
     public function delete(string $webhookId): bool
     {
-        return $this->storage->delete(self::COLLECTION, $webhookId);
+        // Hook: allow plugins to act before a webhook is deleted.
+        klytos_do_action( 'webhook.before_delete', $webhookId );
+
+        $result = $this->storage->delete(self::COLLECTION, $webhookId);
+
+        // Hook: allow plugins to act after a webhook is deleted.
+        klytos_do_action( 'webhook.after_delete', $webhookId );
+
+        return $result;
     }
 
     /**
@@ -242,7 +257,7 @@ class WebhookManager
         $events = self::CORE_EVENTS;
 
         // Allow plugins to register additional events.
-        $events = Hooks::applyFilters('webhooks.events', $events);
+        $events = klytos_apply_filters('webhooks.events', $events);
 
         return $events;
     }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos -- Mailer
  * Central email sending service for the entire CMS.
@@ -133,7 +134,7 @@ class Mailer
 
         // Allow plugins to completely override the send mechanism.
         // Return true from the filter to indicate the email was handled.
-        $handled = Hooks::applyFilters('mailer.send', false, [
+        $handled = klytos_apply_filters('mailer.send', false, [
             'to'      => $recipients,
             'subject' => $subject,
             'body'    => $body,
@@ -147,7 +148,7 @@ class Mailer
         }
 
         // Fire pre-send action (logging, analytics, etc.).
-        Hooks::doAction('mailer.before_send', $recipients, $subject);
+        klytos_do_action('mailer.before_send', $recipients, $subject);
 
         // Choose transport.
         $transport = $this->config['transport'] ?? 'mail';
@@ -159,7 +160,7 @@ class Mailer
         }
 
         // Fire post-send action.
-        Hooks::doAction('mailer.after_send', $recipients, $subject, $result);
+        klytos_do_action('mailer.after_send', $recipients, $subject, $result);
 
         return $result;
     }
@@ -435,7 +436,7 @@ class Mailer
         }
 
         // Allow plugins to modify headers.
-        $headers = Hooks::applyFilters('mailer.headers', $headers, $options);
+        $headers = klytos_apply_filters('mailer.headers', $headers, $options);
 
         return implode("\r\n", $headers);
     }
@@ -493,7 +494,7 @@ class Mailer
 HTML;
 
         // Allow plugins to completely replace the template.
-        return Hooks::applyFilters('mailer.html_template', $template, $content, $subject, $this->siteName);
+        return klytos_apply_filters('mailer.html_template', $template, $content, $subject, $this->siteName);
     }
 
     // ================================================================

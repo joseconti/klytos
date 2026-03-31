@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Theme Editor
  *
@@ -30,7 +31,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         $colors = [];
         $colorKeys = ['primary','secondary','accent','background','surface','text','text_muted','border','success','warning','error'];
         foreach ($colorKeys as $key) {
-            if (!empty($_POST[$key])) $colors[$key] = $_POST[$key];
+            if (!empty($_POST[$key])) {
+                $colors[$key] = $_POST[$key];
+            }
         }
         $theme->setColors($colors);
         $success = __( 'common.success' );
@@ -47,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         $theme->setLayout([
             'max_width'    => $_POST['max_width'] ?? '1200px',
             'header_style' => $_POST['header_style'] ?? 'sticky',
-            'border_radius'=> $_POST['border_radius'] ?? '8px',
+            'border_radius' => $_POST['border_radius'] ?? '8px',
         ]);
         $success = __( 'common.success' );
     }
@@ -59,6 +62,7 @@ $csrf      = $auth->getCsrfToken();
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.theme.before' ); ?>
 
 <?php if ($success): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -156,4 +160,5 @@ require_once __DIR__ . '/templates/sidebar.php';
     </form>
 </div>
 
+<?php klytos_do_action( 'admin.theme.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

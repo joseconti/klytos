@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — File Storage
  * Flat-file implementation of StorageInterface.
@@ -339,9 +340,9 @@ class FileStorage implements StorageInterface
             }
 
             $files = array_merge(
-            glob($dir . '/*.json') ?: [],
-            glob($dir . '/*.json.enc') ?: []
-        );
+                glob($dir . '/*.json') ?: [],
+                glob($dir . '/*.json.enc') ?: []
+            );
             return $files !== false ? count($files) : 0;
         }
 

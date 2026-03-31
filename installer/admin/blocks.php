@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Blocks
  * View and manage reusable design blocks.
@@ -14,7 +15,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
@@ -60,6 +61,7 @@ $categoryLabels = [
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.blocks.before' ); ?>
 
 <?php if ( !empty( $error ) ): ?>
     <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
@@ -89,7 +91,9 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 <?php else: ?>
     <?php foreach ( $categoryOrder as $cat ): ?>
-        <?php if ( empty( $grouped[ $cat ] ) ) continue; ?>
+        <?php if ( empty( $grouped[ $cat ] ) ) {
+            continue;
+        } ?>
         <div class="card" style="margin-bottom:1.25rem;">
             <div class="card-header">
                 <h3><?php echo klytos_esc_html( $categoryLabels[ $cat ] ?? ucfirst( $cat ) ); ?></h3>
@@ -145,4 +149,5 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php endforeach; ?>
 <?php endif; ?>
 
+<?php klytos_do_action( 'admin.blocks.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

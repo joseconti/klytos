@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Webhook Management Tools
  * Tools: klytos_create_webhook, klytos_list_webhooks, klytos_delete_webhook,

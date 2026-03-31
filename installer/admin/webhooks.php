@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Webhook Management
  * Create, list, test, and delete webhook subscriptions.
@@ -81,6 +82,7 @@ $availableEvents = $webhookManager->getAvailableEvents();
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.webhooks.before' ); ?>
 
 <?php if (!empty($success)): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -196,6 +198,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php endif; ?>
 </div>
 
+<?php klytos_do_action( 'admin.webhooks.before_form' ); ?>
+
 <!-- Create Webhook Modal -->
 <div class="modal-overlay" id="createModal">
     <div class="modal">
@@ -235,6 +239,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 </div>
 
+<?php klytos_do_action( 'admin.webhooks.after_form' ); ?>
+
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
     var modal       = document.getElementById( 'createModal' );
@@ -269,4 +275,5 @@ require_once __DIR__ . '/templates/sidebar.php';
 })();
 </script>
 
+<?php klytos_do_action( 'admin.webhooks.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

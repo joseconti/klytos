@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API -- Terminal 2FA Revalidation Endpoint
  * Verifies a 2FA code to resume the terminal session after inactivity.

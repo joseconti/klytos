@@ -1,11 +1,14 @@
 <?php
+
 /**
  * Klytos Admin — Footer Template
  *
  * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
+
 ?>
+<?php klytos_do_action('admin.page.after_content', $GLOBALS['klytos_admin_page'] ?? ''); ?>
     </div><!-- /.admin-main -->
 </div><!-- /.admin-content -->
 </div><!-- /.admin-layout -->
@@ -19,5 +22,6 @@ document.querySelectorAll('.confirm-revoke-form').forEach(function(form) {
 });
 </script>
 <script src="<?php echo $adminPath ?? ''; ?>assets/js/klytos-password.js" nonce="<?php echo $cspNonce ?? ''; ?>"></script>
+<?php klytos_do_action('admin.footer', $cspNonce ?? ''); ?>
 </body>
 </html>

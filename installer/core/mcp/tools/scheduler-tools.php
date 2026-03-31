@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Scheduler Management Tools
  * Tools: klytos_list_scheduled_actions, klytos_schedule_single_action,

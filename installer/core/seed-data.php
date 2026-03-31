@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Seed Data
  * Creates the default blocks and page templates during installation.

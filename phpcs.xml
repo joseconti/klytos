@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<ruleset name="Klytos">
+    <description>Klytos CMS coding standard — PSR-12 adapted for Klytos conventions.</description>
+
+    <!-- Paths to check -->
+    <file>installer/core</file>
+    <file>installer/admin</file>
+    <file>installer/plugins</file>
+
+    <!-- Exclude vendor directories -->
+    <exclude-pattern>installer/vendor-ai/*</exclude-pattern>
+    <exclude-pattern>installer/admin/assets/vendor/*</exclude-pattern>
+
+    <!-- Base standard: PSR-12 -->
+    <rule ref="PSR12">
+        <!--
+            Klytos uses spaces inside parentheses for function calls
+            and control structures (WordPress-inherited style).
+            This is a deliberate convention, not a mistake.
+        -->
+        <exclude name="PSR2.Methods.FunctionCallSignature.SpaceAfterOpenBracket"/>
+        <exclude name="PSR2.Methods.FunctionCallSignature.SpaceBeforeCloseBracket"/>
+        <exclude name="PSR12.ControlStructures.ControlStructureSpacing.SpaceBeforeCloseBrace"/>
+        <exclude name="PSR12.ControlStructures.ControlStructureSpacing.SpacingAfterOpenBrace"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingAfterOpen"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing.SpacingBeforeClose"/>
+        <exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterCloseParenthesis"/>
+        <exclude name="Squiz.ControlStructures.ControlSignature.SpaceAfterKeyword"/>
+        <exclude name="Squiz.WhiteSpace.ControlStructureSpacing.SpacingBeforeClose"/>
+    </rule>
+
+    <!-- Line length: warn at 120, no hard error -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="150"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+
+    <!-- chat-engine.php has a small DTO alongside the main class -->
+    <rule ref="PSR1.Classes.ClassDeclaration.MultipleClasses">
+        <exclude-pattern>installer/core/ai/chat-engine.php</exclude-pattern>
+    </rule>
+
+    <!-- Allow snake_case in global helper functions (klytos_* API) -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>installer/core/helpers-global.php</exclude-pattern>
+        <exclude-pattern>installer/core/helpers.php</exclude-pattern>
+        <exclude-pattern>installer/core/helpers-security.php</exclude-pattern>
+    </rule>
+
+    <!-- PHP files only -->
+    <arg name="extensions" value="php"/>
+
+    <!-- Show progress and use colors -->
+    <arg value="ps"/>
+</ruleset>

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Analytics Tools
  * Tools: klytos_get_analytics, klytos_get_top_pages.

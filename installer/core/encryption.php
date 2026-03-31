@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Encryption Engine
  * AES-256-GCM encryption for all stored data.

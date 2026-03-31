@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Custom Field Tools
  * CRUD operations for custom field definitions and field values via MCP.

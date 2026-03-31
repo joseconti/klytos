@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos -- Template Resolver
  * Centralizes all template resolution logic with a 4-level hierarchy.
@@ -146,7 +147,7 @@ class TemplateResolver
         }
 
         // 2. Plugin parts (via filter).
-        $pluginPart = Hooks::applyFilters( 'template_part.' . $partName, null );
+        $pluginPart = klytos_apply_filters( 'template_part.' . $partName, null );
         if ( $pluginPart !== null ) {
             return $pluginPart;
         }

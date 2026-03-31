@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Chat Engine
  * Orchestrates the AI chat using the soukicz/php-llm SDK.
@@ -21,7 +22,6 @@ namespace Klytos\Core\Ai;
 
 use Klytos\Core\App;
 use Klytos\Core\MCP\ToolRegistry;
-use Klytos\Core\Hooks;
 use Soukicz\Llm\Client\Anthropic\AnthropicClient;
 use Soukicz\Llm\Client\OpenAI\OpenAIClient;
 use Soukicz\Llm\Client\OpenAI\OpenAICompatibleClient;
@@ -135,7 +135,7 @@ class ChatEngine
         $this->keys->touchLastUsed($providerId);
 
         // Fire pre-send hook.
-        Hooks::doAction('ai.chat.before_send', $userId, $messages, $providerId);
+        klytos_do_action('ai.chat.before_send', $userId, $messages, $providerId);
 
         try {
             // Create SDK client for the active provider.
@@ -194,7 +194,7 @@ class ChatEngine
             $result->provider = $providerId;
             $result->model    = $modelId ?: '';
 
-            Hooks::doAction('ai.chat.error', $providerId, $e);
+            klytos_do_action('ai.chat.error', $providerId, $e);
 
             if (function_exists('klytos_log')) {
                 klytos_log("AI chat error [{$httpCode}]: " . mb_substr($body, 0, 300), 'error');
@@ -218,7 +218,7 @@ class ChatEngine
         }
 
         // Fire post-send hook.
-        Hooks::doAction('ai.chat.after_send', $userId, $result, $providerId);
+        klytos_do_action('ai.chat.after_send', $userId, $result, $providerId);
 
         return $result;
     }
@@ -302,7 +302,7 @@ class ChatEngine
                 inputSchema: $schemaArray,
                 handler: function (array $input) use ($registry, $toolName, $userId, &$result): LLMMessageContents {
                     // Fire hook before tool execution.
-                    Hooks::doAction('ai.chat.tool_executed', $toolName, $input, $userId);
+                    klytos_do_action('ai.chat.tool_executed', $toolName, $input, $userId);
 
                     try {
                         $toolResult = $registry->call($toolName, $input);
@@ -391,7 +391,7 @@ RULES:
 5. When creating content (pages, blocks), generate professional and realistic content, not placeholders.
 PROMPT;
 
-        return Hooks::applyFilters('ai.system_prompt', $prompt, $userId, $site);
+        return klytos_apply_filters('ai.system_prompt', $prompt, $userId, $site);
     }
 
     /**
@@ -418,6 +418,6 @@ PROMPT;
             }
         }
 
-        return Hooks::applyFilters('ai.tools_for_chat', $allTools, $userId);
+        return klytos_apply_filters('ai.tools_for_chat', $allTools, $userId);
     }
 }

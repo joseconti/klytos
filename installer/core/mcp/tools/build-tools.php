@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Build Tools
  * Static site generation via MCP.

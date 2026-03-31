@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API -- Terminal Autocomplete Endpoint
  * Returns matching command names for Tab-completion in the web terminal.

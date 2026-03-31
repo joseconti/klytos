@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin API — Update Install Endpoint
  *
@@ -22,7 +23,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once dirname( __DIR__ ) . '/bootstrap.php';
 

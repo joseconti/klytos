@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Storage Interface
  * Abstraction layer for data persistence (flat-file or database).

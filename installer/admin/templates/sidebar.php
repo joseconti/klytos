@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Sidebar Template
  * Renders the admin navigation sidebar.
@@ -19,10 +20,10 @@
  */
 
 use Klytos\Core\Helpers;
-use Klytos\Core\Hooks;
 
 $adminPath   = Helpers::getBasePath() . 'admin/';
 $currentPage = $currentPage ?? basename($_SERVER['SCRIPT_NAME'], '.php');
+$GLOBALS['klytos_admin_page'] = $currentPage;
 
 // Resolve the effective sidebar item ID for the current page.
 // Custom post type pages use a shared PHP file with query params,
@@ -266,7 +267,7 @@ try {
 }
 
 // Hook: allow plugins to add, remove, or modify sidebar items.
-$sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);
+$sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);
 
 // Sort items by position (lower = higher in the menu).
 usort($sidebarItems, fn(array $a, array $b): int => ($a['position'] ?? 99) <=> ($b['position'] ?? 99));
@@ -294,17 +295,18 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
  * @param array  $item          The sidebar menu item data.
  * @param string $currentItemId The current page item ID for active state.
  */
-function klytos_render_sidebar_item( array $item, string $currentItemId ): void {
-    $isParentActive = $currentItemId === $item['id'];
-    $hasChildren    = !empty($item['children']);
-    if ($hasChildren) {
-        foreach ($item['children'] as $child) {
-            if ($currentItemId === $child['id']) {
-                $isParentActive = true;
+    function klytos_render_sidebar_item( array $item, string $currentItemId ): void
+    {
+        $isParentActive = $currentItemId === $item['id'];
+        $hasChildren    = !empty($item['children']);
+        if ($hasChildren) {
+            foreach ($item['children'] as $child) {
+                if ($currentItemId === $child['id']) {
+                    $isParentActive = true;
+                }
             }
         }
-    }
-    ?>
+        ?>
     <div class="sidebar-item-wrap">
         <a href="<?php echo klytos_esc_url($item['url']); ?>"
            class="<?php echo $isParentActive ? 'active' : ''; ?>">
@@ -337,88 +339,113 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
-    <?php
-}
+        <?php
+    }
 } // End function_exists.
 ?>
+<?php klytos_do_action('admin.sidebar.before'); ?>
 <aside class="admin-sidebar" id="sidebar">
     <div class="sidebar-brand">
         <h2>Klytos</h2>
         <small>v<?php echo klytos_esc_html( $app->getVersion() ); ?></small>
     </div>
 
-	<div class="sidebar-search" id="sidebarSearch">
-		<div class="sidebar-search-wrap">
-			<i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
-			<?php
-			$search_placeholder = __( 'common.search' );
-			if ( empty( $search_placeholder ) ) {
-				$search_placeholder = 'Search';
-			}
-			?>
-			<input type="text" id="sidebarSearchInput" placeholder="<?php echo klytos_esc_attr( $search_placeholder ); ?>…" autocomplete="off" spellcheck="false">
-			<kbd class="sidebar-search-kbd">/</kbd>
-		</div>
-	</div>
+<?php klytos_do_action('admin.sidebar.before_search'); ?>
+    <div class="sidebar-search" id="sidebarSearch">
+        <div class="sidebar-search-wrap">
+            <i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
+            <?php
+            $search_placeholder = __( 'common.search' );
+            if ( empty( $search_placeholder ) ) {
+                $search_placeholder = 'Search';
+            }
+            ?>
+            <input type="text" id="sidebarSearchInput" placeholder="<?php echo klytos_esc_attr( $search_placeholder ); ?>…" autocomplete="off" spellcheck="false">
+            <kbd class="sidebar-search-kbd">/</kbd>
+        </div>
+    </div>
+<?php klytos_do_action('admin.sidebar.after_search'); ?>
 
     <nav class="sidebar-nav">
         <?php if (!empty($sections['content'])): ?>
+            <?php klytos_do_action('admin.sidebar.before_section', 'content'); ?>
             <div class="sidebar-section"><?php echo __( 'common.name' ); ?></div>
             <?php foreach ($sections['content'] as $item): ?>
                 <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
+            <?php klytos_do_action('admin.sidebar.after_section', 'content'); ?>
         <?php endif; ?>
 
         <?php if (!empty($sections['system'])): ?>
+            <?php klytos_do_action('admin.sidebar.before_section', 'system'); ?>
             <div class="sidebar-section">System</div>
             <?php foreach ($sections['system'] as $item): ?>
                 <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
+            <?php klytos_do_action('admin.sidebar.after_section', 'system'); ?>
         <?php endif; ?>
 
         <?php
         // Render any additional custom sections added by plugins.
         foreach ($sections as $sectionName => $items):
-            if ($sectionName === 'content' || $sectionName === 'system') continue;
-        ?>
+            if ($sectionName === 'content' || $sectionName === 'system') {
+                continue;
+            }
+            ?>
+            <?php klytos_do_action('admin.sidebar.before_section', $sectionName); ?>
             <div class="sidebar-section"><?php echo klytos_esc_html( ucfirst( $sectionName ) ); ?></div>
             <?php foreach ($items as $item): ?>
                 <?php klytos_render_sidebar_item($item, $currentItemId); ?>
             <?php endforeach; ?>
+            <?php klytos_do_action('admin.sidebar.after_section', $sectionName); ?>
         <?php endforeach; ?>
         <div class="sidebar-search-no-results" id="sidebarNoResults">
             <?php echo klytos_esc_html( __( 'common.no_results' ) ); ?>
         </div>
+<?php klytos_do_action('admin.sidebar.footer'); ?>
     </nav>
 </aside>
+<?php klytos_do_action('admin.sidebar.after'); ?>
 
 <div class="admin-content">
+    <?php klytos_do_action('admin.topbar_before'); ?>
     <div class="admin-topbar">
         <div style="display:flex;align-items:center;gap:0.75rem;">
             <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
+            <?php echo klytos_apply_filters('admin.topbar_left', ''); ?>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+            <?php echo klytos_apply_filters('admin.topbar_center', ''); ?>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
-            <a href="<?php echo klytos_esc_url($adminPath . 'ai-chat.php'); ?>" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">
-                <i class="fa-solid fa-robot"></i>
-                <?php echo klytos_esc_html(__( 'ai_chat.ai_mode' )); ?>
-            </a>
+            <?php
+            $aiButtonHtml = '<a href="' . klytos_esc_url($adminPath . 'ai-chat.php') . '" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">'
+                          . '<i class="fa-solid fa-robot"></i> '
+                          . klytos_esc_html(__( 'ai_chat.ai_mode' ))
+                          . '</a>';
+            echo klytos_apply_filters('admin.topbar_ai_button', $aiButtonHtml);
+            ?>
+            <?php echo klytos_apply_filters('admin.topbar_actions', ''); ?>
             <?php
                 $currentUser  = klytos_current_user();
                 $displayLabel = !empty($currentUser['display_name']) && ($currentUser['display_name'] ?? '') !== ($currentUser['username'] ?? '')
                     ? $currentUser['display_name']
                     : $app->getAuth()->getUsername();
+                $displayLabel = klytos_apply_filters('admin.topbar_user_display', $displayLabel, $currentUser);
             ?>
             <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" style="font-size:0.85rem;color:var(--admin-text-muted);text-decoration:none;">
                 <?php echo klytos_esc_html( $displayLabel ); ?>
             </a>
+            <?php echo klytos_apply_filters('admin.topbar_right', ''); ?>
             <a href="<?php echo $adminPath; ?>logout.php" class="btn btn-outline btn-sm">
                 <?php echo __( 'auth.logout' ); ?>
             </a>
         </div>
     </div>
+    <?php klytos_do_action('admin.topbar_after'); ?>
     <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
     (function() {
         var sidebar  = document.getElementById('sidebar');
@@ -577,3 +604,4 @@ function klytos_render_sidebar_item( array $item, string $currentItemId ): void 
     })();
     </script>
     <div class="admin-main">
+<?php klytos_do_action('admin.page.before_content', $currentPage); ?>

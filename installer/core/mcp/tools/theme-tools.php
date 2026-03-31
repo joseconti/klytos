@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Theme Tools
  * Visual theme management via MCP.

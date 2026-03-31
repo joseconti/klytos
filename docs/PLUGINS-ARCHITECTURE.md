@@ -1,10 +1,126 @@
 # Klytos -- Arquitectura del Sistema de Plugins
 
-**Version:** 0.12.0
+**Version:** 0.15.0
 **Fecha:** 31 de marzo de 2026
-**Estado:** Propuesta de diseno
+**Estado:** Implementado (contrato inmutable) + Propuesta de diseno (features extendidas)
 
 **Prerequisito:** Este documento asume que el sistema de Templates descrito en `TEMPLATES-ARCHITECTURE.md` ya esta implementado. Ambos documentos se complementan.
+
+---
+
+## 0. Contrato Inmutable de Identificacion de Plugins
+
+Este contrato define como Klytos identifica un plugin. Una vez establecido, NUNCA puede cambiar de forma que rompa plugins existentes. Solo se permiten cambios aditivos (anadir campos nuevos opcionales).
+
+### 0.1. Regla de Identificacion
+
+Un plugin de Klytos es un directorio dentro de `plugins/` que contiene un archivo PHP con el mismo nombre que el directorio, y ese archivo tiene una cabecera `Plugin Name:` en su docblock.
+
+```
+plugins/mi-plugin/mi-plugin.php    <-- ESTO es un plugin
+```
+
+- El nombre del directorio = el nombre del archivo (sin `.php`) = el `plugin-id`
+- El `plugin-id` solo permite: `[a-z0-9][a-z0-9_-]*` (minusculas, numeros, guiones, underscores)
+- El archivo PHP DEBE tener al menos `Plugin Name:` en su cabecera docblock
+
+### 0.2. Plugin Minimo Viable
+
+```php
+<?php
+/**
+ * Plugin Name: Hello World
+ */
+```
+
+Esto en `plugins/hello-world/hello-world.php` es un plugin valido. Klytos lo descubre, lo lista en admin, y permite activarlo. No hace nada, pero ES un plugin.
+
+### 0.3. Formato de Cabecera PHP (inmutable)
+
+```php
+<?php
+/**
+ * Plugin Name: Mi Plugin Genial
+ * Plugin URI: https://ejemplo.com/mi-plugin
+ * Description: Descripcion corta del plugin.
+ * Version: 1.0.0
+ * Author: Jose Conti
+ * Author URI: https://joseconti.com
+ * Requires Klytos: 0.15.0
+ * Requires PHP: 8.1
+ * License: ELv2
+ * License URI: https://www.elastic.co/licensing/elastic-license
+ * Text Domain: mi-plugin
+ * Domain Path: /lang
+ * Premium: false
+ * Item Name: mi-plugin-pro
+ * Update URI: https://klytos.io/plugins/mi-plugin
+ */
+```
+
+| Campo | Requerido | Default | Proposito |
+|---|---|---|---|
+| `Plugin Name` | **SI** | -- | Nombre humano. UNICO campo obligatorio |
+| `Plugin URI` | no | `''` | Web del plugin |
+| `Description` | no | `''` | Descripcion corta |
+| `Version` | no | `'0.0.1'` | Version semver |
+| `Author` | no | `''` | Nombre del autor |
+| `Author URI` | no | `''` | Web del autor |
+| `Requires Klytos` | no | `'0.0.0'` | Version minima de Klytos |
+| `Requires PHP` | no | `'8.1'` | Version minima de PHP |
+| `License` | no | `''` | Identificador de licencia (SPDX o nombre corto) |
+| `License URI` | no | `''` | URL de la licencia |
+| `Text Domain` | no | plugin-id | Dominio i18n |
+| `Domain Path` | no | `'/lang'` | Ruta a archivos de traduccion |
+| `Premium` | no | `false` | Si requiere clave de licencia |
+| `Item Name` | no | plugin-id | Slug/identificador tecnico del producto en el servidor de licencias (ej: `klytos-e-commerce-pro`) |
+| `Update URI` | no | `''` | URL para actualizaciones de terceros |
+
+**Regla de oro**: en el futuro se pueden ANADIR campos nuevos, pero NUNCA quitar ni cambiar la semantica de los existentes.
+
+### 0.4. El archivo principal ES el punto de entrada
+
+El archivo `{plugin-id}.php` es TANTO la identificacion como el punto de entrada. Cuando el plugin esta activo, Klytos ejecuta este archivo en cada peticion (en scope aislado via closure).
+
+### 0.5. klytos-plugin.json es extension OPCIONAL
+
+El archivo JSON se mantiene para datos estructurados complejos que no caben en una cabecera:
+
+- `admin_pages` -- configuracion declarativa del sidebar (estructura anidada)
+- `mcp_tools` -- lista de herramientas MCP
+- `permissions` -- capabilities requeridos
+- `capabilities` -- funcionalidades que usa el plugin (informativo)
+- `post_types` -- registro declarativo de post types
+- `routes` -- registro declarativo de rutas
+- `assets` -- configuracion de encolado de assets
+
+Si ambos archivos contienen el mismo campo (ej: `version`), la **cabecera PHP gana siempre**.
+
+### 0.6. Estructura del Plugin
+
+```
+plugins/mi-plugin/
+|-- mi-plugin.php                <-- REQUERIDO: identificacion + entry point
+|-- klytos-plugin.json           <-- OPCIONAL: metadata extendida
+|-- install.php                  <-- OPCIONAL: primera activacion
+|-- deactivate.php               <-- OPCIONAL: al desactivar
+|-- uninstall.php                <-- OPCIONAL: al desinstalar (borrar datos)
+|-- admin/                       <-- OPCIONAL: paginas de admin
+|   +-- settings.php
+|-- assets/                      <-- OPCIONAL: CSS, JS, imagenes
+|-- lang/                        <-- OPCIONAL: traducciones
+|-- src/                         <-- OPCIONAL: clases PHP
+|-- templates/                   <-- OPCIONAL: plantillas HTML
++-- migrations/                  <-- OPCIONAL: migraciones de datos
+```
+
+### 0.7. NO se soportan plugins de archivo suelto
+
+Un archivo PHP suelto en `plugins/` (sin directorio) NO es un plugin. Requiere siempre directorio + archivo con el mismo nombre.
+
+### 0.8. Compatibilidad con formato legacy
+
+Los plugins que aun usan `klytos-plugin.json` + `init.php` (sin cabecera PHP) siguen funcionando via fallback, pero se registra un aviso de deprecacion. Este fallback se eliminara en v2.0.0 (con un minimo de 12 meses de aviso).
 
 ---
 
@@ -12,14 +128,16 @@
 
 ### 1.1. Que ya funciona
 
-El PluginLoader actual (`core/plugin-loader.php`) ya implementa:
+El PluginLoader (`core/plugin-loader.php`) implementa:
 
-- Descubrimiento de plugins por directorio (`plugins/{id}/klytos-plugin.json`)
-- Validacion de manifiesto (campos requeridos, versiones, ID)
+- Descubrimiento de plugins por cabecera PHP (`plugins/{id}/{id}.php` con `Plugin Name:`)
+- Fallback legacy por `klytos-plugin.json` (deprecated, se eliminara en v2.0.0)
+- Merge de extension fields desde `klytos-plugin.json` (admin_pages, mcp_tools, etc.)
+- Validacion de cabecera y manifiesto (campos requeridos, versiones, ID)
 - Ciclo de vida completo: activate (con install.php), deactivate, uninstall
 - Estado persistente en `plugins.json.enc` (activos, fechas)
 - Verificacion de licencias premium contra plugins.joseconti.com
-- Ejecucion aislada de init.php (closure scope)
+- Ejecucion aislada del entry point (closure scope)
 - Hooks: plugin.loaded, plugin.activated, plugin.deactivated, plugin.uninstalled
 
 El sistema de hooks (`core/hooks.php`) ya implementa:
@@ -483,7 +601,7 @@ public function buildReplacements(array $page, array $siteConfig, string $menuHt
     return [
         '{{site_name}}'         => Helpers::escHtml($siteConfig['site_name'] ?? ''),
         '{{page_title}}'        => Helpers::escHtml($page['title'] ?? ''),
-        '{{page_content}}'      => Hooks::applyFilters('page.content', $page['content_html'] ?? '', $page),
+        '{{page_content}}'      => klytos_apply_filters('page.content', $page['content_html'] ?? '', $page),
         // ... todas las demas variables existentes
     ];
 }
@@ -683,7 +801,7 @@ require_once $pluginPagePath;
 
 Actualmente los plugins usan el filtro `admin.sidebar_items` manualmente. Se anade lectura automatica del campo `admin_pages` del manifiesto, ANTES de aplicar el filtro (para que el filtro pueda modificar lo que el manifiesto declaro).
 
-Anadir este bloque despues de la generacion de custom post types y ANTES de la linea `$sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);`:
+Anadir este bloque despues de la generacion de custom post types y ANTES de la linea `$sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);`:
 
 ```php
 // Dinamico: leer admin_pages de los manifiestos de plugins activos.
@@ -733,7 +851,7 @@ try {
 }
 
 // EXISTENTE (no mover): filtro para que los plugins modifiquen el sidebar
-$sidebarItems = Hooks::applyFilters('admin.sidebar_items', $sidebarItems);
+$sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);
 ```
 
 ### 3.3. Formato del campo admin_pages en klytos-plugin.json
@@ -872,11 +990,11 @@ class FrontendUserManager
         ];
 
         // Permitir que plugins modifiquen los datos antes de guardar
-        $user = Hooks::applyFilters('frontend_user.before_create', $user);
+        $user = klytos_apply_filters('frontend_user.before_create', $user);
 
         $this->storage->write(self::COLLECTION, $id, $user);
 
-        Hooks::doAction('frontend_user.created', $user);
+        klytos_do_action('frontend_user.created', $user);
 
         // Devolver sin pass_hash
         unset($user['pass_hash']);
@@ -934,7 +1052,7 @@ class FrontendUserManager
 
         $this->storage->write(self::COLLECTION, $id, $user);
 
-        Hooks::doAction('frontend_user.updated', $user);
+        klytos_do_action('frontend_user.updated', $user);
 
         unset($user['pass_hash']);
         return $user;
@@ -998,11 +1116,11 @@ class FrontendUserManager
     {
         $user = $this->storage->read(self::COLLECTION, $id);
 
-        Hooks::doAction('frontend_user.before_delete', $user);
+        klytos_do_action('frontend_user.before_delete', $user);
 
         $result = $this->storage->delete(self::COLLECTION, $id);
 
-        Hooks::doAction('frontend_user.deleted', $id);
+        klytos_do_action('frontend_user.deleted', $id);
 
         return $result;
     }
@@ -1145,7 +1263,7 @@ class FrontendAuth
         // Reset intentos fallidos
         klytos_delete_option($attemptKey);
 
-        Hooks::doAction('frontend_user.logged_in', $user);
+        klytos_do_action('frontend_user.logged_in', $user);
 
         return [
             'success' => true,
@@ -1173,7 +1291,7 @@ class FrontendAuth
         }
 
         if ($userId) {
-            Hooks::doAction('frontend_user.logged_out', $userId);
+            klytos_do_action('frontend_user.logged_out', $userId);
         }
     }
 

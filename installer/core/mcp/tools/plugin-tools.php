@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Plugin Management Tools
  * Registers MCP tools for listing, activating, and deactivating plugins.

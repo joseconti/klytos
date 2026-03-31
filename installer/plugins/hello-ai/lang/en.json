@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hello AI",
+    "hello_ai.modal_title": "Hello AI",
+    "hello_ai.welcome_message": "Hello! I'm <strong>Hello AI</strong>, a demo plugin for Klytos. Type anything and I'll respond. Try saying <em>hello</em>!",
+    "hello_ai.input_placeholder": "Type a message...",
+    "hello_ai.response_1": "Hello! Great to see you here. Klytos is an amazing CMS!",
+    "hello_ai.response_2": "Hi there! Did you know this plugin was discovered by its PHP header? No JSON needed!",
+    "hello_ai.response_3": "Hey! I'm a demo plugin running on the immutable plugin contract.",
+    "hello_ai.response_4": "Greetings! The plugin system of Klytos is inspired by WordPress but built for the AI era.",
+    "hello_ai.response_5": "Hello, human! I live in plugins/hello-ai/hello-ai.php and that's all Klytos needs to find me.",
+    "hello_ai.response_6": "Hi! Fun fact: my entire identification is just \"Plugin Name: Hello AI\" in a PHP comment.",
+    "hello_ai.response_7": "Hey there! I'm proof that Klytos plugins can be as simple or as complex as you want.",
+    "hello_ai.response_8": "Hello! This plugin supports multiple languages. Try switching to Spanish!",
+    "hello_ai.smart_hello": "Hello! Nice to meet you. I'm a Klytos plugin demo.",
+    "hello_ai.smart_hi": "Hi there! Welcome to Hello AI.",
+    "hello_ai.smart_klytos": "Klytos is an AI-First CMS controlled via MCP. Pretty cool, right?",
+    "hello_ai.smart_plugin": "Plugins in Klytos just need a PHP file with a \"Plugin Name:\" header. Simple!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) is how AI assistants talk to Klytos. It's the future!",
+    "hello_ai.smart_help": "I'm just a demo, but the real AI chat is in AI-Mode. Try it!",
+    "hello_ai.smart_bye": "Goodbye! Thanks for trying Hello AI. See you next time!",
+    "hello_ai.smart_translate": "This plugin uses klytos_register_translations() and the __() function for i18n. Check the lang/ folder!"
+}

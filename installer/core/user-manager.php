@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — User Manager
  * Multi-user CRUD with role-based access control.
@@ -151,10 +152,13 @@ class UserManager
             'force_logout_at'        => null,
         ];
 
+        // Pre-hook: allow plugins to act before user creation.
+        klytos_do_action('user.before_create', $user);
+
         $this->storage->write(self::COLLECTION, $userId, $user);
 
         // Fire hook for plugins (e.g., send welcome email, log creation).
-        Hooks::doAction('user.created', $this->sanitizeForOutput($user));
+        klytos_do_action('user.created', $this->sanitizeForOutput($user));
 
         return $this->sanitizeForOutput($user);
     }
@@ -172,7 +176,8 @@ class UserManager
      */
     public function update(string $userId, array $data): array
     {
-        $user = $this->storage->read(self::COLLECTION, $userId);
+        $user    = $this->storage->read(self::COLLECTION, $userId);
+        $oldRole = $user['role'] ?? '';
 
         // Updatable fields (password is handled separately via changePassword).
         $updatable = ['email', 'display_name', 'first_name', 'last_name', 'role', 'status'];
@@ -215,9 +220,19 @@ class UserManager
         }
 
         $user['updated_at'] = Helpers::now();
+
+        // Pre-hook: allow plugins to act before user update.
+        klytos_do_action('user.before_update', $userId, $data, $this->sanitizeForOutput($user));
+
         $this->storage->write(self::COLLECTION, $userId, $user);
 
-        Hooks::doAction('user.updated', $this->sanitizeForOutput($user));
+        klytos_do_action('user.updated', $this->sanitizeForOutput($user));
+
+        // Fire role change hook only when the role actually changed.
+        $newRole = $user['role'] ?? '';
+        if ($newRole !== $oldRole && $oldRole !== '') {
+            klytos_do_action('user.role_changed', $userId, $newRole, $oldRole);
+        }
 
         return $this->sanitizeForOutput($user);
     }
@@ -239,10 +254,13 @@ class UserManager
             throw new \RuntimeException('Cannot delete the owner. Transfer ownership first.');
         }
 
+        // Pre-hook: allow plugins to act before user deletion.
+        klytos_do_action('user.before_delete', $userId, $user);
+
         $result = $this->storage->delete(self::COLLECTION, $userId);
 
         if ($result) {
-            Hooks::doAction('user.deleted', $userId, $user['username']);
+            klytos_do_action('user.deleted', $userId, $user['username']);
         }
 
         return $result;
@@ -370,7 +388,7 @@ class UserManager
                 $user['last_login'] = Helpers::now();
                 $this->storage->write(self::COLLECTION, $user['id'], $user);
 
-                Hooks::doAction('user.login', $this->sanitizeForOutput($user));
+                klytos_do_action('user.login', $this->sanitizeForOutput($user));
 
                 return $user; // Return full data (caller handles sanitization).
             }
@@ -529,7 +547,7 @@ class UserManager
         $newOwner['updated_at'] = Helpers::now();
         $this->storage->write(self::COLLECTION, $newOwnerId, $newOwner);
 
-        Hooks::doAction('user.ownership_transferred', $currentOwnerId, $newOwnerId);
+        klytos_do_action('user.ownership_transferred', $currentOwnerId, $newOwnerId);
 
         return true;
     }
@@ -593,7 +611,7 @@ class UserManager
         ];
 
         // Allow plugins to extend capabilities.
-        $capabilities = Hooks::applyFilters('auth.capabilities', $capabilities);
+        $capabilities = klytos_apply_filters('auth.capabilities', $capabilities);
 
         $allowedRoles = $capabilities[$permission] ?? [];
 

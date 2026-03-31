@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Analytics Manager
  * Privacy-first, cookie-free, GDPR-compliant page view analytics.
@@ -109,7 +110,7 @@ class AnalyticsManager
         ];
 
         // Allow plugins to modify/extend the analytics event (e.g. add UTM params).
-        $entry = Hooks::applyFilters('analytics.event', $entry);
+        $entry = klytos_apply_filters('analytics.event', $entry);
 
         // Generate a unique ID for this entry.
         $entryId = date('Ymd') . '-' . Helpers::randomHex(6);
@@ -201,7 +202,9 @@ class AnalyticsManager
         $result = [];
         $i      = 0;
         foreach ($pageCounts as $path => $views) {
-            if ($i >= $limit) break;
+            if ($i >= $limit) {
+                break;
+            }
             $result[] = ['path' => $path, 'views' => $views];
             $i++;
         }

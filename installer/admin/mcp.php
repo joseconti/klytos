@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — MCP Connection
  * Simplified page to connect AI tools (Claude, Cursor, etc.) to Klytos via MCP.
@@ -18,7 +19,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
@@ -122,6 +123,7 @@ $oauthMetadataUrl  = Helpers::siteUrl( '.well-known/oauth-authorization-server' 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.mcp.before' ); ?>
 
 <?php if ( $success ): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -139,7 +141,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <?php if ( $currentTab === 'mcp' ): ?>
-
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- QUICK START GUIDE                                              -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -181,19 +182,19 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- NEW APP PASSWORD RESULT                                        -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
-<?php if ( $newAppPass ): ?>
-<?php
-    // Build the full MCP URL with embedded credentials.
-    // Format: https://user:pass@domain.com/path/mcp
-    $parsedUrl    = parse_url( $mcpEndpoint );
-    $mcpAuthUrl   = ( $parsedUrl['scheme'] ?? 'https' ) . '://'
+    <?php if ( $newAppPass ): ?>
+        <?php
+        // Build the full MCP URL with embedded credentials.
+        // Format: https://user:pass@domain.com/path/mcp
+        $parsedUrl    = parse_url( $mcpEndpoint );
+        $mcpAuthUrl   = ( $parsedUrl['scheme'] ?? 'https' ) . '://'
                   . urlencode( $username ) . ':' . urlencode( $newAppPass )
                   . '@' . ( $parsedUrl['host'] ?? '' )
                   . ( isset( $parsedUrl['port'] ) ? ':' . $parsedUrl['port'] : '' )
                   . ( $parsedUrl['path'] ?? '' );
 
-    $basicAuth  = base64_encode( $username . ':' . $newAppPass );
-    $configJson = json_encode( [
+        $basicAuth  = base64_encode( $username . ':' . $newAppPass );
+        $configJson = json_encode( [
         'mcpServers' => [
             'klytos' => [
                 'url'     => $mcpEndpoint,
@@ -202,8 +203,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 ],
             ],
         ],
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
-?>
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+        ?>
 <div class="alert alert-warning" style="font-size:0.9rem;">
     <strong>⚠️ <?php echo __( 'app_passwords.password_created' ); ?></strong>
 
@@ -261,7 +262,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
     </details>
 </div>
-<?php endif; ?>
+    <?php endif; ?>
 
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <!-- APPLICATION PASSWORDS (RECOMMENDED)                            -->
@@ -553,7 +554,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     } catch ( \Throwable $e ) {
         $error = 'AI module error: ' . $e->getMessage();
     }
-?>
+    ?>
 
 <!-- Info notice -->
 <div class="alert alert-warning">
@@ -562,7 +563,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Providers list -->
-<?php
+    <?php
     $providerLogos = [
         'anthropic'  => [ 'color' => 'claude-color.webp' ],
         'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
@@ -576,13 +577,13 @@ require_once __DIR__ . '/templates/sidebar.php';
         'openrouter' => 'https://openrouter.ai',
     ];
     $imgBase = \Klytos\Core\Helpers::getBasePath() . 'admin/assets/images/';
-?>
-<?php foreach ( $allAiProviders as $p ):
-    $hasKey     = $aiKeys->hasKey( $p['id'] );
-    $maskedKey  = $aiKeys->getMasked( $p['id'] );
-    $isActive   = ( $aiActive['provider'] ?? '' ) === $p['id'];
-    $logo       = $providerLogos[ $p['id'] ] ?? null;
-?>
+    ?>
+    <?php foreach ( $allAiProviders as $p ):
+        $hasKey     = $aiKeys->hasKey( $p['id'] );
+        $maskedKey  = $aiKeys->getMasked( $p['id'] );
+        $isActive   = ( $aiActive['provider'] ?? '' ) === $p['id'];
+        $logo       = $providerLogos[ $p['id'] ] ?? null;
+        ?>
 <div class="card" style="<?php echo $isActive ? 'border-left: 4px solid var(--admin-success);' : ''; ?>">
     <div class="card-header">
         <h3 style="display: flex; align-items: center; gap: 0.5rem;">
@@ -601,21 +602,21 @@ require_once __DIR__ . '/templates/sidebar.php';
         </h3>
     </div>
 
-    <?php if ( $hasKey ): ?>
+        <?php if ( $hasKey ): ?>
         <p style="margin-bottom: 0.75rem;">
             <strong>API Key:</strong> <code><?php echo klytos_esc_html( $maskedKey ); ?></code>
         </p>
 
         <!-- Set as active -->
-        <?php if ( !$isActive ): ?>
+            <?php if ( !$isActive ): ?>
         <form method="POST" style="display: inline;">
-            <?php echo klytos_csrf_field(); ?>
+                <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="set_active_ai">
             <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
             <input type="hidden" name="ai_model" value="<?php echo klytos_esc_attr( $p['default_model'] ); ?>">
             <button type="submit" class="btn btn-sm btn-outline"><?php echo klytos_esc_html( __( 'common.activate' ) ); ?></button>
         </form>
-        <?php endif; ?>
+            <?php endif; ?>
 
         <!-- Remove key -->
         <form method="POST" style="display: inline;" class="confirm-revoke-form">
@@ -625,13 +626,13 @@ require_once __DIR__ . '/templates/sidebar.php';
             <button type="submit" class="btn btn-sm btn-danger"><?php echo klytos_esc_html( __( 'ai_keys.remove' ) ); ?></button>
         </form>
 
-    <?php else: ?>
+        <?php else: ?>
         <!-- Configure key form -->
-        <?php if ( isset( $providerKeyUrls[ $p['id'] ] ) ) : ?>
+            <?php if ( isset( $providerKeyUrls[ $p['id'] ] ) ) : ?>
             <p style="margin-bottom: 0.75rem; font-size: 0.85rem;">
                 Get your API key at <a href="<?php echo klytos_esc_url( $providerKeyUrls[ $p['id'] ] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo klytos_esc_html( str_replace( 'https://', '', $providerKeyUrls[ $p['id'] ] ) ); ?> ↗</a>
             </p>
-        <?php endif; ?>
+            <?php endif; ?>
         <form method="POST">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="save_ai_key">
@@ -652,9 +653,9 @@ require_once __DIR__ . '/templates/sidebar.php';
             </div>
             <button type="submit" class="btn btn-primary btn-sm"><?php echo klytos_esc_html( __( 'ai_keys.save' ) ); ?></button>
         </form>
-    <?php endif; ?>
+        <?php endif; ?>
 </div>
-<?php endforeach; ?>
+    <?php endforeach; ?>
 
 <!-- Usage stats -->
 <div class="card">
@@ -686,4 +687,5 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <?php endif; // end tab=api-ia ?>
 
+<?php klytos_do_action( 'admin.mcp.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP Menu Tools
  * Navigation menu management via MCP.

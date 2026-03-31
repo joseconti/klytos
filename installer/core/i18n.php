@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Internationalization System
  * Loads and resolves translation strings from JSON files.
@@ -113,6 +114,45 @@ class I18n
         }
 
         return $locales;
+    }
+
+    /**
+     * Merge plugin translations into the active strings.
+     *
+     * Accepts both flat dot-notation keys ("hello_ai.modal_title" → "value")
+     * and nested arrays. Flat keys are expanded into the nested structure
+     * that resolve() expects, so __('hello_ai.modal_title') will work.
+     *
+     * @param string $namespace Plugin ID (used for logging, not as prefix).
+     * @param array  $data      Translation array (flat or nested).
+     */
+    public function mergeTranslations(string $namespace, array $data): void
+    {
+        foreach ($data as $key => $value) {
+            // Convert flat dot-notation key to nested: "a.b.c" → $strings['a']['b']['c']
+            if (is_string($key) && str_contains($key, '.') && is_string($value)) {
+                $parts   = explode('.', $key);
+                $current = &$this->strings;
+                foreach ($parts as $i => $part) {
+                    if ($i === count($parts) - 1) {
+                        $current[$part] = $value;
+                    } else {
+                        if (!isset($current[$part]) || !is_array($current[$part])) {
+                            $current[$part] = [];
+                        }
+                        $current = &$current[$part];
+                    }
+                }
+                unset($current);
+            } else {
+                // Nested array or simple key — merge directly.
+                if (is_array($value) && isset($this->strings[$key]) && is_array($this->strings[$key])) {
+                    $this->strings[$key] = array_replace_recursive($this->strings[$key], $value);
+                } else {
+                    $this->strings[$key] = $value;
+                }
+            }
+        }
     }
 
     /**

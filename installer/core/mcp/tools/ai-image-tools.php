@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — MCP AI Image Tools
  * AI-powered image generation via MCP.

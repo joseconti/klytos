@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Audit Log
  * Tracks all user actions for security, compliance, and debugging.

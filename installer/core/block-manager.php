@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Block Manager
  * Manages reusable HTML blocks for the modular template system.
@@ -119,11 +120,11 @@ class BlockManager
             'updated_at'  => Helpers::now(),
         ];
 
-        Hooks::doAction('block.before_save', $block);
+        klytos_do_action('block.before_save', $block);
 
         $this->storage->write(self::COLLECTION, $blockId, $block);
 
-        Hooks::doAction('block.after_save', $block);
+        klytos_do_action('block.after_save', $block);
 
         return $block;
     }
@@ -226,7 +227,7 @@ class BlockManager
         $wrappedHtml = "<!--klytos:block:{$blockId}-->\n{$html}\n<!--/klytos:block:{$blockId}-->";
 
         // Allow plugins to modify the rendered block HTML.
-        $wrappedHtml = Hooks::applyFilters('block.rendered_html', $wrappedHtml, $blockId, $data);
+        $wrappedHtml = klytos_apply_filters('block.rendered_html', $wrappedHtml, $blockId, $data);
 
         return $wrappedHtml;
     }
@@ -254,7 +255,7 @@ class BlockManager
 
         $this->storage->write(self::COLLECTION, $blockId, $block);
 
-        Hooks::doAction('block.global_data_changed', $blockId, $data);
+        klytos_do_action('block.global_data_changed', $blockId, $data);
 
         return $block;
     }
@@ -283,7 +284,7 @@ class BlockManager
         $types = $this->list('all', 'active');
 
         // Allow plugins to register additional block types.
-        $types = Hooks::applyFilters('block.available_types', $types);
+        $types = klytos_apply_filters('block.available_types', $types);
 
         return $types;
     }
@@ -310,7 +311,7 @@ class BlockManager
         $types = self::CORE_SLOT_TYPES;
 
         // Allow plugins to add custom slot types (e.g. 'price', 'variant-selector').
-        $types = Hooks::applyFilters('block.slot_types', $types);
+        $types = klytos_apply_filters('block.slot_types', $types);
 
         return $types;
     }

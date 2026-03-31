@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Page Templates
  * View, preview, and manage page templates.
@@ -14,7 +15,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 
@@ -48,6 +49,7 @@ $availableTypes = $templateManager->getAvailableTypes();
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
+<?php klytos_do_action( 'admin.templates.before' ); ?>
 
 <?php if ( !empty( $success ) ): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
@@ -190,4 +192,5 @@ require_once __DIR__ . '/templates/sidebar.php';
     }
 </style>
 
+<?php klytos_do_action( 'admin.templates.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

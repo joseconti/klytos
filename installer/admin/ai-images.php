@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — AI Image Generator
  *
@@ -40,8 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
     } else {
         try {
             $options = [];
-            if (!empty($model)) $options['model'] = $model;
-            if (!empty($_POST['filename'])) $options['filename'] = $_POST['filename'];
+            if (!empty($model)) {
+                $options['model'] = $model;
+            }
+            if (!empty($_POST['filename'])) {
+                $options['filename'] = $_POST['filename'];
+            }
 
             $generated = $generator->generate($prompt, $options);
             $success   = __( 'ai_images.generated' );

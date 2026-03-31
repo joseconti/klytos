@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos Admin — Scheduled Actions
  * Configure server cron and manage scheduled actions.
@@ -115,7 +116,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <?php if ($activeTab === 'settings'): ?>
-
     <!-- Cron Command -->
     <div class="card">
         <div class="card-header"><h3>Server Cron Command</h3></div>
@@ -212,7 +212,6 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 
 <?php else: ?>
-
     <!-- Stats -->
     <div class="stats-grid">
         <div class="stat-card">
@@ -303,7 +302,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                     'canceled' => 'badge-inactive',
                                     default    => 'badge-draft',
                                 };
-                                ?>
+    ?>
                                 <span class="badge-status <?php echo $badgeClass; ?>"><?php echo klytos_esc_html(ucfirst($status)); ?></span>
                             </td>
                             <td style="font-size:0.85rem;color:var(--admin-text-muted)">

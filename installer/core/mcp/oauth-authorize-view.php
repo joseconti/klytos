@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — OAuth 2.0/2.1 Authorization View
  * Handles the authorize endpoint: admin login → consent screen → redirect with code.
@@ -239,6 +240,6 @@ function handleOAuthAuthorizeView(App $app): void
 </div>
 </body>
 </html>
-<?php
+    <?php
     exit;
 }

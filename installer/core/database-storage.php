@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Klytos — Database Storage
  * MySQL/MariaDB implementation of StorageInterface.
