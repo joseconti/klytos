@@ -141,6 +141,19 @@ require_once __DIR__ . '/templates/sidebar.php';
                             'label' => 'Delete',
                             'class' => 'btn btn-danger btn-sm',
                         ];
+                        if (!empty($plugin['logs'])) {
+                            if ($plugin['logs_enabled']) {
+                                $rowActions['disable_logs'] = [
+                                    'label' => __( 'plugins.disable_logs' ),
+                                    'class' => 'btn btn-outline btn-sm',
+                                ];
+                            } else {
+                                $rowActions['enable_logs'] = [
+                                    'label' => __( 'plugins.enable_logs' ),
+                                    'class' => 'btn btn-outline btn-sm',
+                                ];
+                            }
+                        }
                         $rowActions = klytos_apply_filters( 'admin.plugins_row_actions', $rowActions, $plugin['id'], $plugin );
                         ?>
                         <tr class="plugin-row" data-plugin="<?php echo klytos_esc_attr( $plugin['id'] ); ?>" data-plugin-name="<?php echo klytos_esc_attr( $plugin['name'] ); ?>">

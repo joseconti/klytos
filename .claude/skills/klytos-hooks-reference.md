@@ -239,8 +239,26 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `plugin.deleted` | action | `string $pluginId` | core/plugin-loader.php |
 | `plugin.backup_created` | action | `string $pluginId, string $backupName` | core/plugin-loader.php |
 | `plugin.restored` | action | `string $pluginId, string $backupName` | core/plugin-loader.php |
+| `plugin.logs_enabled` | action | `string $pluginId` | core/plugin-loader.php |
+| `plugin.logs_disabled` | action | `string $pluginId` | core/plugin-loader.php |
 
-### 9. Admin Panel
+### 9. Logging
+
+| Hook | Type | Arguments | Source |
+|---|---|---|---|
+| `logger.before_write` | filter | `array $entry` | core/logger.php |
+| `logger.after_write` | action | `array $entry, string $logFile` | core/logger.php |
+| `logger.max_file_size` | filter | `int $maxBytes` | core/logger.php |
+| `logger.log_format` | filter | `string $line, array $entry` | core/logger.php |
+| `logger.log_files` | filter | `array $files` | core/logger.php |
+| `logger.before_delete` | action | `string $filename` | core/logger.php |
+| `logger.after_delete_all` | action | `int $deletedCount` | core/logger.php |
+| `admin.logs.before` | action | — | admin/logs.php |
+| `admin.logs.after` | action | — | admin/logs.php |
+| `admin.logs_file_list` | filter | `array $files` | admin/logs.php |
+| `admin.logs_toolbar` | filter | `string $html` | admin/logs.php |
+
+### 10. Admin Panel
 
 #### Layout (Header, Footer, Page Wrapper)
 

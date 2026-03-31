@@ -187,6 +187,15 @@ $sidebarItems = [
         'capability' => null, // Visible to all authenticated users (each manages their own 2FA).
     ],
     [
+        'id'         => 'logs',
+        'title'      => __( 'logs.title' ),
+        'url'        => $adminPath . 'logs.php',
+        'icon'       => 'fa-solid fa-scroll',
+        'position'   => 79,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'settings',
         'title'      => __( 'settings.title' ),
         'url'        => $adminPath . 'settings.php',

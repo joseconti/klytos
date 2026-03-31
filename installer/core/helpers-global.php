@@ -486,40 +486,70 @@ function klytos_register_translations(string $pluginId, string $langDir): void
 // ─── Logging ─────────────────────────────────────────────────
 
 /**
- * Log a message to the Klytos log file.
+ * Log a message to the Klytos debug log.
  *
- * Log levels follow PSR-3: debug, info, notice, warning, error, critical.
- * Logs are written to data/logs/ as daily files (YYYY-MM-DD.log).
+ * Uses the centralized Logger which writes to the secret logs directory.
+ * Logs are only written when Developer Mode is active.
+ * For plugin sources, the plugin must also have logging enabled.
  *
- * @param string $level   Log level: 'debug', 'info', 'warning', 'error', 'critical'.
+ * Levels follow PSR-3: emergency, alert, critical, error, warning, notice, info, debug.
+ *
+ * @param string $level   PSR-3 log level.
  * @param string $message Human-readable message.
  * @param array  $context Additional context data (logged as JSON).
+ * @param string $source  Source identifier: 'core' or a plugin ID.
  */
-function klytos_log(string $level, string $message, array $context = []): void
+function klytos_log( string $level, string $message, array $context = [], string $source = 'core' ): void
 {
-    $validLevels = ['debug', 'info', 'notice', 'warning', 'error', 'critical'];
-    if (!in_array($level, $validLevels, true)) {
-        $level = 'info';
-    }
+    App::getInstance()->getLogger()->write( $level, $message, $context, $source );
+}
 
-    $logDir = App::getInstance()->getDataPath() . '/logs';
+/** Log an emergency message. */
+function klytos_log_emergency( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'emergency', $message, $context, $source );
+}
 
-    if (!is_dir($logDir)) {
-        @mkdir($logDir, 0700, true);
-    }
+/** Log an alert message. */
+function klytos_log_alert( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'alert', $message, $context, $source );
+}
 
-    $logFile = $logDir . '/' . date('Y-m-d') . '.log';
+/** Log a critical message. */
+function klytos_log_critical( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'critical', $message, $context, $source );
+}
 
-    $entry = sprintf(
-        "[%s] [%s] %s%s\n",
-        date('Y-m-d H:i:s'),
-        strtoupper($level),
-        $message,
-        !empty($context) ? ' ' . json_encode($context, JSON_UNESCAPED_UNICODE) : ''
-    );
+/** Log an error message. */
+function klytos_log_error( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'error', $message, $context, $source );
+}
 
-    // Append with LOCK_EX for atomic writes.
-    file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
+/** Log a warning message. */
+function klytos_log_warning( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'warning', $message, $context, $source );
+}
+
+/** Log a notice message. */
+function klytos_log_notice( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'notice', $message, $context, $source );
+}
+
+/** Log an info message. */
+function klytos_log_info( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'info', $message, $context, $source );
+}
+
+/** Log a debug message. */
+function klytos_log_debug( string $message, array $context = [], string $source = 'core' ): void
+{
+    klytos_log( 'debug', $message, $context, $source );
 }
 
 /**

@@ -169,6 +169,9 @@ class App
     /** @var TerminalExecutor|null Pseudo-terminal command executor (lazy-loaded). */
     private ?TerminalExecutor $terminalExecutor = null;
 
+    /** @var Logger|null Debug logging system (lazy-loaded). */
+    private ?Logger $logger = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -650,6 +653,36 @@ class App
             $this->mailer = new Mailer($emailConfig, $siteName);
         }
         return $this->mailer;
+    }
+
+    /**
+     * Get the Logger instance (lazy-loaded).
+     *
+     * The Logger only writes to disk when Developer Mode is active.
+     */
+    public function getLogger(): Logger
+    {
+        if ($this->logger === null) {
+            $this->logger = new Logger(
+                $this->dataPath,
+                $this->siteConfig,
+                $this->pluginLoader,
+                $this->storage
+            );
+        }
+        return $this->logger;
+    }
+
+    /**
+     * Check if Developer Mode is active.
+     *
+     * Convenience method — reads the developer.developer_mode flag from site config.
+     *
+     * @return bool
+     */
+    public function isDevMode(): bool
+    {
+        return (bool) $this->siteConfig->getValue('developer.developer_mode', false);
     }
 
     // ─── Path Getters ───────────────────────────────────────────

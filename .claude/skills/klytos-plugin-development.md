@@ -70,6 +70,7 @@ The main PHP file MUST contain a docblock with at least `Plugin Name:`. All othe
  * License: ELv2
  * Text Domain: my-plugin
  * Premium: false
+ * Logs: true
  */
 ```
 
@@ -318,6 +319,30 @@ Premium plugins set `"premium": true` in the manifest. The PluginLoader automati
 verifies their license against plugins.joseconti.com before loading.
 
 License data is stored in: `config/plugin_licenses/{plugin-id}.json.enc`
+
+## Plugin Logging
+
+Plugins can opt into the centralized logging system by declaring `Logs: true` in their PHP header. When declared, an "Enable Logs" action appears in the plugin management page.
+
+**Requirements for logging to work:**
+1. Developer Mode must be active (Settings → Developer → `developer_mode: true`)
+2. The plugin must declare `Logs: true` in its header
+3. The admin must enable logging for the plugin (via Plugins page action)
+
+**Writing logs from a plugin:**
+
+```php
+// PSR-3 levels: emergency, alert, critical, error, warning, notice, info, debug
+klytos_log( 'info', 'Order processed', ['order_id' => 42], 'my-plugin' );
+
+// Convenience helpers (last param is always the plugin ID):
+klytos_log_error( 'Payment failed', ['gateway' => 'stripe'], 'my-plugin' );
+klytos_log_warning( 'Rate limit approaching', [], 'my-plugin' );
+klytos_log_info( 'Cache refreshed', [], 'my-plugin' );
+klytos_log_debug( 'Request payload', $data, 'my-plugin' );
+```
+
+Logs are stored in `data/logs-{random}/debug-YYYY-MM-DD.log` with daily rotation and 5MB file-size splitting. View logs in System → Logs.
 
 ## Security Requirements for Plugins
 

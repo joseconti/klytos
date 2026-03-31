@@ -413,5 +413,25 @@
     "tokens_out": "Tokens salida",
     "conversations": "Conversaciones",
     "tools_executed": "Tools ejecutados"
+  },
+  "logs": {
+    "title": "Registros",
+    "files": "Archivos de log",
+    "select_file": "Selecciona un archivo de log de la lista para ver su contenido.",
+    "no_files": "No se encontraron archivos de log. Activa el modo desarrollador y el logging de plugins para generar registros.",
+    "empty_file": "Este archivo de log esta vacio.",
+    "all_levels": "Todos los niveles",
+    "search": "Buscar en logs…",
+    "filter": "Filtrar",
+    "delete_file": "Eliminar",
+    "delete_all_confirm": "¿Eliminar todos los archivos de log? Esta accion no se puede deshacer.",
+    "file_deleted": "Archivo de log eliminado.",
+    "all_deleted": "Todos los archivos de log eliminados.",
+    "dev_mode_off_title": "Modo desarrollador desactivado",
+    "dev_mode_off_desc": "Los registros solo se generan cuando el modo desarrollador esta activo. Ve a Ajustes → Desarrollador para activarlo."
+  },
+  "plugins": {
+    "enable_logs": "Activar Logs",
+    "disable_logs": "Desactivar Logs"
   }
 }

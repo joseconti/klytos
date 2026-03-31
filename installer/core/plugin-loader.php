@@ -119,6 +119,7 @@ class PluginLoader
         'Premium'         => 'premium',
         'Item Name'       => 'item_name',
         'Update URI'      => 'update_uri',
+        'Logs'            => 'logs',
     ];
 
     /** @var int Maximum bytes to read from a plugin file for header parsing. */
@@ -360,6 +361,7 @@ class PluginLoader
         $state = $this->getState();
         unset($state['active'][$pluginId]);
         unset($state['activated_at'][$pluginId]);
+        unset($state['logs_enabled'][$pluginId]);
         $this->saveState($state);
 
         klytos_do_action('plugin.uninstalled', $pluginId);
@@ -846,6 +848,8 @@ class PluginLoader
                 'requires_klytos'  => $manifest['requires_klytos'] ?? '2.0.0',
                 'requires_php'     => $manifest['requires_php'] ?? '8.1',
                 'discovery_method' => $manifest['_discovery'] ?? 'unknown',
+                'logs'             => ! empty( $manifest['logs'] ),
+                'logs_enabled'     => $state['logs_enabled'][$pluginId] ?? false,
             ];
         }
 
@@ -860,6 +864,64 @@ class PluginLoader
     public function getActivePlugins(): array
     {
         return $this->loadedPlugins;
+    }
+
+    // ─── Per-Plugin Logging ──────────────────────────────────────
+
+    /**
+     * Enable debug logging for a plugin.
+     *
+     * The plugin must declare "Logs: true" in its PHP header.
+     *
+     * @param  string $pluginId Plugin ID.
+     * @return array  ['success' => bool, 'error' => string|null]
+     */
+    public function enableLogs( string $pluginId ): array
+    {
+        $manifest = $this->getManifest( $pluginId );
+        if ( $manifest === null ) {
+            return [ 'success' => false, 'error' => "Plugin not found: {$pluginId}" ];
+        }
+        if ( empty( $manifest['logs'] ) ) {
+            return [ 'success' => false, 'error' => "Plugin does not support logging: {$pluginId}" ];
+        }
+
+        $state = $this->getState();
+        $state['logs_enabled'][$pluginId] = true;
+        $this->saveState( $state );
+
+        klytos_do_action( 'plugin.logs_enabled', $pluginId );
+
+        return [ 'success' => true, 'error' => null ];
+    }
+
+    /**
+     * Disable debug logging for a plugin.
+     *
+     * @param  string $pluginId Plugin ID.
+     * @return array  ['success' => bool, 'error' => string|null]
+     */
+    public function disableLogs( string $pluginId ): array
+    {
+        $state = $this->getState();
+        $state['logs_enabled'][$pluginId] = false;
+        $this->saveState( $state );
+
+        klytos_do_action( 'plugin.logs_disabled', $pluginId );
+
+        return [ 'success' => true, 'error' => null ];
+    }
+
+    /**
+     * Check if debug logging is enabled for a plugin.
+     *
+     * @param  string $pluginId Plugin ID.
+     * @return bool
+     */
+    public function isLogsEnabled( string $pluginId ): bool
+    {
+        $state = $this->getState();
+        return $state['logs_enabled'][$pluginId] ?? false;
     }
 
     /**
@@ -974,6 +1036,7 @@ class PluginLoader
             return [
                 'active'       => [],
                 'activated_at' => [],
+                'logs_enabled' => [],
             ];
         }
     }
