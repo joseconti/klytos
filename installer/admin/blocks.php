@@ -1,0 +1,148 @@
+<?php
+/**
+ * Klytos Admin — Blocks
+ * View and manage reusable design blocks.
+ *
+ * @package Klytos
+ * @since   1.0.0
+ *
+ * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
+ *             You may use this software under the Elastic License 2.0.
+ *             You may NOT provide it as a hosted/managed service.
+ *             You may NOT remove or circumvent plugin license key functionality.
+ *             See the LICENSE file at the project root for the full license text.
+ */
+
+declare( strict_types=1 );
+
+require_once __DIR__ . '/bootstrap.php';
+
+use Klytos\Core\BlockManager;
+
+$pageTitle    = __( 'design.blocks' );
+$auth         = $app->getAuth();
+$blockManager = new BlockManager( $app->getStorage() );
+$error        = '';
+$previewHtml  = '';
+$previewId    = '';
+
+// ─── Handle preview request ──────────────────────────────────
+if ( isset( $_GET['preview'] ) && !empty( $_GET['preview'] ) ) {
+    $previewId = $_GET['preview'];
+    try {
+        $previewHtml = $blockManager->render( $previewId );
+    } catch ( \Throwable $e ) {
+        $error = $e->getMessage();
+    }
+}
+
+// ─── Load all blocks ─────────────────────────────────────────
+$allBlocks = $blockManager->list();
+
+// Group by category.
+$grouped = [];
+foreach ( $allBlocks as $block ) {
+    $cat = $block['category'] ?? 'custom';
+    $grouped[ $cat ][] = $block;
+}
+
+// Category display order.
+$categoryOrder = [ 'structure', 'content', 'interaction', 'social-proof', 'custom' ];
+$categoryLabels = [
+    'structure'    => 'Structure',
+    'content'      => 'Content',
+    'interaction'  => 'Interaction',
+    'social-proof' => 'Social Proof',
+    'custom'       => 'Custom',
+];
+
+require_once __DIR__ . '/templates/header.php';
+require_once __DIR__ . '/templates/sidebar.php';
+?>
+
+<?php if ( !empty( $error ) ): ?>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
+<?php endif; ?>
+
+<p style="color:var(--admin-text-muted);margin-bottom:1.5rem;">
+    Reusable design blocks created by the AI. Global blocks (header, footer) can be edited below.
+</p>
+
+<?php if ( !empty( $previewHtml ) ): ?>
+    <!-- Block Preview -->
+    <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header">
+            <h3><?php echo klytos_esc_html( $previewId ); ?> — <?php echo __( 'common.preview' ); ?></h3>
+            <a href="<?php echo klytos_esc_url( strtok( $_SERVER['REQUEST_URI'], '?' ) ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.close' ); ?></a>
+        </div>
+        <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;padding:2rem;">
+            <?php echo $previewHtml; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
+<?php if ( empty( $allBlocks ) ): ?>
+    <div class="empty-state">
+        <h3>No blocks yet</h3>
+        <p>Blocks are created automatically during installation or by the AI via MCP.</p>
+    </div>
+<?php else: ?>
+    <?php foreach ( $categoryOrder as $cat ): ?>
+        <?php if ( empty( $grouped[ $cat ] ) ) continue; ?>
+        <div class="card" style="margin-bottom:1.25rem;">
+            <div class="card-header">
+                <h3><?php echo klytos_esc_html( $categoryLabels[ $cat ] ?? ucfirst( $cat ) ); ?></h3>
+            </div>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th><?php echo __( 'common.name' ); ?></th>
+                        <th>Scope</th>
+                        <th>Version</th>
+                        <th><?php echo __( 'common.status' ); ?></th>
+                        <th><?php echo __( 'common.actions' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $grouped[ $cat ] as $block ): ?>
+                        <?php
+                        $blockId = $block['id'] ?? '';
+                        $scope   = $block['scope'] ?? 'page';
+                        $status  = $block['status'] ?? 'active';
+                        $version = $block['version'] ?? '1';
+                        ?>
+                        <tr>
+                            <td><code><?php echo klytos_esc_html( $blockId ); ?></code></td>
+                            <td><?php echo klytos_esc_html( $block['name'] ?? $blockId ); ?></td>
+                            <td>
+                                <span class="badge-status badge-<?php echo $scope === 'global' ? 'active' : 'draft'; ?>">
+                                    <?php echo klytos_esc_html( $scope ); ?>
+                                </span>
+                            </td>
+                            <td>v<?php echo klytos_esc_html( (string) $version ); ?></td>
+                            <td>
+                                <span class="badge-status badge-<?php echo $status === 'active' ? 'active' : 'draft'; ?>">
+                                    <?php echo ucfirst( klytos_esc_html( $status ) ); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <a href="?preview=<?php echo urlencode( $blockId ); ?>" class="btn btn-outline btn-sm">
+                                    <?php echo __( 'common.preview' ); ?>
+                                </a>
+                                <?php if ( $scope === 'global' ): ?>
+                                    <a href="block-data.php?id=<?php echo urlencode( $blockId ); ?>" class="btn btn-primary btn-sm">
+                                        Edit Data
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
+
+<?php require_once __DIR__ . '/templates/footer.php'; ?>

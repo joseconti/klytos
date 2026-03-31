@@ -86,6 +86,11 @@ $sidebarItems = [
                 'title' => __( 'design.templates' ),
                 'url'   => $adminPath . 'templates.php',
             ],
+            [
+                'id'    => 'blocks',
+                'title' => __( 'design.blocks' ),
+                'url'   => $adminPath . 'blocks.php',
+            ],
         ],
     ],
     [

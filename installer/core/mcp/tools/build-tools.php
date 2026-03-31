@@ -82,4 +82,33 @@ function registerBuildTools(ToolRegistry $registry): void
         },
         ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true]
     );
+
+    $registry->register(
+        'klytos_rebuild_block',
+        'Smart rebuild: re-render a single global block and patch it across all generated HTML files without a full site rebuild. Only works for blocks with scope=global.',
+        [
+            'block_id' => ['type' => 'string', 'description' => 'ID of the global block to rebuild (e.g. "header", "footer")'],
+        ],
+        function (array $params, App $app): array {
+            require_once $app->getCorePath() . '/build-engine.php';
+            $engine = new \Klytos\Core\BuildEngine($app);
+            return $engine->smartRebuildBlock($params['block_id'] ?? '');
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => true],
+        ['block_id']
+    );
+
+    $registry->register(
+        'klytos_rebuild_css',
+        'Regenerate CSS files only: theme style.css and block assets blocks.css. Does not rebuild HTML pages.',
+        [],
+        function (array $params, App $app): array {
+            require_once $app->getCorePath() . '/build-engine.php';
+            $engine = new \Klytos\Core\BuildEngine($app);
+            $engine->generateCss();
+            $engine->generateBlocksCss();
+            return ['success' => true, 'files' => ['style.css', 'blocks.css']];
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true]
+    );
 }

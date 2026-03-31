@@ -89,8 +89,15 @@ class PageManager
 
         // Merge provided fields (partial update).
         $updatable = [
-            'title', 'content_html', 'meta_description', 'template',
-            'status', 'custom_css', 'custom_js', 'og_image',
+            'title',
+            'content_html',
+            'content',
+            'meta_description',
+            'template',
+            'status',
+            'custom_css',
+            'custom_js',
+            'og_image',
             'lang',
             'hreflang_refs',
             'order',
@@ -390,6 +397,7 @@ class PageManager
             'parent_slug'      => $data['parent_slug'] ?? $parentSlug,
             'title'            => $data['title'] ?? '',
             'content_html'     => Helpers::sanitizeHtml($data['content_html'] ?? ''),
+            'content'          => $data['content'] ?? null,
             'meta_description' => Helpers::smartTruncate( $data['meta_description'] ?? '', 160 ),
             'template'         => $data['template'] ?? 'default',
             'status'           => $data['status'] ?? 'published',
@@ -401,5 +409,16 @@ class PageManager
             'order'            => (int) ($data['order'] ?? 0),
             'post_type'        => $data['post_type'] ?? 'page',
         ];
+    }
+
+    /**
+     * Check if a page uses v2.0 block-based content.
+     *
+     * @param  array $page Page data.
+     * @return bool  True if the page has structured block content.
+     */
+    public static function hasBlockContent(array $page): bool
+    {
+        return !empty($page['content']) && is_array($page['content']);
     }
 }
