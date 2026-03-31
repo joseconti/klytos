@@ -366,6 +366,366 @@ class PluginLoader
         return ['success' => true, 'error' => null];
     }
 
+    /**
+     * Delete a plugin's directory and all its files.
+     *
+     * This does NOT run uninstall.php or modify state — call uninstall() first
+     * if you want to clean up plugin data before deleting files.
+     *
+     * @param  string $pluginId Plugin ID whose directory to remove.
+     * @return array  ['success' => bool, 'error' => string|null]
+     */
+    public function deletePlugin(string $pluginId): array
+    {
+        $pluginDir = $this->pluginsDir . '/' . $pluginId;
+
+        if (!is_dir($pluginDir)) {
+            return ['success' => false, 'error' => "Plugin directory not found: {$pluginId}"];
+        }
+
+        Hooks::doAction('plugin.before_delete', $pluginId);
+
+        // Recursive delete (same pattern as Updater::deleteDir).
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($pluginDir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            if ($item->isDir()) {
+                @rmdir($item->getPathname());
+            } else {
+                @unlink($item->getPathname());
+            }
+        }
+        @rmdir($pluginDir);
+
+        if (is_dir($pluginDir)) {
+            return ['success' => false, 'error' => "Failed to delete plugin directory: {$pluginId}"];
+        }
+
+        Hooks::doAction('plugin.deleted', $pluginId);
+
+        return ['success' => true, 'error' => null];
+    }
+
+    // ─── Install / Backup / Restore ─────────────────────────────
+
+    /** @var int Maximum number of backups per plugin. */
+    private const MAX_BACKUPS_PER_PLUGIN = 5;
+
+    /**
+     * Install a plugin from a ZIP file.
+     *
+     * The ZIP must contain a top-level directory with {plugin-id}/{plugin-id}.php.
+     * If the plugin already exists, a backup is created before overwriting.
+     *
+     * @param  string $zipPath Absolute path to the uploaded ZIP file.
+     * @return array  ['success' => bool, 'error' => string|null, 'plugin_id' => string|null]
+     */
+    public function installFromZip(string $zipPath): array
+    {
+        if (!file_exists($zipPath)) {
+            return ['success' => false, 'error' => 'ZIP file not found', 'plugin_id' => null];
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            return ['success' => false, 'error' => 'Failed to open ZIP archive', 'plugin_id' => null];
+        }
+
+        // Discover plugin ID from the ZIP structure.
+        $pluginId = $this->detectPluginIdFromZip($zip);
+        if ($pluginId === null) {
+            $zip->close();
+            return ['success' => false, 'error' => 'Invalid plugin ZIP: must contain {plugin-id}/{plugin-id}.php with a Plugin Name header', 'plugin_id' => null];
+        }
+
+        $pluginDir = $this->pluginsDir . '/' . $pluginId;
+        $isUpdate  = is_dir($pluginDir);
+
+        // If updating, create a backup first.
+        if ($isUpdate) {
+            $backupResult = $this->createBackup($pluginId);
+            if (!$backupResult['success']) {
+                $zip->close();
+                return ['success' => false, 'error' => 'Backup failed: ' . $backupResult['error'], 'plugin_id' => $pluginId];
+            }
+        }
+
+        // Extract to a temp directory first for safety.
+        $tmpDir = $this->pluginsDir . '/.tmp-install-' . $pluginId . '-' . time();
+        @mkdir($tmpDir, 0755, true);
+
+        $zip->extractTo($tmpDir);
+        $zip->close();
+
+        // Find the extract root (may be nested in a subdirectory).
+        $extractRoot = $tmpDir . '/' . $pluginId;
+        if (!is_dir($extractRoot)) {
+            // Try to find it one level deep.
+            $entries = array_diff(scandir($tmpDir), ['.', '..']);
+            if (count($entries) === 1) {
+                $single = $tmpDir . '/' . reset($entries);
+                if (is_dir($single) && file_exists($single . '/' . $pluginId . '.php')) {
+                    $extractRoot = $single;
+                }
+            }
+        }
+
+        if (!file_exists($extractRoot . '/' . $pluginId . '.php')) {
+            $this->removeDirectory($tmpDir);
+            return ['success' => false, 'error' => 'ZIP structure invalid: missing ' . $pluginId . '.php', 'plugin_id' => $pluginId];
+        }
+
+        // If updating, remove old files.
+        if ($isUpdate) {
+            $this->removeDirectory($pluginDir);
+        }
+
+        // Move extracted plugin to final location.
+        rename($extractRoot, $pluginDir);
+        $this->removeDirectory($tmpDir);
+
+        Hooks::doAction('plugin.installed', $pluginId, $isUpdate);
+
+        return ['success' => true, 'error' => null, 'plugin_id' => $pluginId];
+    }
+
+    /**
+     * Create a backup of a plugin's current files.
+     *
+     * Backups are stored in {pluginsDir}/.backups/{pluginId}/{timestamp}/
+     * Older backups beyond MAX_BACKUPS_PER_PLUGIN are purged completely.
+     *
+     * @param  string $pluginId Plugin ID to back up.
+     * @return array  ['success' => bool, 'error' => string|null, 'backup_name' => string|null]
+     */
+    public function createBackup(string $pluginId): array
+    {
+        $pluginDir = $this->pluginsDir . '/' . $pluginId;
+        if (!is_dir($pluginDir)) {
+            return ['success' => false, 'error' => "Plugin not found: {$pluginId}", 'backup_name' => null];
+        }
+
+        $backupsRoot = $this->pluginsDir . '/.backups/' . $pluginId;
+        if (!is_dir($backupsRoot)) {
+            @mkdir($backupsRoot, 0755, true);
+        }
+
+        $manifest  = $this->getManifest($pluginId);
+        $version   = $manifest['version'] ?? 'unknown';
+        $timestamp = date('Ymd-His');
+        $backupName = $version . '-' . $timestamp;
+        $backupDir  = $backupsRoot . '/' . $backupName;
+
+        // Copy all files recursively.
+        $this->copyDirectory($pluginDir, $backupDir);
+
+        if (!is_dir($backupDir)) {
+            return ['success' => false, 'error' => 'Failed to create backup directory', 'backup_name' => null];
+        }
+
+        // Purge old backups (keep only MAX_BACKUPS_PER_PLUGIN).
+        $this->purgeOldBackups($pluginId);
+
+        Hooks::doAction('plugin.backup_created', $pluginId, $backupName);
+
+        return ['success' => true, 'error' => null, 'backup_name' => $backupName];
+    }
+
+    /**
+     * List available backups for a plugin.
+     *
+     * @param  string $pluginId Plugin ID.
+     * @return array  List of backups, newest first: [['name' => '...', 'date' => '...', 'version' => '...'], ...]
+     */
+    public function listBackups(string $pluginId): array
+    {
+        $backupsRoot = $this->pluginsDir . '/.backups/' . $pluginId;
+        if (!is_dir($backupsRoot)) {
+            return [];
+        }
+
+        $backups = [];
+        $entries = array_diff(scandir($backupsRoot), ['.', '..']);
+
+        foreach ($entries as $entry) {
+            $path = $backupsRoot . '/' . $entry;
+            if (!is_dir($path)) {
+                continue;
+            }
+
+            // Parse name: "version-YYYYMMDD-HHMMSS"
+            $parts   = explode('-', $entry, 2);
+            $version = $parts[0] ?? 'unknown';
+            $date    = date('Y-m-d H:i:s', filemtime($path));
+
+            $backups[] = [
+                'name'    => $entry,
+                'version' => $version,
+                'date'    => $date,
+                'time'    => filemtime($path),
+            ];
+        }
+
+        // Sort newest first.
+        usort($backups, fn($a, $b) => $b['time'] <=> $a['time']);
+
+        return $backups;
+    }
+
+    /**
+     * Restore a plugin from a backup.
+     *
+     * Creates a backup of the current version before restoring,
+     * then replaces the plugin directory with the backup contents.
+     *
+     * @param  string $pluginId   Plugin ID.
+     * @param  string $backupName Backup directory name.
+     * @return array  ['success' => bool, 'error' => string|null]
+     */
+    public function restoreBackup(string $pluginId, string $backupName): array
+    {
+        // Sanitize backup name.
+        $backupName = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $backupName);
+
+        $backupDir = $this->pluginsDir . '/.backups/' . $pluginId . '/' . $backupName;
+        if (!is_dir($backupDir)) {
+            return ['success' => false, 'error' => "Backup not found: {$backupName}"];
+        }
+
+        $pluginDir = $this->pluginsDir . '/' . $pluginId;
+
+        // Back up current version before restoring.
+        if (is_dir($pluginDir)) {
+            $this->createBackup($pluginId);
+        }
+
+        // Deactivate the plugin first.
+        $this->deactivate($pluginId);
+
+        // Remove current version and restore from backup.
+        if (is_dir($pluginDir)) {
+            $this->removeDirectory($pluginDir);
+        }
+        $this->copyDirectory($backupDir, $pluginDir);
+
+        if (!is_dir($pluginDir)) {
+            return ['success' => false, 'error' => 'Failed to restore plugin files'];
+        }
+
+        Hooks::doAction('plugin.restored', $pluginId, $backupName);
+
+        return ['success' => true, 'error' => null];
+    }
+
+    /**
+     * Purge old backups beyond the maximum limit.
+     * Removes all traces of the oldest backups (files only, no logs).
+     */
+    private function purgeOldBackups(string $pluginId): void
+    {
+        $backupsRoot = $this->pluginsDir . '/.backups/' . $pluginId;
+        if (!is_dir($backupsRoot)) {
+            return;
+        }
+
+        $backups = [];
+        $entries = array_diff(scandir($backupsRoot), ['.', '..']);
+        foreach ($entries as $entry) {
+            $path = $backupsRoot . '/' . $entry;
+            if (is_dir($path)) {
+                $backups[] = ['name' => $entry, 'path' => $path, 'time' => filemtime($path)];
+            }
+        }
+
+        if (count($backups) <= self::MAX_BACKUPS_PER_PLUGIN) {
+            return;
+        }
+
+        // Sort newest first.
+        usort($backups, fn($a, $b) => $b['time'] <=> $a['time']);
+
+        // Delete excess (oldest) — complete removal, no logs.
+        $toDelete = array_slice($backups, self::MAX_BACKUPS_PER_PLUGIN);
+        foreach ($toDelete as $backup) {
+            $this->removeDirectory($backup['path']);
+        }
+    }
+
+    /**
+     * Detect the plugin ID from a ZIP archive by inspecting its contents.
+     */
+    private function detectPluginIdFromZip(\ZipArchive $zip): ?string
+    {
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            // Look for {dir}/{dir}.php pattern.
+            if (preg_match('#^([a-zA-Z0-9_\-]+)/\1\.php$#', $name, $matches)) {
+                // Verify it has a Plugin Name header.
+                $content = $zip->getFromIndex($i);
+                if ($content !== false && preg_match('/Plugin Name\s*:\s*(.+)/i', $content)) {
+                    return $matches[1];
+                }
+            }
+            // Also check one level deeper (nested ZIP structure).
+            if (preg_match('#^[^/]+/([a-zA-Z0-9_\-]+)/\1\.php$#', $name, $matches)) {
+                $content = $zip->getFromIndex($i);
+                if ($content !== false && preg_match('/Plugin Name\s*:\s*(.+)/i', $content)) {
+                    return $matches[1];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Recursively copy a directory.
+     */
+    private function copyDirectory(string $src, string $dst): void
+    {
+        if (!is_dir($src)) {
+            return;
+        }
+        @mkdir($dst, 0755, true);
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($src, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($items as $item) {
+            $target = $dst . '/' . $items->getSubPathname();
+            if ($item->isDir()) {
+                @mkdir($target, 0755, true);
+            } else {
+                @copy($item->getPathname(), $target);
+            }
+        }
+    }
+
+    /**
+     * Recursively remove a directory and all its contents.
+     */
+    private function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            if ($item->isDir()) {
+                @rmdir($item->getPathname());
+            } else {
+                @unlink($item->getPathname());
+            }
+        }
+        @rmdir($dir);
+    }
+
     // ─── Discovery & Introspection ───────────────────────────────
 
     /**
