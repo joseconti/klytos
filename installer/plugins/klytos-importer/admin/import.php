@@ -155,47 +155,71 @@ usort( $sessions, fn( $a, $b ) => strcmp( $b['created_at'] ?? '', $a['created_at
 
     <!-- Tab: URL Import -->
     <div class="importer-tab-content<?= $activeTab === 'url' ? ' active' : '' ?>" id="tab-url">
-        <?php
-        $chatUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/ai-chat.php';
-        ?>
+        <?php $chatUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/ai-chat.php'; ?>
+
         <div class="importer-url-form">
-            <div class="form-group">
-                <label for="import-url"><?= klytos_esc_html( __( 'klytos_importer.import_url_label' ) ) ?></label>
-                <input type="url" id="import-url" class="form-control"
-                       placeholder="<?= klytos_esc_attr( __( 'klytos_importer.import_url_placeholder' ) ) ?>">
+
+            <!-- Step 1: Select method -->
+            <div class="form-group" id="step-method">
+                <label class="step-label"><?= klytos_esc_html( __( 'klytos_importer.step_method' ) ) ?></label>
+                <div class="method-cards">
+                    <label class="method-card">
+                        <input type="radio" name="import_method" value="auto">
+                        <div class="method-card-body">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <strong><?= klytos_esc_html( __( 'klytos_importer.method_auto_title' ) ) ?></strong>
+                            <small><?= klytos_esc_html( __( 'klytos_importer.method_auto_desc' ) ) ?></small>
+                        </div>
+                    </label>
+                    <label class="method-card">
+                        <input type="radio" name="import_method" value="sitemap">
+                        <div class="method-card-body">
+                            <i class="fa-solid fa-sitemap"></i>
+                            <strong><?= klytos_esc_html( __( 'klytos_importer.method_sitemap_title' ) ) ?></strong>
+                            <small><?= klytos_esc_html( __( 'klytos_importer.method_sitemap_desc' ) ) ?></small>
+                        </div>
+                    </label>
+                    <label class="method-card">
+                        <input type="radio" name="import_method" value="crawl">
+                        <div class="method-card-body">
+                            <i class="fa-solid fa-spider"></i>
+                            <strong><?= klytos_esc_html( __( 'klytos_importer.method_crawl_title' ) ) ?></strong>
+                            <small><?= klytos_esc_html( __( 'klytos_importer.method_crawl_desc' ) ) ?></small>
+                        </div>
+                    </label>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label class="radio-label">
-                    <input type="radio" name="import_method" value="auto" checked>
-                    <?= klytos_esc_html( __( 'klytos_importer.import_method_auto' ) ) ?>
-                </label>
-                <label class="radio-label">
-                    <input type="radio" name="import_method" value="sitemap">
-                    <?= klytos_esc_html( __( 'klytos_importer.import_method_sitemap' ) ) ?>
-                </label>
-                <label class="radio-label">
-                    <input type="radio" name="import_method" value="crawl">
-                    <?= klytos_esc_html( __( 'klytos_importer.import_method_crawl' ) ) ?>
-                </label>
+            <!-- Step 2: URL input (hidden until method selected) -->
+            <div class="form-group" id="step-url" style="display:none;">
+                <label for="import-url" id="url-label"></label>
+                <input type="url" id="import-url" class="form-control" placeholder="">
+                <button type="button" class="btn btn-primary" id="generate-prompt-btn" disabled>
+                    <i class="fa-solid fa-bolt"></i>
+                    <?= klytos_esc_html( __( 'klytos_importer.generate_prompt' ) ) ?>
+                </button>
             </div>
 
-            <div class="importer-prompt-box" id="prompt-box" style="display:none;">
-                <label class="prompt-label"><?= klytos_esc_html( __( 'klytos_importer.prompt_label' ) ) ?></label>
-                <div class="prompt-preview">
-                    <code id="prompt-text"></code>
-                    <button type="button" class="btn btn-sm btn-outline" id="copy-prompt-btn" title="<?= klytos_esc_attr( __( 'klytos_importer.copy_prompt' ) ) ?>">
-                        <i class="fa-solid fa-copy"></i>
-                    </button>
+            <!-- Step 3: Generated prompt (hidden until generated) -->
+            <div id="step-prompt" style="display:none;">
+                <div class="importer-prompt-box">
+                    <label class="prompt-label"><?= klytos_esc_html( __( 'klytos_importer.prompt_label' ) ) ?></label>
+                    <div class="prompt-preview">
+                        <code id="prompt-text"></code>
+                        <button type="button" class="btn btn-sm btn-outline" id="copy-prompt-btn" title="<?= klytos_esc_attr( __( 'klytos_importer.copy_prompt' ) ) ?>">
+                            <i class="fa-solid fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="prompt-actions">
+                        <a href="<?= klytos_esc_url( $chatUrl ) ?>" class="btn btn-primary" id="open-chat-btn">
+                            <i class="fa-solid fa-robot"></i>
+                            <?= klytos_esc_html( __( 'klytos_importer.open_ai_chat' ) ) ?>
+                        </a>
+                    </div>
+                    <p class="prompt-hint"><?= klytos_esc_html( __( 'klytos_importer.prompt_hint' ) ) ?></p>
                 </div>
-                <div class="prompt-actions">
-                    <a href="<?= klytos_esc_url( $chatUrl ) ?>" class="btn btn-primary" id="open-chat-btn">
-                        <i class="fa-solid fa-robot"></i>
-                        <?= klytos_esc_html( __( 'klytos_importer.open_ai_chat' ) ) ?>
-                    </a>
-                </div>
-                <p class="prompt-hint"><?= klytos_esc_html( __( 'klytos_importer.prompt_hint' ) ) ?></p>
             </div>
+
         </div>
     </div>
 
