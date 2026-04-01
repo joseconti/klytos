@@ -94,6 +94,44 @@ try {
     exit( 1 );
 }
 
+// ─── Fatal-error shutdown handler ────────────────────────────
+// Catches fatal errors that occur AFTER boot (during page rendering).
+// These are invisible to try-catch and would otherwise go unlogged.
+register_shutdown_function( function () use ( $app ) {
+    $error = error_get_last();
+    if ( $error === null ) {
+        return;
+    }
+
+    // Only catch fatal-class errors.
+    $fatalTypes = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR;
+    if ( ! ( $error['type'] & $fatalTypes ) ) {
+        return;
+    }
+
+    $message = sprintf(
+        'Fatal error: %s in %s:%d',
+        $error['message'],
+        $error['file'],
+        $error['line']
+    );
+
+    // Always log to PHP error log as fallback.
+    error_log( 'Klytos fatal: ' . $message );
+
+    // Write to Klytos logs unconditionally (bypasses Developer Mode).
+    try {
+        $app->getLogger()->writeAlways( 'critical', $message, [
+            'type' => $error['type'],
+            'file' => $error['file'],
+            'line' => $error['line'],
+        ] );
+    } catch ( \Throwable $e ) {
+        // Logger itself failed — PHP error log is our last resort.
+        error_log( 'Klytos: shutdown logger failed — ' . $e->getMessage() );
+    }
+} );
+
 // ─── Start admin session ─────────────────────────────────────
 $app->getAuth()->startSession();
 

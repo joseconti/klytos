@@ -166,6 +166,38 @@ class Logger
         klytos_do_action( 'logger.after_write', $entry, $logFile );
     }
 
+    /**
+     * Write a critical/fatal log entry unconditionally.
+     *
+     * Unlike write(), this method bypasses Developer Mode and plugin checks.
+     * It is intended for fatal errors and shutdown handlers that MUST be
+     * logged regardless of configuration.
+     *
+     * @param string $level   PSR-3 level (typically 'critical' or 'emergency').
+     * @param string $message Human-readable message.
+     * @param array  $context Additional context (serialized as JSON).
+     * @param string $source  Source identifier.
+     */
+    public function writeAlways( string $level, string $message, array $context = [], string $source = 'core' ): void
+    {
+        if ( ! in_array( $level, self::LEVELS, true ) ) {
+            $level = 'critical';
+        }
+
+        $logFile = $this->resolveLogFile( date( 'Y-m-d' ) );
+
+        $line = sprintf(
+            "[%s] [%s] [%s] %s%s\n",
+            date( 'Y-m-d H:i:s' ),
+            strtoupper( $level ),
+            $source,
+            $message,
+            ! empty( $context ) ? ' ' . json_encode( $context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) : ''
+        );
+
+        file_put_contents( $logFile, $line, FILE_APPEND | LOCK_EX );
+    }
+
     // ─── Reading ─────────────────────────────────────────────────
 
     /**
