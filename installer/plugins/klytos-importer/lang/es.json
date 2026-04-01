@@ -35,5 +35,9 @@
     "klytos_importer.file_too_large": "El archivo es demasiado grande. El tamaño máximo permitido es 500 MB.",
     "klytos_importer.session_deleted": "Sesión de importación eliminada.",
     "klytos_importer.of": "de",
-    "klytos_importer.pages": "páginas"
+    "klytos_importer.pages": "páginas",
+    "klytos_importer.prompt_label": "Copia este prompt y pégalo en el Chat IA",
+    "klytos_importer.copy_prompt": "Copiar al portapapeles",
+    "klytos_importer.open_ai_chat": "Abrir Chat IA",
+    "klytos_importer.prompt_hint": "El asistente IA analizará el sitio, detectará su estructura y estilo, descargará los medios y creará todas las páginas como borradores."
 }

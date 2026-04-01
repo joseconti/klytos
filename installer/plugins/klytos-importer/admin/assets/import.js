@@ -110,6 +110,64 @@ document.addEventListener( 'DOMContentLoaded', function () {
         return ( bytes / Math.pow( 1024, i ) ).toFixed( 1 ) + ' ' + units[i];
     }
 
+    // ─── URL import: prompt builder ────────────────────────
+    var importUrlInput = document.getElementById( 'import-url' );
+    var promptBox      = document.getElementById( 'prompt-box' );
+    var promptText     = document.getElementById( 'prompt-text' );
+    var copyPromptBtn  = document.getElementById( 'copy-prompt-btn' );
+    var methodRadios   = document.querySelectorAll( 'input[name="import_method"]' );
+
+    function buildPrompt() {
+        if ( !importUrlInput || !promptBox || !promptText ) return;
+
+        var url = importUrlInput.value.trim();
+        if ( !url ) {
+            promptBox.style.display = 'none';
+            return;
+        }
+
+        var method = 'auto';
+        methodRadios.forEach( function ( r ) {
+            if ( r.checked ) method = r.value;
+        } );
+
+        var prompt = '';
+        if ( method === 'sitemap' ) {
+            prompt = 'Import this site using its sitemap: ' + url;
+        } else if ( method === 'crawl' ) {
+            prompt = 'Import this site by crawling from the homepage: ' + url;
+        } else {
+            prompt = 'Import this site: ' + url;
+        }
+
+        promptText.textContent = prompt;
+        promptBox.style.display = '';
+    }
+
+    if ( importUrlInput ) {
+        importUrlInput.addEventListener( 'input', buildPrompt );
+    }
+    methodRadios.forEach( function ( r ) {
+        r.addEventListener( 'change', buildPrompt );
+    } );
+
+    if ( copyPromptBtn ) {
+        copyPromptBtn.addEventListener( 'click', function () {
+            var text = promptText ? promptText.textContent : '';
+            if ( !text ) return;
+
+            navigator.clipboard.writeText( text ).then( function () {
+                var icon = copyPromptBtn.querySelector( 'i' );
+                if ( icon ) {
+                    icon.className = 'fa-solid fa-check';
+                    setTimeout( function () {
+                        icon.className = 'fa-solid fa-copy';
+                    }, 1500 );
+                }
+            } );
+        } );
+    }
+
     // ─── Delete confirmation ────────────────────────────────
     document.querySelectorAll( '[data-confirm]' ).forEach( function ( btn ) {
         btn.addEventListener( 'click', function ( e ) {

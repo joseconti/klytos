@@ -151,6 +151,58 @@
     margin-right: 0.5rem;
 }
 
+/* ─── Prompt box ─────────────────────────────────────────── */
+
+.importer-prompt-box {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.prompt-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.prompt-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.prompt-preview code {
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-all;
+}
+
+.prompt-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.prompt-hint {
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
 .help-text {
     margin-top: 1.5rem;
     padding: 1rem;

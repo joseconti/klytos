@@ -778,26 +778,22 @@ klytos_add_filter( 'mcp.handle_tool', function ( mixed $result, string $toolName
 }, 10 );
 
 // ─── Admin asset enqueue ────────────────────────────────────
-klytos_add_action( 'admin.head', function (): void {
+klytos_add_action( 'admin.head', function ( string $cspNonce ): void {
     $page = $_GET['page'] ?? '';
     if ( $page !== 'import' ) {
         return;
     }
 
-    $pluginUrl = klytos_plugin_url( 'klytos-importer', '' );
-    $cspNonce  = klytos_csp_nonce();
-
-    echo "<link rel=\"stylesheet\" href=\"{$pluginUrl}admin/assets/import.css\" nonce=\"{$cspNonce}\">\n";
+    $cssUrl = klytos_plugin_url( 'klytos-importer', 'admin/assets/import.css' );
+    echo '<link rel="stylesheet" href="' . klytos_esc_url( $cssUrl ) . '" nonce="' . klytos_esc_attr( $cspNonce ) . '">' . "\n";
 } );
 
-klytos_add_action( 'admin.footer', function (): void {
+klytos_add_action( 'admin.footer', function ( string $cspNonce ): void {
     $page = $_GET['page'] ?? '';
     if ( $page !== 'import' ) {
         return;
     }
 
-    $pluginUrl = klytos_plugin_url( 'klytos-importer', '' );
-    $cspNonce  = klytos_csp_nonce();
-
-    echo "<script src=\"{$pluginUrl}admin/assets/import.js\" nonce=\"{$cspNonce}\"></script>\n";
+    $jsUrl = klytos_plugin_url( 'klytos-importer', 'admin/assets/import.js' );
+    echo '<script src="' . klytos_esc_url( $jsUrl ) . '" nonce="' . klytos_esc_attr( $cspNonce ) . '"></script>' . "\n";
 } );

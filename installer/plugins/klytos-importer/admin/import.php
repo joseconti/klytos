@@ -16,7 +16,7 @@ $pageTitle = __( 'klytos_importer.page_title' );
 $session   = klytos_importer();
 $error     = '';
 $success   = '';
-$cspNonce  = klytos_csp_nonce();
+// $cspNonce is already defined by admin/templates/header.php (Auth::generateCspNonce).
 
 // ─── Handle POST actions ────────────────────────────────────
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
@@ -155,6 +155,9 @@ usort( $sessions, fn( $a, $b ) => strcmp( $b['created_at'] ?? '', $a['created_at
 
     <!-- Tab: URL Import -->
     <div class="importer-tab-content<?= $activeTab === 'url' ? ' active' : '' ?>" id="tab-url">
+        <?php
+        $chatUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/ai-chat.php';
+        ?>
         <div class="importer-url-form">
             <div class="form-group">
                 <label for="import-url"><?= klytos_esc_html( __( 'klytos_importer.import_url_label' ) ) ?></label>
@@ -177,10 +180,22 @@ usort( $sessions, fn( $a, $b ) => strcmp( $b['created_at'] ?? '', $a['created_at
                 </label>
             </div>
 
-            <p class="help-text">
-                Use the AI assistant chat to start the import. Enter the URL above and tell the assistant:
-                <strong>"Import this site: [URL]"</strong>
-            </p>
+            <div class="importer-prompt-box" id="prompt-box" style="display:none;">
+                <label class="prompt-label"><?= klytos_esc_html( __( 'klytos_importer.prompt_label' ) ) ?></label>
+                <div class="prompt-preview">
+                    <code id="prompt-text"></code>
+                    <button type="button" class="btn btn-sm btn-outline" id="copy-prompt-btn" title="<?= klytos_esc_attr( __( 'klytos_importer.copy_prompt' ) ) ?>">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
+                </div>
+                <div class="prompt-actions">
+                    <a href="<?= klytos_esc_url( $chatUrl ) ?>" class="btn btn-primary" id="open-chat-btn">
+                        <i class="fa-solid fa-robot"></i>
+                        <?= klytos_esc_html( __( 'klytos_importer.open_ai_chat' ) ) ?>
+                    </a>
+                </div>
+                <p class="prompt-hint"><?= klytos_esc_html( __( 'klytos_importer.prompt_hint' ) ) ?></p>
+            </div>
         </div>
     </div>
 
