@@ -64,15 +64,6 @@ function seedCoreBlocks(BlockManager $blocks): void
             'slots' => [],
             'sample_data' => [],
         ],
-        [
-            'id' => 'cookie-banner', 'name' => 'Cookie Banner', 'category' => 'structure', 'scope' => 'global',
-            'html' => '<div class="klytos-cookie-banner" id="cookie-banner" style="display:none"><div class="klytos-container"><p>{{message}}</p><button onclick="document.getElementById(\'cookie-banner\').style.display=\'none\'">{{button_text}}</button></div></div>',
-            'slots' => [
-                ['name' => 'message', 'type' => 'text', 'label' => 'Banner Message'],
-                ['name' => 'button_text', 'type' => 'text', 'label' => 'Button Text', 'default' => 'Accept'],
-            ],
-            'sample_data' => ['message' => 'This site uses only essential cookies.', 'button_text' => 'OK'],
-        ],
 
         // ── Content blocks ───────────────────────────────────
         [

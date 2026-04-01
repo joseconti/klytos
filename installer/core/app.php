@@ -136,6 +136,12 @@ class App
     /** @var WebhookManager|null Event notification system. */
     private ?WebhookManager $webhookManager = null;
 
+    /** @var ConsentManager|null Cookie consent management for GDPR/CCPA. */
+    private ?ConsentManager $consentManager = null;
+
+    /** @var PrivacyManager|null GDPR data export and erasure tools. */
+    private ?PrivacyManager $privacyManager = null;
+
     /** @var CronManager|null Pseudo-cron task scheduler. */
     private ?CronManager $cronManager = null;
 
@@ -305,9 +311,11 @@ class App
         $this->pageTemplateManager = new PageTemplateManager($this->storage, $this->blockManager);
         $this->analyticsManager    = new AnalyticsManager($this->storage);
         $this->webhookManager      = new WebhookManager($this->storage);
+        $this->consentManager      = new ConsentManager($this->storage);
         $this->cronManager         = new CronManager($this->storage);
         $this->actionScheduler     = new ActionScheduler($this->storage, $this->configPath);
         $this->auditLog            = new AuditLog($this->storage);
+        $this->privacyManager      = new PrivacyManager( $this->storage, $this->userManager, $this->auditLog );
         $this->postTypeManager     = new PostTypeManager($this->storage);
 
         // Step 10b: Auto-migrate v1.0 admin user to v2.0 multi-user system.
@@ -587,6 +595,12 @@ class App
         return $this->webhookManager;
     }
 
+    /** Get the consent manager. */
+    public function getConsentManager(): ConsentManager
+    {
+        return $this->consentManager;
+    }
+
     /** Get the cron manager. */
     public function getCronManager(): CronManager
     {
@@ -603,6 +617,12 @@ class App
     public function getAuditLog(): AuditLog
     {
         return $this->auditLog;
+    }
+
+    /** Get the GDPR privacy manager. */
+    public function getPrivacyManager(): PrivacyManager
+    {
+        return $this->privacyManager;
     }
 
     /** Get the post type manager. */

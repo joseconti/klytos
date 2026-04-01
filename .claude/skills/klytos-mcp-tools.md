@@ -289,6 +289,11 @@ return [
 - `klytos_create_webhook` / `klytos_list_webhooks` / `klytos_delete_webhook`
 - `klytos_list_webhook_events` / `klytos_test_webhook`
 
+### Consent Manager
+- `klytos_get_consent_config` / `klytos_set_consent_config` — Read/update consent configuration
+- `klytos_list_consent_declarations` / `klytos_add_consent_declaration` / `klytos_delete_consent_declaration` — Manage plugin cookie/script declarations
+- `klytos_get_consent_audit` — Full audit report grouped by category
+
 ### Version History
 - `klytos_list_versions` / `klytos_get_version` / `klytos_restore_version` / `klytos_diff_versions`
 
