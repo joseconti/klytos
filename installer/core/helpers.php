@@ -33,6 +33,20 @@ class Helpers
     }
 
     /**
+     * Generate a short unique ID (hex string).
+     *
+     * Used for asset IDs and other records where a compact,
+     * collision-resistant identifier is preferred over a full UUID.
+     *
+     * @param  int    $length Desired length in hex characters (default 8).
+     * @return string
+     */
+    public static function generateShortId( int $length = 8 ): string
+    {
+        return substr( bin2hex( random_bytes( max( 4, (int) ceil( $length / 2 ) ) ) ), 0, $length );
+    }
+
+    /**
      * Generate a secure random token for MCP bearer auth.
      *
      * @return string 64-char hex string.

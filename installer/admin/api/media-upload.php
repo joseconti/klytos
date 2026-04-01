@@ -75,30 +75,26 @@ $dateDir  = date( 'Y/m' );
 $subDir   = 'images/' . $dateDir;
 $filename = $safeName . '-' . bin2hex( random_bytes( 4 ) ) . '.' . $extension;
 
-// Use AssetManager if available, otherwise manual upload.
+// Use AssetManager to upload — this auto-registers metadata and returns asset_id.
 $assetManager = $app->getAssetManager();
 $publicDir    = dirname( dirname( __DIR__ ) ) . '/public/';
 
-// Ensure directory exists.
-$targetDir = $publicDir . 'assets/' . $subDir;
-if ( ! is_dir( $targetDir ) ) {
-    mkdir( $targetDir, 0755, true );
-}
-
-$targetPath = $targetDir . '/' . $filename;
-
-if ( ! move_uploaded_file( $file['tmp_name'], $targetPath ) ) {
+try {
+    $data   = file_get_contents( $file['tmp_name'] );
+    $result = $assetManager->upload( $filename, base64_encode( $data ), $subDir );
+} catch ( \RuntimeException $e ) {
     http_response_code( 500 );
-    echo json_encode( [ 'error' => 'Failed to save file' ] );
+    echo json_encode( [ 'error' => $e->getMessage() ] );
     exit;
 }
 
 // Build URL.
 $siteUrl  = rtrim( $app->getSiteConfig()->get( 'site_url', '' ), '/' );
-$assetUrl = $siteUrl . '/assets/' . $subDir . '/' . $filename;
+$assetUrl = $siteUrl . '/' . $result['path'];
 
 // Get image dimensions if it's an image.
 $sizes = [];
+$targetPath = $publicDir . $result['path'];
 if ( strpos( $mimeType, 'image/' ) === 0 && function_exists( 'getimagesize' ) ) {
     $imageInfo = @getimagesize( $targetPath );
     if ( $imageInfo ) {
@@ -110,13 +106,14 @@ if ( strpos( $mimeType, 'image/' ) === 0 && function_exists( 'getimagesize' ) ) 
     }
 }
 
-// Return media object in Gutenberg format.
+// Return media object in Gutenberg format with real asset_id.
 echo json_encode( [
-    'id'    => crc32( $filename ),
-    'url'   => $assetUrl,
-    'alt'   => $safeName,
-    'title' => $safeName,
-    'mime'  => $mimeType,
-    'type'  => explode( '/', $mimeType )[0],
-    'sizes' => (object) $sizes,
+    'id'       => $result['asset_id'] ?? crc32( $result['filename'] ),
+    'asset_id' => $result['asset_id'] ?? null,
+    'url'      => $assetUrl,
+    'alt'      => $safeName,
+    'title'    => $safeName,
+    'mime'     => $mimeType,
+    'type'     => explode( '/', $mimeType )[0],
+    'sizes'    => (object) $sizes,
 ] );

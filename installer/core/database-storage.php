@@ -120,6 +120,9 @@ class DatabaseStorage implements StorageInterface
         'page-templates'   => ['status' => 'idx_status'],
         'config'           => ['key' => 'idx_slug'],
         'options'          => ['text_domain' => 'idx_type', 'key' => 'idx_slug'],
+        'assets'           => ['mime_type' => 'idx_type', 'path' => 'idx_slug'],
+        'asset-categories' => ['slug' => 'idx_slug'],
+        'asset-usage'      => ['asset_id' => 'idx_slug', 'context_type' => 'idx_type'],
     ];
 
     /**
@@ -782,6 +785,9 @@ class DatabaseStorage implements StorageInterface
                 'cron',
                 'post-types',
                 'options',
+                'assets',
+                'asset-categories',
+                'asset-usage',
             ];
         }
 
