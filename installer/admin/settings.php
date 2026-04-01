@@ -318,22 +318,27 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </div>
             <?php endforeach; ?>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="addLanguageRow()" style="margin-bottom:1rem;">+ Add Language</button>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-add-language" style="margin-bottom:1rem;">+ Add Language</button>
         <br>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
 </div>
 
-<script nonce="<?php echo $cspNonce; ?>">
-function addLanguageRow() {
-    var list = document.getElementById('languages-list');
-    var div = document.createElement('div');
-    div.className = 'form-group';
-    div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
-    div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
-                    '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
-    list.appendChild(div);
-}
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+(function() {
+    var btn = document.getElementById('btn-add-language');
+    if (btn) {
+        btn.addEventListener('click', function() {
+            var list = document.getElementById('languages-list');
+            var div = document.createElement('div');
+            div.className = 'form-group';
+            div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
+            div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
+                            '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
+            list.appendChild(div);
+        });
+    }
+})();
 </script>
 <?php klytos_do_action('admin.settings.after_section', 'languages'); ?>
 

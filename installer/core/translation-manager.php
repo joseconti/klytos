@@ -279,12 +279,32 @@ class TranslationManager
     /**
      * Get the configured languages from site settings.
      *
-     * @return array [['code' => 'es', 'name' => 'Español'], ...]
+     * Falls back to the default_language if the languages array is empty,
+     * and always ensures English is included as reference.
+     *
+     * @return array [['code' => 'es', 'name' => 'Español'], ['code' => 'en', 'name' => 'English'], ...]
      */
     public function getConfiguredLanguages(): array
     {
         $siteConfig = $this->app->getSiteConfig()->get();
-        return $siteConfig['languages'] ?? [];
+        $languages  = $siteConfig['languages'] ?? [];
+
+        // If languages array is empty, build from default_language.
+        if ( empty( $languages ) ) {
+            $defaultLang = $siteConfig['default_language'] ?? 'en';
+            if ( $defaultLang !== 'en' ) {
+                $name = self::LOCALE_MAP[$defaultLang]['name'] ?? $defaultLang;
+                $languages[] = ['code' => $defaultLang, 'name' => $name];
+            }
+        }
+
+        // Ensure English is always present (as reference language).
+        $codes = array_column( $languages, 'code' );
+        if ( !in_array( 'en', $codes, true ) ) {
+            $languages[] = ['code' => 'en', 'name' => 'English'];
+        }
+
+        return $languages;
     }
 
     // ─── Private helpers ─────────────────────────────────────────
