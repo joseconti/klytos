@@ -43,5 +43,5 @@
     "klytos_importer.prompt_label": "Copia este prompt y pégalo en el Chat IA",
     "klytos_importer.copy_prompt": "Copiar al portapapeles",
     "klytos_importer.open_ai_chat": "Abrir Chat IA",
-    "klytos_importer.prompt_hint": "El asistente IA analizará el sitio, detectará su estructura y estilo, descargará los medios y creará todas las páginas como borradores."
+    "klytos_importer.prompt_hint": "El asistente IA analizará el sitio, detectará su estructura y estilo, descargará los medios e importará primero 2-3 páginas de prueba como borrador. Si el resultado es correcto, importará el resto publicándolas directamente."
 }

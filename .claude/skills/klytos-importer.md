@@ -137,9 +137,10 @@ plugins/klytos-importer/
 
 - **Two-layer design:** Acquisition (fetching HTML) vs. Processing (conversion). AI agents with browser access can skip PHP-side fetching.
 - **Sessions are persistent:** Stored in `import_sessions` collection. Resumable on interruption.
-- **Non-destructive:** All pages created as drafts. Nothing goes live until user publishes.
+- **Test-first import:** Import 2-3 pages as drafts first. Ask the user to review. If approved, import the rest as published. This avoids manually publishing 100+ pages while keeping quality control.
 - **AI decides, plugin executes:** Tools are granular; the AI orchestrates the workflow.
 - **Editor-aware conversion:** Each post type has an `editor` field ("gutenberg" or "tinymce"). `convert_content` auto-detects the format from `post_type` and outputs Gutenberg blocks or clean HTML accordingly. Always pass `post_type` when converting.
+- **Multi-language:** Check `klytos_get_site_config` for `default_language` and `languages`. If source is monolingual, ask if user wants translation to other configured languages. If source is multilingual, ask which languages to import. Use `lang` and `hreflang_refs` fields on pages. Detect source language from `<html lang>`, hreflang tags, URL patterns (`/en/`, `/es/`), or `detected_lang` from `fetch_page`.
 - **Max 20 pages per batch:** Prevents timeouts.
 
 ## Hooks for Plugin Extensibility
