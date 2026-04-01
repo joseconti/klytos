@@ -14,7 +14,6 @@
 $currentPage = 'pages';
 require __DIR__ . '/bootstrap.php';
 
-$editorType = $app->getSiteConfig()->getValue('editor', 'gutenberg');
 $auth = $app->getAuth();
 $csrf = $auth->getCsrfToken();
 $pm   = $app->getPages();
@@ -63,6 +62,15 @@ if ( $slug ) {
         $pageCustomJs  = $page['custom_js'] ?? '';
         $pagePostType  = $page['post_type'] ?? $pagePostType;
     }
+}
+
+// Resolve editor type from post type definition (per-post-type setting).
+$editorType = 'gutenberg';
+try {
+    $ptDef = $app->getPostTypeManager()->get($pagePostType);
+    $editorType = $ptDef['editor'] ?? 'gutenberg';
+} catch (\Throwable $e) {
+    // Post type not found, fallback to gutenberg.
 }
 
 // Handle POST (save).

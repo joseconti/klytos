@@ -30,10 +30,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
 
     try {
         if ($action === 'create') {
+            $editorValue = $_POST['editor'] ?? 'gutenberg';
+            if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
+                $editorValue = 'gutenberg';
+            }
             $ptManager->create([
-                'id'   => $_POST['id'] ?? '',
-                'name' => $_POST['name'] ?? '',
-                'slug' => $_POST['slug'] ?? '',
+                'id'     => $_POST['id'] ?? '',
+                'name'   => $_POST['name'] ?? '',
+                'slug'   => $_POST['slug'] ?? '',
+                'editor' => $editorValue,
             ]);
             $success = __( 'common.success' );
         } elseif ($action === 'delete') {
@@ -84,6 +89,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <th>Name</th>
                         <th>Slug</th>
                         <th>Taxonomies</th>
+                        <th>Editor</th>
                         <th>Built-in</th>
                         <th><?php echo __( 'common.actions' ); ?></th>
                     </tr>
@@ -100,6 +106,11 @@ require_once __DIR__ . '/templates/sidebar.php';
                             $taxNames = array_map(fn($t) => $t['name'] ?? $t['id'] ?? '', $taxList);
                             ?>
                             <span title="<?php echo klytos_esc_attr(implode(', ', $taxNames)); ?>" style="cursor:default;"><?php echo count($taxList); ?></span>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-<?php echo ($pt['editor'] ?? 'gutenberg') === 'gutenberg' ? 'published' : 'draft'; ?>">
+                                <?php echo ($pt['editor'] ?? 'gutenberg') === 'gutenberg' ? 'Gutenberg' : 'TinyMCE'; ?>
+                            </span>
                         </td>
                         <td>
                             <span class="badge-status badge-<?php echo ($pt['builtin'] ?? false) ? 'published' : 'draft'; ?>">
@@ -148,6 +159,19 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <label>Slug</label>
                 <input type="text" name="slug" class="form-control" required placeholder="e.g. products">
                 <p class="form-help">URL prefix for this post type.</p>
+            </div>
+            <div class="form-group">
+                <label><?php echo __('editor.title'); ?></label>
+                <div style="display:flex;gap:1rem;margin-top:0.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                        <input type="radio" name="editor" value="gutenberg" checked>
+                        <strong>Gutenberg</strong>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                        <input type="radio" name="editor" value="tinymce">
+                        <strong>TinyMCE</strong>
+                    </label>
+                </div>
             </div>
             <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem;">
                 <button type="button" class="btn btn-outline" id="btn-cancel-modal">Cancel</button>

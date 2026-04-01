@@ -396,10 +396,10 @@
   },
   "editor": {
     "title": "Editor de contenido",
-    "choose": "Elige tu editor de paginas",
+    "choose": "Elige el editor para este tipo de contenido",
     "gutenberg_desc": "Bloques visuales de arrastrar y soltar. Opciones avanzadas de diseno (columnas, medios, botones). Contenido estructurado, ideal para paginas generadas por IA. Interfaz mas pesada.",
     "tinymce_desc": "Interfaz clasica tipo procesador de texto. Ligero y rapido. Salida HTML simple, facil de personalizar. Sin estructura de bloques, menos control de diseno.",
-    "change_later": "Puedes cambiar esto mas tarde en Ajustes."
+    "change_later": "Puedes cambiar esto mas tarde en la configuracion del tipo de contenido."
   },
   "install": {
     "title": "Instalación de Klytos",
