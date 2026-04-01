@@ -199,9 +199,11 @@ foreach ($pluginIds as $pluginId) {
             if ($uninstallResult['success']) {
                 $deleteResult = $pluginLoader->deletePlugin($pluginId);
                 $results[$pluginId] = [
-                    'success' => $deleteResult['success'],
-                    'message' => $deleteResult['success'] ? 'Plugin uninstalled and deleted successfully' : null,
-                    'error'   => $deleteResult['error'] ?? null,
+                    'success'               => $deleteResult['success'],
+                    'message'               => $deleteResult['success'] ? 'Plugin uninstalled and deleted successfully' : null,
+                    'error'                 => $deleteResult['error'] ?? null,
+                    'orphan_options_count'  => $uninstallResult['orphan_options_count'] ?? 0,
+                    'orphan_options_domain' => $uninstallResult['orphan_options_domain'] ?? $pluginId,
                 ];
             } else {
                 $results[$pluginId] = [

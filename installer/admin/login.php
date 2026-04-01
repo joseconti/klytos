@@ -21,10 +21,11 @@ use Klytos\Core\Helpers;
 $auth  = $app->getAuth();
 $error = '';
 $info  = '';
+$redirectTo = $_POST['redirect_to'] ?? $_GET['redirect_to'] ?? '';
 
-// Already authenticated? Go to dashboard
+// Already authenticated? Go to dashboard or redirect_to
 if ($auth->isAuthenticated()) {
-    Helpers::redirect(Helpers::url('admin/'));
+    Helpers::redirect($redirectTo ? Helpers::sanitizeRedirectUrl($redirectTo) : Helpers::url('admin/'));
 }
 
 // ─── Handle 2FA cancellation ────────────────────────────────
@@ -42,7 +43,7 @@ if (isset($_GET['magic_token']) && $auth->is2faPending()) {
         $twoFactor = $app->getTwoFactor();
         if ($twoFactor->verifyMagicLink($token, $userId)) {
             $auth->complete2fa();
-            Helpers::redirect(Helpers::url('admin/'));
+            Helpers::redirect($redirectTo ? Helpers::sanitizeRedirectUrl($redirectTo) : Helpers::url('admin/'));
         } else {
             $error = __('security.2fa_invalid_code');
         }
@@ -90,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->is2faPending()) {
 
         if ($verified) {
             $auth->complete2fa();
-            Helpers::redirect(Helpers::url('admin/'));
+            Helpers::redirect($redirectTo ? Helpers::sanitizeRedirectUrl($redirectTo) : Helpers::url('admin/'));
         } elseif ($method !== 'email' && !$info) {
             $error = __('security.2fa_invalid_code');
         }
@@ -105,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$auth->is2faPending() && !isset($_
     $result = $auth->login($username, $password);
 
     if ($result['success'] && !$result['requires_2fa']) {
-        Helpers::redirect(Helpers::url('admin/'));
+        Helpers::redirect($redirectTo ? Helpers::sanitizeRedirectUrl($redirectTo) : Helpers::url('admin/'));
     } elseif ($result['success'] && $result['requires_2fa']) {
         // 2FA required — page will render the 2FA form below.
     } else {
@@ -185,6 +186,7 @@ if ($show2fa) {
         <!-- ─── Password Login Form ─── -->
             <?php klytos_do_action('login.before_form'); ?>
         <form method="post">
+            <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
             <div class="form-group">
                 <label for="username"><?php echo __( 'auth.username' ); ?></label>
                 <input type="text" id="username" name="username" required autofocus value="<?php echo klytos_esc_attr( $_POST['username'] ?? '' ); ?>">
@@ -224,6 +226,7 @@ if ($show2fa) {
         <div class="method-panel active" id="panel-totp">
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="totp">
                 <div class="form-group">
                     <label for="totp-code"><?php echo __('security.enter_totp_code'); ?></label>
@@ -233,6 +236,7 @@ if ($show2fa) {
             </form>
             <form method="post" style="margin-top:1rem;">
                 <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="emergency_email">
                 <button type="submit" class="link-emergency"><?php echo __('security.emergency_email_link'); ?></button>
             </form>
@@ -246,11 +250,13 @@ if ($show2fa) {
             <button type="button" class="btn" id="passkey-auth-btn"><?php echo __('security.use_passkey'); ?></button>
             <form method="post" id="passkey-form" style="display:none;">
                 <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="passkey">
                 <input type="hidden" name="2fa_code" id="passkey-response">
             </form>
             <form method="post" style="margin-top:1rem;">
                 <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="emergency_email">
                 <button type="submit" class="link-emergency"><?php echo __('security.emergency_email_link'); ?></button>
             </form>
@@ -262,6 +268,7 @@ if ($show2fa) {
         <div class="method-panel" id="panel-email">
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="email">
                 <p style="color:#64748b;margin-bottom:1rem;font-size:0.9rem;"><?php echo __('security.magic_link_desc'); ?></p>
                 <button type="submit" class="btn"><?php echo __('security.send_magic_link'); ?></button>
@@ -273,6 +280,7 @@ if ($show2fa) {
         <div class="method-panel" id="panel-recovery">
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="recovery">
                 <div class="form-group">
                     <label for="recovery-code"><?php echo __('security.enter_recovery_code'); ?></label>
@@ -282,7 +290,7 @@ if ($show2fa) {
             </form>
         </div>
 
-        <a href="<?php echo klytos_esc_url( $basePath . 'admin/login.php?cancel_2fa=1' ); ?>" class="link-cancel"><?php echo __('common.cancel'); ?></a>
+        <a href="<?php echo klytos_esc_url( $basePath . 'admin/login.php?cancel_2fa=1' . ($redirectTo ? '&redirect_to=' . urlencode($redirectTo) : '') ); ?>" class="link-cancel"><?php echo __('common.cancel'); ?></a>
 
         <script>
         // Tab switching for 2FA methods

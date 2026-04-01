@@ -635,6 +635,40 @@ function klytos_option_exists(string $key): bool
     return App::getInstance()->getOptionsManager()->exists($key);
 }
 
+/**
+ * Set an option with an explicit text domain.
+ *
+ * @param string $textDomain Text domain (e.g. 'my-plugin').
+ * @param string $key        Option key.
+ * @param mixed  $value      Value to store.
+ */
+function klytos_set_option_for(string $textDomain, string $key, mixed $value): void
+{
+    App::getInstance()->getOptionsManager()->set($key, $value, $textDomain);
+}
+
+/**
+ * Get all options belonging to a text domain.
+ *
+ * @param  string $textDomain Text domain to filter by.
+ * @return array<string, array> key => full record.
+ */
+function klytos_get_options_by_domain(string $textDomain): array
+{
+    return App::getInstance()->getOptionsManager()->getByTextDomain($textDomain);
+}
+
+/**
+ * Delete all options belonging to a text domain.
+ *
+ * @param  string $textDomain Text domain to delete.
+ * @return int    Number of options deleted.
+ */
+function klytos_delete_options_by_domain(string $textDomain): int
+{
+    return App::getInstance()->getOptionsManager()->deleteByTextDomain($textDomain);
+}
+
 // ─── Meta API ────────────────────────────────────────────────
 // Attach arbitrary metadata to any entity (pages, users, post types, etc.).
 // Meta is stored as a '_meta' field inside the entity document itself.

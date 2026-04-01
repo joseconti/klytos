@@ -119,6 +119,7 @@ class DatabaseStorage implements StorageInterface
         'blocks'           => ['category' => 'idx_type', 'status' => 'idx_status', 'scope' => 'idx_lang'],
         'page-templates'   => ['status' => 'idx_status'],
         'config'           => ['key' => 'idx_slug'],
+        'options'          => ['text_domain' => 'idx_type', 'key' => 'idx_slug'],
     ];
 
     /**
@@ -780,6 +781,7 @@ class DatabaseStorage implements StorageInterface
                 'plugins',
                 'cron',
                 'post-types',
+                'options',
             ];
         }
 

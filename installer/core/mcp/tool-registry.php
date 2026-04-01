@@ -263,6 +263,7 @@ class ToolRegistry
             'guide-tools.php',
             'post-type-tools.php',
             'custom-field-tools.php',
+            'option-tools.php',
             // v0.9.0 AI chat tools.
             'ai-tools.php',
         ];

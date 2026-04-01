@@ -430,7 +430,7 @@ class Router
                 if ( $config['type'] === 'api' || $config['type'] === 'webhook' ) {
                     Helpers::jsonResponse( ['error' => 'Authentication required'], 401 );
                 }
-                Helpers::redirect( Helpers::url( 'admin/login.php' ) );
+                Helpers::redirect( Helpers::url( 'admin/login.php?redirect_to=' . urlencode( $_SERVER['REQUEST_URI'] ) ) );
                 return;
             }
         }

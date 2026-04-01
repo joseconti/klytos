@@ -21,7 +21,7 @@ $basePath    = Helpers::getBasePath();
 $adminPath   = $basePath . 'admin/';
 $pageTitle   = $pageTitle ?? __( 'dashboard.title' );
 $pageTitle   = klytos_apply_filters('admin.page_title', $pageTitle);
-$adminTheme  = $app->getSiteConfig()->getValue('admin_theme', 'light');
+$adminTheme  = $app->getSiteConfig()->getValue('admin_theme', 'dark');
 $adminTheme  = klytos_apply_filters('admin.theme', $adminTheme);
 $version   = $app->getVersion();
 ?>

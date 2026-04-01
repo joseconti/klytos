@@ -100,12 +100,56 @@ $count = $options->deleteForPlugin('my-plugin');
 // Returns number of options deleted
 ```
 
+### Text Domain Tracking
+
+Every option is tagged with a `text_domain` field identifying its owner. This happens automatically when a plugin calls `klytos_set_option()` — the PluginLoader injects the active text domain.
+
+```php
+// Automatic: text_domain is inferred from the active plugin context
+klytos_set_option('my-gallery.columns', 3);
+// Record: { key: "my-gallery.columns", value: 3, text_domain: "my-gallery", ... }
+
+// Explicit: set with a specific text domain
+klytos_set_option_for('_core', 'site.maintenance', false);
+
+// Query by text domain
+$allGalleryOptions = klytos_get_options_by_domain('my-gallery');
+
+// Delete all options for a text domain
+$deleted = klytos_delete_options_by_domain('old-plugin');
+```
+
+#### Text Domain Methods (OptionsManager)
+
+```php
+$options = klytos_app()->getOptionsManager();
+
+// Get/delete by text domain
+$records = $options->getByTextDomain('my-plugin');
+$count   = $options->deleteByTextDomain('my-plugin');
+$count   = $options->countByTextDomain('my-plugin');
+
+// List grouped by text domain
+$grouped = $options->listGroupedByTextDomain();
+// ['_core' => [...], 'my-plugin' => [...], '_unknown' => [...]]
+
+// Classify by plugin status
+$domains    = $app->getPluginLoader()->getTextDomainsByStatus();
+$classified = $options->classifyOptions($domains['active'], $domains['inactive']);
+// ['core' => [...], 'active' => [...], 'inactive' => [...], 'orphan' => [...], 'unknown' => [...]]
+
+// Migrate legacy options without text_domain
+$migrated = $options->migrateTextDomains();
+```
+
 ### Hooks
 
 | Hook | Type | Arguments |
 |---|---|---|
-| `option.before_set` | action | `string $key, mixed $value` |
-| `option.after_set` | action | `string $key, mixed $value` |
+| `option.before_set` | action | `string $key, mixed $value, mixed $oldValue` |
+| `option.after_set` | action | `string $key, mixed $value, mixed $oldValue` |
+| `option.before_delete` | action | `string $key` |
+| `option.after_delete` | action | `string $key` |
 | `option.get` | filter | `mixed $value, string $key` |
 
 ```php
@@ -165,7 +209,7 @@ klytos_set_config(string $key, mixed $value): void
     'logo_url'         => '/assets/images/logo.svg',
     'indexing_enabled' => true,
     'editor'           => 'gutenberg',
-    'admin_theme'      => 'light',       // 'light' or 'dark'
+    'admin_theme'      => 'dark',        // 'light' or 'dark'
 
     'social' => [
         'twitter'   => '',
@@ -208,6 +252,10 @@ klytos_set_config(string $key, mixed $value): void
 
 - **`klytos_get_site_config`** — Returns full config
 - **`klytos_set_site_config`** — Partial update (only provided fields change)
+- **`klytos_options_list_by_domain`** — List options for a text domain
+- **`klytos_options_classify`** — Classify options by plugin status
+- **`klytos_options_delete_domain`** — Delete all options for a text domain
+- **`klytos_options_migrate`** — Migrate legacy options without text_domain
 
 ---
 
@@ -316,4 +364,7 @@ foreach ($records as $record) {
 - Storage interface: `core/storage-interface.php`
 - File storage: `core/file-storage.php`
 - Database storage: `core/database-storage.php`
-- Global option functions: `core/helpers-global.php` (lines 469-516)
+- Global option functions: `core/helpers-global.php`
+- MCP option tools: `core/mcp/tools/option-tools.php`
+- Admin panel: `admin/system-options.php`
+- Admin API: `admin/api/options-management.php`

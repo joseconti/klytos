@@ -488,5 +488,32 @@
     "anonymized": "Anonymized",
     "skipped": "Skipped",
     "select_sections": "Select the data sections to erase"
+  },
+  "options": {
+    "title": "Options Management",
+    "description": "View and manage all options stored by plugins and the system.",
+    "tab_all": "All",
+    "tab_core": "Core",
+    "tab_active": "Active Plugins",
+    "tab_inactive": "Inactive Plugins",
+    "tab_orphan": "Orphan",
+    "tab_unknown": "Unclassified",
+    "col_key": "Key",
+    "col_value": "Value",
+    "col_created": "Created",
+    "col_updated": "Updated",
+    "col_actions": "Actions",
+    "btn_delete": "Delete",
+    "no_options": "No options in this category.",
+    "confirm_delete": "Delete this option?",
+    "confirm_delete_domain": "Delete all options for %s? This action cannot be undone.",
+    "migrate_notice": "There are options without a text domain. You can migrate them automatically.",
+    "migrate_button": "Migrate legacy options",
+    "migrate_success": "Options migrated",
+    "uninstall_orphan_title": "Plugin options",
+    "uninstall_orphan_message": "This plugin has %d stored options. Do you want to delete them?",
+    "uninstall_delete_now": "Delete now",
+    "uninstall_keep": "Keep",
+    "uninstall_keep_notice": "You can delete them anytime from System > Options Management"
   }
 }

@@ -40,9 +40,28 @@ class OptionsManager
     /** @var array<string, bool> Tracks which keys are in the cache. */
     private array $cacheHits = [];
 
+    /** @var string|null Text domain of the currently executing plugin. */
+    private ?string $activeTextDomain = null;
+
     public function __construct(StorageInterface $storage)
     {
         $this->storage = $storage;
+    }
+
+    /**
+     * Set the active text domain (called by PluginLoader before executing a plugin).
+     */
+    public function setActiveTextDomain(?string $textDomain): void
+    {
+        $this->activeTextDomain = $textDomain;
+    }
+
+    /**
+     * Get the active text domain.
+     */
+    public function getActiveTextDomain(): ?string
+    {
+        return $this->activeTextDomain;
     }
 
     /**
@@ -85,10 +104,11 @@ class OptionsManager
     /**
      * Set (create or update) an option.
      *
-     * @param string $key   Option key.
-     * @param mixed  $value Value to store (must be JSON-serialisable).
+     * @param string      $key        Option key.
+     * @param mixed       $value      Value to store (must be JSON-serialisable).
+     * @param string|null $textDomain Explicit text domain. If null, resolved automatically.
      */
-    public function set(string $key, mixed $value): void
+    public function set(string $key, mixed $value, ?string $textDomain = null): void
     {
         $key = $this->sanitizeKey($key);
 
@@ -100,11 +120,29 @@ class OptionsManager
         $now    = Helpers::now();
         $exists = $this->storage->exists(self::COLLECTION, $key);
 
+        // Read existing record if it exists (for created_at and text_domain preservation).
+        $existingRecord = [];
+        if ($exists) {
+            try {
+                $existingRecord = $this->storage->read(self::COLLECTION, $key);
+            } catch (\Throwable) {
+                // Ignore if unreadable.
+            }
+        }
+
+        // Resolve text_domain: explicit param > existing > active context > infer from key > _unknown.
+        $resolvedDomain = $textDomain
+            ?? $existingRecord['text_domain'] ?? null
+            ?? $this->activeTextDomain
+            ?? $this->inferTextDomain($key)
+            ?? '_unknown';
+
         $record = [
-            'key'        => $key,
-            'value'      => $value,
-            'created_at' => $exists ? ($this->storage->read(self::COLLECTION, $key)['created_at'] ?? $now) : $now,
-            'updated_at' => $now,
+            'key'         => $key,
+            'value'       => $value,
+            'text_domain' => $resolvedDomain,
+            'created_at'  => $existingRecord['created_at'] ?? $now,
+            'updated_at'  => $now,
         ];
 
         $this->storage->write(self::COLLECTION, $key, $record);
@@ -183,6 +221,7 @@ class OptionsManager
 
     /**
      * Delete all options for a plugin (useful in uninstall.php).
+     * Matches by key prefix AND by text_domain to cover all cases.
      *
      * @param  string $pluginId Plugin ID.
      * @return int    Number of options deleted.
@@ -194,8 +233,11 @@ class OptionsManager
         $deleted = 0;
 
         foreach ($all as $record) {
-            $key = $record['key'] ?? '';
-            if ($key !== '' && str_starts_with($key, $prefix)) {
+            $key    = $record['key'] ?? '';
+            $domain = $record['text_domain'] ?? '';
+
+            // Delete if matches by key prefix OR by text_domain.
+            if (($key !== '' && str_starts_with($key, $prefix)) || $domain === $pluginId) {
                 $this->delete($key);
                 $deleted++;
             }
@@ -204,7 +246,159 @@ class OptionsManager
         return $deleted;
     }
 
+    // ─── Text Domain Methods ────────────────────────────────────
+
+    /**
+     * Get all options for a specific text domain.
+     *
+     * @param  string $textDomain Text domain to filter by.
+     * @return array<string, array> Associative key => full record.
+     */
+    public function getByTextDomain(string $textDomain): array
+    {
+        $all    = $this->storage->list(self::COLLECTION);
+        $result = [];
+
+        foreach ($all as $record) {
+            $domain = $record['text_domain'] ?? $this->inferTextDomain($record['key'] ?? '');
+            if ($domain === $textDomain) {
+                $result[$record['key']] = $record;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Delete all options for a specific text domain.
+     *
+     * @param  string $textDomain Text domain to delete.
+     * @return int    Number of options deleted.
+     */
+    public function deleteByTextDomain(string $textDomain): int
+    {
+        $options = $this->getByTextDomain($textDomain);
+        $deleted = 0;
+
+        foreach ($options as $key => $record) {
+            if ($this->delete($key)) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Count how many options belong to a text domain.
+     *
+     * @param  string $textDomain Text domain to count.
+     * @return int
+     */
+    public function countByTextDomain(string $textDomain): int
+    {
+        return count($this->getByTextDomain($textDomain));
+    }
+
+    /**
+     * List all options grouped by text domain.
+     *
+     * @return array<string, array> text_domain => [records]
+     */
+    public function listGroupedByTextDomain(): array
+    {
+        $all    = $this->storage->list(self::COLLECTION);
+        $groups = [];
+
+        foreach ($all as $record) {
+            $domain = $record['text_domain']
+                ?? $this->inferTextDomain($record['key'] ?? '')
+                ?? '_unknown';
+            $groups[$domain][] = $record;
+        }
+
+        ksort($groups);
+        return $groups;
+    }
+
+    /**
+     * Classify options by plugin status.
+     *
+     * @param  array $activePlugins   Text domains of active plugins.
+     * @param  array $inactivePlugins Text domains of inactive plugins.
+     * @return array With keys: 'core', 'active', 'inactive', 'orphan', 'unknown'.
+     */
+    public function classifyOptions(array $activePlugins, array $inactivePlugins): array
+    {
+        $grouped = $this->listGroupedByTextDomain();
+
+        $classified = [
+            'core'     => [],
+            'active'   => [],
+            'inactive' => [],
+            'orphan'   => [],
+            'unknown'  => [],
+        ];
+
+        foreach ($grouped as $domain => $records) {
+            if ($domain === '_core') {
+                $classified['core'][$domain] = $records;
+            } elseif ($domain === '_unknown') {
+                $classified['unknown'][$domain] = $records;
+            } elseif (in_array($domain, $activePlugins, true)) {
+                $classified['active'][$domain] = $records;
+            } elseif (in_array($domain, $inactivePlugins, true)) {
+                $classified['inactive'][$domain] = $records;
+            } else {
+                $classified['orphan'][$domain] = $records;
+            }
+        }
+
+        return $classified;
+    }
+
+    /**
+     * Migrate legacy options that have no text_domain field.
+     * Infers the domain from the key prefix (part before the first dot).
+     *
+     * @return int Number of records migrated.
+     */
+    public function migrateTextDomains(): int
+    {
+        $all      = $this->storage->list(self::COLLECTION);
+        $migrated = 0;
+
+        foreach ($all as $record) {
+            if (!isset($record['text_domain']) || $record['text_domain'] === '') {
+                $key    = $record['key'] ?? '';
+                $domain = $this->inferTextDomain($key) ?? '_unknown';
+
+                $record['text_domain'] = $domain;
+                $this->storage->write(self::COLLECTION, $key, $record);
+                $migrated++;
+            }
+        }
+
+        return $migrated;
+    }
+
     // ─── Internal ────────────────────────────────────────────────
+
+    /**
+     * Infer the text domain from the key prefix.
+     * Convention: 'my-gallery.columns' → 'my-gallery'.
+     *
+     * @param  string $key Option key.
+     * @return string|null Inferred domain, or null if no dot found.
+     */
+    private function inferTextDomain(string $key): ?string
+    {
+        $dotPos = strpos($key, '.');
+        if ($dotPos !== false && $dotPos > 0) {
+            return substr($key, 0, $dotPos);
+        }
+        return null;
+    }
 
     /**
      * Sanitize an option key.
