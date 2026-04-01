@@ -172,12 +172,6 @@ class App
     /** @var RouteManager|null Dynamic route manager for plugin routes. */
     private ?RouteManager $routeManager = null;
 
-    /** @var FormConditionalEngine|null Conditional logic evaluator for forms. */
-    private ?FormConditionalEngine $conditionalEngine = null;
-
-    /** @var FormManager|null Form lifecycle manager (CRUD, submissions, entries). */
-    private ?FormManager $formManager = null;
-
     /** @var Ai\ChatEngine|null AI chat engine (lazy-loaded). */
     private ?Ai\ChatEngine $chatEngine = null;
 
@@ -324,14 +318,6 @@ class App
         $this->auditLog            = new AuditLog($this->storage);
         $this->privacyManager      = new PrivacyManager( $this->storage, $this->userManager, $this->auditLog );
         $this->postTypeManager     = new PostTypeManager($this->storage);
-
-        // Step 10a-forms: Initialize form system (conditional engine + form manager).
-        $this->conditionalEngine = new FormConditionalEngine();
-        $this->formManager       = new FormManager(
-            $this->storage,
-            $this->conditionalEngine,
-            $this->assets
-        );
 
         // Step 10b: Auto-migrate v1.0 admin user to v2.0 multi-user system.
         // On first boot after upgrade from v1.x, the owner user doesn't exist yet.
@@ -663,12 +649,6 @@ class App
     public function getMetaManager(): MetaManager
     {
         return $this->metaManager;
-    }
-
-    /** Get the form manager. */
-    public function getFormManager(): FormManager
-    {
-        return $this->formManager;
     }
 
     /**

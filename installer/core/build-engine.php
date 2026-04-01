@@ -291,17 +291,6 @@ class BuildEngine
 
         $pageContent = klytos_apply_filters( 'page.content', $pageContent, $page );
 
-        // Resolve form shortcodes: {{form:form-id}}
-        $appRef = $this->app;
-        $pageContent = preg_replace_callback(
-            '/\{\{form:([a-z0-9\-_]+)\}\}/',
-            function ( $matches ) use ( $appRef ) {
-                $formRenderer = new FormRenderer( $appRef->getFormManager() );
-                return $formRenderer->render( $matches[1] );
-            },
-            $pageContent
-        );
-
         $rawSiteName  = $siteConfig['site_name'] ?? '';
         $rawPageTitle = $page['title'] ?? '';
         $titleSeparator = '';

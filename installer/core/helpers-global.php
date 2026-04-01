@@ -909,32 +909,6 @@ function klytos_register_template_part(string $partName, callable $callback, int
     klytos_add_filter( 'template_part.' . $partName, $callback, $priority );
 }
 
-// ─── Forms API ──────────────────────────────────────────────────
-
-/**
- * Get the FormManager instance.
- *
- * @return \Klytos\Core\FormManager
- * @since  0.20.0
- */
-function klytos_forms(): \Klytos\Core\FormManager
-{
-    return App::getInstance()->getFormManager();
-}
-
-/**
- * Render a form as HTML by its ID.
- *
- * @param  string $formId Form ID.
- * @return string HTML output.
- * @since  0.20.0
- */
-function klytos_render_form( string $formId ): string
-{
-    $renderer = new \Klytos\Core\FormRenderer( klytos_forms() );
-    return $renderer->render( $formId );
-}
-
 // ─── Admin Page Detection ─────────────────────────────────────
 
 /**

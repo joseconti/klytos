@@ -35,7 +35,6 @@ RewriteRule ^oauth/authorize$ index.php?route=oauth/authorize [L,QSA]
 RewriteRule ^oauth/token$ index.php?route=oauth/token [L,QSA]
 RewriteRule ^\.well-known/oauth-authorization-server$ index.php?route=.well-known/oauth-authorization-server [L,QSA]
 RewriteRule ^t$ index.php?route=t [L,QSA]
-RewriteRule ^api/forms/submit$ index.php?route=api/forms/submit [L,QSA]
 RewriteRule ^install$ index.php?route=install [L,QSA]
 
 # ─── Public site routes ──────────────────────────────────────

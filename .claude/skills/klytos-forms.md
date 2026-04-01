@@ -1,91 +1,42 @@
 ---
 name: klytos-forms
-description: Guide for the Klytos Forms system — creating, managing, and rendering forms with conditional logic, multi-step, anti-spam, entries, notifications, and MCP tools.
+description: Guide for the Klytos Forms plugin — creating, managing, and rendering forms with conditional logic, multi-step, anti-spam, notifications, and MCP tools.
 trigger: When the user works with forms, form fields, form entries, form submissions, conditional logic, form notifications, or the forms MCP tools.
 ---
 
-# Klytos Forms System
+# Klytos Forms Plugin
 
 ## Overview
 
-Klytos has a complete forms system (comparable to Gravity Forms) with an AI-first approach. Everything can be created, modified, and queried via MCP tools. The admin panel is complementary.
+Klytos Forms is a **plugin** (not core) providing a complete form system comparable to Gravity Forms. AI-first: everything can be managed via MCP tools.
 
-**Key features:**
-- 19 field types with validation
-- Conditional logic (show/hide) with 14 operators
-- Multi-step (wizard/stepper) forms
-- Anti-spam: honeypot + rate limiting per IP
-- Email notifications with merge tags
-- Entry management with status, search, export
-- Shortcode `{{form:form-id}}` for page insertion
+**Plugin location:** `installer/plugins/klytos-forms/`
 
----
+## Plugin Structure
 
-## Architecture
+```
+plugins/klytos-forms/
+├── klytos-forms.php          (Entry point + hooks registration)
+├── klytos-plugin.json        (Admin pages manifest)
+├── src/
+│   ├── FormConditionalEngine.php  (Conditional logic evaluator)
+│   ├── FormManager.php            (CRUD forms, fields, entries, submissions)
+│   └── FormRenderer.php           (HTML + CSS + JS rendering)
+├── admin/
+│   ├── forms.php                  (Form list page)
+│   ├── form-editor.php            (GF-style visual editor)
+│   └── form-entries.php           (Entry viewer)
+├── assets/js/klytos-forms.js     (Frontend engine)
+└── lang/{en,es}.json              (Translations)
+```
 
-### Core Classes (installer/core/)
+## Key Hooks Registered
 
-| File | Class | Purpose |
-|------|-------|---------|
-| `form-conditional-engine.php` | `FormConditionalEngine` | Evaluates conditional rules (backend) |
-| `form-manager.php` | `FormManager` | Full lifecycle: CRUD forms, fields, entries, submissions, notifications |
-| `form-renderer.php` | `FormRenderer` | Renders HTML + CSS + JS for static pages |
-
-### Frontend (installer/public/)
-
-| File | Purpose |
-|------|---------|
-| `js/klytos-forms.js` | KlytosFormEngine class: conditionals, stepper, AJAX submit |
-
-### Storage
-
-- Collection `forms` — form definitions (indexed by status)
-- Collection `form-entries` — submissions (indexed by form_id, status)
-
-### Admin (installer/admin/)
-
-| File | Purpose |
-|------|---------|
-| `forms.php` | List all forms |
-| `form-editor.php` | Create/edit form (tabs: Fields, Settings, Notifications, Anti-spam, Insert) |
-| `form-entries.php` | View entries with filters, search, export |
-| `api/forms.php` | Admin REST API for all form operations |
-
-### Endpoint
-
-- `POST /api/forms/submit` — Public form submission (via Router)
-
----
-
-## Field Types
-
-text, email, url, phone, number, textarea, select, radio, checkbox, checkbox_group, date, time, file, hidden, html, section, consent, password, range
-
-## Conditional Operators
-
-is, is_not, contains, not_contains, starts_with, ends_with, greater_than, less_than, is_empty, is_not_empty, is_checked, is_not_checked, in, not_in
-
-## MCP Tools (16 total)
-
-**Forms:** klytos_forms_create, klytos_forms_get, klytos_forms_list, klytos_forms_update, klytos_forms_delete, klytos_forms_duplicate
-
-**Fields:** klytos_forms_add_field, klytos_forms_update_field, klytos_forms_remove_field, klytos_forms_reorder_fields
-
-**Entries:** klytos_forms_list_entries, klytos_forms_get_entry, klytos_forms_update_entry_status, klytos_forms_delete_entry, klytos_forms_export_entries, klytos_forms_stats
-
-## Hooks
-
-| Hook | Parameters | When |
-|------|-----------|------|
-| `form.after_create` | `$form` | After form created |
-| `form.after_update` | `$form` | After form updated |
-| `form.before_delete` | `$formId` | Before form deleted |
-| `form.after_delete` | `$formId` | After form deleted |
-| `form.entry_created` | `$entry, $form` | After submission saved |
-| `form.before_validate` | `$form, $data` | Before validation |
-| `form.after_validate` | `$errors, $form, $data` | After validation (filter) |
-| `form.notification_sent` | `$notification, $entry, $success` | After email attempt |
-| `form.before_render` | `$form, $options` | Before HTML render (filter) |
+- `admin.sidebar_items` filter — adds Formularios section
+- `page.content` filter — resolves `{{form:id}}` shortcodes
+- `mcp.tools_list` filter — registers 16 MCP tools
+- `mcp.handle_tool` filter — handles tool calls
+- Route `api/forms/submit` — public form submission endpoint
 
 ## Helper Functions
 
@@ -94,11 +45,24 @@ klytos_forms()                    // Get FormManager instance
 klytos_render_form( $formId )     // Render form as HTML
 ```
 
+## MCP Tools (16 total)
+
+**Forms:** klytos_forms_create, klytos_forms_get, klytos_forms_list, klytos_forms_update, klytos_forms_delete, klytos_forms_duplicate
+**Fields:** klytos_forms_add_field, klytos_forms_update_field, klytos_forms_remove_field, klytos_forms_reorder_fields
+**Entries:** klytos_forms_list_entries, klytos_forms_get_entry, klytos_forms_update_entry_status, klytos_forms_delete_entry, klytos_forms_export_entries, klytos_forms_stats
+
+## Storage Collections
+
+- `forms` — form definitions
+- `form-entries` — submissions
+
+## Admin Pages (via plugin-page.php)
+
+- `plugin-page.php?plugin=klytos-forms&page=forms` — List
+- `plugin-page.php?plugin=klytos-forms&page=form-editor` — Editor
+- `plugin-page.php?plugin=klytos-forms&page=form-entries` — Entries
+
 ## Inserting in Pages
 
-Use the shortcode in any page content:
-```
-{{form:contact-form}}
-```
-
-The BuildEngine resolves this via `preg_replace_callback` in `build-engine.php`.
+Use shortcode in page content: `{{form:contact-form}}`
+Resolved by the `page.content` filter registered in the plugin.
