@@ -59,7 +59,8 @@
     "system_info": "System info",
     "php_version": "PHP version",
     "klytos_version": "Klytos version",
-    "disk_usage": "Disk usage"
+    "disk_usage": "Disk usage",
+    "server": "Server"
   },
   "pages": {
     "title": "Pages",
@@ -111,8 +112,14 @@
     "custom_css": "Additional CSS",
     "google_fonts_url": "Google Fonts URL"
   },
+  "theme": {
+    "title": "Theme"
+  },
   "mcp": {
     "title": "AI Connection",
+    "no_tokens": "No connections",
+    "tokens": "connections",
+    "create_token": "Connect AI",
     "endpoint": "MCP Endpoint",
     "endpoint_desc": "This is the URL that AI tools will use to connect to your site.",
     "quick_start": "Connect your AI in 2 steps",

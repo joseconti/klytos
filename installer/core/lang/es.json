@@ -59,7 +59,8 @@
     "system_info": "Información del sistema",
     "php_version": "Versión de PHP",
     "klytos_version": "Versión de Klytos",
-    "disk_usage": "Uso de disco"
+    "disk_usage": "Uso de disco",
+    "server": "Servidor"
   },
   "pages": {
     "title": "Páginas",
@@ -111,8 +112,14 @@
     "custom_css": "CSS adicional",
     "google_fonts_url": "URL de Google Fonts"
   },
+  "theme": {
+    "title": "Tema"
+  },
   "mcp": {
     "title": "Conexión IA",
+    "no_tokens": "Sin conexiones",
+    "tokens": "conexiones",
+    "create_token": "Conectar IA",
     "endpoint": "Endpoint MCP",
     "endpoint_desc": "Esta es la URL que usarán las IAs para conectarse a tu sitio.",
     "quick_start": "Conecta tu IA en 2 pasos",

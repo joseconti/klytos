@@ -116,8 +116,7 @@ if ( ! $indexingEnabled ) : ?>
         <table>
             <tr><td style="font-weight:600;"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo klytos_esc_html( $app->getVersion()); ?></td></tr>
             <tr><td style="font-weight:600;"><?php echo __( 'dashboard.php_version' ); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
-            <tr><td style="font-weight:600;">Server</td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
-            <tr><td style="font-weight:600;"><?php echo __( 'license.domain' ); ?></td><td><?php echo klytos_esc_html( $license['domain'] ?? ''); ?></td></tr>
+            <tr><td style="font-weight:600;"><?php echo __( 'dashboard.server' ); ?></td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
         </table>
     </div>
 </div>
