@@ -223,6 +223,15 @@ $sidebarItems = [
         'capability' => 'site.configure',
     ],
     [
+        'id'         => 'system-options',
+        'title'      => __( 'options.title' ),
+        'url'        => $adminPath . 'system-options.php',
+        'icon'       => 'fa-solid fa-sliders',
+        'position'   => 81,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'plugins',
         'title'      => 'Plugins',
         'url'        => $adminPath . 'plugins.php',

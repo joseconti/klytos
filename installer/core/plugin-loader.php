@@ -219,11 +219,19 @@ class PluginLoader
         }
 
         try {
+            // Set the active text domain so any klytos_set_option() call
+            // inside the plugin automatically gets the correct text_domain.
+            $app = App::getInstance();
+            $app->getOptionsManager()->setActiveTextDomain($manifest['text_domain'] ?? $pluginId);
+
             // Include the entry point in an isolated scope.
             // The plugin can access core via klytos_*() helper functions.
             (function (string $__entryPoint): void {
                 require_once $__entryPoint;
             })($entryPoint);
+
+            // Restore text domain to _core after plugin execution.
+            $app->getOptionsManager()->setActiveTextDomain('_core');
 
             $this->loadedPlugins[$pluginId] = $manifest;
 
@@ -366,7 +374,17 @@ class PluginLoader
 
         klytos_do_action('plugin.uninstalled', $pluginId);
 
-        return ['success' => true, 'error' => null];
+        // Count orphan options for this plugin so the frontend can ask the user.
+        $manifest = $this->getManifest($pluginId);
+        $domain   = $manifest['text_domain'] ?? $pluginId;
+        $orphanCount = App::getInstance()->getOptionsManager()->countByTextDomain($domain);
+
+        return [
+            'success'              => true,
+            'error'                => null,
+            'orphan_options_count' => $orphanCount,
+            'orphan_options_domain' => $domain,
+        ];
     }
 
     /**
@@ -864,6 +882,30 @@ class PluginLoader
     public function getActivePlugins(): array
     {
         return $this->loadedPlugins;
+    }
+
+    /**
+     * Get the text domains of all discovered plugins, grouped by status.
+     *
+     * @return array ['active' => string[], 'inactive' => string[]]
+     */
+    public function getTextDomainsByStatus(): array
+    {
+        $discovered = $this->discoverPlugins();
+        $state      = $this->getState();
+        $active     = [];
+        $inactive   = [];
+
+        foreach ($discovered as $id => $manifest) {
+            $domain = $manifest['text_domain'] ?? $id;
+            if ($state['active'][$id] ?? false) {
+                $active[] = $domain;
+            } else {
+                $inactive[] = $domain;
+            }
+        }
+
+        return ['active' => $active, 'inactive' => $inactive];
     }
 
     // ─── Per-Plugin Logging ──────────────────────────────────────

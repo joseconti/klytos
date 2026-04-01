@@ -295,6 +295,22 @@ class Helpers
     }
 
     /**
+     * Sanitize a redirect URL to prevent open-redirect attacks.
+     * Only allows relative URLs starting with a single slash.
+     *
+     * @param  string $url The URL to sanitize.
+     * @return string      Safe URL or fallback to admin dashboard.
+     */
+    public static function sanitizeRedirectUrl( string $url ): string
+    {
+        $url = trim( $url );
+        if ( $url === '' || !str_starts_with( $url, '/' ) || str_starts_with( $url, '//' ) ) {
+            return self::url( 'admin/' );
+        }
+        return $url;
+    }
+
+    /**
      * Get current ISO 8601 timestamp.
      *
      * @return string

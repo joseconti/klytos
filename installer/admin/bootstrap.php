@@ -116,7 +116,7 @@ try {
 $currentScript = basename( $_SERVER['SCRIPT_NAME'] );
 if ( $currentScript !== 'login.php' && $currentScript !== 'logout.php' && $currentScript !== 'reset-password.php' ) {
     if ( ! $app->getAuth()->isAuthenticated() ) {
-        $loginUrl = dirname( $_SERVER['SCRIPT_NAME'] ) . '/login.php';
+        $loginUrl = dirname( $_SERVER['SCRIPT_NAME'] ) . '/login.php?redirect_to=' . urlencode( $_SERVER['REQUEST_URI'] );
         header( 'Location: ' . $loginUrl );
         exit;
     }

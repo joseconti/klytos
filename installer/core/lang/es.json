@@ -488,5 +488,32 @@
     "anonymized": "Anonimizado",
     "skipped": "Omitido",
     "select_sections": "Selecciona las secciones de datos a eliminar"
+  },
+  "options": {
+    "title": "Gestion de Opciones",
+    "description": "Visualiza y gestiona todas las opciones almacenadas por plugins y el sistema.",
+    "tab_all": "Todas",
+    "tab_core": "Core",
+    "tab_active": "Plugins Activos",
+    "tab_inactive": "Plugins Inactivos",
+    "tab_orphan": "Huerfanos",
+    "tab_unknown": "Sin clasificar",
+    "col_key": "Clave",
+    "col_value": "Valor",
+    "col_created": "Creada",
+    "col_updated": "Modificada",
+    "col_actions": "Acciones",
+    "btn_delete": "Eliminar",
+    "no_options": "No hay opciones en esta categoria.",
+    "confirm_delete": "¿Eliminar esta opcion?",
+    "confirm_delete_domain": "¿Eliminar todas las opciones de %s? Esta accion no se puede deshacer.",
+    "migrate_notice": "Hay opciones sin text domain asignado. Puedes migrarlas automaticamente.",
+    "migrate_button": "Migrar opciones antiguas",
+    "migrate_success": "Opciones migradas",
+    "uninstall_orphan_title": "Opciones del plugin",
+    "uninstall_orphan_message": "Este plugin tiene %d opciones almacenadas. ¿Quieres eliminarlas?",
+    "uninstall_delete_now": "Eliminar ahora",
+    "uninstall_keep": "Conservar",
+    "uninstall_keep_notice": "Puedes eliminarlas en cualquier momento desde System > Gestion de Opciones"
   }
 }

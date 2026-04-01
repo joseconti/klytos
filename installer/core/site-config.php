@@ -151,7 +151,7 @@ class SiteConfig
             'logo_url'         => '',
             'indexing_enabled' => false,
             'editor'           => 'gutenberg',
-            'admin_theme'      => 'light',
+            'admin_theme'      => 'dark',
             'social'           => [
                 'twitter'   => '',
                 'github'    => '',
