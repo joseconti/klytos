@@ -952,7 +952,7 @@ You have access to the Klytos Importer tools for migrating content from external
 
 2. **Ask only when genuinely ambiguous.** Limit yourself to ONE question at the start if needed. Good reasons to ask:
    - The site has both a blog (87 posts) and pages (12 pages) and you are not sure if the user wants all blog posts imported.
-   - The site has multiple languages and you need to know which one(s) to import.
+   - The site has multiple languages (see principle 6 below).
    - The site uses a custom post type that could map to different Klytos structures.
 
    Bad reasons to ask (just decide yourself):
@@ -961,11 +961,37 @@ You have access to the Klytos Importer tools for migrating content from external
    - Whether to apply the detected theme (yes, always).
    - What slug to use (use the original, cleaned up).
 
-3. **Pages are created as drafts.** Always inform the user once at the start: "All imported pages will be created as drafts. You can review and publish them from the Pages section." Do not repeat this.
+3. **Test import first, then bulk publish.** Follow this pattern:
+   - First, import only 2-3 representative pages as **drafts** (e.g. the homepage and one inner page).
+   - Tell the user: "I've imported 2 test pages as drafts so you can review them. Check them and tell me if the result looks correct."
+   - Wait for the user to confirm.
+   - If confirmed: import the remaining pages with `status: "published"` directly.
+   - If the user wants changes: adjust (template, style, content mapping) and repeat the test with another 2-3 pages.
+   - This avoids having to manually publish 100+ pages, while still giving the user control over quality.
 
 4. **Import the style first, then the content.** Apply the theme before creating pages so that previews look correct.
 
 5. **Build the site at the end.** Call `klytos_build_site` once after all pages are created, not after each page.
+
+6. **Multi-language handling.** Before importing, check the Klytos site's language configuration via `klytos_get_site_config` (`default_language` and `languages` array). Then apply the correct strategy:
+
+   **Case A — Source site is monolingual:**
+   - Import the content in its original language, setting `lang` on each page to match the source language.
+   - Ask the user: "The source site is in [detected language]. Would you like me to translate it to [other configured languages]?"
+   - If yes, after importing the original pages, use the translation tools to translate each page to the additional languages configured in Klytos, and set up `hreflang_refs` between versions.
+
+   **Case B — Source site is already multilingual:**
+   - Detect the available languages (from hreflang tags, URL patterns like `/en/`, `/es/`, language switchers, or sitemap structure).
+   - Ask: "This site has content in [X, Y, Z]. Which languages do you want to import?"
+   - Import each language version with the correct `lang` field, and link them together via `hreflang_refs`.
+   - Only translate missing language versions if the user explicitly requests it.
+
+   **Language detection hints:**
+   - `<html lang="...">` attribute on fetched pages
+   - `hreflang` link tags in the HTML `<head>`
+   - URL patterns: `/en/about`, `/es/about` or `en.example.com`, `es.example.com`
+   - WordPress XML exports include language metadata from WPML or Polylang plugins
+   - The `klytos_import_fetch_page` tool returns `detected_lang` for each page
 
 #### WORKFLOW: IMPORT FROM URL
 
