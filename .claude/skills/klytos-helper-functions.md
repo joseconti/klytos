@@ -319,6 +319,17 @@ klytos_log_error(), klytos_log_warning(), klytos_log_notice(),
 klytos_log_info(), klytos_log_debug()
 ```
 
+### Unconditional Logging (Fatal Errors)
+
+```php
+$app->getLogger()->writeAlways(string $level, string $message, array $context = [], string $source = 'core'): void
+```
+Bypasses Developer Mode and per-plugin checks. Used by the shutdown handler for fatal errors that MUST always be logged. Not intended for normal application logging — use `klytos_log_*()` for that.
+
+### Fatal Error Shutdown Handler
+
+Registered in `admin/bootstrap.php` via `register_shutdown_function`. Catches PHP fatal errors (`E_ERROR`, `E_PARSE`, `E_CORE_ERROR`, `E_COMPILE_ERROR`, `E_USER_ERROR`) that occur after boot and logs them unconditionally to both PHP `error_log()` and Klytos logs via `Logger::writeAlways()`.
+
 ---
 
 ## Utility Functions (Helpers class)

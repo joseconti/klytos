@@ -27,7 +27,7 @@ $pageTitle    = __( 'assets.title' );
 $auth         = $app->getAuth();
 $assetManager = $app->getAssetManager();
 $csrf         = $auth->getCsrfToken();
-$siteUrl      = rtrim( $app->getSiteConfig()->get( 'site_url', '' ), '/' );
+$siteUrl      = rtrim( (string) $app->getSiteConfig()->getValue( 'site_url', '' ), '/' );
 $apiBase      = Helpers::getBasePath() . 'admin/api/assets-management.php';
 
 // Handle traditional upload (non-JS fallback).

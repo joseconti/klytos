@@ -117,6 +117,16 @@ $this->storage->search('pages', 'keyword', ['title']);     // Search
 $this->storage->transaction(function($storage) { ... });   // Transaction
 ```
 
+## Fatal Error Handling
+
+A `register_shutdown_function` in `admin/bootstrap.php` catches PHP fatal errors after boot:
+- Catches `E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR`
+- Logs to PHP `error_log()` as fallback
+- Logs to Klytos logs via `Logger::writeAlways()` (bypasses Developer Mode)
+- Wrapped in try-catch so logger failures don't mask the original error
+
+`Logger::writeAlways()` is the unconditional counterpart to `Logger::write()`. It skips Developer Mode and per-plugin checks. Use it only for fatal/critical errors that must always be recorded.
+
 ## Security Checklist for Core Changes
 
 - [ ] All user input sanitized (htmlspecialchars, Helpers::sanitizeHtml)
@@ -124,6 +134,7 @@ $this->storage->transaction(function($storage) { ... });   // Transaction
 - [ ] No raw IPs stored (hash with Helpers or AnalyticsManager pattern)
 - [ ] Hooks fired at key points (before/after save/delete)
 - [ ] Errors logged, not exposed to users
+- [ ] Fatal errors caught by shutdown handler (always logged)
 - [ ] File permissions 0700 for directories, 0600 for keys
 - [ ] CSRF tokens validated on all POST forms
 - [ ] Rate limiting on public-facing endpoints
