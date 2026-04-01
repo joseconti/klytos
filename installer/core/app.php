@@ -163,11 +163,20 @@ class App
     /** @var TemplateResolver|null Template resolution with 4-level hierarchy. */
     private ?TemplateResolver $templateResolver = null;
 
+    /** @var RouteManager|null Dynamic route manager for plugin routes. */
+    private ?RouteManager $routeManager = null;
+
     /** @var Ai\ChatEngine|null AI chat engine (lazy-loaded). */
     private ?Ai\ChatEngine $chatEngine = null;
 
     /** @var TerminalExecutor|null Pseudo-terminal command executor (lazy-loaded). */
     private ?TerminalExecutor $terminalExecutor = null;
+
+    /** @var Logger|null Debug logging system (lazy-loaded). */
+    private ?Logger $logger = null;
+
+    /** @var DevBar|null Developer bar metrics collector (only when dev mode is active). */
+    private ?DevBar $devBar = null;
 
     // ─── Configuration ──────────────────────────────────────────
 
@@ -316,8 +325,9 @@ class App
         $this->optionsManager = new OptionsManager($this->storage);
         $this->metaManager    = new MetaManager($this->storage);
 
-        // Step 10d: Initialize TemplateResolver (before plugins so they can register templates).
+        // Step 10d: Initialize TemplateResolver and RouteManager (before plugins so they can register).
         $this->templateResolver = new TemplateResolver($this);
+        $this->routeManager     = new RouteManager();
         // Lazy-create custom-templates/ for existing installations that upgraded.
         Helpers::ensureWritableDir($this->rootPath . '/custom-templates');
         Helpers::ensureWritableDir($this->rootPath . '/custom-templates/parts');
@@ -329,6 +339,28 @@ class App
             $buildEngine->buildHooksJs();
             $buildEngine->buildPluginsCss();
         });
+
+        // Step 10e: Initialize Developer Mode (DevBar + ProfilingStorage).
+        // Must happen AFTER siteConfig is ready but BEFORE plugins load
+        // so that plugin operations are captured by ProfilingStorage.
+        $devConfig = $this->siteConfig->getValue('developer.developer_mode', false);
+        if ($devConfig) {
+            require_once $this->corePath . '/dev-bar.php';
+            require_once $this->corePath . '/profiling-storage.php';
+            $this->devBar = DevBar::getInstance();
+
+            // Read slow threshold from config.
+            $slowThreshold = (int) $this->siteConfig->getValue('developer.devbar_log_slow_threshold', 200);
+            $this->devBar->setSlowThreshold($slowThreshold);
+
+            // Wrap storage with profiling layer.
+            $this->storage = new ProfilingStorage($this->storage, $this->devBar);
+
+            // Instrument the hook system.
+            klytos_set_profiler(function (string $hookName, string $type, int $count, float $duration) {
+                DevBar::getInstance()->logHook($hookName, $type, $count, $duration);
+            });
+        }
 
         // Step 11: Discover and load active plugins.
         // Plugins register their hooks/filters in their init.php files.
@@ -652,6 +684,36 @@ class App
         return $this->mailer;
     }
 
+    /**
+     * Get the Logger instance (lazy-loaded).
+     *
+     * The Logger only writes to disk when Developer Mode is active.
+     */
+    public function getLogger(): Logger
+    {
+        if ($this->logger === null) {
+            $this->logger = new Logger(
+                $this->dataPath,
+                $this->siteConfig,
+                $this->pluginLoader,
+                $this->storage
+            );
+        }
+        return $this->logger;
+    }
+
+    /**
+     * Check if Developer Mode is active.
+     *
+     * Convenience method — reads the developer.developer_mode flag from site config.
+     *
+     * @return bool
+     */
+    public function isDevMode(): bool
+    {
+        return (bool) $this->siteConfig->getValue('developer.developer_mode', false);
+    }
+
     // ─── Path Getters ───────────────────────────────────────────
 
     /** Get the Klytos root directory path. */
@@ -700,6 +762,12 @@ class App
     public function getTemplateResolver(): TemplateResolver
     {
         return $this->templateResolver;
+    }
+
+    /** Get the RouteManager instance for plugin dynamic routes. */
+    public function getRouteManager(): RouteManager
+    {
+        return $this->routeManager;
     }
 
     /**

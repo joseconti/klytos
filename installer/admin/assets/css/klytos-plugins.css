@@ -342,6 +342,44 @@
     background: rgba(59, 130, 246, 0.08);
 }
 
+/* ─── File List (selected files before upload) ───────────── */
+
+.plugin-install-file-list {
+    margin-top: 0.75rem;
+}
+
+.plugin-install-file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.plugin-install-file-item:last-child {
+    border-bottom: none;
+}
+
+.plugin-install-file-item i {
+    color: var(--admin-text-muted);
+    flex-shrink: 0;
+}
+
+.plugin-install-file-item span:first-of-type {
+    flex: 1;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plugin-install-file-size {
+    color: var(--admin-text-muted);
+    font-weight: 400;
+    flex-shrink: 0;
+}
+
 /* ─── Progress Bar ────────────────────────────────────────── */
 
 .plugin-progress-bar {
@@ -357,7 +395,69 @@
     width: 0;
     background: var(--admin-primary);
     border-radius: 3px;
-    transition: width 0.4s ease;
+    transition: width 0.3s ease;
+}
+
+/* ─── Per-file Upload Progress ───────────────────────────── */
+
+.plugin-upload-progress-item {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.plugin-upload-progress-item:last-child {
+    border-bottom: none;
+}
+
+.plugin-upload-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.plugin-upload-progress-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 0.5rem;
+}
+
+.plugin-upload-progress-pct {
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    flex-shrink: 0;
+    min-width: 2.5rem;
+    text-align: right;
+}
+
+.plugin-upload-progress-status {
+    font-size: 0.8rem;
+    color: var(--admin-text-muted);
+    margin: 0.3rem 0 0;
+}
+
+.plugin-upload-progress-item.uploading .plugin-progress-fill {
+    background: var(--admin-primary);
+}
+
+.plugin-upload-progress-item.success .plugin-progress-fill {
+    background: var(--admin-success, #22c55e);
+}
+
+.plugin-upload-progress-item.success .plugin-upload-progress-status {
+    color: var(--admin-success, #22c55e);
+}
+
+.plugin-upload-progress-item.error .plugin-progress-fill {
+    background: var(--admin-error, #ef4444);
+}
+
+.plugin-upload-progress-item.error .plugin-upload-progress-status {
+    color: var(--admin-error, #ef4444);
 }
 
 /* ─── Responsive ──────────────────────────────────────────── */

@@ -633,6 +633,35 @@ Mostrar un aviso en Settings cuando Developer Mode esta activo:
 
 ---
 
+## 10b. Sistema de Logging Persistente (IMPLEMENTADO)
+
+Ademas de los logs in-memory del DevBar (seccion 4.2.7), existe un sistema de logging persistente
+a disco que escribe a archivos diarios en un directorio secreto dentro de `data/`.
+
+**Archivos implementados:**
+- `core/logger.php` — Clase Logger con niveles PSR-3, rotacion diaria + por tamano (5MB)
+- `admin/logs.php` — Visor de logs estilo WooCommerce (System > Logs)
+- `admin/api/logs.php` — API AJAX para operaciones de logs
+- `admin/assets/css/klytos-logs.css` — Estilos del visor
+
+**Directorio de logs:** `data/logs-{random-12hex}/debug-YYYY-MM-DD.log`
+
+**Condiciones para que se escriban logs:**
+1. Developer Mode activo (`developer.developer_mode = true`)
+2. Para plugins: el plugin debe declarar `Logs: true` en su cabecera PHP
+3. Para plugins: el admin debe habilitar logging del plugin (via Plugins > Enable Logs)
+
+**API de logging para plugins:**
+```php
+klytos_log('info', 'Message', ['context' => 'data'], 'my-plugin');
+klytos_log_error('Something failed', [], 'my-plugin');
+klytos_log_warning('Rate limit', [], 'my-plugin');
+klytos_log_info('Cache hit', [], 'my-plugin');
+klytos_log_debug('Payload', $data, 'my-plugin');
+```
+
+---
+
 ## 11. Estructura de archivos a crear/modificar
 
 ### Archivos nuevos:

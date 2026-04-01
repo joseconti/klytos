@@ -37,11 +37,17 @@ class TerminalExecutor
     private array $commands = [];
 
     /**
-     * Session command history (in-memory only).
+     * Session command history (persisted to storage).
      *
      * @var array<int, array{command: string, output: string, timestamp: int}>
      */
     private array $sessionHistory = [];
+
+    /** @var int Maximum number of history entries to persist. */
+    private const MAX_HISTORY = 100;
+
+    /** @var string Storage key for persistent history. */
+    private const HISTORY_KEY = 'terminal-history';
 
     public function __construct( App $app )
     {
@@ -51,6 +57,52 @@ class TerminalExecutor
         // Allow plugins to register additional commands.
         // Plugins: klytos_add_filter('terminal.commands', fn($cmds) => [...])
         $this->commands = klytos_apply_filters( 'terminal.commands', $this->commands );
+
+        // Load persistent history.
+        $this->loadHistory();
+    }
+
+    /**
+     * Load command history from persistent storage.
+     */
+    private function loadHistory(): void
+    {
+        try {
+            $data = $this->app->getStorage()->read( self::HISTORY_KEY );
+            $this->sessionHistory = $data['entries'] ?? [];
+        } catch ( \RuntimeException $e ) {
+            $this->sessionHistory = [];
+        }
+    }
+
+    /**
+     * Save current history to persistent storage.
+     */
+    private function saveHistory(): void
+    {
+        // Keep only the last MAX_HISTORY entries.
+        if ( count( $this->sessionHistory ) > self::MAX_HISTORY ) {
+            $this->sessionHistory = array_slice( $this->sessionHistory, -self::MAX_HISTORY );
+        }
+
+        $this->app->getStorage()->write( self::HISTORY_KEY, [
+            'entries'    => $this->sessionHistory,
+            'updated_at' => Helpers::now(),
+        ] );
+    }
+
+    /**
+     * Get the persistent command history.
+     *
+     * @param  int $limit Maximum entries to return (0 = all).
+     * @return array
+     */
+    public function getHistory( int $limit = 50 ): array
+    {
+        if ( $limit > 0 ) {
+            return array_slice( $this->sessionHistory, -$limit );
+        }
+        return $this->sessionHistory;
     }
 
     /**
@@ -165,7 +217,15 @@ class TerminalExecutor
             // 8. Update last command timestamp.
             $_SESSION['klytos_terminal_last_command'] = $timestamp;
 
-            // 9. Audit log.
+            // 9. Persist history.
+            $this->sessionHistory[] = [
+                'command'   => $clean,
+                'output'    => mb_substr( $output, 0, 2000 ),
+                'timestamp' => $timestamp,
+            ];
+            $this->saveHistory();
+
+            // 10. Audit log.
             klytos_log( 'info', 'terminal.command', [
                 'user_id' => $userId,
                 'command' => $clean,

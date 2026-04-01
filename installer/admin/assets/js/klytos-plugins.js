@@ -132,8 +132,10 @@
                         e.preventDefault();
                         uploadArea.classList.remove('dragover');
                         if (e.dataTransfer.files.length > 0) {
-                            fileInput.files = e.dataTransfer.files;
-                            self.onFileSelected(fileInput);
+                            // For multiple files, dataTransfer.files may not be
+                            // assignable to input.files in all browsers, so we
+                            // pass the FileList directly.
+                            self.onFilesDropped(e.dataTransfer.files);
                         }
                     });
                 }
@@ -177,25 +179,6 @@
             })
             .then(function (r) { return r.json(); })
             .catch(function (err) { return { success: false, results: {}, error: 'Network error: ' + err.message }; });
-        },
-
-        // ─── API (File Upload) ───────────────────────────────────
-        apiUpload: function (file) {
-            var formData = new FormData();
-            formData.append('action', 'install');
-            formData.append('file', file);
-            formData.append('csrf', this.csrf);
-
-            return fetch(this.apiUrl, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-Token': this.csrf,
-                },
-                credentials: 'same-origin',
-                body: formData,
-            })
-            .then(function (r) { return r.json(); })
-            .catch(function (err) { return { success: false, error: 'Network error: ' + err.message }; });
         },
 
         // ─── Individual Actions ──────────────────────────────────
@@ -316,17 +299,17 @@
         },
 
         // ─── Install Flow ────────────────────────────────────────
-        _installFile: null,
+        _installFiles: [],
 
         showInstallModal: function () {
             if (!this.el.installModal) return;
-            this._installFile = null;
+            this._installFiles = [];
             var fileInput = document.getElementById('plugin-install-file');
             if (fileInput) fileInput.value = '';
-            var filename = document.getElementById('plugin-install-filename');
-            if (filename) { filename.style.display = 'none'; filename.textContent = ''; }
+            var fileList = document.getElementById('plugin-install-file-list');
+            if (fileList) { fileList.style.display = 'none'; fileList.innerHTML = ''; }
             var progress = document.getElementById('plugin-install-progress');
-            if (progress) progress.style.display = 'none';
+            if (progress) { progress.style.display = 'none'; progress.innerHTML = ''; }
             var confirmBtn = document.getElementById('plugin-install-confirm');
             if (confirmBtn) confirmBtn.disabled = true;
             this.el.installModal.classList.add('active');
@@ -335,69 +318,232 @@
         hideInstallModal: function () {
             if (!this.el.installModal) return;
             this.el.installModal.classList.remove('active');
-            this._installFile = null;
+            this._installFiles = [];
         },
 
         onFileSelected: function (fileInput) {
             if (!fileInput.files || fileInput.files.length === 0) return;
-            var file = fileInput.files[0];
+            var self = this;
+            var validFiles = [];
 
-            // Validate extension.
-            if (!file.name.toLowerCase().endsWith('.zip')) {
-                this.toast('Only .zip files are accepted', 'error');
+            for (var i = 0; i < fileInput.files.length; i++) {
+                var file = fileInput.files[i];
+
+                if (!file.name.toLowerCase().endsWith('.zip')) {
+                    this.toast(file.name + ': only .zip files are accepted', 'error');
+                    continue;
+                }
+
+                if (file.size > 50 * 1024 * 1024) {
+                    this.toast(file.name + ': file too large (max 50MB)', 'error');
+                    continue;
+                }
+
+                validFiles.push(file);
+            }
+
+            if (validFiles.length === 0) {
                 fileInput.value = '';
                 return;
             }
 
-            // Validate size (50MB).
-            if (file.size > 50 * 1024 * 1024) {
-                this.toast('File too large. Maximum: 50MB', 'error');
-                fileInput.value = '';
-                return;
+            this._installFiles = validFiles;
+            var fileList = document.getElementById('plugin-install-file-list');
+            if (fileList) {
+                var html = '';
+                for (var j = 0; j < validFiles.length; j++) {
+                    var f = validFiles[j];
+                    html += '<div class="plugin-install-file-item">';
+                    html += '<i class="fa-solid fa-file-zipper"></i> ';
+                    html += '<span>' + self.escHtml(f.name) + '</span>';
+                    html += '<span class="plugin-install-file-size">' + self.formatSize(f.size) + '</span>';
+                    html += '</div>';
+                }
+                fileList.innerHTML = html;
+                fileList.style.display = 'block';
             }
 
-            this._installFile = file;
-            var filename = document.getElementById('plugin-install-filename');
-            if (filename) {
-                filename.textContent = file.name + ' (' + this.formatSize(file.size) + ')';
-                filename.style.display = 'block';
-            }
             var confirmBtn = document.getElementById('plugin-install-confirm');
-            if (confirmBtn) confirmBtn.disabled = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = validFiles.length > 1 ? 'Install All (' + validFiles.length + ')' : 'Install';
+            }
+        },
+
+        /**
+         * Handle files dropped via drag-and-drop (supports multiple files).
+         */
+        onFilesDropped: function (fileList) {
+            if (!fileList || fileList.length === 0) return;
+            var self = this;
+            var validFiles = [];
+
+            for (var i = 0; i < fileList.length; i++) {
+                var file = fileList[i];
+
+                if (!file.name.toLowerCase().endsWith('.zip')) {
+                    this.toast(file.name + ': only .zip files are accepted', 'error');
+                    continue;
+                }
+
+                if (file.size > 50 * 1024 * 1024) {
+                    this.toast(file.name + ': file too large (max 50MB)', 'error');
+                    continue;
+                }
+
+                validFiles.push(file);
+            }
+
+            if (validFiles.length === 0) return;
+
+            this._installFiles = validFiles;
+            var fileListEl = document.getElementById('plugin-install-file-list');
+            if (fileListEl) {
+                var html = '';
+                for (var j = 0; j < validFiles.length; j++) {
+                    var f = validFiles[j];
+                    html += '<div class="plugin-install-file-item">';
+                    html += '<i class="fa-solid fa-file-zipper"></i> ';
+                    html += '<span>' + self.escHtml(f.name) + '</span>';
+                    html += '<span class="plugin-install-file-size">' + self.formatSize(f.size) + '</span>';
+                    html += '</div>';
+                }
+                fileListEl.innerHTML = html;
+                fileListEl.style.display = 'block';
+            }
+
+            var confirmBtn = document.getElementById('plugin-install-confirm');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = validFiles.length > 1 ? 'Install All (' + validFiles.length + ')' : 'Install';
+            }
+        },
+
+        /**
+         * Upload a single file using XMLHttpRequest for real progress tracking.
+         * Returns a Promise that resolves with the JSON response.
+         */
+        apiUploadWithProgress: function (file, onProgress) {
+            var self = this;
+            return new Promise(function (resolve) {
+                var formData = new FormData();
+                formData.append('action', 'install');
+                formData.append('file', file);
+                formData.append('csrf', self.csrf);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', self.apiUrl, true);
+                xhr.setRequestHeader('X-CSRF-Token', self.csrf);
+                xhr.withCredentials = true;
+
+                xhr.upload.addEventListener('progress', function (e) {
+                    if (e.lengthComputable && onProgress) {
+                        var pct = Math.round((e.loaded / e.total) * 100);
+                        onProgress(pct);
+                    }
+                });
+
+                xhr.addEventListener('load', function () {
+                    try {
+                        resolve(JSON.parse(xhr.responseText));
+                    } catch (_e) {
+                        resolve({ success: false, error: 'Invalid server response' });
+                    }
+                });
+
+                xhr.addEventListener('error', function () {
+                    resolve({ success: false, error: 'Network error' });
+                });
+
+                xhr.send(formData);
+            });
         },
 
         executeInstall: function () {
-            if (!this._installFile) return;
+            if (!this._installFiles.length) return;
             var self = this;
-            var progress  = document.getElementById('plugin-install-progress');
-            var fill      = document.getElementById('plugin-progress-fill');
-            var status    = document.getElementById('plugin-install-status');
+            var files = this._installFiles.slice();
+            var progressContainer = document.getElementById('plugin-install-progress');
             var confirmBtn = document.getElementById('plugin-install-confirm');
             var cancelBtn  = document.getElementById('plugin-install-cancel');
 
-            if (progress) progress.style.display = 'block';
-            if (fill) fill.style.width = '30%';
-            if (status) status.textContent = 'Uploading plugin...';
             if (confirmBtn) confirmBtn.disabled = true;
             if (cancelBtn) cancelBtn.disabled = true;
 
-            this.apiUpload(this._installFile).then(function (result) {
-                if (fill) fill.style.width = '100%';
+            // Build progress UI for each file.
+            var html = '';
+            for (var i = 0; i < files.length; i++) {
+                html += '<div class="plugin-upload-progress-item" id="plugin-upload-item-' + i + '">';
+                html += '<div class="plugin-upload-progress-header">';
+                html += '<span class="plugin-upload-progress-name">' + self.escHtml(files[i].name) + '</span>';
+                html += '<span class="plugin-upload-progress-pct" id="plugin-upload-pct-' + i + '">0%</span>';
+                html += '</div>';
+                html += '<div class="plugin-progress-bar">';
+                html += '<div class="plugin-progress-fill" id="plugin-upload-fill-' + i + '"></div>';
+                html += '</div>';
+                html += '<p class="plugin-upload-progress-status" id="plugin-upload-status-' + i + '">Waiting...</p>';
+                html += '</div>';
+            }
+            if (progressContainer) {
+                progressContainer.innerHTML = html;
+                progressContainer.style.display = 'block';
+            }
 
-                if (result.success) {
-                    if (status) status.textContent = 'Plugin installed successfully!';
-                    self.toast('Plugin installed successfully', 'success');
-                    setTimeout(function () {
-                        self.hideInstallModal();
-                        location.reload();
-                    }, 1000);
-                } else {
-                    if (status) status.textContent = 'Error: ' + (result.error || 'Unknown error');
-                    self.toast(result.error || 'Install failed', 'error');
-                    if (confirmBtn) confirmBtn.disabled = false;
+            var successCount = 0;
+            var errorCount = 0;
+
+            // Upload files sequentially.
+            var uploadNext = function (index) {
+                if (index >= files.length) {
+                    // All done.
                     if (cancelBtn) cancelBtn.disabled = false;
+                    if (successCount > 0) {
+                        var msg = successCount === 1
+                            ? 'Plugin installed successfully'
+                            : successCount + ' plugins installed successfully';
+                        self.toast(msg, 'success');
+                        setTimeout(function () {
+                            self.hideInstallModal();
+                            location.reload();
+                        }, 1000);
+                    } else if (errorCount > 0) {
+                        if (confirmBtn) confirmBtn.disabled = false;
+                        if (cancelBtn) cancelBtn.disabled = false;
+                    }
+                    return;
                 }
-            });
+
+                var fill   = document.getElementById('plugin-upload-fill-' + index);
+                var pct    = document.getElementById('plugin-upload-pct-' + index);
+                var status = document.getElementById('plugin-upload-status-' + index);
+                var item   = document.getElementById('plugin-upload-item-' + index);
+
+                if (status) status.textContent = 'Uploading...';
+                if (item) item.classList.add('uploading');
+
+                self.apiUploadWithProgress(files[index], function (percent) {
+                    if (fill) fill.style.width = percent + '%';
+                    if (pct) pct.textContent = percent + '%';
+                }).then(function (result) {
+                    if (fill) fill.style.width = '100%';
+                    if (pct) pct.textContent = '100%';
+
+                    if (result.success) {
+                        if (status) status.textContent = 'Installed';
+                        if (item) { item.classList.remove('uploading'); item.classList.add('success'); }
+                        successCount++;
+                    } else {
+                        var errMsg = result.error || 'Install failed';
+                        if (status) status.textContent = errMsg;
+                        if (item) { item.classList.remove('uploading'); item.classList.add('error'); }
+                        errorCount++;
+                    }
+
+                    uploadNext(index + 1);
+                });
+            };
+
+            uploadNext(0);
         },
 
         // ─── Restore Flow ────────────────────────────────────────

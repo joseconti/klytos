@@ -1,0 +1,193 @@
+/* Klytos — Log Viewer Styles */
+
+.logs-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+    min-height: 500px;
+}
+
+/* ─── File List Panel ─────────────────────────────────────── */
+
+.logs-file-list {
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-card-bg);
+    overflow: hidden;
+}
+
+.logs-file-list-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logs-file-list-header h3 {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.logs-file-list-body {
+    overflow-y: auto;
+    max-height: 600px;
+}
+
+.logs-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--admin-border);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--admin-text);
+    font-size: 0.85rem;
+    transition: background-color 0.15s;
+}
+
+.logs-file-item:hover {
+    background: var(--admin-hover-bg, rgba(255,255,255,0.05));
+}
+
+.logs-file-item.active {
+    background: var(--admin-active-bg, rgba(99, 102, 241, 0.1));
+    border-left: 3px solid var(--admin-primary, #6366f1);
+}
+
+.logs-file-name {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+}
+
+.logs-file-size {
+    color: var(--admin-text-muted);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.logs-empty-list {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--admin-text-muted);
+    font-size: 0.85rem;
+}
+
+/* ─── Log Viewer Panel ────────────────────────────────────── */
+
+.logs-viewer {
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-card-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.logs-viewer-toolbar {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--admin-border);
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.logs-viewer-toolbar select,
+.logs-viewer-toolbar input[type="text"] {
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    background: var(--admin-input-bg, transparent);
+    color: var(--admin-text);
+    font-size: 0.8rem;
+}
+
+.logs-viewer-toolbar input[type="text"] {
+    min-width: 200px;
+}
+
+.logs-viewer-content {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 600px;
+    padding: 0;
+}
+
+.logs-viewer-content pre {
+    margin: 0;
+    padding: 1rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.logs-viewer-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    color: var(--admin-text-muted);
+    font-size: 0.9rem;
+}
+
+/* ─── Log Level Colors ────────────────────────────────────── */
+
+.log-line {
+    padding: 0.1rem 0.5rem;
+    border-left: 3px solid transparent;
+}
+
+.log-line:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.log-line-emergency,
+.log-line-alert,
+.log-line-critical {
+    color: #ef4444;
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.log-line-error {
+    color: #f87171;
+    border-left-color: #f87171;
+    background: rgba(248, 113, 113, 0.05);
+}
+
+.log-line-warning {
+    color: #f59e0b;
+    border-left-color: #f59e0b;
+}
+
+.log-line-notice {
+    color: #3b82f6;
+    border-left-color: #3b82f6;
+}
+
+.log-line-info {
+    color: #8b5cf6;
+    border-left-color: #8b5cf6;
+}
+
+.log-line-debug {
+    color: var(--admin-text-muted);
+    border-left-color: var(--admin-text-muted);
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .logs-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .logs-file-list-body {
+        max-height: 200px;
+    }
+}

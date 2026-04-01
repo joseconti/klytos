@@ -70,6 +70,7 @@ The main PHP file MUST contain a docblock with at least `Plugin Name:`. All othe
  * License: ELv2
  * Text Domain: my-plugin
  * Premium: false
+ * Logs: true
  */
 ```
 
@@ -92,6 +93,47 @@ For complex structured data that doesn't fit in a PHP header comment. The `id` f
   "mcp_tools": ["my_plugin_do_something"]
 }
 ```
+
+## Registering Plugin Admin Pages
+
+Use `klytos_register_admin_page()` to add sidebar items that route to `admin/plugin-page.php`:
+
+```php
+klytos_register_admin_page( 'my-plugin', [
+    'id'         => 'settings',          // maps to plugins/my-plugin/admin/settings.php
+    'title'      => 'My Plugin',
+    'icon'       => '🔌',
+    'position'   => 86,                  // 85-89 = plugin zone
+    'capability' => 'plugins.manage',
+    'children'   => [
+        ['id' => 'history', 'title' => 'History'],
+    ],
+] );
+```
+
+The PHP file at `plugins/{id}/admin/{page-id}.php` receives `$app`, `$auth`, `$pluginId`, `$pageName`, `$manifest` and renders inside the admin layout automatically.
+
+## Registering Dynamic Routes
+
+Plugins can register public-facing routes (pages, API endpoints, webhooks):
+
+```php
+klytos_register_route( '/cart', [
+    'type'     => 'page',               // 'page', 'api', or 'webhook'
+    'callback' => fn($params) => '<h1>Cart</h1>',
+    'template' => 'default',
+    'title'    => 'Shopping Cart',
+] );
+
+klytos_register_route( '/api/orders/{id}/status', [
+    'type'     => 'api',
+    'method'   => 'GET',
+    'auth'     => 'admin',
+    'callback' => fn($params) => ['order_id' => $params['id'], 'status' => 'shipped'],
+] );
+```
+
+Routes are matched by `RouteManager` (`core/route-manager.php`) before static files. Auth, capability, and rate limiting are enforced by the Router.
 
 ## Main Plugin File — Entry Point
 
@@ -318,6 +360,30 @@ Premium plugins set `"premium": true` in the manifest. The PluginLoader automati
 verifies their license against plugins.joseconti.com before loading.
 
 License data is stored in: `config/plugin_licenses/{plugin-id}.json.enc`
+
+## Plugin Logging
+
+Plugins can opt into the centralized logging system by declaring `Logs: true` in their PHP header. When declared, an "Enable Logs" action appears in the plugin management page.
+
+**Requirements for logging to work:**
+1. Developer Mode must be active (Settings → Developer → `developer_mode: true`)
+2. The plugin must declare `Logs: true` in its header
+3. The admin must enable logging for the plugin (via Plugins page action)
+
+**Writing logs from a plugin:**
+
+```php
+// PSR-3 levels: emergency, alert, critical, error, warning, notice, info, debug
+klytos_log( 'info', 'Order processed', ['order_id' => 42], 'my-plugin' );
+
+// Convenience helpers (last param is always the plugin ID):
+klytos_log_error( 'Payment failed', ['gateway' => 'stripe'], 'my-plugin' );
+klytos_log_warning( 'Rate limit approaching', [], 'my-plugin' );
+klytos_log_info( 'Cache refreshed', [], 'my-plugin' );
+klytos_log_debug( 'Request payload', $data, 'my-plugin' );
+```
+
+Logs are stored in `data/logs-{random}/debug-YYYY-MM-DD.log` with daily rotation and 5MB file-size splitting. View logs in System → Logs.
 
 ## Security Requirements for Plugins
 

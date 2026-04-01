@@ -133,7 +133,7 @@ if (empty($action)) {
 }
 
 // ─── Validate action ─────────────────────────────────────────
-$validActions = ['activate', 'deactivate', 'delete', 'uninstall', 'check_updates', 'update', 'list_backups', 'restore'];
+$validActions = ['activate', 'deactivate', 'delete', 'uninstall', 'check_updates', 'update', 'list_backups', 'restore', 'enable_logs', 'disable_logs'];
 if (!in_array($action, $validActions, true)) {
     Helpers::jsonResponse(['error' => "Invalid action: {$action}"], 400);
 }
@@ -253,6 +253,24 @@ foreach ($pluginIds as $pluginId) {
             $results[$pluginId] = [
                 'success' => false,
                 'error'   => 'Update functionality not yet available',
+            ];
+            break;
+
+        case 'enable_logs':
+            $result = $pluginLoader->enableLogs($pluginId);
+            $results[$pluginId] = [
+                'success' => $result['success'],
+                'message' => $result['success'] ? 'Logging enabled' : null,
+                'error'   => $result['error'] ?? null,
+            ];
+            break;
+
+        case 'disable_logs':
+            $result = $pluginLoader->disableLogs($pluginId);
+            $results[$pluginId] = [
+                'success' => $result['success'],
+                'message' => $result['success'] ? 'Logging disabled' : null,
+                'error'   => $result['error'] ?? null,
             ];
             break;
     }

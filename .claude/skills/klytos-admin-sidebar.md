@@ -48,6 +48,7 @@ Use this reference when you need to add your plugin to the admin panel sidebar, 
 | 70 | Users | system |
 | 75 | MCP | system |
 | 78 | Security | system |
+| 79 | Logs | system |
 | 80 | Settings | system |
 | 85 | Post Types | system |
 | 90 | Plugins | system |

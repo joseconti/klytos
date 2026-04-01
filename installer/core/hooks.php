@@ -67,6 +67,24 @@ class Hooks
      */
     private static array $actionsFired = [];
 
+    /**
+     * Optional profiler callback for DevBar.
+     * Receives: (string $hookName, string $type, int $callbackCount, float $duration).
+     *
+     * @var \Closure|null
+     */
+    private static ?\Closure $profiler = null;
+
+    /**
+     * Set a profiler callback for measuring hook execution times.
+     *
+     * @param \Closure $fn Callback: function(string $hookName, string $type, int $count, float $duration)
+     */
+    public static function setProfiler( \Closure $fn ): void
+    {
+        self::$profiler = $fn;
+    }
+
     // ─── Actions ─────────────────────────────────────────────────
 
     /**
@@ -109,6 +127,10 @@ class Hooks
         self::$actionsFired[$hook] = (self::$actionsFired[$hook] ?? 0) + 1;
 
         if (empty(self::$actions[$hook])) {
+            // Report to profiler even if no callbacks (for visibility).
+            if (self::$profiler !== null) {
+                (self::$profiler)($hook, 'action', 0, 0.0);
+            }
             return;
         }
 
@@ -116,9 +138,15 @@ class Hooks
         $callbacks = self::$actions[$hook];
         usort($callbacks, fn(array $a, array $b): int => $a['priority'] <=> $b['priority']);
 
+        $start = self::$profiler !== null ? microtime(true) : 0;
+
         // Execute each callback with the provided arguments.
         foreach ($callbacks as $entry) {
             call_user_func_array($entry['callback'], $args);
+        }
+
+        if (self::$profiler !== null) {
+            (self::$profiler)($hook, 'action', count($callbacks), microtime(true) - $start);
         }
     }
 
@@ -220,10 +248,16 @@ class Hooks
         $callbacks = self::$filters[$hook];
         usort($callbacks, fn(array $a, array $b): int => $a['priority'] <=> $b['priority']);
 
+        $start = self::$profiler !== null ? microtime(true) : 0;
+
         // Pass the value through each filter callback.
         // The first argument is always the value being filtered.
         foreach ($callbacks as $entry) {
             $value = call_user_func($entry['callback'], $value, ...$args);
+        }
+
+        if (self::$profiler !== null) {
+            (self::$profiler)($hook, 'filter', count($callbacks), microtime(true) - $start);
         }
 
         return $value;

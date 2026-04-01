@@ -217,7 +217,11 @@
     "appearance_light": "Light",
     "appearance_light_desc": "Classic light interface. Clean and bright, ideal for well-lit environments.",
     "appearance_dark": "Dark",
-    "appearance_dark_desc": "Dark interface inspired by the installer. Reduces eye strain in low-light environments."
+    "appearance_dark_desc": "Dark interface inspired by the installer. Reduces eye strain in low-light environments.",
+    "developer": "Developer",
+    "developer_mode": "Enable Developer Mode",
+    "developer_mode_help": "Activates debug logging and profiling tools. Only visible to owners and admins.",
+    "developer_mode_warning": "Developer Mode is active. This adds overhead to every request. Disable it in production."
   },
   "assets": {
     "title": "Files",
@@ -413,5 +417,25 @@
     "tokens_out": "Output tokens",
     "conversations": "Conversations",
     "tools_executed": "Tools executed"
+  },
+  "logs": {
+    "title": "Logs",
+    "files": "Log Files",
+    "select_file": "Select a log file from the list to view its contents.",
+    "no_files": "No log files found. Enable Developer Mode and plugin logging to generate logs.",
+    "empty_file": "This log file is empty.",
+    "all_levels": "All levels",
+    "search": "Search in logs…",
+    "filter": "Filter",
+    "delete_file": "Delete",
+    "delete_all_confirm": "Delete all log files? This cannot be undone.",
+    "file_deleted": "Log file deleted.",
+    "all_deleted": "All log files deleted.",
+    "dev_mode_off_title": "Developer Mode is off",
+    "dev_mode_off_desc": "Logs are only generated when Developer Mode is active. Go to Settings → Developer to enable it."
+  },
+  "plugins": {
+    "enable_logs": "Enable Logs",
+    "disable_logs": "Disable Logs"
   }
 }

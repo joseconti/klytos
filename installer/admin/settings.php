@@ -105,6 +105,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         }
         $app->getSiteConfig()->set(['editor' => $editorValue]);
         $success = __('common.success');
+    } elseif ($section === 'developer') {
+        $app->getSiteConfig()->set([
+            'developer' => [
+                'developer_mode'            => (bool) ($_POST['developer_mode'] ?? false),
+                'devbar_show_performance'   => (bool) ($_POST['devbar_show_performance'] ?? true),
+                'devbar_show_queries'       => (bool) ($_POST['devbar_show_queries'] ?? true),
+                'devbar_show_hooks'         => (bool) ($_POST['devbar_show_hooks'] ?? true),
+                'devbar_show_assets'        => (bool) ($_POST['devbar_show_assets'] ?? true),
+                'devbar_show_request'       => (bool) ($_POST['devbar_show_request'] ?? true),
+                'devbar_show_environment'   => (bool) ($_POST['devbar_show_environment'] ?? true),
+                'devbar_log_slow_threshold' => max( 10, (int) ($_POST['devbar_log_slow_threshold'] ?? 200) ),
+            ],
+        ]);
+        $success = __( 'common.success' );
     } elseif ($section === 'ai') {
         $generator = new \Klytos\Core\AiImageGenerator(
             $app->getStorage(),
@@ -393,6 +407,60 @@ function addLanguageRow() {
     </form>
 </div>
 <?php klytos_do_action('admin.settings.after_section', 'ai'); ?>
+
+<?php if (klytos_has_permission( 'site.configure' )): ?>
+<?php klytos_do_action('admin.settings.before_section', 'developer'); ?>
+<?php $devConfig = $siteConfig['developer'] ?? []; ?>
+<!-- Developer -->
+<div class="card">
+    <div class="card-header"><h3><?php echo __( 'settings.developer' ); ?></h3></div>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="section" value="developer">
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <input type="checkbox" name="developer_mode" value="1" <?php echo !empty( $devConfig['developer_mode'] ) ? 'checked' : ''; ?>>
+                <?php echo __( 'settings.developer_mode' ); ?>
+            </label>
+            <p class="form-help"><?php echo __( 'settings.developer_mode_help' ); ?></p>
+        </div>
+        <?php if (!empty( $devConfig['developer_mode'] )): ?>
+            <div style="padding: 0.75rem; margin-bottom: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; border-radius: 6px; font-size: 0.85rem;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i>
+                <?php echo __( 'settings.developer_mode_warning' ); ?>
+            </div>
+            <h4 style="margin: 1.5rem 0 0.75rem; font-size: 0.95rem;"><?php echo __( 'settings.devbar_panels' ); ?></h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.5rem;">
+                <?php
+                $devbarToggles = [
+                    'devbar_show_performance'  => __( 'settings.devbar_performance' ),
+                    'devbar_show_queries'      => __( 'settings.devbar_queries' ),
+                    'devbar_show_hooks'        => __( 'settings.devbar_hooks' ),
+                    'devbar_show_assets'       => __( 'settings.devbar_assets' ),
+                    'devbar_show_request'      => __( 'settings.devbar_request' ),
+                    'devbar_show_environment'  => __( 'settings.devbar_environment' ),
+                ];
+                foreach ( $devbarToggles as $key => $label ): ?>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem 0;">
+                        <input type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo ( $devConfig[$key] ?? true ) ? 'checked' : ''; ?>>
+                        <?php echo klytos_esc_html( $label ); ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <label><?php echo __( 'settings.devbar_slow_threshold' ); ?></label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="number" name="devbar_log_slow_threshold" class="form-control" style="width: 120px;" value="<?php echo (int) ( $devConfig['devbar_log_slow_threshold'] ?? 200 ); ?>" min="10" step="10">
+                    <span style="font-size: 0.85rem; color: var(--admin-text-muted);">ms</span>
+                </div>
+                <p class="form-help"><?php echo __( 'settings.devbar_slow_threshold_help' ); ?></p>
+            </div>
+        <?php endif; ?>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+    </form>
+</div>
+<?php klytos_do_action('admin.settings.after_section', 'developer'); ?>
+<?php endif; ?>
 
 <?php klytos_do_action('admin.settings.render_custom_sections', $siteConfig); ?>
 

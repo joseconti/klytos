@@ -281,6 +281,18 @@ klytos_is_scheduled_action(string $hook, array $args = [], string $group = ''): 
 
 ---
 
+## Route & Admin Page Registration
+
+```php
+klytos_register_route( string $pattern, array $config ): void
+```
+Register a dynamic route from a plugin. Config requires `callback` (callable) and `type` ('page', 'api', 'webhook'). Optional: `method` (default 'GET'), `template`, `title`, `auth` (false|'frontend'|'admin'), `capability`. See `core/route-manager.php`.
+
+```php
+klytos_register_admin_page( string $pluginId, array $page ): void
+```
+Register a plugin admin page with sidebar entry. The `$page` array requires `id` (maps to `plugins/{pluginId}/admin/{id}.php`) and `title`. Optional: `icon`, `position` (85-89), `capability`, `children` (sub-pages). Routes through `admin/plugin-page.php`.
+
 ## Internationalization (i18n)
 
 ```php
@@ -293,10 +305,19 @@ __(string $key, array $replacements = []): string
 ## Logging
 
 ```php
-klytos_log(string $level, string $message, array $context = []): void
+klytos_log(string $level, string $message, array $context = [], string $source = 'core'): void
 ```
-Levels (PSR-3): `debug`, `info`, `notice`, `warning`, `error`, `critical`.
-Logs written to `data/logs/YYYY-MM-DD.log`.
+PSR-3 levels: `emergency`, `alert`, `critical`, `error`, `warning`, `notice`, `info`, `debug`.
+Requires Developer Mode active. For plugin sources, plugin must have logging enabled.
+Logs written to `data/logs-{random}/debug-YYYY-MM-DD.log` with daily rotation and 5MB file-size splitting.
+
+**Level-specific helpers** (all accept `$message`, `$context = []`, `$source = 'core'`):
+
+```php
+klytos_log_emergency(), klytos_log_alert(), klytos_log_critical(),
+klytos_log_error(), klytos_log_warning(), klytos_log_notice(),
+klytos_log_info(), klytos_log_debug()
+```
 
 ---
 
