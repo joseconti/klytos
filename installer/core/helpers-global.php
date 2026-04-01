@@ -725,6 +725,126 @@ function klytos_get_all_meta(string $collection, string $entityId): array
     return App::getInstance()->getMetaManager()->getAll($collection, $entityId);
 }
 
+// ─── Cache API ──────────────────────────────────────────────
+// Persistent cache with auto-detected driver (APCu, Redis, Memcached, File).
+// Keys should use group:key notation for group-level flush support.
+// Example: 'options:my_key', 'pages:home', 'sessions:abc123'.
+
+/**
+ * Get the CacheManager instance.
+ *
+ * @return \Klytos\Core\CacheManager
+ */
+function klytos_cache(): \Klytos\Core\CacheManager
+{
+    return App::getInstance()->getCacheManager();
+}
+
+/**
+ * Get a value from the cache.
+ *
+ * @param  string $key     Cache key (e.g. 'options:my_setting').
+ * @param  mixed  $default Value to return if the key does not exist.
+ * @return mixed
+ */
+function klytos_cache_get(string $key, mixed $default = null): mixed
+{
+    return App::getInstance()->getCacheManager()->get($key, $default);
+}
+
+/**
+ * Store a value in the cache.
+ *
+ * @param string $key   Cache key.
+ * @param mixed  $value Value to store (must be serializable).
+ * @param int    $ttl   Time-to-live in seconds. 0 = use default TTL from config.
+ * @return bool  True on success.
+ */
+function klytos_cache_set(string $key, mixed $value, int $ttl = 0): bool
+{
+    return App::getInstance()->getCacheManager()->set($key, $value, $ttl);
+}
+
+/**
+ * Delete a value from the cache.
+ *
+ * @param  string $key Cache key.
+ * @return bool   True if the key existed and was deleted.
+ */
+function klytos_cache_delete(string $key): bool
+{
+    return App::getInstance()->getCacheManager()->delete($key);
+}
+
+/**
+ * Get or compute: returns cached value, or computes, caches, and returns it.
+ *
+ * Recommended pattern for caching expensive operations:
+ *
+ *   $pages = klytos_cache_remember('pages:published', function () {
+ *       return klytos_storage()->list('pages', ['status' => 'published']);
+ *   }, 1800);
+ *
+ * @param string   $key      Cache key.
+ * @param callable $callback Function that computes the value if not cached.
+ * @param int      $ttl      TTL in seconds (0 = use default).
+ * @return mixed
+ */
+function klytos_cache_remember(string $key, callable $callback, int $ttl = 0): mixed
+{
+    return App::getInstance()->getCacheManager()->remember($key, $callback, $ttl);
+}
+
+/**
+ * Flush a specific cache group.
+ *
+ * Groups correspond to the part before the colon in a key:
+ * 'options:my_key' belongs to group 'options'.
+ *
+ * @param  string $group Group name (e.g. 'options', 'pages', 'sessions').
+ * @return bool
+ */
+function klytos_cache_flush_group(string $group): bool
+{
+    return App::getInstance()->getCacheManager()->flushGroup($group);
+}
+
+/**
+ * Flush all cache groups (global flush).
+ *
+ * Fires the 'cache.all_flushed' action hook after completion.
+ * Plugins can register additional groups via the 'cache.groups' filter.
+ *
+ * @return bool
+ */
+function klytos_cache_flush_all(): bool
+{
+    return App::getInstance()->getCacheManager()->flushAll();
+}
+
+/**
+ * Flush the entire cache store.
+ *
+ * This removes ALL cached entries (including those from other groups).
+ * Prefer klytos_cache_flush_all() for controlled group-based invalidation.
+ *
+ * @return bool
+ */
+function klytos_cache_flush(): bool
+{
+    return App::getInstance()->getCacheManager()->flush();
+}
+
+/**
+ * Get cache statistics for diagnostics.
+ *
+ * @return array ['driver', 'hits', 'misses', 'memory', 'uptime', 'entries', ...]
+ */
+function klytos_cache_stats(): array
+{
+    return App::getInstance()->getCacheManager()->getStats();
+}
+
 // ─── Action Scheduler API ───────────────────────────────────
 // Schedule, cancel, and query scheduled actions.
 // Actions are executed by the server's native cron or the fallback pseudo-cron.

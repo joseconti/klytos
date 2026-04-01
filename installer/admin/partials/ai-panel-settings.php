@@ -64,13 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ai_panel_section']) &
             ],
         ]);
         $settingsSuccess = __('common.success');
-    } elseif ($section === 'editor') {
-        $editorValue = $_POST['editor'] ?? 'gutenberg';
-        if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
-            $editorValue = 'gutenberg';
-        }
-        $app->getSiteConfig()->set(['editor' => $editorValue]);
-        $settingsSuccess = __('common.success');
     }
 
     // Reload config after save
@@ -82,7 +75,6 @@ $tabs = [
     'social'    => __('settings.social'),
     'analytics' => __('settings.analytics'),
     'email'     => __('settings.email_title'),
-    'editor'    => __('editor.title'),
 ];
 
 $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=settings');
@@ -220,29 +212,6 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=settings');
                             <option value="ssl" <?php echo ($siteConfig['email']['smtp_security'] ?? '') === 'ssl' ? 'selected' : ''; ?>>SSL/TLS (465)</option>
                             <option value="" <?php echo ($siteConfig['email']['smtp_security'] ?? 'tls') === '' ? 'selected' : ''; ?>><?php echo klytos_esc_html(__('settings.smtp_none')); ?></option>
                         </select>
-                    </div>
-                </div>
-                <button type="submit" class="ai-panel-btn ai-panel-btn-primary"><?php echo klytos_esc_html(__('common.save')); ?></button>
-            </form>
-
-        <?php elseif ($tab === 'editor'): ?>
-            <h2><?php echo klytos_esc_html(__('editor.title')); ?></h2>
-            <form method="post" action="<?php echo $panelUrl; ?>&tab=editor">
-                <?php echo klytos_csrf_field(); ?>
-                <input type="hidden" name="ai_panel_section" value="editor">
-                <div class="ai-panel-form-group">
-                    <label><?php echo klytos_esc_html(__('editor.choose')); ?></label>
-                    <div class="ai-panel-grid-2" style="margin-top:0.5rem;">
-                        <label class="ai-panel-card" style="cursor:pointer;border:2px solid <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'gutenberg' ? 'var(--chat-accent)' : 'var(--chat-border)'; ?>;">
-                            <input type="radio" name="editor" value="gutenberg" <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                            <strong>Gutenberg</strong>
-                            <p style="margin:0.5rem 0 0;font-size:0.82rem;color:var(--chat-text-muted);"><?php echo klytos_esc_html(__('editor.gutenberg_desc')); ?></p>
-                        </label>
-                        <label class="ai-panel-card" style="cursor:pointer;border:2px solid <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'tinymce' ? 'var(--chat-accent)' : 'var(--chat-border)'; ?>;">
-                            <input type="radio" name="editor" value="tinymce" <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                            <strong>TinyMCE</strong>
-                            <p style="margin:0.5rem 0 0;font-size:0.82rem;color:var(--chat-text-muted);"><?php echo klytos_esc_html(__('editor.tinymce_desc')); ?></p>
-                        </label>
                     </div>
                 </div>
                 <button type="submit" class="ai-panel-btn ai-panel-btn-primary"><?php echo klytos_esc_html(__('common.save')); ?></button>

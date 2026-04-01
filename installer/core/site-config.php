@@ -93,6 +93,24 @@ class SiteConfig
             $current['developer'] = array_merge($current['developer'] ?? [], $data['developer']);
         }
 
+        // Nested: cache
+        if (isset($data['cache']) && is_array($data['cache'])) {
+            $current['cache'] = array_merge($current['cache'] ?? [], $data['cache']);
+            // Deep-merge Redis and Memcached sub-configs.
+            if (isset($data['cache']['redis']) && is_array($data['cache']['redis'])) {
+                $current['cache']['redis'] = array_merge(
+                    $current['cache']['redis'] ?? [],
+                    $data['cache']['redis']
+                );
+            }
+            if (isset($data['cache']['memcached']) && is_array($data['cache']['memcached'])) {
+                $current['cache']['memcached'] = array_merge(
+                    $current['cache']['memcached'] ?? [],
+                    $data['cache']['memcached']
+                );
+            }
+        }
+
         // Languages list
         if (array_key_exists('languages', $data)) {
             $current['languages'] = $data['languages'];
@@ -179,6 +197,26 @@ class SiteConfig
                 'smtp_user'     => '',         // SMTP username
                 'smtp_pass'     => '',         // SMTP password
                 'smtp_security' => 'tls',      // 'tls', 'ssl', or ''
+            ],
+            'cache'            => [
+                'driver'      => 'auto',       // 'auto', 'apcu', 'redis', 'memcached', 'file', 'none'
+                'prefix'      => 'klytos:',    // Global key prefix (change for multiple installs)
+                'default_ttl' => 3600,         // Default TTL in seconds (1 hour)
+                'redis'       => [
+                    'host'       => '127.0.0.1',
+                    'port'       => 6379,
+                    'password'   => '',
+                    'database'   => 0,
+                    'timeout'    => 2.0,
+                    'persistent' => true,
+                ],
+                'memcached'   => [
+                    'servers'         => [['127.0.0.1', 11211, 1]],
+                    'username'        => '',
+                    'password'        => '',
+                    'persistent_id'   => 'klytos',
+                    'binary_protocol' => true,
+                ],
             ],
             'developer'        => [
                 'developer_mode' => false,

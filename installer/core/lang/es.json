@@ -396,10 +396,10 @@
   },
   "editor": {
     "title": "Editor de contenido",
-    "choose": "Elige tu editor de paginas",
+    "choose": "Elige el editor para este tipo de contenido",
     "gutenberg_desc": "Bloques visuales de arrastrar y soltar. Opciones avanzadas de diseno (columnas, medios, botones). Contenido estructurado, ideal para paginas generadas por IA. Interfaz mas pesada.",
     "tinymce_desc": "Interfaz clasica tipo procesador de texto. Ligero y rapido. Salida HTML simple, facil de personalizar. Sin estructura de bloques, menos control de diseno.",
-    "change_later": "Puedes cambiar esto mas tarde en Ajustes."
+    "change_later": "Puedes cambiar esto mas tarde en la configuracion del tipo de contenido."
   },
   "install": {
     "title": "Instalación de Klytos",
@@ -553,5 +553,30 @@
     "uninstall_delete_now": "Eliminar ahora",
     "uninstall_keep": "Conservar",
     "uninstall_keep_notice": "Puedes eliminarlas en cualquier momento desde System > Gestion de Opciones"
+  },
+  "translations": {
+    "title": "Traducciones",
+    "source": "Origen",
+    "language": "Idioma",
+    "key": "Clave",
+    "english": "Inglés",
+    "translation": "Traducción",
+    "search_placeholder": "Buscar claves...",
+    "show_missing_only": "Mostrar solo las que faltan",
+    "progress": "{translated} / {total} traducidas ({percent}%)",
+    "save_success": "Traducción guardada",
+    "save_error": "Error al guardar la traducción",
+    "translate_with": "Traducir con...",
+    "translate_all_missing": "Traducir todo lo que falta",
+    "translating": "Traduciendo...",
+    "no_providers": "No hay proveedores de IA configurados. Ve a Settings para añadir API keys.",
+    "no_languages": "No hay idiomas configurados. Ve a Settings > Languages para añadir idiomas.",
+    "all_translated": "Todas las claves están traducidas para este origen e idioma.",
+    "confirm_translate_all": "¿Traducir las {count} claves que faltan con {provider}?",
+    "translated_count": "{count} claves traducidas correctamente",
+    "core": "Klytos Core",
+    "plugin": "Plugin",
+    "template": "Plantilla",
+    "filter_all": "Todos los orígenes"
   }
 }

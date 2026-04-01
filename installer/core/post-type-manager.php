@@ -53,6 +53,7 @@ class PostTypeManager
             'name'          => 'Pages',
             'slug'          => '/',
             'slug_i18n'     => [],
+            'editor'        => 'gutenberg',
             'taxonomies'    => [],
             'custom_fields' => [],
             'builtin'       => true,
@@ -121,7 +122,7 @@ class PostTypeManager
         $postType = $this->storage->read(self::COLLECTION, $id);
 
         // Updatable fields.
-        $updatable = [ 'name', 'slug', 'slug_i18n', 'taxonomies', 'custom_fields' ];
+        $updatable = [ 'name', 'slug', 'slug_i18n', 'editor', 'taxonomies', 'custom_fields' ];
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
                 $postType[$field] = $data[$field];
@@ -1202,6 +1203,7 @@ class PostTypeManager
             'name'          => $data['name'] ?? ucfirst($id),
             'slug'          => $data['slug'] ?? $id,
             'slug_i18n'     => $data['slug_i18n'] ?? [],
+            'editor'        => $data['editor'] ?? 'gutenberg',
             'taxonomies'    => $taxonomies,
             'custom_fields' => $customFields,
         ];

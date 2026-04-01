@@ -1,0 +1,20 @@
+{
+    "admin_pages": [
+        {
+            "id": "forms",
+            "title": "Formularios",
+            "icon": "fa-solid fa-rectangle-list",
+            "capability": "site.configure"
+        },
+        {
+            "id": "form-editor",
+            "title": "Editor de formulario",
+            "capability": "site.configure"
+        },
+        {
+            "id": "form-entries",
+            "title": "Entradas",
+            "capability": "site.configure"
+        }
+    ]
+}

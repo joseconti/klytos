@@ -310,6 +310,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $storage->write('config', 'menus', $menusData);
                 $storage->write('config', 'templates', $templatesData);
 
+                // ── Step F.1: Set editor on built-in 'page' post type ──
+                $ptManager = new \Klytos\Core\PostTypeManager($storage);
+                $ptManager->update('page', ['editor' => $editorChoice]);
+
                 // ── Step G: Generate first Application Password for MCP ──
                 // Application Passwords are the primary way to authenticate with MCP.
                 // They use HTTP Basic Auth: Authorization: Basic base64(user:password)

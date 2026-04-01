@@ -48,9 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
 
     try {
         if ($action === 'update') {
+            $editorValue = $_POST['editor'] ?? 'gutenberg';
+            if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
+                $editorValue = 'gutenberg';
+            }
+
             $updateData = [
-                'name' => trim($_POST['name'] ?? ''),
-                'slug' => trim($_POST['slug'] ?? ''),
+                'name'   => trim($_POST['name'] ?? ''),
+                'slug'   => trim($_POST['slug'] ?? ''),
+                'editor' => $editorValue,
             ];
 
             // Build slug_i18n from posted language fields.
@@ -166,6 +172,24 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
+
+        <!-- Content Editor -->
+        <h4 style="margin-top:1.5rem;margin-bottom:0.5rem;"><?php echo __('editor.title'); ?></h4>
+        <div class="form-group">
+            <label><?php echo __('editor.choose'); ?></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
+                <label style="display:block;padding:1rem;border:2px solid <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
+                    <input type="radio" name="editor" value="gutenberg" <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
+                    <strong>Gutenberg</strong>
+                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.gutenberg_desc'); ?></p>
+                </label>
+                <label style="display:block;padding:1rem;border:2px solid <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
+                    <input type="radio" name="editor" value="tinymce" <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
+                    <strong>TinyMCE</strong>
+                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.tinymce_desc'); ?></p>
+                </label>
+            </div>
+        </div>
 
         <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
     </form>

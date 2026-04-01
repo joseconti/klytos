@@ -106,7 +106,63 @@ class TerminalExecutor
     }
 
     /**
-     * Execute a command.
+     * Dispatch a command directly by name.
+     *
+     * This is the core execution method used by both the web terminal
+     * (via execute()) and the CLI (via cli.php). It runs the command
+     * handler without web-specific layers (rate limiting, 2FA, session,
+     * history persistence, audit logging).
+     *
+     * @param  string               $commandName Command name (e.g. 'build', 'backup:list').
+     * @param  array<int, string>   $args        Positional arguments.
+     * @param  array<string, string> $flags       Named flags (e.g. ['period' => '30d']).
+     * @return array{success: bool, output: string}
+     */
+    public function dispatch( string $commandName, array $args = [], array $flags = [] ): array
+    {
+        $commandName = strtolower( $commandName );
+
+        // 1. Verify command exists.
+        if ( ! isset( $this->commands[ $commandName ] ) ) {
+            $suggestion = $this->suggestCommand( $commandName );
+            $output     = "Comando no reconocido: {$commandName}";
+            if ( $suggestion ) {
+                $output .= "\nQuizas quisiste decir: {$suggestion}";
+            }
+            $output .= "\nEscribe 'help' para ver los comandos disponibles.";
+
+            return [ 'success' => false, 'output' => $output ];
+        }
+
+        // 2. Execute.
+        try {
+            $cmdConfig = $this->commands[ $commandName ];
+
+            klytos_do_action( 'terminal.before_execute', $commandName, $args );
+
+            ob_start();
+            $handler  = $cmdConfig['handler'];
+            $result   = $handler( $args, $flags, $this );
+            $buffered = ob_get_clean();
+
+            $output = is_string( $result ) ? $result : $buffered;
+
+            klytos_do_action( 'terminal.after_execute', $commandName, $output );
+            $output = klytos_apply_filters( 'terminal.command_output', $output, $commandName );
+
+            return [ 'success' => true, 'output' => $output ];
+        } catch ( \Throwable $e ) {
+            ob_end_clean();
+            return [ 'success' => false, 'output' => 'Error: ' . $e->getMessage() ];
+        }
+    }
+
+    /**
+     * Execute a command from the web terminal.
+     *
+     * Wraps dispatch() with web-specific security: input sanitization,
+     * rate limiting, 2FA revalidation, permission checks, history
+     * persistence, and audit logging.
      *
      * @param string $input  Command as typed by the user.
      * @param string $userId ID of the user executing the command.
@@ -163,102 +219,53 @@ class TerminalExecutor
         $args        = $parsed['args'];
         $flags       = $parsed['flags'];
 
-        // 5. Verify command exists.
-        if ( ! isset( $this->commands[ $commandName ] ) ) {
-            $suggestion = $this->suggestCommand( $commandName );
-            $output     = "Comando no reconocido: {$commandName}";
-            if ( $suggestion ) {
-                $output .= "\nQuizas quisiste decir: {$suggestion}";
-            }
-            $output .= "\nEscribe 'help' para ver los comandos disponibles.";
-
-            return [
-                'success'      => false,
-                'output'       => $output,
-                'command'      => $clean,
-                'timestamp'    => $timestamp,
-                'requires_2fa' => false,
-            ];
-        }
-
-        // 6. Verify command-specific permissions.
-        $cmdConfig = $this->commands[ $commandName ];
-        if ( ! empty( $cmdConfig['permission'] ) ) {
-            if ( ! klytos_has_permission( $cmdConfig['permission'] ) ) {
-                return [
-                    'success'      => false,
-                    'output'       => 'No tienes permiso para ejecutar este comando.',
-                    'command'      => $clean,
-                    'timestamp'    => $timestamp,
-                    'requires_2fa' => false,
-                ];
+        // 5. Verify command-specific permissions.
+        if ( isset( $this->commands[ $commandName ] ) ) {
+            $cmdConfig = $this->commands[ $commandName ];
+            if ( ! empty( $cmdConfig['permission'] ) ) {
+                if ( ! klytos_has_permission( $cmdConfig['permission'] ) ) {
+                    return [
+                        'success'      => false,
+                        'output'       => 'No tienes permiso para ejecutar este comando.',
+                        'command'      => $clean,
+                        'timestamp'    => $timestamp,
+                        'requires_2fa' => false,
+                    ];
+                }
             }
         }
 
-        // 7. Execute.
-        try {
-            // Hook: allow plugins to act before command execution.
-            klytos_do_action( 'terminal.before_execute', $commandName, $args );
+        // 6. Dispatch command.
+        $result = $this->dispatch( $commandName, $args, $flags );
 
-            ob_start();
-            $handler = $cmdConfig['handler'];
-            $result  = $handler( $args, $flags, $this );
-            $buffered = ob_get_clean();
-
-            // Handler may return string or use echo (captured by ob).
-            $output = is_string( $result ) ? $result : $buffered;
-
-            // Hook: allow plugins to act after command execution.
-            klytos_do_action( 'terminal.after_execute', $commandName, $output );
-
-            // Hook: allow plugins to filter the command output.
-            $output = klytos_apply_filters( 'terminal.command_output', $output, $commandName );
-
-            // 8. Update last command timestamp.
+        // 7. Update last command timestamp.
+        if ( isset( $_SESSION ) ) {
             $_SESSION['klytos_terminal_last_command'] = $timestamp;
-
-            // 9. Persist history.
-            $this->sessionHistory[] = [
-                'command'   => $clean,
-                'output'    => mb_substr( $output, 0, 2000 ),
-                'timestamp' => $timestamp,
-            ];
-            $this->saveHistory();
-
-            // 10. Audit log.
-            klytos_log( 'info', 'terminal.command', [
-                'user_id' => $userId,
-                'command' => $clean,
-                'ip'      => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                'result'  => 'ok',
-            ] );
-
-            return [
-                'success'      => true,
-                'output'       => $output,
-                'command'      => $clean,
-                'timestamp'    => $timestamp,
-                'requires_2fa' => false,
-            ];
-        } catch ( \Throwable $e ) {
-            ob_end_clean();
-
-            klytos_log( 'error', 'terminal.command', [
-                'user_id' => $userId,
-                'command' => $clean,
-                'ip'      => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-                'result'  => 'error',
-                'error'   => $e->getMessage(),
-            ] );
-
-            return [
-                'success'      => false,
-                'output'       => 'Error: ' . $e->getMessage(),
-                'command'      => $clean,
-                'timestamp'    => $timestamp,
-                'requires_2fa' => false,
-            ];
         }
+
+        // 8. Persist history.
+        $this->sessionHistory[] = [
+            'command'   => $clean,
+            'output'    => mb_substr( $result['output'], 0, 2000 ),
+            'timestamp' => $timestamp,
+        ];
+        $this->saveHistory();
+
+        // 9. Audit log.
+        klytos_log( $result['success'] ? 'info' : 'error', 'terminal.command', [
+            'user_id' => $userId,
+            'command' => $clean,
+            'ip'      => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'result'  => $result['success'] ? 'ok' : 'error',
+        ] );
+
+        return [
+            'success'      => $result['success'],
+            'output'       => $result['output'],
+            'command'      => $clean,
+            'timestamp'    => $timestamp,
+            'requires_2fa' => false,
+        ];
     }
 
     /**
@@ -674,6 +681,212 @@ class TerminalExecutor
                 return '__CLEAR__';
             },
         ];
+
+        // --- Category: Backup ---
+
+        $this->commands['backup:create'] = [
+            'description' => 'Crear un backup manual del sistema',
+            'usage'       => 'backup:create [--label=<nombre>]',
+            'category'    => 'backup',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $label  = $flags['label'] ?? '';
+                $result = $this->app->getUpdater()->createManualBackup( $label );
+                if ( $result['success'] ) {
+                    return "Backup creado: {$result['backup']}";
+                }
+                return 'Error al crear el backup.';
+            },
+        ];
+
+        $this->commands['backup:list'] = [
+            'description' => 'Listar backups disponibles',
+            'usage'       => 'backup:list',
+            'category'    => 'backup',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $backups = $this->app->getUpdater()->listBackups();
+                if ( empty( $backups ) ) {
+                    return 'No hay backups disponibles.';
+                }
+                $output = "Backups (" . count( $backups ) . "):\n\n";
+                foreach ( $backups as $b ) {
+                    $date = date( 'Y-m-d H:i', $b['date'] );
+                    $type = $b['type'] === 'manual' ? '[MANUAL]' : '[UPDATE]';
+                    $output .= "  {$type} {$b['name']}  ({$date})\n";
+                }
+                return $output;
+            },
+        ];
+
+        $this->commands['backup:restore'] = [
+            'description' => 'Restaurar un backup por su nombre',
+            'usage'       => 'backup:restore <nombre-del-backup>',
+            'category'    => 'backup',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                if ( empty( $args[0] ) ) {
+                    return "Uso: backup:restore <nombre-del-backup>\nEjecuta 'backup:list' para ver los disponibles.";
+                }
+                $result = $this->app->getUpdater()->restoreFromBackup( $args[0] );
+                if ( $result['success'] ?? false ) {
+                    return "Backup restaurado correctamente desde '{$args[0]}'.";
+                }
+                return 'Error: ' . ( $result['error'] ?? 'No se pudo restaurar el backup.' );
+            },
+        ];
+
+        // --- Category: Update ---
+
+        $this->commands['update:check'] = [
+            'description' => 'Comprobar si hay una nueva version de Klytos',
+            'usage'       => 'update:check',
+            'category'    => 'update',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $updater = $this->app->getUpdater();
+                $current = $updater->getCurrentVersion();
+                $update  = $updater->checkForUpdate( true );
+                if ( $update === null ) {
+                    return "Klytos v{$current} -- Estas al dia, no hay actualizaciones.";
+                }
+                $newVer = $update['version'] ?? '?';
+                return "Klytos v{$current} -- Actualizacion disponible: v{$newVer}\nEjecuta 'update:run' para actualizar.";
+            },
+        ];
+
+        $this->commands['update:run'] = [
+            'description' => 'Descargar e instalar la ultima actualizacion',
+            'usage'       => 'update:run',
+            'category'    => 'update',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $updater = $this->app->getUpdater();
+                $update  = $updater->checkForUpdate( true );
+                if ( $update === null ) {
+                    return 'No hay actualizaciones disponibles.';
+                }
+                $downloadUrl = $update['download_url'] ?? '';
+                if ( $downloadUrl === '' ) {
+                    return 'Error: no se encontro URL de descarga.';
+                }
+                $result = $updater->install( $downloadUrl );
+                if ( $result['success'] ?? false ) {
+                    $from = $result['from_version'] ?? '?';
+                    $to   = $result['to_version'] ?? '?';
+                    return "Actualizado correctamente: v{$from} -> v{$to}";
+                }
+                return 'Error: ' . ( $result['error'] ?? 'Fallo la actualizacion.' );
+            },
+        ];
+
+        // --- Category: Config ---
+
+        $this->commands['config:get'] = [
+            'description' => 'Mostrar el valor de una opcion de configuracion',
+            'usage'       => 'config:get <clave>',
+            'category'    => 'config',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                if ( empty( $args[0] ) ) {
+                    return "Uso: config:get <clave>\nEjemplo: config:get site_name";
+                }
+                $value = $this->app->getOptionsManager()->get( $args[0] );
+                if ( $value === null ) {
+                    return "Opcion '{$args[0]}' no encontrada.";
+                }
+                if ( is_array( $value ) || is_object( $value ) ) {
+                    return $args[0] . ' = ' . json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+                }
+                return $args[0] . ' = ' . (string) $value;
+            },
+        ];
+
+        $this->commands['config:set'] = [
+            'description' => 'Establecer el valor de una opcion de configuracion',
+            'usage'       => 'config:set <clave> <valor>',
+            'category'    => 'config',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                if ( count( $args ) < 2 ) {
+                    return "Uso: config:set <clave> <valor>\nEjemplo: config:set site_name \"Mi Sitio\"";
+                }
+                $key   = $args[0];
+                $value = implode( ' ', array_slice( $args, 1 ) );
+                $this->app->getOptionsManager()->set( $key, $value );
+                return "Opcion '{$key}' actualizada a: {$value}";
+            },
+        ];
+
+        // --- Category: Logs ---
+
+        $this->commands['logs'] = [
+            'description' => 'Ver las entradas del log del sistema',
+            'usage'       => 'logs [--date=YYYY-MM-DD] [--lines=50]',
+            'category'    => 'system',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $logger   = $this->app->getLogger();
+                $logFiles = $logger->listLogFiles();
+
+                if ( empty( $logFiles ) ) {
+                    return 'No hay archivos de log.';
+                }
+
+                // Pick log file by date or use the most recent.
+                $date     = $flags['date'] ?? '';
+                $filename = '';
+                if ( $date !== '' ) {
+                    foreach ( $logFiles as $f ) {
+                        if ( str_contains( $f['name'], $date ) ) {
+                            $filename = $f['name'];
+                            break;
+                        }
+                    }
+                    if ( $filename === '' ) {
+                        return "No se encontro log para la fecha: {$date}";
+                    }
+                } else {
+                    $filename = $logFiles[0]['name'];
+                }
+
+                $limit   = (int) ( $flags['lines'] ?? 50 );
+                $entries = $logger->readLogFile( $filename, 0, $limit );
+
+                if ( empty( $entries ) ) {
+                    return "Log '{$filename}' vacio.";
+                }
+
+                $output = "Log: {$filename} (ultimas {$limit} lineas):\n\n";
+                foreach ( $entries as $entry ) {
+                    $output .= $entry . "\n";
+                }
+                return $output;
+            },
+        ];
+
+        // --- Category: Webhooks ---
+
+        $this->commands['webhooks'] = [
+            'description' => 'Listar webhooks configurados',
+            'usage'       => 'webhooks',
+            'category'    => 'system',
+            'permission'  => 'site.configure',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $webhooks = $this->app->getWebhookManager()->list();
+                if ( empty( $webhooks ) ) {
+                    return 'No hay webhooks configurados.';
+                }
+                $output = "Webhooks (" . count( $webhooks ) . "):\n\n";
+                foreach ( $webhooks as $wh ) {
+                    $status = ( $wh['active'] ?? false ) ? 'activo' : 'inactivo';
+                    $event  = $wh['event'] ?? '?';
+                    $url    = $wh['url'] ?? '?';
+                    $output .= "  [{$status}] {$event} -> {$url}\n";
+                }
+                return $output;
+            },
+        ];
     }
 
     /**
@@ -705,6 +918,27 @@ class TerminalExecutor
     public function getCommands(): array
     {
         return $this->commands;
+    }
+
+    /**
+     * Get command metadata without handlers (safe for serialization/JSON).
+     *
+     * Returns description, usage, and category for each command.
+     * Used by the autocomplete endpoint and command reference panel.
+     *
+     * @return array<string, array{description: string, usage: string, category: string}>
+     */
+    public function getCommandsMetadata(): array
+    {
+        $result = [];
+        foreach ( $this->commands as $name => $config ) {
+            $result[ $name ] = [
+                'description' => $config['description'] ?? '',
+                'usage'       => $config['usage'] ?? $name,
+                'category'    => $config['category'] ?? 'general',
+            ];
+        }
+        return $result;
     }
 
     /**

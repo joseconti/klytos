@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Forms",
+    "klytos_forms.all_forms": "All Forms",
+    "klytos_forms.entries": "Entries",
+    "klytos_forms.new_form": "New Form",
+    "klytos_forms.edit_form": "Edit Form",
+    "klytos_forms.save": "Save Form",
+    "klytos_forms.delete": "Delete",
+    "klytos_forms.duplicate": "Duplicate",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Fields",
+    "klytos_forms.settings": "Settings",
+    "klytos_forms.notifications": "Notifications",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Insert",
+    "klytos_forms.no_forms": "No forms yet.",
+    "klytos_forms.no_entries": "No entries yet.",
+    "klytos_forms.created": "Form created successfully.",
+    "klytos_forms.updated": "Form updated successfully.",
+    "klytos_forms.deleted": "Form deleted successfully."
+}

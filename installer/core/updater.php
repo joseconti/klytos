@@ -146,7 +146,10 @@ class Updater
 
         foreach ( $entries as $entry ) {
             $path = $backupsDir . '/' . $entry;
-            if ( ! is_dir( $path ) || ! str_starts_with( $entry, 'pre-update-' ) ) {
+            if ( ! is_dir( $path ) ) {
+                continue;
+            }
+            if ( ! str_starts_with( $entry, 'pre-update-' ) && ! str_starts_with( $entry, 'manual-' ) ) {
                 continue;
             }
             $backups[] = [
@@ -870,7 +873,7 @@ class Updater
     /**
      * List available backup directories.
      *
-     * @return array List of backup names with metadata.
+     * @return array<int, array{name: string, type: string, date: int, size_dirs: int}> Backups sorted newest first.
      */
     public function listBackups(): array
     {
@@ -884,13 +887,60 @@ class Updater
 
         foreach ( $entries as $entry ) {
             $path = $backupsDir . '/' . $entry;
-            if ( ! is_dir( $path ) || ! str_starts_with( $entry, 'pre-update-' ) ) {
+            if ( ! is_dir( $path ) ) {
                 continue;
             }
-            $backups[] = $entry;
+            if ( str_starts_with( $entry, 'pre-update-' ) ) {
+                $type = 'pre-update';
+            } elseif ( str_starts_with( $entry, 'manual-' ) ) {
+                $type = 'manual';
+            } else {
+                continue;
+            }
+
+            $subdirs = array_filter(
+                array_diff( scandir( $path ), [ '.', '..' ] ),
+                fn( $f ) => is_dir( $path . '/' . $f )
+            );
+
+            $backups[] = [
+                'name'      => $entry,
+                'type'      => $type,
+                'date'      => filemtime( $path ),
+                'size_dirs' => count( $subdirs ),
+            ];
         }
 
+        // Newest first.
+        usort( $backups, fn( $a, $b ) => $b['date'] <=> $a['date'] );
+
         return $backups;
+    }
+
+    /**
+     * Create a manual backup (user-triggered, not tied to an update).
+     *
+     * Backs up code directories (core, admin, templates, custom-templates)
+     * and key root files. Fires backup.before / backup.after hooks.
+     *
+     * @param  string $label Optional human-readable label for the backup.
+     * @return array{success: bool, backup: string} Backup directory name.
+     */
+    public function createManualBackup( string $label = '' ): array
+    {
+        $safeName = preg_replace( '/[^a-zA-Z0-9_-]/', '', $label );
+        if ( $safeName === '' ) {
+            $safeName = 'manual';
+        }
+        $dirName = 'manual-' . $safeName . '-' . date( 'Ymd-His' );
+        $path    = $this->rootPath . '/backups/' . $dirName;
+
+        klytos_do_action( 'backup.before', 'local' );
+        $this->createBackup( $path );
+        $this->pruneBackups();
+        klytos_do_action( 'backup.after', 'local', [ 'path' => $dirName ] );
+
+        return [ 'success' => true, 'backup' => $dirName ];
     }
 
     /**

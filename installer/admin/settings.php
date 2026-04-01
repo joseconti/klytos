@@ -98,13 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         }
         $app->getSiteConfig()->set(['admin_theme' => $themeValue]);
         $success = __('common.success');
-    } elseif ($section === 'editor') {
-        $editorValue = $_POST['editor'] ?? 'gutenberg';
-        if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
-            $editorValue = 'gutenberg';
-        }
-        $app->getSiteConfig()->set(['editor' => $editorValue]);
-        $success = __('common.success');
     } elseif ($section === 'developer') {
         $app->getSiteConfig()->set([
             'developer' => [
@@ -318,22 +311,27 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </div>
             <?php endforeach; ?>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="addLanguageRow()" style="margin-bottom:1rem;">+ Add Language</button>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-add-language" style="margin-bottom:1rem;">+ Add Language</button>
         <br>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
 </div>
 
-<script nonce="<?php echo $cspNonce; ?>">
-function addLanguageRow() {
-    var list = document.getElementById('languages-list');
-    var div = document.createElement('div');
-    div.className = 'form-group';
-    div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
-    div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
-                    '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
-    list.appendChild(div);
-}
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+(function() {
+    var btn = document.getElementById('btn-add-language');
+    if (btn) {
+        btn.addEventListener('click', function() {
+            var list = document.getElementById('languages-list');
+            var div = document.createElement('div');
+            div.className = 'form-group';
+            div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
+            div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
+                            '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
+            list.appendChild(div);
+        });
+    }
+})();
 </script>
 <?php klytos_do_action('admin.settings.after_section', 'languages'); ?>
 
@@ -363,33 +361,6 @@ function addLanguageRow() {
     </form>
 </div>
 <?php klytos_do_action('admin.settings.after_section', 'appearance'); ?>
-
-<?php klytos_do_action('admin.settings.before_section', 'editor'); ?>
-<!-- Content Editor -->
-<div class="card">
-    <div class="card-header"><h3><?php echo __('editor.title'); ?></h3></div>
-    <form method="post">
-        <?php echo klytos_csrf_field(); ?>
-        <input type="hidden" name="section" value="editor">
-        <div class="form-group">
-            <label><?php echo __('editor.choose'); ?></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'gutenberg' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="editor" value="gutenberg" <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong>Gutenberg</strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.gutenberg_desc'); ?></p>
-                </label>
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'tinymce' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="editor" value="tinymce" <?php echo ($siteConfig['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong>TinyMCE</strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.tinymce_desc'); ?></p>
-                </label>
-            </div>
-        </div>
-        <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
-    </form>
-</div>
-<?php klytos_do_action('admin.settings.after_section', 'editor'); ?>
 
 <?php klytos_do_action('admin.settings.before_section', 'ai'); ?>
 <!-- AI API Key -->

@@ -583,6 +583,8 @@ $termVersion = klytos_version();
         });
     }
 
+    var commandsMetadata = {};
+
     function loadCommandList() {
         fetch(API_BASE + 'api/terminal-autocomplete.php?q=', {
             headers: { 'X-CSRF-Token': CSRF_TOKEN }
@@ -590,6 +592,7 @@ $termVersion = klytos_version();
         .then(function(response) { return response.json(); })
         .then(function(data) {
             suggestions = data.suggestions || [];
+            commandsMetadata = data.commands || {};
             populateCommandPanel();
         })
         .catch(function() {
@@ -641,29 +644,36 @@ $termVersion = klytos_version();
         var panel = document.getElementById('cmd-panel-list');
         if (!panel) return;
 
-        var categories = {};
-        suggestions.forEach(function(cmd) {
-            var cat = cmd.indexOf(':') !== -1 ? cmd.split(':')[0] : 'general';
-            if (!categories[cat]) categories[cat] = [];
-            categories[cat].push(cmd);
-        });
-
-        var labels = {
+        var categoryLabels = {
             general: 'General',
             build: 'Build',
-            pages: 'Contenido',
-            tasks: 'Contenido',
-            cache: 'Sistema',
-            cron: 'Sistema',
-            plugins: 'Plugins'
+            content: 'Contenido',
+            system: 'Sistema',
+            users: 'Usuarios',
+            plugins: 'Plugins',
+            backup: 'Backup',
+            update: 'Actualizacion',
+            config: 'Configuracion'
         };
+
+        // Group commands by their real category from metadata.
+        var categories = {};
+        Object.keys(commandsMetadata).forEach(function(cmd) {
+            var meta = commandsMetadata[cmd];
+            var cat = meta.category || 'general';
+            if (!categories[cat]) categories[cat] = [];
+            categories[cat].push({ name: cmd, description: meta.description || '', usage: meta.usage || cmd });
+        });
 
         var html = '';
         Object.keys(categories).forEach(function(cat) {
-            var label = labels[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
+            var label = categoryLabels[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
             html += '<h4>' + label + '</h4>';
             categories[cat].forEach(function(cmd) {
-                html += '<div class="cmd-item"><span class="cmd-name">' + cmd + '</span></div>';
+                html += '<div class="cmd-item" title="' + cmd.usage + '">'
+                      + '<span class="cmd-name">' + cmd.name + '</span>'
+                      + '<span class="cmd-desc">' + cmd.description + '</span>'
+                      + '</div>';
             });
         });
 
