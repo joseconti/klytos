@@ -249,7 +249,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <textarea name="form_json" id="formJsonInput"></textarea>
 </form>
 
-<script>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 (function() {
     // ─── State ──────────────────────────────────────────────
     var formData = <?php echo $formJson; ?>;

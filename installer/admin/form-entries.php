@@ -257,7 +257,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php endif; ?>
 <?php endif; ?>
 
-<script>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 document.getElementById('formSelector').addEventListener('change', function() {
     window.location.href = '?form_id=' + encodeURIComponent(this.value);
 });

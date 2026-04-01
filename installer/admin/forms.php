@@ -149,7 +149,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 <?php endif; ?>
 
-<script>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 document.querySelectorAll('[data-copy]').forEach(function(el) {
     el.addEventListener('click', function() {
         navigator.clipboard.writeText(el.dataset.copy);

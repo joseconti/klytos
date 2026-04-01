@@ -143,6 +143,7 @@ $sidebarItems = [
     [
         'id'         => 'forms',
         'title'      => 'Formularios',
+        'url'        => $adminPath . 'forms.php',
         'icon'       => 'fa-solid fa-rectangle-list',
         'position'   => 61,
         'section'    => 'content',
