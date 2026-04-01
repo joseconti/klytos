@@ -94,7 +94,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php if (($counts['unknown'] ?? 0) > 0): ?>
 <div class="alert alert-warning" id="migrate-notice" style="margin-bottom:1.5rem;">
     <strong><?php echo __('options.migrate_notice'); ?></strong>
-    <button class="btn btn-sm btn-warning" onclick="migrateOptions()" id="btn-migrate" style="margin-left:1rem;">
+    <button class="btn btn-sm btn-warning" id="btn-migrate" style="margin-left:1rem;">
         <?php echo __('options.migrate_button'); ?>
     </button>
 </div>
@@ -160,7 +160,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 <td><?php echo klytos_esc_html($record['created_at'] ?? '-'); ?></td>
                                 <td><?php echo klytos_esc_html($record['updated_at'] ?? '-'); ?></td>
                                 <td style="text-align:right;">
-                                    <button class="btn btn-sm btn-danger" onclick="deleteOption('<?php echo klytos_esc_attr($key); ?>')">
+                                    <button class="btn btn-sm btn-danger js-delete-option" data-option-key="<?php echo klytos_esc_attr($key); ?>">
                                         <?php echo __('options.btn_delete'); ?>
                                     </button>
                                 </td>
@@ -182,63 +182,62 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action('admin.system_options.after'); ?>
 
 <script nonce="<?php echo klytos_esc_attr($cspNonce); ?>">
-const csrfToken = '<?php echo klytos_esc_attr($csrf); ?>';
-const apiUrl    = '<?php echo klytos_esc_url($adminPath . 'api/options-management.php'); ?>';
+(function() {
+    const csrfToken = '<?php echo klytos_esc_attr($csrf); ?>';
+    const apiUrl    = '<?php echo klytos_esc_url($adminPath . 'api/options-management.php'); ?>';
+    const confirmDeleteMsg  = '<?php echo klytos_esc_attr(__('options.confirm_delete')); ?>';
+    const confirmDomainMsg  = '<?php echo klytos_esc_attr(__('options.confirm_delete_domain')); ?>';
+    const migrateSuccessMsg = '<?php echo klytos_esc_attr(__('options.migrate_success')); ?>';
 
-async function deleteOption(key) {
-    if (!confirm('<?php echo __('options.confirm_delete'); ?>')) return;
+    // Delete individual option buttons
+    document.querySelectorAll('.js-delete-option').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var key = this.getAttribute('data-option-key');
+            if (!confirm(confirmDeleteMsg)) return;
 
-    const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
-        body: JSON.stringify({action: 'delete', key: key})
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
+                body: JSON.stringify({action: 'delete', key: key})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var row = document.querySelector('tr[data-key="' + key + '"]');
+                    if (row) row.remove();
+                } else {
+                    alert(data.error || 'Error');
+                }
+            });
+        });
     });
-    const data = await res.json();
-    if (data.success) {
-        const row = document.querySelector(`tr[data-key="${key}"]`);
-        if (row) row.remove();
-    } else {
-        alert(data.error || 'Error');
+
+    // Migrate button
+    var migrateBtn = document.getElementById('btn-migrate');
+    if (migrateBtn) {
+        migrateBtn.addEventListener('click', function() {
+            this.disabled = true;
+            this.textContent = '...';
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
+                body: JSON.stringify({action: 'migrate'})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    document.getElementById('migrate-notice').innerHTML =
+                        '<strong>' + migrateSuccessMsg + ': ' + data.migrated + '</strong>';
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    alert(data.error || 'Error');
+                    migrateBtn.disabled = false;
+                }
+            });
+        });
     }
-}
-
-function deleteDomain(domain) {
-    if (!confirm('<?php echo __('options.confirm_delete_domain'); ?>'.replace('%s', domain))) return;
-
-    fetch(apiUrl, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
-        body: JSON.stringify({action: 'delete_domain', domain: domain, confirm: true})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) location.reload();
-        else alert(data.error || 'Error');
-    });
-}
-
-function migrateOptions() {
-    const btn = document.getElementById('btn-migrate');
-    btn.disabled = true;
-    btn.textContent = '...';
-
-    fetch(apiUrl, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
-        body: JSON.stringify({action: 'migrate'})
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('migrate-notice').innerHTML =
-                '<strong><?php echo __('options.migrate_success'); ?>: ' + data.migrated + '</strong>';
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            alert(data.error || 'Error');
-            btn.disabled = false;
-        }
-    });
-}
+})();
 </script>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
