@@ -331,6 +331,7 @@ class App
         // Note: Meta cleanup is automatic — _meta lives inside the entity document,
         // so deleting an entity deletes its meta too. No cleanup hook needed.
         $this->optionsManager = new OptionsManager($this->storage);
+        $this->optionsManager->setActiveTextDomain('_core');
         $this->metaManager    = new MetaManager($this->storage);
 
         // Step 10d: Initialize TemplateResolver and RouteManager (before plugins so they can register).

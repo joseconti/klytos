@@ -230,8 +230,8 @@ class PluginLoader
                 require_once $__entryPoint;
             })($entryPoint);
 
-            // Restore text domain to null after plugin execution.
-            $app->getOptionsManager()->setActiveTextDomain(null);
+            // Restore text domain to _core after plugin execution.
+            $app->getOptionsManager()->setActiveTextDomain('_core');
 
             $this->loadedPlugins[$pluginId] = $manifest;
 
