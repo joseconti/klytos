@@ -181,6 +181,31 @@ class I18n
     }
 
     /**
+     * Flatten a nested array to dot-notation keys.
+     * Ignores the '_meta' key.
+     *
+     * @param  array  $data
+     * @param  string $prefix
+     * @return array  ['common.save' => 'Save', ...]
+     */
+    public static function flattenKeys( array $data, string $prefix = '' ): array
+    {
+        $result = [];
+        foreach ( $data as $key => $value ) {
+            if ( $key === '_meta' ) {
+                continue;
+            }
+            $fullKey = $prefix ? $prefix . '.' . $key : $key;
+            if ( is_array( $value ) ) {
+                $result = array_merge( $result, self::flattenKeys( $value, $fullKey ) );
+            } else {
+                $result[$fullKey] = $value;
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Resolve a dot-notation key in a nested array.
      *
      * @param  array  $data

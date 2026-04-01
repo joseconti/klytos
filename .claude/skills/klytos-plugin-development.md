@@ -551,6 +551,27 @@ echo __('my_plugin.success');         // → "Operation completed"
 echo __('my_plugin.greeting', ['name' => 'José']);  // → "Hello, José!"
 ```
 
+### MANDATORY RULE: en.json File
+
+When a plugin uses translations (`__()` function), it is **MANDATORY** to create the file
+`lang/en.json` with ALL translation keys in English. This file serves as the master
+reference for the Translation Manager in the admin panel.
+
+Without `en.json`, the plugin's keys will NOT appear in System > Translations and cannot
+be translated from the admin UI or via MCP tools.
+
+Minimum structure for `lang/en.json`:
+
+```json
+{
+    "plugin_id.key_name": "English text",
+    "plugin_id.another_key": "Another English text"
+}
+```
+
+Optionally, include other language files (`es.json`, `fr.json`, etc.) to ship
+built-in translations with the plugin.
+
 ## Installing Plugins via ZIP
 
 Plugins can be installed or updated by uploading a ZIP file through the admin UI (`Plugins → Install Plugin`).

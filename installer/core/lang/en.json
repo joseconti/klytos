@@ -553,5 +553,30 @@
     "uninstall_delete_now": "Delete now",
     "uninstall_keep": "Keep",
     "uninstall_keep_notice": "You can delete them anytime from System > Options Management"
+  },
+  "translations": {
+    "title": "Translations",
+    "source": "Source",
+    "language": "Language",
+    "key": "Key",
+    "english": "English",
+    "translation": "Translation",
+    "search_placeholder": "Search keys...",
+    "show_missing_only": "Show only missing",
+    "progress": "{translated} / {total} translated ({percent}%)",
+    "save_success": "Translation saved",
+    "save_error": "Error saving translation",
+    "translate_with": "Translate with...",
+    "translate_all_missing": "Translate all missing",
+    "translating": "Translating...",
+    "no_providers": "No AI providers configured. Go to Settings to add API keys.",
+    "no_languages": "No languages configured. Go to Settings > Languages to add languages.",
+    "all_translated": "All keys are translated for this source and language.",
+    "confirm_translate_all": "Translate all {count} missing keys with {provider}?",
+    "translated_count": "{count} keys translated successfully",
+    "core": "Klytos Core",
+    "plugin": "Plugin",
+    "template": "Template",
+    "filter_all": "All sources"
   }
 }

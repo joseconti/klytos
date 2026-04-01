@@ -232,6 +232,15 @@ $sidebarItems = [
         'capability' => 'site.configure',
     ],
     [
+        'id'         => 'translations',
+        'title'      => __( 'translations.title' ),
+        'url'        => $adminPath . 'translations.php',
+        'icon'       => 'fa-solid fa-language',
+        'position'   => 82,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'plugins',
         'title'      => 'Plugins',
         'url'        => $adminPath . 'plugins.php',
