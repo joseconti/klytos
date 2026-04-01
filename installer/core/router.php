@@ -74,6 +74,13 @@ class Router
                 break;
 
             default:
+                // Dynamic routes registered by plugins.
+                $matched = $this->app->getRouteManager()->match( $route, $_SERVER['REQUEST_METHOD'] ?? 'GET' );
+                if ( $matched !== null ) {
+                    $this->handleDynamicRoute( $matched );
+                    return;
+                }
+
                 // Static site — serve from public/
                 $this->handlePublic($route);
                 break;
@@ -405,6 +412,94 @@ class Router
 
         echo json_encode($results);
         exit;
+    }
+
+    /**
+     * Handle a dynamic route registered by a plugin.
+     *
+     * @param array $matched Result from RouteManager::match().
+     */
+    private function handleDynamicRoute( array $matched ): void
+    {
+        $config = $matched['config'];
+        $params = $matched['params'];
+
+        // Auth check.
+        if ( $config['auth'] === 'admin' ) {
+            if ( !$this->app->getAuth()->isAuthenticated() ) {
+                if ( $config['type'] === 'api' || $config['type'] === 'webhook' ) {
+                    Helpers::jsonResponse( ['error' => 'Authentication required'], 401 );
+                }
+                Helpers::redirect( Helpers::url( 'admin/login.php' ) );
+                return;
+            }
+        }
+
+        // Capability check.
+        if ( !empty( $config['capability'] ) && !klytos_has_permission( $config['capability'] ) ) {
+            if ( $config['type'] === 'api' || $config['type'] === 'webhook' ) {
+                Helpers::jsonResponse( ['error' => 'Forbidden'], 403 );
+            } else {
+                http_response_code( 403 );
+                echo '<!DOCTYPE html><html><body><h1>403 — Access denied</h1></body></html>';
+            }
+            return;
+        }
+
+        // Rate limiting for API and webhooks.
+        if ( $config['type'] === 'api' || $config['type'] === 'webhook' ) {
+            $rateLimiter = new MCP\RateLimiter( $this->app->getDataPath() );
+            $clientIp    = MCP\RateLimiter::getClientIp();
+            if ( !$rateLimiter->check( 'route:' . $clientIp . ':' . $matched['pattern'], 60 ) ) {
+                http_response_code( 429 );
+                header( 'Retry-After: 60' );
+                Helpers::jsonResponse( ['error' => 'Rate limit exceeded'], 429 );
+                return;
+            }
+        }
+
+        // Execute callback.
+        try {
+            $result = call_user_func( $config['callback'], $params );
+        } catch ( \Throwable $e ) {
+            error_log( "Klytos Router: error in dynamic route {$matched['pattern']}: " . $e->getMessage() );
+            if ( $config['type'] === 'api' || $config['type'] === 'webhook' ) {
+                Helpers::jsonResponse( ['error' => 'Internal server error'], 500 );
+            } else {
+                http_response_code( 500 );
+                echo '<!DOCTYPE html><html><body><h1>500 — Internal error</h1></body></html>';
+            }
+            return;
+        }
+
+        // Send response based on type.
+        switch ( $config['type'] ) {
+            case 'api':
+                $this->sendCorsHeaders();
+                Helpers::jsonResponse( $result );
+                break;
+
+            case 'webhook':
+                Helpers::jsonResponse( $result );
+                break;
+
+            case 'page':
+                // Render within a template.
+                $templateResolver = $this->app->getTemplateResolver();
+                $templateHtml     = $templateResolver->resolve( $config['template'] ?? 'default' );
+
+                $replacements = [
+                    '{{page_title}}'   => Helpers::escHtml( $config['title'] ?? '' ),
+                    '{{page_content}}' => is_string( $result ) ? $result : '',
+                ];
+                foreach ( $replacements as $key => $value ) {
+                    $templateHtml = str_replace( $key, $value, $templateHtml );
+                }
+
+                header( 'Content-Type: text/html; charset=utf-8' );
+                echo $templateHtml;
+                break;
+        }
     }
 
     /**

@@ -246,22 +246,24 @@ class BuildEngine
     /**
      * Render a page using its template.
      */
-    private function renderTemplate(array $page, array $siteConfig, string $menuHtml, array $theme): string
+    /**
+     * Build the replacement map for a page.
+     *
+     * Public so the Router can use it for dynamic plugin pages.
+     *
+     * @param  array  $page       Page data array.
+     * @param  array  $siteConfig Site configuration.
+     * @param  string $menuHtml   Rendered navigation menu HTML.
+     * @param  array  $theme      Theme configuration.
+     * @return array  Key => value replacement map.
+     */
+    public function buildReplacements( array $page, array $siteConfig, string $menuHtml, array $theme ): array
     {
-        $templateHtml = $this->resolveTemplateForPage($page);
+        $hreflangHtml = $this->buildHreflangTags( $page, $siteConfig );
+        $basePath     = Helpers::getBasePath();
+        $siteUrl      = Helpers::publicUrl();
+        $fontsUrl     = $theme['fonts']['google_fonts_url'] ?? '';
 
-        // Process template parts ({{klytos_part:X}}) BEFORE variable replacement.
-        $templateHtml = $this->processTemplateParts($templateHtml);
-
-        // Build hreflang tags
-        $hreflangHtml = $this->buildHreflangTags($page, $siteConfig);
-
-        // Build replacement map
-        $basePath   = Helpers::getBasePath();
-        $siteUrl    = Helpers::publicUrl();
-        $fontsUrl   = $theme['fonts']['google_fonts_url'] ?? '';
-
-        // Build Google Fonts <link> tags for preconnect + stylesheet.
         $googleFontsHtml = '';
         if ( !empty( $fontsUrl ) ) {
             $googleFontsHtml = '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n  "
@@ -269,30 +271,23 @@ class BuildEngine
                              . '<link href="' . Helpers::escUrl( $fontsUrl ) . '" rel="stylesheet">';
         }
 
-        // Build SEO meta tags (generator, OG, Twitter, JSON-LD, canonical).
-        $seoMetaTags = $this->buildSeoMetaTags($page, $siteConfig);
-
-        // Build breadcrumbs (HTML + JSON-LD structured data).
+        $seoMetaTags    = $this->buildSeoMetaTags( $page, $siteConfig );
         $breadcrumbHtml = $this->app->getPages()->renderBreadcrumbs(
             $page['slug'] ?? 'index',
             Helpers::getBasePath()
         );
 
-        // Allow plugins to inject content into <head> and before </body>.
-        $pluginHeadHtml    = klytos_apply_filters('build.head_html', '');
-        $pluginBodyEndHtml = klytos_apply_filters('build.body_end_html', '');
+        $pluginHeadHtml    = klytos_apply_filters( 'build.head_html', '' );
+        $pluginBodyEndHtml = klytos_apply_filters( 'build.body_end_html', '' );
 
-        // Determine page content: v2.0 block assembly or v1.0 raw HTML.
-        if (PageManager::hasBlockContent($page) && !empty($page['template'])) {
-            $pageContent = $this->renderBlockContent($page);
+        if ( PageManager::hasBlockContent( $page ) && !empty( $page['template'] ) ) {
+            $pageContent = $this->renderBlockContent( $page );
         } else {
             $pageContent = $page['content_html'] ?? '';
         }
 
-        // Allow plugins to modify the page content before rendering.
-        $pageContent = klytos_apply_filters('page.content', $pageContent, $page);
+        $pageContent = klytos_apply_filters( 'page.content', $pageContent, $page );
 
-        // Build smart title separator: skip " — Site Name" if page title already contains site name.
         $rawSiteName  = $siteConfig['site_name'] ?? '';
         $rawPageTitle = $page['title'] ?? '';
         $titleSeparator = '';
@@ -300,44 +295,54 @@ class BuildEngine
             $titleSeparator = ' — ';
         }
 
-        $replacements = [
-            '{{site_name}}'         => Helpers::escHtml($rawSiteName),
-            '{{title_separator}}'   => $titleSeparator,
-            '{{tagline}}'           => Helpers::escHtml($siteConfig['tagline'] ?? ''),
-            '{{default_language}}'  => $siteConfig['default_language'] ?? 'es',
-            '{{page_title}}'        => Helpers::escHtml($page['title'] ?? ''),
-            '{{page_content}}'      => $pageContent,
-            '{{meta_description}}'  => Helpers::escHtml($page['meta_description'] ?? ''),
-            '{{page_lang}}'         => $page['lang'] ?? ($siteConfig['default_language'] ?? 'es'),
-            '{{hreflang_tags}}'     => $hreflangHtml,
-            '{{seo_meta_tags}}'     => $seoMetaTags,
-            '{{page_slug}}'         => $page['slug'] ?? '',
-            '{{menu_html}}'         => $menuHtml,
-            '{{current_year}}'      => date('Y'),
-            '{{og_image}}'          => $page['og_image'] ?? ($siteConfig['seo']['default_og_image'] ?? ''),
-            '{{custom_css}}'        => !empty($page['custom_css']) ? '<style>' . $page['custom_css'] . '</style>' : '',
-            '{{custom_js}}'         => !empty($page['custom_js']) ? '<script>' . $page['custom_js'] . '</script>' : '',
-            '{{google_fonts_url}}'  => $fontsUrl,
-            '{{google_fonts_html}}' => $googleFontsHtml,
-            '{{favicon_url}}'       => $siteConfig['favicon_url'] ?? '',
-            '{{logo_url}}'          => $siteConfig['logo_url'] ?? '',
-            '{{head_scripts}}'      => $siteConfig['analytics']['custom_head_scripts'] ?? '',
-            '{{body_scripts}}'      => $siteConfig['analytics']['custom_body_scripts'] ?? '',
-            '{{css_variables}}'     => $this->app->getTheme()->generateCssVariables(),
-            '{{sitemap_url}}'       => $siteUrl . 'sitemap.xml',
-            '{{base_path}}'         => $basePath,
-            '{{site_url}}'          => $siteUrl,
-            '{{header_html}}'       => '',
-            '{{footer_html}}'       => $this->buildFooterHtml($siteConfig),
-            '{{sidebar_html}}'      => '',
+        return [
+            '{{site_name}}'            => Helpers::escHtml( $rawSiteName ),
+            '{{title_separator}}'      => $titleSeparator,
+            '{{tagline}}'              => Helpers::escHtml( $siteConfig['tagline'] ?? '' ),
+            '{{default_language}}'     => $siteConfig['default_language'] ?? 'es',
+            '{{page_title}}'           => Helpers::escHtml( $page['title'] ?? '' ),
+            '{{page_content}}'         => $pageContent,
+            '{{meta_description}}'     => Helpers::escHtml( $page['meta_description'] ?? '' ),
+            '{{page_lang}}'            => $page['lang'] ?? ( $siteConfig['default_language'] ?? 'es' ),
+            '{{hreflang_tags}}'        => $hreflangHtml,
+            '{{seo_meta_tags}}'        => $seoMetaTags,
+            '{{page_slug}}'            => $page['slug'] ?? '',
+            '{{menu_html}}'            => $menuHtml,
+            '{{current_year}}'         => date( 'Y' ),
+            '{{og_image}}'             => $page['og_image'] ?? ( $siteConfig['seo']['default_og_image'] ?? '' ),
+            '{{custom_css}}'           => !empty( $page['custom_css'] ) ? '<style>' . $page['custom_css'] . '</style>' : '',
+            '{{custom_js}}'            => !empty( $page['custom_js'] ) ? '<script>' . $page['custom_js'] . '</script>' : '',
+            '{{google_fonts_url}}'     => $fontsUrl,
+            '{{google_fonts_html}}'    => $googleFontsHtml,
+            '{{favicon_url}}'          => $siteConfig['favicon_url'] ?? '',
+            '{{logo_url}}'             => $siteConfig['logo_url'] ?? '',
+            '{{head_scripts}}'         => $siteConfig['analytics']['custom_head_scripts'] ?? '',
+            '{{body_scripts}}'         => $siteConfig['analytics']['custom_body_scripts'] ?? '',
+            '{{css_variables}}'        => $this->app->getTheme()->generateCssVariables(),
+            '{{sitemap_url}}'          => $siteUrl . 'sitemap.xml',
+            '{{base_path}}'            => $basePath,
+            '{{site_url}}'             => $siteUrl,
+            '{{header_html}}'          => '',
+            '{{footer_html}}'          => $this->buildFooterHtml( $siteConfig ),
+            '{{sidebar_html}}'         => '',
             '{{breadcrumbs}}'          => $breadcrumbHtml,
             '{{plugin_head_html}}'     => $pluginHeadHtml,
             '{{plugin_body_end_html}}' => $pluginBodyEndHtml,
-            '{{plugin_css_link}}'      => $this->buildPluginCssLink($basePath),
-            '{{blocks_css_link}}'      => $this->buildBlocksCssLink($basePath),
-            '{{blocks_js_script}}'     => $this->buildBlocksJsTag($basePath),
-            '{{hooks_js_script}}'      => $this->buildHooksJsTag($basePath),
+            '{{plugin_css_link}}'      => $this->buildPluginCssLink( $basePath ),
+            '{{blocks_css_link}}'      => $this->buildBlocksCssLink( $basePath ),
+            '{{blocks_js_script}}'     => $this->buildBlocksJsTag( $basePath ),
+            '{{hooks_js_script}}'      => $this->buildHooksJsTag( $basePath ),
         ];
+    }
+
+    private function renderTemplate(array $page, array $siteConfig, string $menuHtml, array $theme): string
+    {
+        $templateHtml = $this->resolveTemplateForPage($page);
+
+        // Process template parts ({{klytos_part:X}}) BEFORE variable replacement.
+        $templateHtml = $this->processTemplateParts($templateHtml);
+
+        $replacements = $this->buildReplacements( $page, $siteConfig, $menuHtml, $theme );
 
         $html = $templateHtml;
         foreach ($replacements as $key => $value) {

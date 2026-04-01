@@ -163,6 +163,9 @@ class App
     /** @var TemplateResolver|null Template resolution with 4-level hierarchy. */
     private ?TemplateResolver $templateResolver = null;
 
+    /** @var RouteManager|null Dynamic route manager for plugin routes. */
+    private ?RouteManager $routeManager = null;
+
     /** @var Ai\ChatEngine|null AI chat engine (lazy-loaded). */
     private ?Ai\ChatEngine $chatEngine = null;
 
@@ -322,8 +325,9 @@ class App
         $this->optionsManager = new OptionsManager($this->storage);
         $this->metaManager    = new MetaManager($this->storage);
 
-        // Step 10d: Initialize TemplateResolver (before plugins so they can register templates).
+        // Step 10d: Initialize TemplateResolver and RouteManager (before plugins so they can register).
         $this->templateResolver = new TemplateResolver($this);
+        $this->routeManager     = new RouteManager();
         // Lazy-create custom-templates/ for existing installations that upgraded.
         Helpers::ensureWritableDir($this->rootPath . '/custom-templates');
         Helpers::ensureWritableDir($this->rootPath . '/custom-templates/parts');
@@ -758,6 +762,12 @@ class App
     public function getTemplateResolver(): TemplateResolver
     {
         return $this->templateResolver;
+    }
+
+    /** Get the RouteManager instance for plugin dynamic routes. */
+    public function getRouteManager(): RouteManager
+    {
+        return $this->routeManager;
     }
 
     /**

@@ -33,6 +33,10 @@ if ( $app->isDevMode() && in_array( $currentUser['role'] ?? '', ['owner', 'admin
             \Klytos\Core\DevBar::getInstance()->toArray(),
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         ); ?>;
+        window.__KLYTOS_DEVBAR_CONFIG__ = <?php echo json_encode(
+            $app->getSiteConfig()->getValue( 'developer', [] ),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ); ?>;
     </script>
     <script src="<?php echo klytos_esc_url( $adminPath . 'js/dev-bar.js' ); ?>" nonce="<?php echo klytos_esc_attr( $cspNonce ?? '' ); ?>"></script>
 <?php endif; ?>

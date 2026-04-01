@@ -774,6 +774,82 @@ function klytos_is_scheduled_action(string $hook, array $args = [], string $grou
     return App::getInstance()->getActionScheduler()->isScheduled($hook, $args, $group);
 }
 
+// ─── Routing API ──────────────────────────────────────────────
+
+/**
+ * Register a dynamic route from a plugin.
+ *
+ * @param string $pattern URL pattern (e.g. '/cart', '/account/{section}').
+ * @param array  $config  Route configuration:
+ *   - 'callback'   (required): callable. Receives array $params, returns string|array.
+ *   - 'type'       (required): 'page', 'api', or 'webhook'.
+ *   - 'method'     (optional): 'GET', 'POST', 'GET|POST'. Default: 'GET'.
+ *   - 'template'   (optional): Template name for type 'page'. Default: 'default'.
+ *   - 'title'      (optional): Page title for type 'page'. Default: ''.
+ *   - 'auth'       (optional): false | 'frontend' | 'admin'. Default: false.
+ *   - 'capability' (optional): Permission string. Default: null.
+ *
+ * @see \Klytos\Core\RouteManager::register()
+ */
+function klytos_register_route( string $pattern, array $config ): void
+{
+    App::getInstance()->getRouteManager()->register( $pattern, $config );
+}
+
+/**
+ * Register a plugin admin page.
+ *
+ * This is a convenience wrapper that adds a sidebar menu item pointing to
+ * admin/plugin-page.php?plugin={id}&page={page}. The actual PHP file
+ * must exist at plugins/{pluginId}/admin/{pageId}.php.
+ *
+ * @param string $pluginId Plugin ID.
+ * @param array  $page     Page definition:
+ *   - 'id'         (required): Page identifier (maps to admin/{id}.php in the plugin).
+ *   - 'title'      (required): Menu item title.
+ *   - 'icon'       (optional): Emoji or SVG for the sidebar.
+ *   - 'position'   (optional): Sidebar position (85-89 = plugin zone).
+ *   - 'capability' (optional): Required permission.
+ *   - 'children'   (optional): Sub-pages array [{id, title, capability}].
+ */
+function klytos_register_admin_page( string $pluginId, array $page ): void
+{
+    $pageId = $page['id'] ?? '';
+    if ( empty( $pageId ) ) {
+        return;
+    }
+
+    $baseUrl = klytos_admin_url( 'plugin-page.php?plugin=' . urlencode( $pluginId ) . '&page=' );
+
+    $item = [
+        'id'         => $pluginId . '-' . $pageId,
+        'title'      => $page['title'] ?? $pageId,
+        'url'        => $baseUrl . urlencode( $pageId ),
+        'icon'       => $page['icon'] ?? '🔌',
+        'position'   => $page['position'] ?? 86,
+        'capability' => $page['capability'] ?? null,
+        'children'   => [],
+    ];
+
+    foreach ( ( $page['children'] ?? [] ) as $child ) {
+        $childId = $child['id'] ?? '';
+        if ( empty( $childId ) ) {
+            continue;
+        }
+        $item['children'][] = [
+            'id'         => $pluginId . '-' . $childId,
+            'title'      => $child['title'] ?? $childId,
+            'url'        => $baseUrl . urlencode( $childId ),
+            'capability' => $child['capability'] ?? $item['capability'],
+        ];
+    }
+
+    klytos_add_filter( 'admin.sidebar_items', function ( array $items ) use ( $item ): array {
+        $items[] = $item;
+        return $items;
+    } );
+}
+
 // ─── Template API ──────────────────────────────────────────────
 
 /**

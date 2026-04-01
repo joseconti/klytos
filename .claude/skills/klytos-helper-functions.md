@@ -281,6 +281,18 @@ klytos_is_scheduled_action(string $hook, array $args = [], string $group = ''): 
 
 ---
 
+## Route & Admin Page Registration
+
+```php
+klytos_register_route( string $pattern, array $config ): void
+```
+Register a dynamic route from a plugin. Config requires `callback` (callable) and `type` ('page', 'api', 'webhook'). Optional: `method` (default 'GET'), `template`, `title`, `auth` (false|'frontend'|'admin'), `capability`. See `core/route-manager.php`.
+
+```php
+klytos_register_admin_page( string $pluginId, array $page ): void
+```
+Register a plugin admin page with sidebar entry. The `$page` array requires `id` (maps to `plugins/{pluginId}/admin/{id}.php`) and `title`. Optional: `icon`, `position` (85-89), `capability`, `children` (sub-pages). Routes through `admin/plugin-page.php`.
+
 ## Internationalization (i18n)
 
 ```php

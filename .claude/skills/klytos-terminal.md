@@ -43,6 +43,16 @@ $result = $executor->execute('build', $userId);
 // Returns: ['success' => bool, 'output' => string, 'command' => string, 'timestamp' => int, 'requires_2fa' => bool]
 ```
 
+### Persistent History
+
+Command history is persisted to storage (collection `terminal-history`). On each successful execution, the command + truncated output is saved. History survives sessions.
+
+```php
+$executor->getHistory( 50 );  // Last 50 entries (default)
+$executor->getHistory( 0 );   // All entries (max 100 stored)
+// Returns: [['command' => '...', 'output' => '...', 'timestamp' => int], ...]
+```
+
 ### Core Commands
 
 | Command | Category | Permission | Description |
