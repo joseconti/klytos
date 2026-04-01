@@ -169,6 +169,15 @@ $sidebarItems = [
         'capability' => 'site.configure',
     ],
     [
+        'id'         => 'privacy',
+        'title'      => __( 'privacy.title' ),
+        'url'        => $adminPath . 'privacy.php',
+        'icon'       => 'fa-solid fa-user-shield',
+        'position'   => 67,
+        'section'    => 'system',
+        'capability' => 'users.manage',
+    ],
+    [
         'id'         => 'users',
         'title'      => 'Users',
         'url'        => $adminPath . 'users.php',
