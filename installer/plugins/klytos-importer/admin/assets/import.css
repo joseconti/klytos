@@ -1,0 +1,232 @@
+/* ─── Klytos Importer — Admin Styles ─────────────────────── */
+
+.klytos-importer-page {
+    max-width: 900px;
+}
+
+/* ─── Tabs ───────────────────────────────────────────────── */
+
+.importer-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 1.5rem;
+}
+
+.importer-tab {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.importer-tab:hover {
+    color: var(--text);
+}
+
+.importer-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.importer-tab .badge {
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    line-height: 1.2;
+}
+
+/* ─── Tab content ────────────────────────────────────────── */
+
+.importer-tab-content {
+    display: none;
+}
+
+.importer-tab-content.active {
+    display: block;
+}
+
+/* ─── Upload zone ────────────────────────────────────────── */
+
+.upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    margin-bottom: 1.5rem;
+}
+
+.upload-zone:hover,
+.upload-zone.drag-over {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.upload-icon {
+    font-size: 2.5rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.upload-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
+.upload-hint {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.upload-formats {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ─── File info ──────────────────────────────────────────── */
+
+.upload-file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+.upload-file-info i {
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+#upload-file-size {
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+/* ─── URL form ───────────────────────────────────────────── */
+
+.importer-url-form {
+    max-width: 600px;
+}
+
+.radio-label {
+    display: block;
+    padding: 0.4rem 0;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.radio-label input[type="radio"] {
+    margin-right: 0.5rem;
+}
+
+.help-text {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--surface);
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* ─── Sessions table ─────────────────────────────────────── */
+
+.source-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.source-wordpress { background: #21759b22; color: #21759b; }
+.source-sitemap   { background: #16a34a22; color: #16a34a; }
+.source-crawl     { background: #d97706aa; color: #92400e; }
+
+.status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-analyzing   { background: #3b82f622; color: #3b82f6; }
+.status-ready       { background: #8b5cf622; color: #8b5cf6; }
+.status-in_progress { background: #f59e0b22; color: #d97706; }
+.status-completed   { background: #16a34a22; color: #16a34a; }
+.status-failed      { background: #ef444422; color: #ef4444; }
+.status-cancelled   { background: #6b728022; color: #6b7280; }
+
+/* ─── Progress bar ───────────────────────────────────────── */
+
+.progress-bar-container {
+    width: 100%;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* ─── Empty state ────────────────────────────────────────── */
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    display: block;
+    opacity: 0.5;
+}
+
+/* ─── Inline form ────────────────────────────────────────── */
+
+.inline-form {
+    display: inline;
+}

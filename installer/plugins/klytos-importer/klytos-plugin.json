@@ -1,0 +1,27 @@
+{
+    "admin_pages": [
+        {
+            "id": "import",
+            "title": "Site Importer",
+            "icon": "fa-solid fa-download",
+            "capability": "site.configure"
+        }
+    ],
+    "mcp_tools": [
+        "klytos_import_analyze_wp_xml",
+        "klytos_import_fetch_wp_page",
+        "klytos_import_convert_content",
+        "klytos_import_execute_batch",
+        "klytos_import_session_status",
+        "klytos_import_analyze_sitemap",
+        "klytos_import_fetch_page",
+        "klytos_import_discover_site",
+        "klytos_import_analyze_style",
+        "klytos_import_download_media"
+    ],
+    "permissions": [
+        "manage_pages",
+        "manage_theme",
+        "manage_assets"
+    ]
+}

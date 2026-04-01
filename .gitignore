@@ -63,6 +63,7 @@ installer/plugins/*/
 !installer/plugins/.htaccess
 !installer/plugins/hello-ai/
 !installer/plugins/klytos-forms/
+!installer/plugins/klytos-importer/
 
 # ─── Install file (renamed after install) ────────────────────
 installer/.install.done.php
