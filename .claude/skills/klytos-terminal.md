@@ -37,11 +37,26 @@ The Klytos terminal is a pseudo-terminal integrated into the admin panel that ex
 Location: `installer/core/terminal-executor.php`
 Namespace: `Klytos\Core`
 
+Two execution methods:
+
 ```php
-$executor = $app->getTerminalExecutor(); // Lazy-loaded via App
+// Web terminal (with 2FA, rate limiting, history, audit log):
+$executor = $app->getTerminalExecutor();
 $result = $executor->execute('build', $userId);
 // Returns: ['success' => bool, 'output' => string, 'command' => string, 'timestamp' => int, 'requires_2fa' => bool]
+
+// CLI / direct dispatch (no web security layers):
+$result = $executor->dispatch('build', ['my-page'], ['period' => '30d']);
+// Returns: ['success' => bool, 'output' => string]
+
+// Get command metadata (safe for JSON serialization, no handlers):
+$meta = $executor->getCommandsMetadata();
+// Returns: ['build' => ['description' => '...', 'usage' => '...', 'category' => 'build'], ...]
 ```
+
+### CLI Entry Point
+
+`installer/cli.php` is a thin adapter over TerminalExecutor. It boots the app, parses `$argv`, and calls `$executor->dispatch()`. Plugin commands registered via `terminal.commands` filter are automatically available in both the web terminal AND the CLI.
 
 ### Persistent History
 
@@ -61,19 +76,28 @@ $executor->getHistory( 0 );   // All entries (max 100 stored)
 | `clear` | general | null | Clear terminal screen |
 | `build` | build | build.run | Rebuild entire static site |
 | `build:page <slug>` | build | build.run | Rebuild a single page |
-| `pages` | content | pages.view | List all pages |
+| `pages [--status=all]` | content | pages.view | List all pages |
 | `pages:count` | content | pages.view | Count pages by status |
-| `tasks` | content | tasks.manage | List tasks |
+| `tasks [--status=all]` | content | tasks.manage | List tasks |
 | `tasks:count` | content | tasks.manage | Count tasks by status |
 | `status` | system | site.configure | System status report |
 | `version` | system | null | Show Klytos version |
 | `cache:clear` | system | site.configure | Clear rate-limit and cron caches |
 | `cron:run` | system | site.configure | Run pending scheduled tasks |
+| `logs [--date=Y-m-d] [--lines=50]` | system | site.configure | View system log entries |
+| `webhooks` | system | site.configure | List configured webhooks |
 | `users` | users | users.manage | List admin users |
 | `plugins` | plugins | plugins.manage | List installed plugins |
 | `plugins:activate <id>` | plugins | plugins.manage | Activate a plugin |
 | `plugins:deactivate <id>` | plugins | plugins.manage | Deactivate a plugin |
-| `analytics` | system | analytics.view | Analytics summary (--period=7d\|30d\|90d) |
+| `analytics [--period=7d]` | system | analytics.view | Analytics summary |
+| `backup:create [--label=x]` | backup | site.configure | Create a manual backup |
+| `backup:list` | backup | site.configure | List available backups |
+| `backup:restore <name>` | backup | site.configure | Restore a backup |
+| `update:check` | update | site.configure | Check for Klytos updates |
+| `update:run` | update | site.configure | Download and install update |
+| `config:get <key>` | config | site.configure | Show a config value |
+| `config:set <key> <value>` | config | site.configure | Set a config value |
 
 ## Adding Commands from a Plugin
 

@@ -31,8 +31,14 @@ class OptionsManager
     /** @var StorageInterface Storage backend. */
     private StorageInterface $storage;
 
+    /** @var CacheManager|null Persistent cache layer (set after boot). */
+    private ?CacheManager $cacheManager = null;
+
     /** @var string Collection name used in StorageInterface. */
     private const COLLECTION = 'options';
+
+    /** @var string Cache group prefix for persistent cache keys. */
+    private const CACHE_GROUP = 'options';
 
     /** @var array<string, mixed> In-memory cache for the current request (key => value). */
     private array $cache = [];
@@ -46,6 +52,17 @@ class OptionsManager
     public function __construct(StorageInterface $storage)
     {
         $this->storage = $storage;
+    }
+
+    /**
+     * Inject the persistent cache manager.
+     *
+     * Called by App::boot() after the CacheManager is initialized.
+     * This allows OptionsManager to use persistent caching across requests.
+     */
+    public function setCacheManager(CacheManager $cacheManager): void
+    {
+        $this->cacheManager = $cacheManager;
     }
 
     /**
@@ -75,13 +92,26 @@ class OptionsManager
     {
         $key = $this->sanitizeKey($key);
 
-        // Check the in-memory cache first (avoids repeated reads in the same request).
+        // Level 1: In-memory request cache (fastest — no I/O).
         if (isset($this->cacheHits[$key])) {
             $value = $this->cache[$key];
             return klytos_apply_filters('option.get', $value, $key);
         }
 
-        // Read from storage.
+        // Level 2: Persistent cache (APCu/Redis/Memcached/File — much faster than storage).
+        if ($this->cacheManager !== null) {
+            $cacheKey = self::CACHE_GROUP . ':' . $key;
+            $cached   = $this->cacheManager->get($cacheKey);
+
+            if ($cached !== null) {
+                // Populate L1 cache from L2 hit.
+                $this->cache[$key]     = $cached;
+                $this->cacheHits[$key] = true;
+                return klytos_apply_filters('option.get', $cached, $key);
+            }
+        }
+
+        // Level 3: Storage (encrypted files or database — slowest).
         if (!$this->storage->exists(self::COLLECTION, $key)) {
             return $default;
         }
@@ -94,9 +124,14 @@ class OptionsManager
 
         $value = $record['value'] ?? $default;
 
-        // Populate cache for subsequent reads in the same request.
+        // Populate L1 request cache.
         $this->cache[$key]     = $value;
         $this->cacheHits[$key] = true;
+
+        // Populate L2 persistent cache for future requests.
+        if ($this->cacheManager !== null) {
+            $this->cacheManager->set(self::CACHE_GROUP . ':' . $key, $value);
+        }
 
         return klytos_apply_filters('option.get', $value, $key);
     }
@@ -147,9 +182,14 @@ class OptionsManager
 
         $this->storage->write(self::COLLECTION, $key, $record);
 
-        // Update the in-memory cache.
+        // Update L1 in-memory cache.
         $this->cache[$key]     = $value;
         $this->cacheHits[$key] = true;
+
+        // Update L2 persistent cache.
+        if ($this->cacheManager !== null) {
+            $this->cacheManager->set(self::CACHE_GROUP . ':' . $key, $value);
+        }
 
         klytos_do_action('option.after_set', $key, $value, $oldValue);
     }
@@ -172,8 +212,13 @@ class OptionsManager
 
         $this->storage->delete(self::COLLECTION, $key);
 
-        // Remove from cache.
+        // Remove from L1 in-memory cache.
         unset($this->cache[$key], $this->cacheHits[$key]);
+
+        // Remove from L2 persistent cache.
+        if ($this->cacheManager !== null) {
+            $this->cacheManager->delete(self::CACHE_GROUP . ':' . $key);
+        }
 
         klytos_do_action('option.after_delete', $key);
 

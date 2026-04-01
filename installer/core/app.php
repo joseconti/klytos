@@ -184,6 +184,9 @@ class App
     /** @var DevBar|null Developer bar metrics collector (only when dev mode is active). */
     private ?DevBar $devBar = null;
 
+    /** @var CacheManager|null Persistent cache manager (APCu, Redis, Memcached, or File). */
+    private ?CacheManager $cacheManager = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -333,6 +336,7 @@ class App
         // so deleting an entity deletes its meta too. No cleanup hook needed.
         $this->optionsManager = new OptionsManager($this->storage);
         $this->optionsManager->setActiveTextDomain('_core');
+        // CacheManager injection happens later (Step 10e) when it is initialized.
         $this->metaManager    = new MetaManager($this->storage);
 
         // Step 10d: Initialize TemplateResolver and RouteManager (before plugins so they can register).
@@ -350,7 +354,22 @@ class App
             $buildEngine->buildPluginsCss();
         });
 
-        // Step 10e: Initialize Developer Mode (DevBar + ProfilingStorage).
+        // Step 10e: Initialize persistent cache manager.
+        // Reads cache configuration from site config. Falls back to file cache
+        // if the configured driver (Redis, Memcached, APCu) is unavailable.
+        // Must happen AFTER siteConfig is ready so we can read cache settings.
+        $cacheConfig = $this->siteConfig->getValue('cache', []);
+        if (!is_array($cacheConfig)) {
+            $cacheConfig = [];
+        }
+        $this->cacheManager = new CacheManager($cacheConfig, $this->dataPath);
+
+        // Inject persistent cache into OptionsManager (enables L2 caching).
+        if ($this->optionsManager !== null) {
+            $this->optionsManager->setCacheManager($this->cacheManager);
+        }
+
+        // Step 10f: Initialize Developer Mode (DevBar + ProfilingStorage).
         // Must happen AFTER siteConfig is ready but BEFORE plugins load
         // so that plugin operations are captured by ProfilingStorage.
         $devConfig = $this->siteConfig->getValue('developer.developer_mode', false);
@@ -643,6 +662,20 @@ class App
     public function getOptionsManager(): OptionsManager
     {
         return $this->optionsManager;
+    }
+
+    /**
+     * Get the cache manager.
+     *
+     * Provides access to the persistent cache layer (APCu, Redis, Memcached, or File).
+     * Plugins should use klytos_cache() or klytos_cache_get() / klytos_cache_set()
+     * helper functions instead of accessing this directly.
+     *
+     * @return CacheManager
+     */
+    public function getCacheManager(): CacheManager
+    {
+        return $this->cacheManager;
     }
 
     /** Get the Meta API manager. */

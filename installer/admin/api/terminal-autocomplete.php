@@ -47,18 +47,22 @@ if ( empty( $currentUser['two_factor']['enabled'] ) ) {
     Helpers::jsonResponse( [ 'error' => 'Requires 2FA' ], 403 );
 }
 
-// 5. Filter commands by query prefix.
-$query        = strtolower( trim( $_GET['q'] ?? '' ) );
-$executor     = $app->getTerminalExecutor();
-$commandNames = array_keys( $executor->getCommands() );
+// 5. Get commands metadata and filter by query prefix.
+$query    = strtolower( trim( $_GET['q'] ?? '' ) );
+$executor = $app->getTerminalExecutor();
+$metadata = $executor->getCommandsMetadata();
 
 if ( $query === '' ) {
-    $suggestions = $commandNames;
+    $suggestions = array_keys( $metadata );
 } else {
     $suggestions = array_values( array_filter(
-        $commandNames,
+        array_keys( $metadata ),
         fn( $name ) => str_starts_with( $name, $query )
     ) );
 }
 
-Helpers::jsonResponse( [ 'suggestions' => $suggestions ] );
+// Return both suggestions (for autocomplete) and full metadata (for command panel).
+Helpers::jsonResponse( [
+    'suggestions' => $suggestions,
+    'commands'    => $metadata,
+] );
