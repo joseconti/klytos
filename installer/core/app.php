@@ -293,7 +293,7 @@ class App
         $this->theme      = new ThemeManager($this->storage);
         $this->menu       = new MenuManager($this->storage);
         $this->siteConfig = new SiteConfig($this->storage);
-        $this->assets     = new AssetManager($this->publicPath);
+        $this->assets     = new AssetManager($this->storage, $this->publicPath);
         $this->updater    = new Updater( $this->storage, $this->configPath );
 
         // Step 9: Load the Hook engine and global helper functions.
@@ -302,6 +302,7 @@ class App
         require_once $this->corePath . '/hooks.php';
         require_once $this->corePath . '/helpers-global.php';
         require_once $this->corePath . '/helpers-security.php';
+        require_once $this->corePath . '/asset-usage-hooks.php';
 
         // Step 10: Initialize v2.0 managers.
         $this->userManager         = new UserManager($this->storage);
@@ -536,6 +537,12 @@ class App
 
     /** Get the asset manager. */
     public function getAssets(): AssetManager
+    {
+        return $this->assets;
+    }
+
+    /** @alias getAssets() — preferred name for v2.0+ code. */
+    public function getAssetManager(): AssetManager
     {
         return $this->assets;
     }

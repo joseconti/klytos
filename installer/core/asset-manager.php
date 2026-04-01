@@ -24,14 +24,17 @@ class AssetManager
     private string $publicDir;
     private string $assetsDir;
     private int $maxFileSize;
+    private StorageInterface $storage;
 
     /**
-     * @param string $publicDir  Absolute path to public/ directory.
-     * @param int    $maxFileSize Maximum upload size in bytes (default 10MB).
+     * @param StorageInterface $storage     Storage backend for asset metadata.
+     * @param string           $publicDir   Absolute path to public/ directory.
+     * @param int              $maxFileSize Maximum upload size in bytes (default 10MB).
      */
-    public function __construct(string $publicDir, int $maxFileSize = 10485760)
+    public function __construct( StorageInterface $storage, string $publicDir, int $maxFileSize = 10485760 )
     {
-        $this->publicDir   = rtrim($publicDir, '/');
+        $this->storage     = $storage;
+        $this->publicDir   = rtrim( $publicDir, '/' );
         $this->assetsDir   = $this->publicDir . '/assets';
         $this->maxFileSize = $maxFileSize;
     }
@@ -109,6 +112,34 @@ class AssetManager
             'uploaded_at'   => Helpers::now(),
         ];
 
+        // Auto-register asset metadata in storage.
+        // Wrapped in try/catch: physical file is critical, metadata can be rebuilt.
+        try {
+            $assetId = Helpers::generateShortId();
+
+            $assetRecord = [
+                'id'          => $assetId,
+                'filename'    => $filename,
+                'path'        => $relativePath,
+                'mime_type'   => $result['mime_type'],
+                'size'        => $result['size'],
+                'size_human'  => $result['size_human'],
+                'alt_text'    => '',
+                'title'       => pathinfo( $filename, PATHINFO_FILENAME ),
+                'description' => '',
+                'categories'  => [],
+                'uploaded_by' => ( klytos_current_user()['id'] ?? 'system' ),
+                'uploaded_at' => $result['uploaded_at'],
+                'updated_at'  => $result['uploaded_at'],
+            ];
+
+            $this->storage->write( 'assets', $assetId, $assetRecord );
+            $result['asset_id'] = $assetId;
+        } catch ( \Throwable $e ) {
+            // Non-fatal: log the failure but return the upload result anyway.
+            klytos_do_action( 'asset.metadata_error', $e->getMessage(), $relativePath );
+        }
+
         klytos_do_action('asset.after_upload', $result, $filename);
 
         return $result;
@@ -143,12 +174,20 @@ class AssetManager
             return false;
         }
 
-        klytos_do_action('asset.before_delete', $path);
+        // Look up the asset record before deleting the physical file.
+        $assetRecord = $this->findAssetByPath( $relativePath );
+
+        klytos_do_action( 'asset.before_delete', $path, $assetRecord );
 
         $deleted = file_exists($path) && unlink($path);
 
         if ($deleted) {
-            klytos_do_action('asset.after_delete', $path);
+            // Clean up metadata and usage records.
+            if ( $assetRecord ) {
+                $this->storage->delete( 'assets', $assetRecord['id'] );
+                $this->deleteUsageForAsset( $assetRecord['id'] );
+            }
+            klytos_do_action( 'asset.after_delete', $path, $assetRecord );
         }
 
         return $deleted;
@@ -204,6 +243,447 @@ class AssetManager
     public function getAssetsDir(): string
     {
         return $this->assetsDir;
+    }
+
+    /**
+     * Get the storage backend.
+     *
+     * @return StorageInterface
+     */
+    public function getStorage(): StorageInterface
+    {
+        return $this->storage;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Sync & Rebuild
+    // ──────────────────────────────────────────────────────────
+
+    /**
+     * Scan the assets directory and create records for files
+     * that are not yet registered in the 'assets' collection.
+     *
+     * @return int Number of newly registered assets.
+     */
+    public function syncExistingAssets(): int
+    {
+        $allFiles      = $this->list();
+        $allRegistered = $this->storage->list( 'assets' );
+
+        // Build a set of already-registered paths.
+        $registeredPaths = [];
+        foreach ( $allRegistered as $record ) {
+            $registeredPaths[$record['path'] ?? ''] = true;
+        }
+
+        $synced = 0;
+
+        foreach ( $allFiles as $file ) {
+            if ( !isset( $registeredPaths[$file['path']] ) ) {
+                $assetId = Helpers::generateShortId();
+
+                $record = [
+                    'id'          => $assetId,
+                    'filename'    => $file['filename'],
+                    'path'        => $file['path'],
+                    'mime_type'   => $file['mime_type'],
+                    'size'        => $file['size'],
+                    'size_human'  => $file['size_human'],
+                    'alt_text'    => '',
+                    'title'       => pathinfo( $file['filename'], PATHINFO_FILENAME ),
+                    'description' => '',
+                    'categories'  => [],
+                    'uploaded_by' => 'system',
+                    'uploaded_at' => $file['modified'],
+                    'updated_at'  => $file['modified'],
+                ];
+
+                $this->storage->write( 'assets', $assetId, $record );
+                $synced++;
+            }
+        }
+
+        return $synced;
+    }
+
+    /**
+     * Rebuild the entire usage index by scanning all content.
+     *
+     * WARNING: deletes all existing usage records and recreates them.
+     *
+     * @return array Stats: ['scanned_pages' => int, 'usages_found' => int]
+     */
+    public function rebuildUsageIndex(): array
+    {
+        // 1. Delete all existing usage records.
+        $allUsage = $this->storage->list( 'asset-usage' );
+        foreach ( $allUsage as $usage ) {
+            $this->storage->delete( 'asset-usage', $usage['id'] );
+        }
+
+        $stats = ['scanned_pages' => 0, 'usages_found' => 0];
+
+        // 2. Scan all pages — triggers the page.after_save hook
+        //    which populates asset-usage records.
+        $pages = $this->storage->list( 'pages' );
+        foreach ( $pages as $page ) {
+            $stats['scanned_pages']++;
+            klytos_do_action( 'page.after_save', $page, 'rebuild' );
+        }
+
+        // 3. Scan theme configuration.
+        try {
+            $themeConfig = $this->storage->read( 'config', 'theme' );
+            if ( !empty( $themeConfig ) ) {
+                klytos_do_action( 'theme.after_save', $themeConfig );
+            }
+        } catch ( \Throwable $e ) {
+            // Theme config may not exist yet — safe to ignore.
+        }
+
+        // 4. Count the created usage records.
+        $stats['usages_found'] = $this->storage->count( 'asset-usage' );
+
+        return $stats;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Asset Categories
+    // ──────────────────────────────────────────────────────────
+
+    /**
+     * Create an asset category.
+     *
+     * @param  string      $name        Category display name.
+     * @param  string      $description Optional description.
+     * @param  string|null $parent      Optional parent category slug.
+     * @return array The created category record.
+     * @throws \RuntimeException If category already exists.
+     */
+    public function createCategory( string $name, string $description = '', ?string $parent = null ): array
+    {
+        $slug = Helpers::sanitizeSlug( $name );
+        $id   = $slug;
+
+        if ( $this->storage->exists( 'asset-categories', $id ) ) {
+            throw new \RuntimeException( "Asset category '{$slug}' already exists." );
+        }
+
+        klytos_do_action( 'asset_category.before_create', $name, $slug );
+
+        $record = [
+            'id'          => $id,
+            'name'        => $name,
+            'slug'        => $slug,
+            'description' => $description,
+            'parent'      => $parent,
+            'order'       => 0,
+            'created_at'  => Helpers::now(),
+        ];
+
+        $this->storage->write( 'asset-categories', $id, $record );
+
+        klytos_do_action( 'asset_category.after_create', $record );
+
+        return $record;
+    }
+
+    /**
+     * List all asset categories.
+     *
+     * @return array
+     */
+    public function listCategories(): array
+    {
+        return $this->storage->list( 'asset-categories' );
+    }
+
+    /**
+     * Delete a category (does NOT delete images, only unlinks them).
+     *
+     * @param  string $categoryId Category slug/ID.
+     * @return bool
+     */
+    public function deleteCategory( string $categoryId ): bool
+    {
+        if ( !$this->storage->exists( 'asset-categories', $categoryId ) ) {
+            return false;
+        }
+
+        klytos_do_action( 'asset_category.before_delete', $categoryId );
+
+        // Unlink the category from all assets that have it.
+        $assets = $this->storage->list( 'assets' );
+        foreach ( $assets as $asset ) {
+            if ( isset( $asset['categories'] ) && in_array( $categoryId, $asset['categories'], true ) ) {
+                $asset['categories'] = array_values(
+                    array_filter( $asset['categories'], fn( $c ) => $c !== $categoryId )
+                );
+                $this->storage->write( 'assets', $asset['id'], $asset );
+            }
+        }
+
+        $deleted = $this->storage->delete( 'asset-categories', $categoryId );
+
+        if ( $deleted ) {
+            klytos_do_action( 'asset_category.after_delete', $categoryId );
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Update a category's metadata.
+     *
+     * @param  string $categoryId Category slug/ID.
+     * @param  array  $data       Fields to update (name, description, parent, order).
+     * @return array  The updated record.
+     * @throws \RuntimeException If category does not exist.
+     */
+    public function updateCategory( string $categoryId, array $data ): array
+    {
+        if ( !$this->storage->exists( 'asset-categories', $categoryId ) ) {
+            throw new \RuntimeException( "Asset category '{$categoryId}' not found." );
+        }
+
+        $record = $this->storage->read( 'asset-categories', $categoryId );
+
+        $allowed = ['name', 'description', 'parent', 'order'];
+        foreach ( $allowed as $field ) {
+            if ( array_key_exists( $field, $data ) ) {
+                $record[$field] = $data[$field];
+            }
+        }
+
+        $this->storage->write( 'asset-categories', $categoryId, $record );
+
+        return $record;
+    }
+
+    /**
+     * Assign categories to an asset.
+     *
+     * @param string $assetId     Asset ID.
+     * @param array  $categoryIds Array of category slugs.
+     */
+    public function setAssetCategories( string $assetId, array $categoryIds ): void
+    {
+        $record = $this->storage->read( 'assets', $assetId );
+        $record['categories'] = $categoryIds;
+        $record['updated_at'] = Helpers::now();
+        $this->storage->write( 'assets', $assetId, $record );
+    }
+
+    /**
+     * Get all assets belonging to a category.
+     *
+     * @param  string $categoryId Category slug.
+     * @return array
+     */
+    public function getAssetsByCategory( string $categoryId ): array
+    {
+        $all    = $this->storage->list( 'assets' );
+        $result = [];
+
+        foreach ( $all as $asset ) {
+            if ( isset( $asset['categories'] ) && in_array( $categoryId, $asset['categories'], true ) ) {
+                $result[] = $asset;
+            }
+        }
+
+        return $result;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Asset Usage Tracking
+    // ──────────────────────────────────────────────────────────
+
+    /**
+     * Register that an asset is used in a specific context.
+     *
+     * @param string $assetId      Asset ID.
+     * @param string $contextType  Context type (page, header, footer, theme, favicon, og_image, etc.).
+     * @param string $contextId    Context identifier (page slug, 'global', widget ID, etc.).
+     * @param string $contextLabel Human-readable label for the context.
+     * @param string $field        Specific field where the asset is used.
+     */
+    public function trackUsage( string $assetId, string $contextType, string $contextId, string $contextLabel = '', string $field = 'content_html' ): void
+    {
+        $usageId = "{$assetId}--{$contextType}--{$contextId}";
+
+        // If already exists, just update the label if it changed.
+        if ( $this->storage->exists( 'asset-usage', $usageId ) ) {
+            $existing = $this->storage->read( 'asset-usage', $usageId );
+            if ( $existing['context_label'] !== $contextLabel ) {
+                $existing['context_label'] = $contextLabel;
+                $this->storage->write( 'asset-usage', $usageId, $existing );
+            }
+            return;
+        }
+
+        $record = [
+            'id'            => $usageId,
+            'asset_id'      => $assetId,
+            'context_type'  => $contextType,
+            'context_id'    => $contextId,
+            'context_label' => $contextLabel,
+            'field'         => $field,
+            'added_at'      => Helpers::now(),
+        ];
+
+        $this->storage->write( 'asset-usage', $usageId, $record );
+    }
+
+    /**
+     * Remove a usage record for an asset in a specific context.
+     *
+     * @param string $assetId     Asset ID.
+     * @param string $contextType Context type.
+     * @param string $contextId   Context identifier.
+     */
+    public function removeUsage( string $assetId, string $contextType, string $contextId ): void
+    {
+        $usageId = "{$assetId}--{$contextType}--{$contextId}";
+        $this->storage->delete( 'asset-usage', $usageId );
+    }
+
+    /**
+     * Get all usage records for an asset.
+     *
+     * @param  string $assetId Asset ID.
+     * @return array  List of usage records.
+     */
+    public function getUsage( string $assetId ): array
+    {
+        $all    = $this->storage->list( 'asset-usage' );
+        $result = [];
+
+        foreach ( $all as $record ) {
+            if ( ( $record['asset_id'] ?? '' ) === $assetId ) {
+                $result[] = $record;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get all assets used in a specific context.
+     *
+     * @param  string $contextType Context type.
+     * @param  string $contextId   Context identifier.
+     * @return array
+     */
+    public function getAssetsForContext( string $contextType, string $contextId ): array
+    {
+        $all    = $this->storage->list( 'asset-usage' );
+        $result = [];
+
+        foreach ( $all as $record ) {
+            if ( ( $record['context_type'] ?? '' ) === $contextType
+                && ( $record['context_id'] ?? '' ) === $contextId ) {
+                $result[] = $record;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Check if an asset is used anywhere.
+     *
+     * @param  string $assetId Asset ID.
+     * @return bool
+     */
+    public function isAssetInUse( string $assetId ): bool
+    {
+        return count( $this->getUsage( $assetId ) ) > 0;
+    }
+
+    /**
+     * Get all assets that are not used anywhere.
+     *
+     * @return array
+     */
+    public function getUnusedAssets(): array
+    {
+        $allAssets = $this->storage->list( 'assets' );
+        $allUsage  = $this->storage->list( 'asset-usage' );
+
+        // Build a set of asset IDs that are in use.
+        $usedIds = [];
+        foreach ( $allUsage as $usage ) {
+            $usedIds[$usage['asset_id'] ?? ''] = true;
+        }
+
+        $unused = [];
+        foreach ( $allAssets as $asset ) {
+            if ( !isset( $usedIds[$asset['id']] ) ) {
+                $unused[] = $asset;
+            }
+        }
+
+        return $unused;
+    }
+
+    /**
+     * Delete all usage records for a given asset.
+     *
+     * @param  string $assetId Asset ID.
+     * @return int    Number of records deleted.
+     */
+    public function deleteUsageForAsset( string $assetId ): int
+    {
+        $usages  = $this->getUsage( $assetId );
+        $deleted = 0;
+
+        foreach ( $usages as $usage ) {
+            if ( $this->storage->delete( 'asset-usage', $usage['id'] ) ) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Delete all usage records for a specific context (e.g. when a page is deleted).
+     *
+     * @param  string $contextType Context type.
+     * @param  string $contextId   Context identifier.
+     * @return int    Number of records deleted.
+     */
+    public function deleteUsageForContext( string $contextType, string $contextId ): int
+    {
+        $usages  = $this->getAssetsForContext( $contextType, $contextId );
+        $deleted = 0;
+
+        foreach ( $usages as $usage ) {
+            if ( $this->storage->delete( 'asset-usage', $usage['id'] ) ) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * Find an asset record by its relative path.
+     *
+     * @param  string     $relativePath Relative path (e.g. 'assets/images/2026/04/hero.jpg').
+     * @return array|null The asset record, or null if not found.
+     */
+    public function findAssetByPath( string $relativePath ): ?array
+    {
+        $all = $this->storage->list( 'assets' );
+
+        foreach ( $all as $asset ) {
+            if ( ( $asset['path'] ?? '' ) === $relativePath ) {
+                return $asset;
+            }
+        }
+
+        return null;
     }
 
     /**
