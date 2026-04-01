@@ -264,6 +264,8 @@ class ToolRegistry
             'post-type-tools.php',
             'custom-field-tools.php',
             'option-tools.php',
+            // v0.20.0 Form tools.
+            'forms-tools.php',
             // v0.9.0 AI chat tools.
             'ai-tools.php',
             'translation-tools.php',

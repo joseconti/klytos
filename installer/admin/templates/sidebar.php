@@ -140,6 +140,27 @@ $sidebarItems = [
         'capability' => 'analytics.view',
     ],
 
+    [
+        'id'         => 'forms',
+        'title'      => 'Formularios',
+        'icon'       => 'fa-solid fa-rectangle-list',
+        'position'   => 61,
+        'section'    => 'content',
+        'capability' => 'site.configure',
+        'children'   => [
+            [
+                'id'    => 'forms-list',
+                'title' => 'Todos los formularios',
+                'url'   => $adminPath . 'forms.php',
+            ],
+            [
+                'id'    => 'form-entries',
+                'title' => 'Entradas',
+                'url'   => $adminPath . 'form-entries.php',
+            ],
+        ],
+    ],
+
     // ── System section ──
     [
         'id'         => 'scheduled-actions',

@@ -67,6 +67,11 @@ class Router
                 $this->handleInstall();
                 break;
 
+            case 'api/forms/submit':
+                // Public form submission endpoint.
+                $this->handleFormSubmit();
+                break;
+
             case 't':
             case 't.php':
                 // Analytics tracking pixel endpoint.
@@ -150,6 +155,40 @@ class Router
      * Handle analytics tracking pixel requests.
      * Forwards to t.php which responds with a 1x1 GIF and records the pageview.
      */
+    /**
+     * Handle public form submission (POST /api/forms/submit).
+     */
+    private function handleFormSubmit(): void
+    {
+        header( 'Content-Type: application/json; charset=utf-8' );
+
+        if ( ( $_SERVER['REQUEST_METHOD'] ?? '' ) !== 'POST' ) {
+            http_response_code( 405 );
+            echo json_encode( [ 'success' => false, 'errors' => [ 'form' => 'Method not allowed.' ] ] );
+            exit;
+        }
+
+        $formId = $_POST['_form_id'] ?? '';
+        if ( empty( $formId ) ) {
+            http_response_code( 400 );
+            echo json_encode( [ 'success' => false, 'errors' => [ 'form' => 'Missing form ID.' ] ] );
+            exit;
+        }
+
+        $meta = [
+            'ip'         => $_SERVER['REMOTE_ADDR'] ?? '',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'referrer'   => $_SERVER['HTTP_REFERER'] ?? '',
+            'page_url'   => $_POST['_page_url'] ?? '',
+            'locale'     => $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '',
+        ];
+
+        $result = $this->app->getFormManager()->submitForm( $formId, $_POST, $_FILES, $meta );
+
+        echo json_encode( $result, JSON_UNESCAPED_UNICODE );
+        exit;
+    }
+
     private function handleAnalyticsPixel(): void
     {
         $tFile = $this->app->getRootPath() . '/t.php';

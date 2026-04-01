@@ -104,10 +104,6 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <?php klytos_do_action( 'admin.translations.before' ); ?>
 
-<div class="content-header">
-    <h1><?php echo klytos_esc_html( $pageTitle ); ?></h1>
-</div>
-
 <?php if ( empty( $editableLanguages ) ): ?>
     <div class="alert alert-warning">
         <?php echo __( 'translations.no_languages' ); ?>
@@ -235,8 +231,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <tr>
                     <th style="width:25%;font-size:0.85rem;"><?php echo __( 'translations.key' ); ?></th>
                     <th style="width:30%;"><?php echo __( 'translations.english' ); ?></th>
-                    <th style="width:30%;"><?php echo klytos_esc_html( $localeName ); ?></th>
-                    <th style="width:15%;text-align:right;"><?php echo klytos_apply_filters( 'admin.translations.actions_header', '' ); ?></th>
+                    <th style="width:45%;"><?php echo klytos_esc_html( $localeName ); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -256,36 +251,41 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <td style="background:var(--admin-bg);font-size:0.9rem;">
                             <?php echo klytos_esc_html( $englishValue ); ?>
                         </td>
-                        <td>
-                            <textarea class="form-control js-translation-input"
-                                      data-key="<?php echo klytos_esc_attr( $key ); ?>"
-                                      data-original="<?php echo klytos_esc_attr( $currentTranslation ); ?>"
-                                      placeholder="<?php echo klytos_esc_attr( $englishValue ); ?>"
-                                      rows="1"
-                                      style="resize:none;overflow:hidden;font-size:0.9rem;border-color:var(--admin-border);width:100%;"><?php echo klytos_esc_html( $currentTranslation ); ?></textarea>
-                        </td>
-                        <td style="text-align:right;white-space:nowrap;">
-                            <?php if ( !empty( $aiProviders ) ): ?>
-                            <div class="dropdown" style="display:inline-block;position:relative;">
-                                <button type="button" class="btn btn-sm btn-outline js-ai-translate-btn" title="<?php echo klytos_esc_attr( __( 'translations.translate_with' ) ); ?>">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                                </button>
-                                <div class="dropdown-menu js-ai-dropdown" style="display:none;position:absolute;right:0;top:100%;background:var(--admin-card-bg);border:1px solid var(--admin-border);border-radius:var(--admin-radius, 6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:160px;">
-                                    <?php foreach ( $aiProviders as $provider ): ?>
-                                        <button type="button" class="dropdown-item js-ai-provider-btn"
-                                                data-provider="<?php echo klytos_esc_attr( $provider['id'] ); ?>"
-                                                data-key="<?php echo klytos_esc_attr( $key ); ?>"
-                                                style="display:block;width:100%;text-align:left;padding:0.5rem 1rem;border:none;background:none;cursor:pointer;color:var(--admin-text);font-size:0.85rem;">
-                                            <?php echo klytos_esc_html( $provider['name'] ); ?>
+                        <td colspan="2">
+                            <div class="translation-cell">
+                                <textarea class="form-control js-translation-input"
+                                          data-key="<?php echo klytos_esc_attr( $key ); ?>"
+                                          data-original="<?php echo klytos_esc_attr( $currentTranslation ); ?>"
+                                          placeholder="<?php echo klytos_esc_attr( $englishValue ); ?>"
+                                          rows="1"
+                                          style="resize:none;overflow:hidden;font-size:0.85rem;padding:0.35rem 0.5rem;line-height:1.4;border-color:var(--admin-border);width:100%;min-height:0;"><?php echo klytos_esc_html( $currentTranslation ); ?></textarea>
+                                <div class="translation-actions">
+                                    <button type="button" class="btn btn-sm btn-primary js-save-btn" data-key="<?php echo klytos_esc_attr( $key ); ?>" style="display:none;">
+                                        <i class="fa-solid fa-floppy-disk"></i> <?php echo __( 'common.save' ); ?>
+                                    </button>
+                                    <span class="translation-saved-msg" style="display:none;color:#28a745;font-size:0.8rem;">
+                                        <i class="fa-solid fa-check"></i> <?php echo __( 'translations.save_success' ); ?>
+                                    </span>
+                                    <?php if ( !empty( $aiProviders ) ): ?>
+                                    <div class="dropdown" style="display:inline-block;position:relative;">
+                                        <button type="button" class="btn btn-sm btn-outline js-ai-translate-btn" title="<?php echo klytos_esc_attr( __( 'translations.translate_with' ) ); ?>">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> IA
                                         </button>
-                                    <?php endforeach; ?>
+                                        <div class="dropdown-menu js-ai-dropdown" style="display:none;position:absolute;right:0;top:100%;background:var(--admin-card-bg);border:1px solid var(--admin-border);border-radius:var(--admin-radius, 6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:160px;">
+                                            <?php foreach ( $aiProviders as $provider ): ?>
+                                                <button type="button" class="dropdown-item js-ai-provider-btn"
+                                                        data-provider="<?php echo klytos_esc_attr( $provider['id'] ); ?>"
+                                                        data-key="<?php echo klytos_esc_attr( $key ); ?>"
+                                                        style="display:block;width:100%;text-align:left;padding:0.5rem 1rem;border:none;background:none;cursor:pointer;color:var(--admin-text);font-size:0.85rem;">
+                                                    <?php echo klytos_esc_html( $provider['name'] ); ?>
+                                                </button>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?php echo $rowActions; ?>
                                 </div>
                             </div>
-                            <?php endif; ?>
-                            <button type="button" class="btn btn-sm btn-success js-save-btn" data-key="<?php echo klytos_esc_attr( $key ); ?>" title="<?php echo klytos_esc_attr( __( 'translations.save_success' ) ); ?>">
-                                <i class="fa-solid fa-check"></i>
-                            </button>
-                            <?php echo $rowActions; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -302,6 +302,21 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action( 'admin.translations.after' ); ?>
 
 <style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+#translationsTable td {
+    padding: 0.4rem 0.5rem;
+    vertical-align: middle;
+}
+.translation-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.translation-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.5rem;
+}
 .translation-missing .js-translation-input {
     border-color: #e2a03f !important;
 }
@@ -314,6 +329,17 @@ require_once __DIR__ . '/templates/sidebar.php';
 }
 .dropdown-item:hover {
     background: var(--admin-bg) !important;
+}
+.js-save-btn {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+}
+.js-ai-translate-btn {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+}
+#translateAllBtn {
+    white-space: nowrap;
 }
 @media (max-width: 768px) {
     #translationsTable thead { display: none; }
@@ -412,11 +438,31 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     document.querySelectorAll('.js-translation-input').forEach(function(ta) {
         autoResize(ta);
-        ta.addEventListener('input', function() { autoResize(this); });
+        ta.addEventListener('input', function() {
+            autoResize(this);
+            // Show/hide save button based on changes.
+            var row = this.closest('tr');
+            var saveBtn = row.querySelector('.js-save-btn');
+            var savedMsg = row.querySelector('.translation-saved-msg');
+            if (saveBtn) {
+                var hasChanged = this.value !== this.getAttribute('data-original');
+                saveBtn.style.display = hasChanged ? 'inline-flex' : 'none';
+                if (savedMsg) savedMsg.style.display = 'none';
+            }
+        });
     });
 
     // ─── Save individual translation ─────────────────────────
     function saveTranslation(key, value, row) {
+        var saveBtn = row.querySelector('.js-save-btn');
+        var savedMsg = row.querySelector('.translation-saved-msg');
+
+        // Show saving state.
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+
         return fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
@@ -433,7 +479,6 @@ require_once __DIR__ . '/templates/sidebar.php';
                 if (row) {
                     row.classList.add('translation-flash');
                     setTimeout(function() { row.classList.remove('translation-flash'); }, 800);
-                    // Update row state.
                     if (value) {
                         row.classList.remove('translation-missing');
                         row.classList.add('translation-done');
@@ -445,13 +490,18 @@ require_once __DIR__ . '/templates/sidebar.php';
                     var ta = row.querySelector('.js-translation-input');
                     if (ta) ta.setAttribute('data-original', value);
                 }
+                // Hide save button, show confirmation.
+                if (saveBtn) { saveBtn.style.display = 'none'; saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ' + msgSaveSuccess.split(' ')[0]; }
+                if (savedMsg) { savedMsg.style.display = 'inline'; setTimeout(function() { savedMsg.style.display = 'none'; }, 2500); }
                 return true;
             } else {
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ' + msgSaveError; }
                 alert(msgSaveError + ': ' + (data.error || ''));
                 return false;
             }
         })
         .catch(function() {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Error'; }
             alert(msgSaveError);
             return false;
         });
@@ -465,17 +515,6 @@ require_once __DIR__ . '/templates/sidebar.php';
             var ta  = row.querySelector('.js-translation-input');
             if (ta) {
                 saveTranslation(key, ta.value, row);
-            }
-        });
-    });
-
-    // Save on blur if changed.
-    document.querySelectorAll('.js-translation-input').forEach(function(ta) {
-        ta.addEventListener('blur', function() {
-            if (this.value !== this.getAttribute('data-original')) {
-                var row = this.closest('tr');
-                var key = this.getAttribute('data-key');
-                saveTranslation(key, this.value, row);
             }
         });
     });
