@@ -160,6 +160,15 @@ $sidebarItems = [
         'capability' => 'webhooks.manage',
     ],
     [
+        'id'         => 'consent',
+        'title'      => 'Consent Manager',
+        'url'        => $adminPath . 'consent.php',
+        'icon'       => 'fa-solid fa-cookie-bite',
+        'position'   => 66,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'users',
         'title'      => 'Users',
         'url'        => $adminPath . 'users.php',

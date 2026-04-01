@@ -86,7 +86,10 @@ class BuildEngine
         // 1e. Generate block JS (blocks.js)
         $this->generateBlocksJs();
 
-        // 1f. Pre-render global blocks (scope=global) and cache in memory.
+        // 1f. Generate consent manager JS (consent-manager.js)
+        $this->buildConsentManagerJs();
+
+        // 1g. Pre-render global blocks (scope=global) and cache in memory.
         $this->globalBlocksCache = $this->cacheGlobalBlocks();
 
         // 2. Get global data
@@ -332,6 +335,7 @@ class BuildEngine
             '{{blocks_css_link}}'      => $this->buildBlocksCssLink( $basePath ),
             '{{blocks_js_script}}'     => $this->buildBlocksJsTag( $basePath ),
             '{{hooks_js_script}}'      => $this->buildHooksJsTag( $basePath ),
+            '{{consent_manager_script}}' => $this->buildConsentManagerJsTag( $basePath ),
         ];
     }
 
@@ -559,6 +563,88 @@ class BuildEngine
         }
         $src = $basePath . 'assets/js/klytos-hooks.js?v=' . $version;
         return '<script src="' . Helpers::escUrl($src) . '" defer></script>';
+    }
+
+    /**
+     * Generate /assets/js/consent-manager.js
+     * Copies the consent manager library to the output directory.
+     * Only outputs the file when the Consent Manager is enabled.
+     */
+    public function buildConsentManagerJs(): void
+    {
+        $sourceFile = $this->app->getCorePath() . '/assets/consent-manager.js';
+        $outputDir  = $this->outputPath . '/assets/js';
+
+        if ( !file_exists( $sourceFile ) ) {
+            klytos_set_option( 'consent_manager_js_version', '' );
+            return;
+        }
+
+        $consentManager = $this->app->getConsentManager();
+        $config         = $consentManager->getConfig();
+
+        if ( empty( $config['enabled'] ) ) {
+            // Remove stale file if consent is disabled.
+            $outputFile = $outputDir . '/consent-manager.js';
+            if ( file_exists( $outputFile ) ) {
+                unlink( $outputFile );
+            }
+            klytos_set_option( 'consent_manager_js_version', '' );
+            return;
+        }
+
+        $js = file_get_contents( $sourceFile );
+
+        Helpers::ensureWritableDir( $outputDir );
+        file_put_contents( $outputDir . '/consent-manager.js', $js, LOCK_EX );
+
+        $version = substr( md5( $js ), 0, 8 );
+        klytos_set_option( 'consent_manager_js_version', $version );
+    }
+
+    /**
+     * Build the <script> tags for consent-manager.js and its init call.
+     * Must NOT use defer — the consent manager must execute synchronously
+     * before any other scripts to intercept blocked scripts.
+     *
+     * @param  string $basePath Site base path.
+     * @return string HTML script tags or empty string.
+     */
+    private function buildConsentManagerJsTag( string $basePath ): string
+    {
+        $version = klytos_get_option( 'consent_manager_js_version', '' );
+        if ( empty( $version ) ) {
+            return '';
+        }
+
+        $consentManager = $this->app->getConsentManager();
+        $config         = $consentManager->getConfig();
+
+        if ( empty( $config['enabled'] ) ) {
+            return '';
+        }
+
+        // Build the JS init config object.
+        $jsConfig = [
+            'bannerText' => $config['banner_text'],
+            'autoShow'   => true,
+        ];
+
+        if ( !empty( $config['privacy_url'] ) ) {
+            $jsConfig['privacyUrl'] = $config['privacy_url'];
+        }
+
+        if ( !empty( $config['categories'] ) ) {
+            $jsConfig['categories'] = $config['categories'];
+        }
+
+        $jsConfig = klytos_apply_filters( 'consent.init_config', $jsConfig );
+
+        $src        = $basePath . 'assets/js/consent-manager.js?v=' . $version;
+        $configJson = json_encode( $jsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+        return '<script src="' . Helpers::escUrl( $src ) . '"></script>' . "\n  "
+             . '<script>ConsentManager.init(' . $configJson . ');</script>';
     }
 
     /**

@@ -415,6 +415,19 @@ Every admin page fires `admin.{pagename}.before` and `admin.{pagename}.after`. A
 | `webhook.after_delete` | action | `string $webhookId` | core/webhook-manager.php |
 | `webhooks.events` | filter | `array $events` | core/webhook-manager.php |
 
+#### Consent Manager
+
+| Hook | Type | Arguments | Source |
+|---|---|---|---|
+| `consent.config` | filter | `array $config` | core/consent-manager.php |
+| `consent.declarations` | filter | `array $declarations` | core/consent-manager.php |
+| `consent.before_save` | action | `array $config` | core/consent-manager.php |
+| `consent.after_save` | action | `array $config` | core/consent-manager.php |
+| `consent.init_config` | filter | `array $jsConfig` | core/build-engine.php |
+| `consent.audit_export` | filter | `array $auditData` | core/consent-manager.php |
+| `admin.consent.before` | action | — | admin/consent.php |
+| `admin.consent.after` | action | — | admin/consent.php |
+
 #### Cron & Tasks
 
 | Hook | Type | Arguments | Source |

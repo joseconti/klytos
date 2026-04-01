@@ -136,6 +136,9 @@ class App
     /** @var WebhookManager|null Event notification system. */
     private ?WebhookManager $webhookManager = null;
 
+    /** @var ConsentManager|null Cookie consent management for GDPR/CCPA. */
+    private ?ConsentManager $consentManager = null;
+
     /** @var CronManager|null Pseudo-cron task scheduler. */
     private ?CronManager $cronManager = null;
 
@@ -305,6 +308,7 @@ class App
         $this->pageTemplateManager = new PageTemplateManager($this->storage, $this->blockManager);
         $this->analyticsManager    = new AnalyticsManager($this->storage);
         $this->webhookManager      = new WebhookManager($this->storage);
+        $this->consentManager      = new ConsentManager($this->storage);
         $this->cronManager         = new CronManager($this->storage);
         $this->actionScheduler     = new ActionScheduler($this->storage, $this->configPath);
         $this->auditLog            = new AuditLog($this->storage);
@@ -585,6 +589,12 @@ class App
     public function getWebhookManager(): WebhookManager
     {
         return $this->webhookManager;
+    }
+
+    /** Get the consent manager. */
+    public function getConsentManager(): ConsentManager
+    {
+        return $this->consentManager;
     }
 
     /** Get the cron manager. */
