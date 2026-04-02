@@ -100,6 +100,13 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
 
     if ( $action === 'recovery_confirmed' ) {
         unset( $_SESSION['klytos_setup_totp_secret'], $_SESSION['klytos_setup_recovery_codes'] );
+        $_SESSION['klytos_setup_step'] = 'encryption_key';
+        Helpers::redirect( Helpers::url( 'admin/setup-wizard.php' ) );
+    }
+
+    if ( $action === 'encryption_key_confirmed' ) {
+        // Mark the key as backed up in site config.
+        $app->getSiteConfig()->set( ['encryption_key_backed_up' => true] );
         $_SESSION['klytos_setup_step'] = 'connection';
         Helpers::redirect( Helpers::url( 'admin/setup-wizard.php' ) );
     }

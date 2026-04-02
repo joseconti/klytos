@@ -199,21 +199,31 @@ class Helpers
      */
     public static function getBasePath(): string
     {
-        // The web root is the parent of the admin/installer directory.
-        $webRoot = dirname( dirname( __DIR__ ) );
+        // Prefer the base path persisted at install time — always correct
+        // regardless of directory renames or hosting quirks.
+        try {
+            $config = App::getInstance()->getConfig();
+            $installBase = $config['install_base'] ?? null;
+            $adminDir    = $config['admin_dir'] ?? null;
 
-        $docRoot = realpath( $_SERVER['DOCUMENT_ROOT'] ?? $webRoot );
-        $webRoot = realpath( $webRoot );
+            if ( $installBase !== null && $adminDir !== null ) {
+                return rtrim( $installBase, '/' ) . '/' . $adminDir . '/';
+            }
+        } catch ( \Throwable ) {
+            // App not booted yet (e.g. during installation) — fall through.
+        }
 
-        if ( $docRoot && $webRoot && str_starts_with( $webRoot, $docRoot ) ) {
-            $basePath = substr( $webRoot, strlen( $docRoot ) );
+        // Fallback: derive from filesystem paths.
+        $klytosRoot = realpath( dirname( __DIR__ ) );
+        $docRoot    = realpath( $_SERVER['DOCUMENT_ROOT'] ?? dirname( $klytosRoot ) );
+
+        if ( $docRoot && $klytosRoot && str_starts_with( $klytosRoot, $docRoot ) ) {
+            $basePath = substr( $klytosRoot, strlen( $docRoot ) );
         } else {
-            // Fallback: parse SCRIPT_NAME and strip the admin directory segment.
+            // Last resort: parse SCRIPT_NAME.
             $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
             $basePath   = dirname( $scriptName );
-            // Strip any segment ending in "-admin" or literal "admin" or "public".
-            $basePath = preg_replace( '#/[a-f0-9]*-?admin(/.*)?$#i', '', $basePath );
-            $basePath = preg_replace( '#/public(/.*)?$#', '', $basePath );
+            $basePath   = preg_replace( '#/(admin|public)(/.*)?$#', '', $basePath );
         }
 
         return rtrim( str_replace( '\\', '/', $basePath ), '/' ) . '/';
