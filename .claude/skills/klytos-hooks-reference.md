@@ -284,7 +284,13 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `admin.sidebar.before_section` | action | `string $sectionName` (content, system, or plugin section) | admin/templates/sidebar.php |
 | `admin.sidebar.after_section` | action | `string $sectionName` | admin/templates/sidebar.php |
 | `admin.sidebar.footer` | action | — | admin/templates/sidebar.php |
+| `admin.sidebar.before_sections` | action | — | admin/templates/sidebar.php |
+| `admin.sidebar.after_sections` | action | — | admin/templates/sidebar.php |
 | `admin.sidebar_items` | filter | `array $items` | admin/templates/sidebar.php |
+| `admin.sidebar_section_order` | filter | `array $sectionOrder` | admin/templates/sidebar.php |
+| `admin.sidebar_section_label` | filter | `string $label, string $sectionName` | admin/templates/sidebar.php |
+| `admin.sidebar_order.saved` | action | `string $userId, array $sections, array $items` | admin/api/sidebar-order.php |
+| `admin.sidebar_order.reset` | action | `string $userId` | admin/api/sidebar-order.php |
 
 #### Topbar
 

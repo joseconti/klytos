@@ -554,6 +554,11 @@
     "uninstall_keep": "Conservar",
     "uninstall_keep_notice": "Puedes eliminarlas en cualquier momento desde System > Gestion de Opciones"
   },
+  "sidebar": {
+    "section_content": "Contenido",
+    "customize": "Personalizar menú",
+    "reset_order": "Restablecer orden"
+  },
   "translations": {
     "title": "Traducciones",
     "source": "Origen",

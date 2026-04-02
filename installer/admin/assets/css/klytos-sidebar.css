@@ -301,7 +301,8 @@
     display: none;
 }
 
-.sidebar-section.search-hidden {
+.sidebar-section.search-hidden,
+.sidebar-section-group.search-hidden {
     display: none;
 }
 
@@ -381,4 +382,97 @@
     .admin-sidebar .sidebar-item-wrap:hover .sidebar-tooltip {
         display: block;
     }
+
+    .sidebar-edit-controls {
+        display: none;
+    }
+}
+
+/* ============================================================
+   SIDEBAR EDIT / REORDER MODE
+   ============================================================ */
+
+/* Edit controls footer */
+.sidebar-edit-controls {
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--klytos-sidebar-border);
+}
+
+.sidebar-edit-toggle,
+.sidebar-edit-reset {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space);
+    width: 100%;
+    padding: 0.5rem 0;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: color var(--klytos-transition-fast);
+}
+
+.sidebar-edit-toggle:hover,
+.sidebar-edit-reset:hover {
+    color: #fff;
+}
+
+/* Drag handles (hidden by default, shown in edit mode) */
+.sidebar-item-drag-handle,
+.sidebar-section-drag-handle {
+    display: none;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+/* Edit mode active */
+.sidebar-editing .sidebar-item-drag-handle,
+.sidebar-editing .sidebar-section-drag-handle {
+    display: inline-flex;
+    align-items: center;
+}
+
+.sidebar-editing .sidebar-nav a {
+    cursor: default;
+}
+
+.sidebar-editing .sidebar-section {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* SortableJS ghost and chosen states */
+.sidebar-sortable-ghost {
+    opacity: 0.4;
+    background: rgba(91, 141, 239, 0.15);
+}
+
+.sidebar-sortable-chosen {
+    background: rgba(91, 141, 239, 0.25);
+}
+
+/* Editing indicator on toggle button */
+.sidebar-editing .sidebar-edit-toggle {
+    color: var(--klytos-primary, #5b8def);
+}
+
+/* Collapsed sidebar hides edit controls label */
+.admin-sidebar.collapsed .sidebar-edit-controls .sidebar-label {
+    display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-edit-controls {
+    padding: 0.75rem 0;
+    text-align: center;
+}
+
+.admin-sidebar.collapsed .sidebar-edit-toggle,
+.admin-sidebar.collapsed .sidebar-edit-reset {
+    justify-content: center;
 }
