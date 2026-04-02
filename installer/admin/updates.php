@@ -130,7 +130,12 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="display:flex;flex-direction:column;gap:0.75rem;">
 
             <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem;border-radius:var(--admin-radius);border:2px solid <?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;">
-                <input type="radio" name="channel" value="stable" <?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'checked' : ''; ?> style="margin-top:0.2rem;">
+                <input type="radio" name="channel" value="stable" <?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'checked' : ''; ?> style="position:absolute;opacity:0;pointer-events:none;">
+                <span class="channel-dot" style="display:inline-block;width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--admin-border);margin-top:0.2rem;position:relative;<?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'border-color:var(--admin-primary);' : ''; ?>">
+                    <?php if ( $currentChannel === Updater::CHANNEL_STABLE ): ?>
+                        <span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>
+                    <?php endif; ?>
+                </span>
                 <div>
                     <strong>Stable</strong>
                     <span class="badge-status badge-published" style="margin-left:0.5rem;">Recommended</span>
@@ -141,7 +146,12 @@ require_once __DIR__ . '/templates/sidebar.php';
             </label>
 
             <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem;border-radius:var(--admin-radius);border:2px solid <?php echo $currentChannel === Updater::CHANNEL_RC ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;">
-                <input type="radio" name="channel" value="rc" <?php echo $currentChannel === Updater::CHANNEL_RC ? 'checked' : ''; ?> style="margin-top:0.2rem;">
+                <input type="radio" name="channel" value="rc" <?php echo $currentChannel === Updater::CHANNEL_RC ? 'checked' : ''; ?> style="position:absolute;opacity:0;pointer-events:none;">
+                <span class="channel-dot" style="display:inline-block;width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--admin-border);margin-top:0.2rem;position:relative;<?php echo $currentChannel === Updater::CHANNEL_RC ? 'border-color:var(--admin-primary);' : ''; ?>">
+                    <?php if ( $currentChannel === Updater::CHANNEL_RC ): ?>
+                        <span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>
+                    <?php endif; ?>
+                </span>
                 <div>
                     <strong>Release Candidate</strong>
                     <span class="badge-status badge-draft" style="margin-left:0.5rem;">Developers</span>
@@ -152,7 +162,12 @@ require_once __DIR__ . '/templates/sidebar.php';
             </label>
 
             <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem;border-radius:var(--admin-radius);border:2px solid <?php echo $currentChannel === Updater::CHANNEL_BETA ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;">
-                <input type="radio" name="channel" value="beta" <?php echo $currentChannel === Updater::CHANNEL_BETA ? 'checked' : ''; ?> style="margin-top:0.2rem;">
+                <input type="radio" name="channel" value="beta" <?php echo $currentChannel === Updater::CHANNEL_BETA ? 'checked' : ''; ?> style="position:absolute;opacity:0;pointer-events:none;">
+                <span class="channel-dot" style="display:inline-block;width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--admin-border);margin-top:0.2rem;position:relative;<?php echo $currentChannel === Updater::CHANNEL_BETA ? 'border-color:var(--admin-primary);' : ''; ?>">
+                    <?php if ( $currentChannel === Updater::CHANNEL_BETA ): ?>
+                        <span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>
+                    <?php endif; ?>
+                </span>
                 <div>
                     <strong>Beta</strong>
                     <span class="badge-status badge-urgent" style="margin-left:0.5rem;">Developers</span>
@@ -539,8 +554,14 @@ require_once __DIR__ . '/templates/sidebar.php';
         radio.addEventListener( 'change', function() {
             document.querySelectorAll( 'input[name="channel"]' ).forEach( function( r ) {
                 r.closest( 'label' ).style.borderColor = 'var(--admin-border)';
+                var dot = r.closest( 'label' ).querySelector( '.channel-dot' );
+                dot.style.borderColor = 'var(--admin-border)';
+                dot.innerHTML = '';
             } );
             this.closest( 'label' ).style.borderColor = 'var(--admin-primary)';
+            var activeDot = this.closest( 'label' ).querySelector( '.channel-dot' );
+            activeDot.style.borderColor = 'var(--admin-primary)';
+            activeDot.innerHTML = '<span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>';
         } );
     } );
 } )();
