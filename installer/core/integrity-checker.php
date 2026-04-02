@@ -402,7 +402,12 @@ class IntegrityChecker
             'public/assets/images/*', 'public/assets/uploads/*',
             '.git/*', '.claude/*', 'node_modules/*', 'vendor/*',
             'tests/*', 'docs/*', '.env',
-            '.gitkeep', '*/.gitkeep', '.gitignore',
+            '.gitkeep', '*/.gitkeep',
+            '.gitignore', '*/.gitignore',
+            '.gitattributes', '*/.gitattributes',
+            '.editorconfig', '*/.editorconfig',
+            'package-lock.json', '*/package-lock.json',
+            'composer.lock', '*/composer.lock',
             '.install.done.php',
             'public/index.html', 'public/css/style.css',
         ];
