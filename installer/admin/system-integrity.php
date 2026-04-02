@@ -262,11 +262,19 @@ require_once __DIR__ . '/templates/sidebar.php';
             },
             body: JSON.stringify({ action: force ? 'verify_force' : 'verify' })
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok) {
+                return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t.substring(0, 300)); });
+            }
+            return r.json();
+        })
         .then(function(data) {
             hideOverlay();
-            // Reload to show fresh results.
-            window.location.reload();
+            if (data.error) {
+                alert('Error: ' + (data.message || data.error));
+            } else {
+                window.location.reload();
+            }
         })
         .catch(function(err) {
             hideOverlay();

@@ -193,7 +193,7 @@ class IntegrityChecker
     {
         $app     = App::getInstance();
         $loader  = $app->getPluginLoader();
-        $plugins = $loader->getDiscoveredPlugins();
+        $plugins = $loader->discoverPlugins();
 
         if ( !isset( $plugins[$pluginId] ) ) {
             return [
@@ -292,7 +292,7 @@ class IntegrityChecker
     {
         $app     = App::getInstance();
         $loader  = $app->getPluginLoader();
-        $plugins = $loader->getDiscoveredPlugins();
+        $plugins = $loader->discoverPlugins();
         $results = [];
 
         foreach ( $plugins as $pluginId => $manifest ) {
@@ -675,7 +675,7 @@ class IntegrityChecker
         // Plugin manifests.
         $app     = App::getInstance();
         $loader  = $app->getPluginLoader();
-        $plugins = $loader->getDiscoveredPlugins();
+        $plugins = $loader->discoverPlugins();
 
         foreach ( $plugins as $pluginId => $pluginManifest ) {
             $version     = $pluginManifest['version'] ?? '0.0.0';

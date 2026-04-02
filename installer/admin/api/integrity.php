@@ -24,6 +24,23 @@
 
 declare(strict_types=1);
 
+// Catch fatal errors that bypass try-catch.
+ob_start();
+register_shutdown_function( function () {
+    $error = error_get_last();
+    if ( $error !== null && ( $error['type'] & ( E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR ) ) ) {
+        ob_end_clean();
+        header( 'Content-Type: application/json; charset=utf-8' );
+        http_response_code( 500 );
+        echo json_encode( [
+            'error'   => 'PHP fatal error',
+            'message' => $error['message'],
+            'file'    => basename( $error['file'] ),
+            'line'    => $error['line'],
+        ] );
+    }
+} );
+
 require_once dirname( __DIR__ ) . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
@@ -53,14 +70,14 @@ if ( $_SESSION[$key]['reset'] < $now ) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$checker = $app->getIntegrityChecker();
 
 // ─── GET actions ─────────────────────────────────────────────
 if ( $method === 'GET' ) {
     $action = $_GET['action'] ?? '';
 
     if ( $action === 'status' || $action === 'report' ) {
-        $report = $checker->getLastReport();
+        $checker = $app->getIntegrityChecker();
+        $report  = $checker->getLastReport();
 
         if ( $report === null ) {
             Helpers::jsonResponse( [
@@ -98,30 +115,13 @@ $action = $input['action'] ?? $_POST['action'] ?? '';
 set_time_limit( 120 );
 
 try {
+    $checker = $app->getIntegrityChecker();
+
     switch ( $action ) {
         case 'verify':
-            $report = $checker->verify( false );
-            $json   = json_encode( $report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-            if ( $json === false ) {
-                Helpers::jsonResponse( [
-                    'error'      => 'JSON encode failed',
-                    'json_error' => json_last_error_msg(),
-                    'report_keys' => array_keys( $report ?? [] ),
-                ], 500 );
-            }
-            Helpers::jsonResponse( $report );
-            break;
-
         case 'verify_force':
-            $report = $checker->verify( true );
-            $json   = json_encode( $report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-            if ( $json === false ) {
-                Helpers::jsonResponse( [
-                    'error'      => 'JSON encode failed',
-                    'json_error' => json_last_error_msg(),
-                    'report_keys' => array_keys( $report ?? [] ),
-                ], 500 );
-            }
+            $force  = ( $action === 'verify_force' );
+            $report = $checker->verify( $force );
             Helpers::jsonResponse( $report );
             break;
 
@@ -142,5 +142,7 @@ try {
     Helpers::jsonResponse( [
         'error'   => 'Integrity check failed',
         'message' => $e->getMessage(),
+        'file'    => basename( $e->getFile() ),
+        'line'    => $e->getLine(),
     ], 500 );
 }
