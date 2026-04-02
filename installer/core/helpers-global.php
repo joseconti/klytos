@@ -1093,6 +1093,30 @@ function klytos_register_template_part(string $partName, callable $callback, int
     klytos_add_filter( 'template_part.' . $partName, $callback, $priority );
 }
 
+// ─── Integrity API ──────────────────────────────────────────────
+// Verify that core and plugin files have not been tampered with.
+
+/**
+ * Run a full integrity verification (core + all plugins).
+ *
+ * @param  bool  $forceRefresh Force manifest re-download (ignore cache).
+ * @return array Full verification report.
+ */
+function klytos_integrity_check( bool $forceRefresh = false ): array
+{
+    return App::getInstance()->getIntegrityChecker()->verify( $forceRefresh );
+}
+
+/**
+ * Get the last integrity verification report.
+ *
+ * @return array|null The last report, or null if no check has been run.
+ */
+function klytos_integrity_status(): ?array
+{
+    return App::getInstance()->getIntegrityChecker()->getLastReport();
+}
+
 // ─── Admin Page Detection ─────────────────────────────────────
 
 /**

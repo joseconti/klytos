@@ -190,6 +190,9 @@ class App
     /** @var CacheManager|null Persistent cache manager (APCu, Redis, Memcached, or File). */
     private ?CacheManager $cacheManager = null;
 
+    /** @var IntegrityChecker|null File integrity verification system (lazy-loaded). */
+    private ?IntegrityChecker $integrityChecker = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -717,6 +720,19 @@ class App
             $this->chatEngine = new Ai\ChatEngine($keys, $registry, $this);
         }
         return $this->chatEngine;
+    }
+
+    /** Get the integrity checker (lazy-loaded). */
+    public function getIntegrityChecker(): IntegrityChecker
+    {
+        if ( $this->integrityChecker === null ) {
+            require_once $this->corePath . '/integrity-checker.php';
+            $this->integrityChecker = new IntegrityChecker(
+                $this->storage,
+                $this->rootPath
+            );
+        }
+        return $this->integrityChecker;
     }
 
     /** Get the terminal executor (lazy-loaded). */
