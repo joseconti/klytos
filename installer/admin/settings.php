@@ -344,16 +344,20 @@ require_once __DIR__ . '/templates/sidebar.php';
         <input type="hidden" name="section" value="appearance">
         <div class="form-group">
             <label><?php echo __('settings.appearance_choose'); ?></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'light' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="admin_theme" value="light" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'light' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong><i class="fa-solid fa-sun" style="margin-right:0.25rem;"></i> <?php echo __('settings.appearance_light'); ?></strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('settings.appearance_light_desc'); ?></p>
+            <div class="selection-cards cols-2 mt-1">
+                <label class="selection-card">
+                    <input type="radio" name="admin_theme" value="light" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'light' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title"><i class="fa-solid fa-sun mr-1"></i> <?php echo __('settings.appearance_light'); ?></span>
+                        <span class="selection-card-desc"><?php echo __('settings.appearance_light_desc'); ?></span>
+                    </div>
                 </label>
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'dark' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="admin_theme" value="dark" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'dark' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong><i class="fa-solid fa-moon" style="margin-right:0.25rem;"></i> <?php echo __('settings.appearance_dark'); ?></strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('settings.appearance_dark_desc'); ?></p>
+                <label class="selection-card">
+                    <input type="radio" name="admin_theme" value="dark" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'dark' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title"><i class="fa-solid fa-moon mr-1"></i> <?php echo __('settings.appearance_dark'); ?></span>
+                        <span class="selection-card-desc"><?php echo __('settings.appearance_dark_desc'); ?></span>
+                    </div>
                 </label>
             </div>
         </div>

@@ -20,6 +20,24 @@ document.querySelectorAll('.confirm-revoke-form').forEach(function(form) {
         }
     });
 });
+
+/* Selection Cards — highlight on radio/checkbox change */
+document.querySelectorAll('.selection-cards').forEach(function(group) {
+    group.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(function(input) {
+        /* Set initial state */
+        if (input.checked) {
+            input.closest('.selection-card').classList.add('selected');
+        }
+        input.addEventListener('change', function() {
+            if (this.type === 'radio') {
+                group.querySelectorAll('.selection-card').forEach(function(card) {
+                    card.classList.remove('selected');
+                });
+            }
+            this.closest('.selection-card').classList.toggle('selected', this.checked);
+        });
+    });
+});
 </script>
 <script src="<?php echo $adminPath ?? ''; ?>assets/js/klytos-password.js" nonce="<?php echo $cspNonce ?? ''; ?>"></script>
 <?php klytos_do_action('admin.footer', $cspNonce ?? ''); ?>

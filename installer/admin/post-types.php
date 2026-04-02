@@ -162,18 +162,22 @@ require_once __DIR__ . '/templates/sidebar.php';
             </div>
             <div class="form-group">
                 <label><?php echo __('editor.title'); ?></label>
-                <div style="display:flex;gap:1rem;margin-top:0.5rem;">
-                    <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                <div class="selection-cards cols-2 mt-1">
+                    <label class="selection-card">
                         <input type="radio" name="editor" value="gutenberg" checked>
-                        <strong>Gutenberg</strong>
+                        <div class="selection-card-body">
+                            <span class="selection-card-title">Gutenberg</span>
+                        </div>
                     </label>
-                    <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;">
+                    <label class="selection-card">
                         <input type="radio" name="editor" value="tinymce">
-                        <strong>TinyMCE</strong>
+                        <div class="selection-card-body">
+                            <span class="selection-card-title">TinyMCE</span>
+                        </div>
                     </label>
                 </div>
             </div>
-            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.5rem;">
+            <div class="flex-end flex-gap-sm mt-3">
                 <button type="button" class="btn btn-outline" id="btn-cancel-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Create</button>
             </div>

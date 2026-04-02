@@ -568,6 +568,116 @@ tr:hover td {
 }
 
 /* ============================================================
+   SELECTION CARDS (radio/checkbox card groups)
+   Unified interactive card selector used across the admin.
+   Wraps a hidden <input> inside a <label> with visual feedback.
+   ============================================================ */
+
+.selection-cards {
+    display: grid;
+    gap: var(--klytos-space-md);
+}
+
+.selection-cards.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.selection-cards.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.selection-card {
+    position: relative;
+    cursor: pointer;
+    display: block;
+}
+
+.selection-card input[type="radio"],
+.selection-card input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.selection-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--klytos-space-sm);
+    padding: 1.25rem var(--klytos-space-md);
+    border: 2px solid var(--klytos-border);
+    border-radius: var(--klytos-radius-lg);
+    transition: border-color var(--klytos-transition), background var(--klytos-transition);
+}
+
+.selection-card:hover .selection-card-body {
+    border-color: var(--klytos-accent);
+    background: var(--klytos-accent-subtle);
+}
+
+/* Selected state — applied via JS or :checked */
+.selection-card.selected .selection-card-body,
+.selection-card input:checked ~ .selection-card-body {
+    border-color: var(--klytos-accent);
+    background: var(--klytos-accent-subtle);
+}
+
+.selection-card.selected .selection-card-body i,
+.selection-card input:checked ~ .selection-card-body i {
+    color: var(--klytos-accent);
+}
+
+/* —— Card content elements —— */
+
+.selection-card-body .selection-card-icon {
+    font-size: 1.5rem;
+    color: var(--klytos-text-secondary);
+    transition: color var(--klytos-transition);
+    text-align: center;
+}
+
+.selection-card-body .selection-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--klytos-text);
+}
+
+.selection-card-body .selection-card-desc {
+    font-size: 0.8rem;
+    color: var(--klytos-text-secondary);
+    line-height: 1.4;
+}
+
+/* —— Horizontal variant (for channel selector, etc.) —— */
+
+.selection-card-body.horizontal {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--klytos-space);
+    padding: var(--klytos-space);
+}
+
+/* —— Centered variant (for method cards like importer) —— */
+
+.selection-card-body.centered {
+    align-items: center;
+    text-align: center;
+}
+
+/* —— Responsive —— */
+
+@media (max-width: 768px) {
+    .selection-cards.cols-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .selection-cards.cols-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
    EMPTY STATE
    ============================================================ */
 

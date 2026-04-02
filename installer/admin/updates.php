@@ -127,52 +127,37 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="set_channel">
 
-        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div class="selection-cards">
 
-            <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem;border-radius:var(--admin-radius);border:2px solid <?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;">
-                <input type="radio" name="channel" value="stable" <?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'checked' : ''; ?> style="position:absolute;opacity:0;pointer-events:none;">
-                <span class="channel-dot" style="display:inline-block;width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--admin-border);margin-top:0.2rem;position:relative;<?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'border-color:var(--admin-primary);' : ''; ?>">
-                    <?php if ( $currentChannel === Updater::CHANNEL_STABLE ): ?>
-                        <span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>
-                    <?php endif; ?>
-                </span>
-                <div>
-                    <strong>Stable</strong>
-                    <span class="badge-status badge-published" style="margin-left:0.5rem;">Recommended</span>
-                    <div style="font-size:0.85rem;color:var(--admin-text-muted);margin-top:0.2rem;">
-                        Only final releases (v2.1.0). Maximum stability for production sites.
+            <label class="selection-card">
+                <input type="radio" name="channel" value="stable" <?php echo $currentChannel === Updater::CHANNEL_STABLE ? 'checked' : ''; ?>>
+                <div class="selection-card-body horizontal">
+                    <div>
+                        <span class="selection-card-title">Stable</span>
+                        <span class="badge-status badge-published ml-auto">Recommended</span>
+                        <span class="selection-card-desc mt-1">Only final releases (v2.1.0). Maximum stability for production sites.</span>
                     </div>
                 </div>
             </label>
 
-            <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem;border-radius:var(--admin-radius);border:2px solid <?php echo $currentChannel === Updater::CHANNEL_RC ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;">
-                <input type="radio" name="channel" value="rc" <?php echo $currentChannel === Updater::CHANNEL_RC ? 'checked' : ''; ?> style="position:absolute;opacity:0;pointer-events:none;">
-                <span class="channel-dot" style="display:inline-block;width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--admin-border);margin-top:0.2rem;position:relative;<?php echo $currentChannel === Updater::CHANNEL_RC ? 'border-color:var(--admin-primary);' : ''; ?>">
-                    <?php if ( $currentChannel === Updater::CHANNEL_RC ): ?>
-                        <span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>
-                    <?php endif; ?>
-                </span>
-                <div>
-                    <strong>Release Candidate</strong>
-                    <span class="badge-status badge-draft" style="margin-left:0.5rem;">Developers</span>
-                    <div style="font-size:0.85rem;color:var(--admin-text-muted);margin-top:0.2rem;">
-                        Stable + RC versions (v2.1.0-rc.1). Nearly final, for testing before release.
+            <label class="selection-card">
+                <input type="radio" name="channel" value="rc" <?php echo $currentChannel === Updater::CHANNEL_RC ? 'checked' : ''; ?>>
+                <div class="selection-card-body horizontal">
+                    <div>
+                        <span class="selection-card-title">Release Candidate</span>
+                        <span class="badge-status badge-draft ml-auto">Developers</span>
+                        <span class="selection-card-desc mt-1">Stable + RC versions (v2.1.0-rc.1). Nearly final, for testing before release.</span>
                     </div>
                 </div>
             </label>
 
-            <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem;border-radius:var(--admin-radius);border:2px solid <?php echo $currentChannel === Updater::CHANNEL_BETA ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;">
-                <input type="radio" name="channel" value="beta" <?php echo $currentChannel === Updater::CHANNEL_BETA ? 'checked' : ''; ?> style="position:absolute;opacity:0;pointer-events:none;">
-                <span class="channel-dot" style="display:inline-block;width:18px;height:18px;min-width:18px;border-radius:50%;border:2px solid var(--admin-border);margin-top:0.2rem;position:relative;<?php echo $currentChannel === Updater::CHANNEL_BETA ? 'border-color:var(--admin-primary);' : ''; ?>">
-                    <?php if ( $currentChannel === Updater::CHANNEL_BETA ): ?>
-                        <span style="position:absolute;top:3px;left:3px;width:8px;height:8px;border-radius:50%;background:var(--admin-primary);"></span>
-                    <?php endif; ?>
-                </span>
-                <div>
-                    <strong>Beta</strong>
-                    <span class="badge-status badge-urgent" style="margin-left:0.5rem;">Developers</span>
-                    <div style="font-size:0.85rem;color:var(--admin-text-muted);margin-top:0.2rem;">
-                        All versions including beta (v2.1.0-beta.1). Early access, may contain bugs.
+            <label class="selection-card">
+                <input type="radio" name="channel" value="beta" <?php echo $currentChannel === Updater::CHANNEL_BETA ? 'checked' : ''; ?>>
+                <div class="selection-card-body horizontal">
+                    <div>
+                        <span class="selection-card-title">Beta</span>
+                        <span class="badge-status badge-urgent ml-auto">Developers</span>
+                        <span class="selection-card-desc mt-1">All versions including beta (v2.1.0-beta.1). Early access, may contain bugs.</span>
                     </div>
                 </div>
             </label>

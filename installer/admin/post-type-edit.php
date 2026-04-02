@@ -174,19 +174,23 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php endif; ?>
 
         <!-- Content Editor -->
-        <h4 style="margin-top:1.5rem;margin-bottom:0.5rem;"><?php echo __('editor.title'); ?></h4>
+        <h4 class="mt-3 mb-1"><?php echo __('editor.title'); ?></h4>
         <div class="form-group">
             <label><?php echo __('editor.choose'); ?></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="editor" value="gutenberg" <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong>Gutenberg</strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.gutenberg_desc'); ?></p>
+            <div class="selection-cards cols-2 mt-1">
+                <label class="selection-card">
+                    <input type="radio" name="editor" value="gutenberg" <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title">Gutenberg</span>
+                        <span class="selection-card-desc"><?php echo __('editor.gutenberg_desc'); ?></span>
+                    </div>
                 </label>
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="editor" value="tinymce" <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong>TinyMCE</strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.tinymce_desc'); ?></p>
+                <label class="selection-card">
+                    <input type="radio" name="editor" value="tinymce" <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title">TinyMCE</span>
+                        <span class="selection-card-desc"><?php echo __('editor.tinymce_desc'); ?></span>
+                    </div>
                 </label>
             </div>
         </div>

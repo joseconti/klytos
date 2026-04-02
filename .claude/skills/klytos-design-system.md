@@ -147,6 +147,29 @@ trigger: When building, modifying, or reviewing any admin page UI, form, table, 
 </div>
 ```
 
+### Selection Cards (radio/checkbox groups)
+
+```html
+<div class="selection-cards cols-2">
+    <label class="selection-card">
+        <input type="radio" name="choice" value="a" checked>
+        <div class="selection-card-body">
+            <span class="selection-card-title">Option A</span>
+            <span class="selection-card-desc">Description of option A</span>
+        </div>
+    </label>
+    <label class="selection-card">
+        <input type="radio" name="choice" value="b">
+        <div class="selection-card-body">
+            <span class="selection-card-title">Option B</span>
+            <span class="selection-card-desc">Description of option B</span>
+        </div>
+    </label>
+</div>
+```
+
+Variants: `.cols-2`, `.cols-3` for grid columns. `.selection-card-body.horizontal` for side-by-side layout. `.selection-card-body.centered` for icon-centered cards (like the importer). JS in `footer.php` auto-highlights on change.
+
 ### Alert Messages
 
 ```html

@@ -248,6 +248,23 @@ All tokens use the `--klytos-` prefix. Defined in `installer/admin/assets/css/kl
 | `.stat-value` | Stat number (large, bold) |
 | `.stat-detail` | Extra detail (small, muted) |
 
+### Selection Cards
+
+| Class | Description |
+|-------|-------------|
+| `.selection-cards` | Grid container for radio/checkbox cards |
+| `.selection-cards.cols-2` | 2-column layout |
+| `.selection-cards.cols-3` | 3-column layout |
+| `.selection-card` | `<label>` wrapping hidden input + card body |
+| `.selection-card-body` | Visual card (border, padding, transitions) |
+| `.selection-card-body.horizontal` | Side-by-side layout |
+| `.selection-card-body.centered` | Icon-centered layout |
+| `.selection-card-title` | Card title text |
+| `.selection-card-desc` | Card description text |
+| `.selection-card-icon` | Icon element inside card |
+
+JS in `footer.php` auto-adds `.selected` class on input change.
+
 ### Other Components
 
 | Class | Description |
