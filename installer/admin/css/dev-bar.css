@@ -15,14 +15,14 @@
     left: 0;
     right: 0;
     height: 36px;
-    background: #1a1a2e;
-    color: #e2e8f0;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+    background: var(--klytos-bg-sunken, #141414);
+    color: var(--klytos-text, #e8e8e8);
+    font-family: var(--klytos-font-mono, 'JetBrains Mono', monospace);
     font-size: 12px;
     display: flex;
     align-items: center;
     z-index: 99999;
-    border-top: 1px solid #2d2d44;
+    border-top: 1px solid var(--klytos-border, #3a3a3a);
     user-select: none;
     transition: bottom 0.25s ease;
 }
@@ -44,12 +44,12 @@
     padding: 0 12px;
     height: 100%;
     white-space: nowrap;
-    border-right: 1px solid #2d2d44;
+    border-right: 1px solid var(--klytos-border, #3a3a3a);
     transition: background 0.15s ease;
 }
 
 .devbar-item:hover {
-    background: rgba( 99, 102, 241, 0.1 );
+    background: var(--klytos-accent-subtle, rgba(91, 141, 239, 0.12));
 }
 
 .devbar-item:first-child {
@@ -57,14 +57,14 @@
 }
 
 .devbar-label {
-    color: #94a3b8;
+    color: var(--klytos-text-secondary, #999999);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .devbar-value {
-    color: #e2e8f0;
+    color: var(--klytos-text, #e8e8e8);
     font-weight: 600;
 }
 
@@ -103,8 +103,8 @@
     height: 36px;
     background: none;
     border: none;
-    border-left: 1px solid #2d2d44;
-    color: #94a3b8;
+    border-left: 1px solid var(--klytos-border, #3a3a3a);
+    color: var(--klytos-text-secondary, #999999);
     cursor: pointer;
     font-size: 14px;
     transition: color 0.15s ease, background 0.15s ease;
@@ -114,8 +114,8 @@
 }
 
 .devbar-toggle:hover {
-    color: #6366f1;
-    background: rgba( 99, 102, 241, 0.1 );
+    color: var(--klytos-accent, #5b8def);
+    background: var(--klytos-accent-subtle, rgba(91, 141, 239, 0.12));
 }
 
 .devbar-toggle svg {
@@ -138,8 +138,8 @@
     left: 0;
     right: 0;
     height: 0;
-    background: #1a1a2e;
-    border-top: 1px solid #2d2d44;
+    background: var(--klytos-bg-sunken, #141414);
+    border-top: 1px solid var(--klytos-border, #3a3a3a);
     overflow: hidden;
     transition: height 0.3s ease;
     z-index: 99998;
@@ -157,8 +157,8 @@
     align-items: stretch;
     height: 32px;
     flex-shrink: 0;
-    border-bottom: 1px solid #2d2d44;
-    background: #16162a;
+    border-bottom: 1px solid var(--klytos-border, #3a3a3a);
+    background: var(--klytos-bg, #1a1a1a);
 }
 
 .devbar-tab {
@@ -168,7 +168,7 @@
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
-    color: #94a3b8;
+    color: var(--klytos-text-secondary, #999999);
     font-family: inherit;
     font-size: 11px;
     font-weight: 500;
@@ -180,12 +180,12 @@
 }
 
 .devbar-tab:hover {
-    color: #e2e8f0;
+    color: var(--klytos-text, #e8e8e8);
 }
 
 .devbar-tab.is-active {
-    color: #6366f1;
-    border-bottom-color: #6366f1;
+    color: var(--klytos-accent, #5b8def);
+    border-bottom-color: var(--klytos-accent, #5b8def);
 }
 
 /* Tab content */
@@ -217,26 +217,26 @@
 .devbar-table td {
     padding: 4px 10px;
     text-align: left;
-    border-bottom: 1px solid #2d2d44;
+    border-bottom: 1px solid var(--klytos-border-subtle, #2e2e2e);
 }
 
 .devbar-table th {
-    color: #94a3b8;
+    color: var(--klytos-text-secondary, #999999);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-size: 10px;
     position: sticky;
     top: 0;
-    background: #1a1a2e;
+    background: var(--klytos-bg-sunken, #141414);
 }
 
 .devbar-table td {
-    color: #e2e8f0;
+    color: var(--klytos-text, #e8e8e8);
 }
 
 .devbar-table tr:hover td {
-    background: rgba( 99, 102, 241, 0.05 );
+    background: var(--klytos-accent-subtle, rgba(91, 141, 239, 0.12));
 }
 
 .devbar-table .col-number {
@@ -276,14 +276,14 @@
 
 /* Section headings inside panes */
 .devbar-section-title {
-    color: #6366f1;
+    color: var(--klytos-accent, #5b8def);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 12px 0 6px;
     padding-bottom: 4px;
-    border-bottom: 1px solid #2d2d44;
+    border-bottom: 1px solid var(--klytos-border-subtle, #2e2e2e);
 }
 
 .devbar-section-title:first-child {
@@ -292,7 +292,7 @@
 
 /* Empty state */
 .devbar-empty {
-    color: #64748b;
+    color: var(--klytos-text-tertiary, #666666);
     font-style: italic;
     padding: 16px 0;
     text-align: center;
@@ -325,10 +325,10 @@ body.has-devbar .admin-main {
 }
 
 .devbar-panel ::-webkit-scrollbar-thumb {
-    background: #2d2d44;
+    background: var(--klytos-border, #3a3a3a);
     border-radius: 3px;
 }
 
 .devbar-panel ::-webkit-scrollbar-thumb:hover {
-    background: #3d3d5c;
+    background: var(--klytos-surface-hover, #333333);
 }

@@ -1,0 +1,204 @@
+/**
+ * Klytos Design System — Design Tokens
+ * Unified token system for the entire admin UI.
+ * Dark mode is the default.
+ *
+ * Two-tier system:
+ *   1. Semantic tokens (--klytos-*) — used by components
+ *   2. Backward-compat aliases (--admin-*) — map to semantic tokens
+ *
+ * @license    Elastic License 2.0 (ELv2)
+ * @copyright  Copyright (c) 2026 José Conti
+ */
+
+/* ============================================================
+   SEMANTIC TOKENS — Dark Mode (default)
+   ============================================================ */
+
+:root,
+[data-theme="dark"] {
+
+    /* —— Backgrounds —— */
+    --klytos-bg:              #1a1a1a;
+    --klytos-bg-elevated:     #2d2d2d;
+    --klytos-bg-sunken:       #141414;
+
+    /* —— Surfaces —— */
+    --klytos-surface:         #262626;
+    --klytos-surface-hover:   #333333;
+    --klytos-surface-active:  #3a3a3a;
+
+    /* —— Borders —— */
+    --klytos-border:          #3a3a3a;
+    --klytos-border-subtle:   #2e2e2e;
+
+    /* —— Text —— */
+    --klytos-text:            #e8e8e8;
+    --klytos-text-secondary:  #999999;
+    --klytos-text-tertiary:   #666666;
+
+    /* —— Accent (interactive blue) —— */
+    --klytos-accent:          #5b8def;
+    --klytos-accent-hover:    #4a7de0;
+    --klytos-accent-active:   #3a6dd0;
+    --klytos-accent-subtle:   rgba(91, 141, 239, 0.12);
+    --klytos-accent-text:     #ffffff;
+
+    /* —— Semantic status colors —— */
+    --klytos-success:         #22c55e;
+    --klytos-success-subtle:  rgba(34, 197, 94, 0.12);
+    --klytos-success-text:    #86efac;
+
+    --klytos-warning:         #f59e0b;
+    --klytos-warning-subtle:  rgba(245, 158, 11, 0.12);
+    --klytos-warning-text:    #fcd34d;
+
+    --klytos-error:           #ef4444;
+    --klytos-error-subtle:    rgba(239, 68, 68, 0.12);
+    --klytos-error-text:      #fca5a5;
+
+    --klytos-info:            #5b8def;
+    --klytos-info-subtle:     rgba(91, 141, 239, 0.12);
+    --klytos-info-text:       #a5b4fc;
+
+    /* —— Sidebar —— */
+    --klytos-sidebar-bg:      #141414;
+    --klytos-sidebar-text:    #999999;
+    --klytos-sidebar-active:  rgba(91, 141, 239, 0.15);
+    --klytos-sidebar-hover:   rgba(255, 255, 255, 0.08);
+    --klytos-sidebar-border:  rgba(255, 255, 255, 0.1);
+
+    /* —— Border Radius —— */
+    --klytos-radius-sm:       4px;
+    --klytos-radius:          8px;
+    --klytos-radius-lg:       12px;
+    --klytos-radius-xl:       16px;
+    --klytos-radius-full:     9999px;
+
+    /* —— Shadows —— */
+    --klytos-shadow-sm:       0 1px 3px rgba(0, 0, 0, 0.3);
+    --klytos-shadow:          0 4px 12px rgba(0, 0, 0, 0.25);
+    --klytos-shadow-lg:       0 20px 60px rgba(0, 0, 0, 0.5);
+
+    /* —— Typography —— */
+    --klytos-font-sans:       -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    --klytos-font-mono:       'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+
+    /* —— Spacing scale —— */
+    --klytos-space-xs:        0.25rem;
+    --klytos-space-sm:        0.5rem;
+    --klytos-space:           0.75rem;
+    --klytos-space-md:        1rem;
+    --klytos-space-lg:        1.5rem;
+    --klytos-space-xl:        2rem;
+    --klytos-space-2xl:       3rem;
+
+    /* —— Transitions —— */
+    --klytos-transition-fast: 0.12s ease;
+    --klytos-transition:      0.2s ease;
+    --klytos-transition-slow: 0.3s ease;
+
+    /* —— Layout —— */
+    --klytos-sidebar-width:       260px;
+    --klytos-sidebar-collapsed:   60px;
+    --klytos-topbar-height:       auto;
+    --klytos-content-max-width:   1200px;
+}
+
+
+/* ============================================================
+   LIGHT MODE
+   ============================================================ */
+
+[data-theme="light"] {
+
+    /* —— Backgrounds —— */
+    --klytos-bg:              #f5f5f5;
+    --klytos-bg-elevated:     #ffffff;
+    --klytos-bg-sunken:       #ebebeb;
+
+    /* —— Surfaces —— */
+    --klytos-surface:         #ffffff;
+    --klytos-surface-hover:   #f9f9f9;
+    --klytos-surface-active:  #f0f0f0;
+
+    /* —— Borders —— */
+    --klytos-border:          #e0e0e0;
+    --klytos-border-subtle:   #ebebeb;
+
+    /* —— Text —— */
+    --klytos-text:            #1a1a1a;
+    --klytos-text-secondary:  #666666;
+    --klytos-text-tertiary:   #999999;
+
+    /* —— Accent —— */
+    --klytos-accent:          #2563eb;
+    --klytos-accent-hover:    #1d4ed8;
+    --klytos-accent-active:   #1e40af;
+    --klytos-accent-subtle:   rgba(37, 99, 235, 0.08);
+    --klytos-accent-text:     #ffffff;
+
+    /* —— Semantic status colors —— */
+    --klytos-success:         #22c55e;
+    --klytos-success-subtle:  rgba(34, 197, 94, 0.08);
+    --klytos-success-text:    #15803d;
+
+    --klytos-warning:         #f59e0b;
+    --klytos-warning-subtle:  rgba(245, 158, 11, 0.08);
+    --klytos-warning-text:    #b45309;
+
+    --klytos-error:           #ef4444;
+    --klytos-error-subtle:    rgba(239, 68, 68, 0.08);
+    --klytos-error-text:      #dc2626;
+
+    --klytos-info:            #2563eb;
+    --klytos-info-subtle:     rgba(37, 99, 235, 0.08);
+    --klytos-info-text:       #1d4ed8;
+
+    /* —— Sidebar (always dark, even in light mode) —— */
+    --klytos-sidebar-bg:      #1a1a1a;
+    --klytos-sidebar-text:    #999999;
+    --klytos-sidebar-active:  rgba(37, 99, 235, 0.2);
+    --klytos-sidebar-hover:   rgba(255, 255, 255, 0.08);
+    --klytos-sidebar-border:  rgba(255, 255, 255, 0.1);
+
+    /* —— Shadows —— */
+    --klytos-shadow-sm:       0 1px 3px rgba(0, 0, 0, 0.08);
+    --klytos-shadow:          0 4px 12px rgba(0, 0, 0, 0.1);
+    --klytos-shadow-lg:       0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+
+/* ============================================================
+   BACKWARD-COMPATIBILITY ALIASES
+   Map old --admin-* variables to new --klytos-* tokens.
+   Existing CSS that references --admin-* will continue to work.
+   ============================================================ */
+
+:root {
+    --admin-primary:         var(--klytos-accent);
+    --admin-primary-hover:   var(--klytos-accent-hover);
+    --admin-bg:              var(--klytos-bg);
+    --admin-surface:         var(--klytos-surface);
+    --admin-sidebar:         var(--klytos-sidebar-bg);
+    --admin-sidebar-text:    var(--klytos-sidebar-text);
+    --admin-sidebar-active:  var(--klytos-sidebar-active);
+    --admin-text:            var(--klytos-text);
+    --admin-text-muted:      var(--klytos-text-secondary);
+    --admin-border:          var(--klytos-border);
+    --admin-card-bg:         var(--klytos-bg-elevated);
+    --admin-radius:          var(--klytos-radius);
+    --admin-success:         var(--klytos-success);
+    --admin-warning:         var(--klytos-warning);
+    --admin-error:           var(--klytos-error);
+    --admin-hover-bg:        var(--klytos-surface-hover);
+    --admin-active-bg:       var(--klytos-surface-active);
+    --admin-input-bg:        var(--klytos-bg-sunken);
+
+    /* Unprefixed aliases (used by importer plugin, etc.) */
+    --primary:               var(--klytos-accent);
+    --border:                var(--klytos-border);
+    --text:                  var(--klytos-text);
+    --text-muted:            var(--klytos-text-secondary);
+    --surface:               var(--klytos-surface);
+}

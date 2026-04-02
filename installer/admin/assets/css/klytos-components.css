@@ -1,0 +1,758 @@
+/**
+ * Klytos Design System — Components
+ * Buttons, cards, forms, tables, alerts, badges, tabs, modals,
+ * stats grid, toggle switches, empty states, and more.
+ *
+ * @license    Elastic License 2.0 (ELv2)
+ * @copyright  Copyright (c) 2026 José Conti
+ */
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+.card {
+    background: var(--klytos-surface);
+    border-radius: var(--klytos-radius);
+    border: 1px solid var(--klytos-border);
+    padding: var(--klytos-space-lg);
+    margin-bottom: var(--klytos-space-md);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--klytos-space-md);
+}
+
+.card-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--klytos-space-sm);
+    padding: var(--klytos-space-sm) var(--klytos-space-md);
+    border: none;
+    border-radius: var(--klytos-radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--klytos-transition-fast);
+    text-decoration: none;
+    line-height: 1.4;
+}
+
+.btn:hover {
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--klytos-accent);
+    color: var(--klytos-accent-text);
+}
+
+.btn-primary:hover {
+    background: var(--klytos-accent-hover);
+}
+
+.btn-danger {
+    background: var(--klytos-error);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--klytos-border);
+    color: var(--klytos-text);
+}
+
+.btn-outline:hover {
+    background: var(--klytos-surface-hover);
+}
+
+.btn-ghost {
+    background: transparent;
+    border: none;
+    color: var(--klytos-text-secondary);
+}
+
+.btn-ghost:hover {
+    color: var(--klytos-text);
+    background: var(--klytos-surface-hover);
+}
+
+.btn-sm {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+}
+
+.btn-lg {
+    padding: 0.65rem 1.25rem;
+    font-size: 1rem;
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--klytos-radius);
+}
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+
+.form-group {
+    margin-bottom: var(--klytos-space-md);
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: var(--klytos-space-xs);
+    color: var(--klytos-text);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--klytos-border);
+    border-radius: var(--klytos-radius);
+    font-size: 0.9rem;
+    background: var(--klytos-bg-sunken);
+    color: var(--klytos-text);
+    transition: border-color var(--klytos-transition-fast), box-shadow var(--klytos-transition-fast);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--klytos-accent);
+    box-shadow: 0 0 0 3px var(--klytos-accent-subtle);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+
+select.form-control {
+    appearance: auto;
+}
+
+select.form-control option {
+    background: var(--klytos-surface);
+    color: var(--klytos-text);
+}
+
+.form-help {
+    font-size: 0.8rem;
+    color: var(--klytos-text-secondary);
+    margin-top: 0.2rem;
+}
+
+/* ============================================================
+   TOGGLE SWITCH (Claude-style)
+   ============================================================ */
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-switch .toggle-track {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--klytos-border);
+    border-radius: var(--klytos-radius-full);
+    transition: background var(--klytos-transition);
+}
+
+.toggle-switch .toggle-track::before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform var(--klytos-transition);
+}
+
+.toggle-switch input:checked + .toggle-track {
+    background: var(--klytos-accent);
+}
+
+.toggle-switch input:checked + .toggle-track::before {
+    transform: translateX(20px);
+}
+
+.toggle-switch input:focus-visible + .toggle-track {
+    box-shadow: 0 0 0 3px var(--klytos-accent-subtle);
+}
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 0.75rem 0.85rem;
+    text-align: left;
+    border-bottom: 1px solid var(--klytos-border-subtle);
+    font-size: 0.9rem;
+}
+
+th {
+    font-weight: 500;
+    color: var(--klytos-text-secondary);
+    font-size: 0.85rem;
+}
+
+tr:hover td {
+    background: var(--klytos-surface-hover);
+}
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+
+.alert {
+    padding: var(--klytos-space) var(--klytos-space-md);
+    border-radius: var(--klytos-radius);
+    margin-bottom: var(--klytos-space-md);
+    font-size: 0.9rem;
+    border: 1px solid transparent;
+}
+
+.alert-success {
+    background: var(--klytos-success-subtle);
+    color: var(--klytos-success-text);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.alert-error {
+    background: var(--klytos-error-subtle);
+    color: var(--klytos-error-text);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.alert-warning {
+    background: var(--klytos-warning-subtle);
+    color: var(--klytos-warning-text);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.alert-info {
+    background: var(--klytos-info-subtle);
+    color: var(--klytos-info-text);
+    border-color: rgba(91, 141, 239, 0.3);
+}
+
+/* ============================================================
+   STATS GRID
+   ============================================================ */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--klytos-space-md);
+    margin-bottom: var(--klytos-space-lg);
+}
+
+.stat-card {
+    background: var(--klytos-surface);
+    border: 1px solid var(--klytos-border);
+    border-radius: var(--klytos-radius);
+    padding: 1.25rem;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    color: var(--klytos-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.stat-card .stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--klytos-text);
+    margin-top: var(--klytos-space-xs);
+}
+
+.stat-card .stat-detail {
+    font-size: 0.8rem;
+    color: var(--klytos-text-secondary);
+    margin-top: var(--klytos-space-xs);
+}
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+
+.badge-status {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--klytos-radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* —— Published / Active —— */
+.badge-published,
+.badge-active,
+.badge-completed {
+    background: var(--klytos-success-subtle);
+    color: var(--klytos-success-text);
+}
+
+/* —— Draft / Inactive / Viewer / Dismissed —— */
+.badge-draft,
+.badge-viewer,
+.badge-dismissed {
+    background: var(--klytos-surface-active);
+    color: var(--klytos-text-secondary);
+}
+
+/* —— Inactive / Urgent —— */
+.badge-inactive,
+.badge-urgent {
+    background: var(--klytos-error-subtle);
+    color: var(--klytos-error-text);
+}
+
+/* —— Premium / In Progress / Warning —— */
+.badge-premium,
+.badge-in_progress {
+    background: var(--klytos-warning-subtle);
+    color: var(--klytos-warning-text);
+}
+
+/* —— High —— */
+.badge-high {
+    background: rgba(249, 115, 22, 0.12);
+    color: #fdba74;
+}
+
+[data-theme="light"] .badge-high {
+    background: rgba(249, 115, 22, 0.08);
+    color: #ea580c;
+}
+
+/* —— Medium / Admin / Open —— */
+.badge-medium,
+.badge-admin,
+.badge-open {
+    background: var(--klytos-info-subtle);
+    color: var(--klytos-info-text);
+}
+
+/* —— Low / Editor —— */
+.badge-low,
+.badge-editor {
+    background: var(--klytos-success-subtle);
+    color: var(--klytos-success-text);
+}
+
+/* —— Owner —— */
+.badge-owner {
+    background: rgba(124, 58, 237, 0.12);
+    color: #c4b5fd;
+}
+
+[data-theme="light"] .badge-owner {
+    background: rgba(124, 58, 237, 0.08);
+    color: #7c3aed;
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--klytos-border);
+    margin-bottom: var(--klytos-space-lg);
+}
+
+.tab {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--klytos-text-secondary);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--klytos-transition-fast);
+}
+
+.tab:hover {
+    color: var(--klytos-text);
+    text-decoration: none;
+}
+
+.tab.active {
+    color: var(--klytos-accent);
+    border-bottom-color: var(--klytos-accent);
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    background: var(--klytos-surface);
+    border: 1px solid var(--klytos-border);
+    border-radius: var(--klytos-radius-lg);
+    padding: var(--klytos-space-xl);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: var(--klytos-shadow-lg);
+}
+
+.modal h3 {
+    margin-bottom: var(--klytos-space-md);
+}
+
+/* ============================================================
+   DROPDOWN
+   ============================================================ */
+
+.dropdown-menu {
+    background: var(--klytos-bg-elevated);
+    border: 1px solid var(--klytos-border);
+    border-radius: var(--klytos-radius);
+    padding: var(--klytos-space-xs) 0;
+    box-shadow: var(--klytos-shadow);
+    min-width: 180px;
+    z-index: 60;
+}
+
+.dropdown-item {
+    display: block;
+    padding: var(--klytos-space-sm) var(--klytos-space-md);
+    color: var(--klytos-text);
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background var(--klytos-transition-fast);
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-item:hover {
+    background: var(--klytos-surface-hover);
+    text-decoration: none;
+}
+
+.dropdown-item.active {
+    color: var(--klytos-accent);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--klytos-border-subtle);
+    margin: var(--klytos-space-xs) 0;
+}
+
+/* ============================================================
+   CONNECTOR / INTEGRATION LIST (Claude-style)
+   ============================================================ */
+
+.connector-list {
+    list-style: none;
+}
+
+.connector-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space-md);
+    padding: var(--klytos-space-md) 0;
+    border-bottom: 1px solid var(--klytos-border-subtle);
+}
+
+.connector-list-item:last-child {
+    border-bottom: none;
+}
+
+.connector-list-item .connector-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--klytos-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.connector-list-item .connector-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.connector-list-item .connector-name {
+    font-weight: 500;
+    color: var(--klytos-text);
+    font-size: 0.9rem;
+}
+
+.connector-list-item .connector-detail {
+    font-size: 0.8rem;
+    color: var(--klytos-text-secondary);
+}
+
+.connector-list-item .connector-status {
+    font-size: 0.85rem;
+    color: var(--klytos-success);
+    font-weight: 500;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: var(--klytos-space-2xl) var(--klytos-space-md);
+    color: var(--klytos-text-secondary);
+}
+
+.empty-state h3 {
+    color: var(--klytos-text);
+    margin-bottom: var(--klytos-space-sm);
+}
+
+/* ============================================================
+   CODE / MONO
+   ============================================================ */
+
+.mono {
+    font-family: var(--klytos-font-mono);
+    font-size: 0.85rem;
+}
+
+.token-display {
+    background: var(--klytos-bg-sunken);
+    border: 1px solid var(--klytos-border);
+    border-radius: var(--klytos-radius);
+    padding: var(--klytos-space);
+    font-family: var(--klytos-font-mono);
+    font-size: 0.85rem;
+    word-break: break-all;
+    color: var(--klytos-text);
+}
+
+/* ============================================================
+   SECURITY PAGE
+   ============================================================ */
+
+.totp-setup-box {
+    background: var(--klytos-bg-sunken);
+    padding: var(--klytos-space-lg);
+    border-radius: var(--klytos-radius);
+    margin-bottom: var(--klytos-space-md);
+}
+
+.totp-manual-key {
+    display: block;
+    background: var(--klytos-bg-sunken);
+    padding: var(--klytos-space-sm);
+    border-radius: var(--klytos-radius);
+    font-size: 0.9rem;
+    word-break: break-all;
+    border: 1px solid var(--klytos-border);
+    color: var(--klytos-text);
+}
+
+.security-status-active {
+    background: var(--klytos-success-subtle);
+    color: var(--klytos-success-text);
+}
+
+.security-status-inactive {
+    background: var(--klytos-error-subtle);
+    color: var(--klytos-error-text);
+}
+
+.security-method-badge {
+    background: var(--klytos-info-subtle);
+    color: var(--klytos-info-text);
+}
+
+.security-active-text {
+    color: var(--klytos-success-text);
+}
+
+.security-recovery-card {
+    border-color: rgba(245, 158, 11, 0.4);
+    background: var(--klytos-warning-subtle);
+}
+
+.security-recovery-text {
+    color: var(--klytos-warning-text);
+}
+
+.security-recovery-code {
+    background: var(--klytos-bg-sunken);
+    color: var(--klytos-text);
+    border-color: var(--klytos-border);
+}
+
+.security-danger-card {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ============================================================
+   AI PROVIDER LOGOS (theme-aware)
+   ============================================================ */
+
+.ai-logo-dark  { display: none; }
+.ai-logo-light { display: inline; }
+
+[data-theme="dark"] .ai-logo-dark  { display: inline; }
+[data-theme="dark"] .ai-logo-light { display: none; }
+
+/* ============================================================
+   COLOR PICKER
+   ============================================================ */
+
+input[type="color"] {
+    width: 40px;
+    height: 32px;
+    border: 1px solid var(--klytos-border);
+    border-radius: var(--klytos-radius-sm);
+    padding: 2px;
+    cursor: pointer;
+}
+
+.color-row {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space-sm);
+}
+
+.color-row input[type="text"] {
+    flex: 1;
+}
+
+/* ============================================================
+   PRIORITY DOTS
+   ============================================================ */
+
+.priority-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.4rem;
+}
+
+.priority-dot.urgent { background: var(--klytos-error); }
+.priority-dot.high   { background: #f97316; }
+.priority-dot.medium { background: var(--klytos-accent); }
+.priority-dot.low    { background: var(--klytos-success); }
+
+/* ============================================================
+   CHART PLACEHOLDER
+   ============================================================ */
+
+.chart-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 120px;
+    padding: 0;
+}
+
+.chart-bar-item {
+    flex: 1;
+    background: var(--klytos-accent);
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height var(--klytos-transition-slow);
+    opacity: 0.8;
+}
+
+.chart-bar-item:hover {
+    opacity: 1;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .card {
+        padding: var(--klytos-space-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

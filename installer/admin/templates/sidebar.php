@@ -455,19 +455,19 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
 <div class="admin-content">
     <?php klytos_do_action('admin.topbar_before'); ?>
     <div class="admin-topbar">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div class="topbar-left">
             <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
             <?php echo klytos_apply_filters('admin.topbar_left', ''); ?>
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div class="topbar-center">
             <?php echo klytos_apply_filters('admin.topbar_center', ''); ?>
         </div>
-        <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="topbar-right">
             <?php
-            $aiButtonHtml = '<a href="' . klytos_esc_url($adminPath . 'ai-chat.php') . '" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">'
+            $aiButtonHtml = '<a href="' . klytos_esc_url($adminPath . 'ai-chat.php') . '" class="btn btn-outline btn-sm">'
                           . '<i class="fa-solid fa-robot"></i> '
                           . klytos_esc_html(__( 'ai_chat.ai_mode' ))
                           . '</a>';
@@ -481,7 +481,7 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
                     : $app->getAuth()->getUsername();
                 $displayLabel = klytos_apply_filters('admin.topbar_user_display', $displayLabel, $currentUser);
             ?>
-            <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" style="font-size:0.85rem;color:var(--admin-text-muted);text-decoration:none;">
+            <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" class="text-sm text-muted">
                 <?php echo klytos_esc_html( $displayLabel ); ?>
             </a>
             <?php echo klytos_apply_filters('admin.topbar_right', ''); ?>
