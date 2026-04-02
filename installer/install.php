@@ -63,6 +63,7 @@ require_once $rootPath . '/core/helpers-security.php';
 require_once $rootPath . '/core/i18n.php';
 require_once $rootPath . '/core/auth.php';
 require_once $rootPath . '/core/hooks.php';
+require_once $rootPath . '/core/helpers-global.php';
 require_once $rootPath . '/core/block-manager.php';
 require_once $rootPath . '/core/page-template-manager.php';
 require_once $rootPath . '/core/user-manager.php';
@@ -605,51 +606,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Rename install.php so it cannot be accessed again.
                 rename($rootPath . '/install.php', $rootPath . '/.install.done.php');
 
-                // ── Rename admin directory if user chose a different name ──
+                // ── Deploy public files to the document root BEFORE rename ──
+                // Must happen while $rootPath is still valid.
                 $currentDirName = basename($rootPath);
                 $parentDir      = dirname($rootPath);
-                $newDirPath     = $parentDir . '/' . $adminDirName;
-                $dirRenamed     = false;
 
-                if ($adminDirName !== $currentDirName && !file_exists($newDirPath)) {
-                    $dirRenamed = rename($rootPath, $newDirPath);
-                    if (!$dirRenamed) {
-                        error_log("Klytos: could not rename admin directory from '{$currentDirName}' to '{$adminDirName}'. Check directory permissions.");
-                        // Update config with the REAL directory name so URLs are correct.
-                        $config['admin_dir'] = $currentDirName;
-                        $storage->writeTo($rootPath . '/config', 'config.json.enc', $config);
+                $publicIndex = $rootPath . '/public/index.html';
+                if (file_exists($publicIndex)) {
+                    if (!copy($publicIndex, $parentDir . '/index.html')) {
+                        error_log('Klytos: failed to copy public/index.html to ' . $parentDir);
                     }
                 }
 
-                // ── Deploy public files to the document root (parent directory) ──
-                // The admin dir lives inside the doc root. Public-facing files
-                // (index.html, .htaccess, css/) must be in the doc root itself.
-                $adminFinalPath = $dirRenamed ? $newDirPath : $rootPath;
-
-                // Move public/index.html → parent/index.html
-                $publicIndex = $adminFinalPath . '/public/index.html';
-                if (file_exists($publicIndex)) {
-                    @copy($publicIndex, $parentDir . '/index.html');
-                }
-
-                // Move public/css/ → parent/css/
-                $publicCss = $adminFinalPath . '/public/css';
+                $publicCss = $rootPath . '/public/css';
                 if (is_dir($publicCss)) {
                     if (!is_dir($parentDir . '/css')) {
                         mkdir($parentDir . '/css', 0755, true);
                     }
-                    $cssFiles = scandir($publicCss);
-                    if ($cssFiles) {
-                        foreach ($cssFiles as $cssFile) {
-                            if ($cssFile === '.' || $cssFile === '..') continue;
-                            @copy($publicCss . '/' . $cssFile, $parentDir . '/css/' . $cssFile);
-                        }
+                    foreach (array_diff(scandir($publicCss), ['.', '..']) as $cssFile) {
+                        copy($publicCss . '/' . $cssFile, $parentDir . '/css/' . $cssFile);
                     }
                 }
 
                 // Create a root .htaccess for the public site.
                 $rootHtaccess = "# Klytos — Document Root\n"
-                    . "# Serves the public site. Admin panel is at /{$adminDirName}/\n\n"
                     . "DirectoryIndex index.html index.php\n\n"
                     . "# Deny access to sensitive files\n"
                     . "<FilesMatch \"^\\.(htaccess|htpasswd|install\\.done\\.php)$\">\n"
@@ -659,13 +639,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     file_put_contents($parentDir . '/.htaccess', $rootHtaccess, LOCK_EX);
                 }
 
-                // ── Clean up: delete installer.php from document root ──
+                // Clean up: delete installer.php from document root.
                 $installerFile = $parentDir . '/installer.php';
                 if (file_exists($installerFile)) {
                     @unlink($installerFile);
                 }
 
+                // ── Rename admin directory ──
+                // We try multiple methods because renaming the directory while
+                // PHP is executing from it fails on many shared hosting setups.
+                $newDirPath     = $parentDir . '/' . $adminDirName;
+                $dirRenamed     = false;
+
+                if ($adminDirName !== $currentDirName && !file_exists($newDirPath)) {
+                    // Method 1: PHP rename() — works on most VPS/dedicated servers.
+                    $dirRenamed = @rename($rootPath, $newDirPath);
+
+                    // Method 2: Shell mv — works when PHP rename fails on shared hosting.
+                    if (!$dirRenamed && function_exists('exec')) {
+                        $escaped_src  = escapeshellarg($rootPath);
+                        $escaped_dest = escapeshellarg($newDirPath);
+                        @exec("mv {$escaped_src} {$escaped_dest} 2>&1", $output, $exitCode);
+                        $dirRenamed = ($exitCode === 0 && is_dir($newDirPath));
+                    }
+
+                    // Method 3: Copy + schedule old directory cleanup.
+                    // Not implemented — too slow for large installations.
+
+                    if (!$dirRenamed) {
+                        error_log("Klytos: could not rename admin directory from '{$currentDirName}' to '{$adminDirName}'. Using original name.");
+                        // Store a flag so bootstrap can retry the rename on next request
+                        // (when the install.php process is no longer holding the directory open).
+                        $config['admin_dir'] = $currentDirName;
+                        $config['pending_rename'] = $adminDirName;
+                        $storage->writeTo($rootPath . '/config', 'config.json.enc', $config);
+                    }
+                }
+
                 // ── Build the admin URL (with the new or current dir name) ──
+                $adminFinalPath = $dirRenamed ? $newDirPath : $rootPath;
                 $protocol    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
                 $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
                 $finalDir    = $dirRenamed ? $adminDirName : $currentDirName;
