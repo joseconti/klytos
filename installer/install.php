@@ -706,8 +706,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $storage->writeTo($adminFinalPath . '/config', 'config.json.enc', $config);
                 }
 
-                // ── Done! Show completion screen with credentials ──
-                $step = 'complete';
+                // ── Done! Redirect to admin login ──
+                // Must redirect BEFORE any HTML output.
+                header('Location: ' . $adminUrl . 'login.php');
+                exit;
 
             } catch (\Exception $e) {
                 // Show a sanitized error — do NOT expose internal paths or stack traces.
@@ -1233,13 +1235,6 @@ function getColorPreset(string $name): array
     });
     </script>
 
-    <!-- ─── Step 3: Complete — redirect to login ─── -->
-    <?php elseif ($step === 'complete'): ?>
-        <?php
-        // Installation complete. Redirect to admin login for first-time setup wizard.
-        header('Location: ' . $adminUrl . 'login.php');
-        exit;
-        ?>
     <?php endif; ?>
 
 </div>
