@@ -226,7 +226,35 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div style="margin-bottom:1.5rem;">
             <h4 style="margin-bottom:0.75rem;font-size:1rem;">What's new in this version</h4>
             <div style="background:var(--admin-bg);padding:1.25rem;border-radius:var(--admin-radius);font-size:0.9rem;line-height:1.7;max-height:400px;overflow-y:auto;">
-                <?php echo nl2br( klytos_esc_html( $updateInfo['changelog'] ) ); ?>
+                <?php
+                    $changelogHtml = klytos_esc_html( $updateInfo['changelog'] );
+                    // Convert markdown to HTML (basic GitHub release notes support)
+                    // Headings: ## Heading
+                    $changelogHtml = preg_replace( '/^### (.+)$/m', '<h5 style="margin:0.75rem 0 0.25rem;">$1</h5>', $changelogHtml );
+                    $changelogHtml = preg_replace( '/^## (.+)$/m', '<h4 style="margin:0.75rem 0 0.25rem;">$1</h4>', $changelogHtml );
+                    // Bold: **text**
+                    $changelogHtml = preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $changelogHtml );
+                    // Links: [text](url) — already escaped, so reconstruct
+                    $changelogHtml = preg_replace(
+                        '/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/',
+                        '<a href="$2" target="_blank" rel="noopener" style="color:var(--admin-primary);">$1</a>',
+                        $changelogHtml
+                    );
+                    // Bare URLs (not already in href)
+                    $changelogHtml = preg_replace(
+                        '/(?<!href="|">)(https?:\/\/[^\s<]+)/',
+                        '<a href="$1" target="_blank" rel="noopener" style="color:var(--admin-primary);">$1</a>',
+                        $changelogHtml
+                    );
+                    // List items: * item or - item
+                    $changelogHtml = preg_replace( '/^\* (.+)$/m', '<li style="margin-left:1rem;">$1</li>', $changelogHtml );
+                    $changelogHtml = preg_replace( '/^- (.+)$/m', '<li style="margin-left:1rem;">$1</li>', $changelogHtml );
+                    // Wrap consecutive <li> in <ul>
+                    $changelogHtml = preg_replace( '/(<li[^>]*>.+<\/li>\n?)+/', '<ul style="list-style:disc;padding-left:0.5rem;margin:0.5rem 0;">$0</ul>', $changelogHtml );
+                    // Line breaks for remaining lines
+                    $changelogHtml = nl2br( $changelogHtml );
+                    echo $changelogHtml;
+                ?>
             </div>
         </div>
     <?php endif; ?>
