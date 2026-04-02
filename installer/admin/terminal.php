@@ -40,11 +40,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 // If 2FA is not active, show a notice and stop -- no terminal.
 if ( ! $has2fa ) : ?>
-<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:1.5rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;">
+<div class="flex flex-center mb-3" style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:1.5rem 2rem;gap:1rem;">
     <span style="font-size:1.5rem;">&#128274;</span>
     <div>
         <strong style="color:#92400e;">Se requiere autenticacion de dos factores</strong>
-        <p style="color:#a16207;margin:0.25rem 0 0;font-size:0.85rem;">
+        <p class="text-sm" style="color:#a16207;margin:0.25rem 0 0;">
             Para usar el terminal debes activar 2FA en tu cuenta.
             Ve a <a href="<?php echo klytos_esc_url( $basePath . 'admin/security.php' ); ?>" style="color:#92400e;font-weight:600;">Seguridad</a> para configurarlo.
         </p>

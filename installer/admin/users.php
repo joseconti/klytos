@@ -196,7 +196,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <tr>
                         <td>
                             <strong><?php echo klytos_esc_html( $user['display_name'] ?? $user['username'] ?? ''); ?></strong>
-                            <br><small style="color:var(--admin-text-muted)">@<?php echo klytos_esc_html( $user['username'] ?? ''); ?></small>
+                            <br><small class="text-muted">@<?php echo klytos_esc_html( $user['username'] ?? ''); ?></small>
                         </td>
                         <td><?php echo klytos_esc_html( $user['email'] ?? ''); ?></td>
                         <td>
@@ -209,10 +209,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 <?php echo ucfirst( klytos_esc_html( $user['status'] ?? 'active')); ?>
                             </span>
                         </td>
-                        <td style="font-size:0.85rem;color:var(--admin-text-muted)">
+                        <td class="text-sm text-muted">
                             <?php echo $user['last_login'] ? date( 'M j, Y H:i', strtotime($user['last_login'])) : '—'; ?>
                         </td>
-                        <td style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap;">
+                        <td class="flex flex-center flex-gap-sm flex-wrap">
                             <button type="button" class="btn btn-outline btn-sm btnEditUser"
                                 data-user-id="<?php echo klytos_esc_attr( $user['id'] ?? ''); ?>"
                                 data-user-username="<?php echo klytos_esc_attr( $user['username'] ?? ''); ?>"
@@ -223,14 +223,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                             >Edit</button>
                             <?php if (($user['role'] ?? '') !== 'owner'): ?>
                                 <?php if (($user['status'] ?? 'active') === 'active'): ?>
-                                    <form method="post" style="display:inline">
+                                    <form method="post" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="suspend">
                                         <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $user['id'] ?? ''); ?>">
                                         <button type="submit" class="btn btn-outline btn-sm">Suspend</button>
                                     </form>
                                 <?php else: ?>
-                                    <form method="post" style="display:inline">
+                                    <form method="post" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="activate">
                                         <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $user['id'] ?? ''); ?>">
@@ -285,7 +285,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </select>
             </div>
 
-            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+            <div class="flex flex-gap-sm flex-end mt-2">
                 <button type="button" class="btn btn-outline" id="btnCancelUser">Cancel</button>
                 <button type="submit" class="btn btn-primary">Create User</button>
             </div>
@@ -339,26 +339,26 @@ require_once __DIR__ . '/templates/sidebar.php';
             </div>
 
             <?php klytos_do_action( 'admin.users.edit_form.after_fields', $users ); ?>
-            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+            <div class="flex flex-gap-sm flex-end mt-2">
                 <button type="button" class="btn btn-outline" id="btnCancelEdit">Cancel</button>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
 
-        <hr style="margin:1rem 0;border-color:var(--admin-border)">
+        <hr class="divider">
 
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <form method="post" style="display:inline">
+        <div class="flex flex-gap-sm flex-wrap">
+            <form method="post" class="inline-form">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="send_password_reset">
                 <input type="hidden" name="user_id" class="editModalUserId">
-                <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Send password reset link?')">Send Reset Link</button>
+                <button type="submit" class="btn btn-outline btn-sm" data-confirm="Send password reset link?">Send Reset Link</button>
             </form>
-            <form method="post" style="display:inline">
+            <form method="post" class="inline-form">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="force_logout">
                 <input type="hidden" name="user_id" class="editModalUserId">
-                <button type="submit" class="btn btn-outline btn-sm" onclick="return confirm('Close all active sessions for this user?')">Close All Sessions</button>
+                <button type="submit" class="btn btn-outline btn-sm" data-confirm="Close all active sessions for this user?">Close All Sessions</button>
             </form>
         </div>
     </div>

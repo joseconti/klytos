@@ -163,8 +163,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <td class="mono"><?php echo klytos_esc_html( $term['slug'] ?? '' ); ?></td>
                         <td><?php echo klytos_esc_html( $term['name'] ?? '' ); ?></td>
                         <td><?php echo klytos_esc_html( $term['description'] ?? '' ); ?></td>
-                        <td style="display:flex;gap:0.5rem;align-items:center;">
-                            <form method="post" style="display:inline;" class="form-confirm-delete">
+                        <td class="flex flex-gap-sm flex-center">
+                            <form method="post" class="inline-form form-confirm-delete">
                                 <input type="hidden" name="action" value="delete_term">
                                 <input type="hidden" name="slug" value="<?php echo klytos_esc_attr( $term['slug'] ?? '' ); ?>">
                                 <?php echo klytos_csrf_field(); ?>

@@ -68,7 +68,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- License Status -->
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'license.status' ); ?></h3></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <div class="grid-2">
         <div class="form-group">
             <label><?php echo __( 'license.status' ); ?></label>
             <?php
@@ -91,11 +91,11 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.plan' ); ?></label>
-            <div style="font-size:1.1rem;font-weight:600;"><?php echo klytos_esc_html(ucfirst($status['plan'] ?? '---')); ?></div>
+            <div class="font-bold" style="font-size:1.1rem;"><?php echo klytos_esc_html(ucfirst($status['plan'] ?? '---')); ?></div>
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.domain' ); ?></label>
-            <div class="mono" style="font-size:0.85rem;"><?php echo klytos_esc_html( $status['domain'] ?? '---'); ?></div>
+            <div class="mono text-sm"><?php echo klytos_esc_html( $status['domain'] ?? '---'); ?></div>
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.activated_on' ); ?></label>
@@ -107,18 +107,18 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="form-group">
             <label><?php echo __( 'license.key' ); ?></label>
-            <div class="mono" style="font-size:0.8rem;"><?php echo !empty($status['license_key']) ? klytos_esc_html(substr($status['license_key'], 0, 8) . '...' . substr($status['license_key'], -8)) : '---'; ?></div>
+            <div class="mono text-xs"><?php echo !empty($status['license_key']) ? klytos_esc_html(substr($status['license_key'], 0, 8) . '...' . substr($status['license_key'], -8)) : '---'; ?></div>
         </div>
     </div>
 
     <?php if ($licenseStatus === 'revoked' && !empty($status['grace_period_until'])): ?>
-        <div class="alert alert-warning" style="margin-top:1rem;">
+        <div class="alert alert-warning mt-2">
             <?php echo __( 'license.grace_period', ['date' => date( 'Y-m-d', strtotime($status['grace_period_until']))]); ?>
         </div>
     <?php endif; ?>
 
     <?php if ($licenseStatus === 'valid'): ?>
-        <form method="post" style="margin-top:1rem;">
+        <form method="post" class="mt-2">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="verify">
             <button type="submit" class="btn btn-outline"><?php echo __( 'license.last_check' ); ?> — <?php echo __( 'common.status' ); ?></button>

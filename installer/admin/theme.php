@@ -74,7 +74,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="colors">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem;">
+        <div class="grid-auto-fill">
             <?php
             $colorLabels = [
                 'primary' => __( 'theme.primary_color' ),
@@ -106,7 +106,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="fonts">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
             <div class="form-group">
                 <label><?php echo __( 'theme.heading_font' ); ?></label>
                 <input type="text" name="heading" class="form-control" value="<?php echo klytos_esc_attr( $themeData['fonts']['heading'] ?? ''); ?>">

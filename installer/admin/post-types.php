@@ -117,10 +117,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 <?php echo ($pt['builtin'] ?? false) ? 'Yes' : 'No'; ?>
                             </span>
                         </td>
-                        <td style="display:flex;gap:0.5rem;align-items:center;">
+                        <td class="flex-center flex-gap-sm">
                             <a href="post-type-edit.php?id=<?php echo urlencode( $pt['id'] ?? '' ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.edit' ); ?></a>
                             <?php if (!($pt['builtin'] ?? false)): ?>
-                            <form method="post" style="display:inline;" class="form-confirm-delete">
+                            <form method="post" class="inline-form form-confirm-delete">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo klytos_esc_attr( $pt['id'] ?? '' ); ?>">
                                 <?php echo klytos_csrf_field(); ?>
@@ -137,11 +137,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Modal: Create Post Type -->
-<div id="modal-create-pt" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);">
-    <div style="background:var(--admin-card-bg, #fff);border-radius:12px;padding:2rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-            <h3 style="margin:0;">New Post Type</h3>
-            <button type="button" id="btn-close-modal-x" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--admin-text-muted, #666);">&times;</button>
+<div id="modal-create-pt" class="modal-overlay">
+    <div class="modal max-w-md">
+        <div class="flex-between mb-3">
+            <h3 class="mb-0">New Post Type</h3>
+            <button type="button" id="btn-close-modal-x" class="btn btn-ghost text-xl">&times;</button>
         </div>
         <form method="post">
             <input type="hidden" name="action" value="create">

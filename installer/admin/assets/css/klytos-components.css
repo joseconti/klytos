@@ -678,6 +678,36 @@ tr:hover td {
 }
 
 /* ============================================================
+   UPDATE STEPPER
+   ============================================================ */
+
+.update-step {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space);
+}
+
+.update-step .step-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    background: var(--klytos-border);
+    color: var(--klytos-text-secondary);
+    transition: all 0.3s;
+}
+
+.update-step .step-label {
+    font-size: 0.95rem;
+    color: var(--klytos-text-secondary);
+    transition: color 0.3s;
+}
+
+/* ============================================================
    EMPTY STATE
    ============================================================ */
 

@@ -67,13 +67,13 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
-<p style="color:var(--admin-text-muted);margin-bottom:1.5rem;">
+<p class="text-muted mb-3">
     Reusable design blocks created by the AI. Global blocks (header, footer) can be edited below.
 </p>
 
 <?php if ( !empty( $previewHtml ) ): ?>
     <!-- Block Preview -->
-    <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card mb-3">
         <div class="card-header">
             <h3><?php echo klytos_esc_html( $previewId ); ?> — <?php echo __( 'common.preview' ); ?></h3>
             <a href="<?php echo klytos_esc_url( strtok( $_SERVER['REQUEST_URI'], '?' ) ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.close' ); ?></a>
@@ -94,7 +94,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php if ( empty( $grouped[ $cat ] ) ) {
             continue;
         } ?>
-        <div class="card" style="margin-bottom:1.25rem;">
+        <div class="card mb-2">
             <div class="card-header">
                 <h3><?php echo klytos_esc_html( $categoryLabels[ $cat ] ?? ucfirst( $cat ) ); ?></h3>
             </div>

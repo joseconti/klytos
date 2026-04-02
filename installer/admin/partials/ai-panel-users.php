@@ -114,12 +114,12 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
             </div>
         </div>
 
-        <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+        <div class="flex flex-end mb-2">
             <button class="ai-panel-btn ai-panel-btn-primary" id="btnAiNewUser">+ New User</button>
         </div>
 
         <?php if (empty($users)): ?>
-            <p style="color:var(--chat-text-muted);text-align:center;padding:2rem 0;">No users yet.</p>
+            <p class="text-muted text-center p-3">No users yet.</p>
         <?php else: ?>
             <table class="ai-panel-table">
                 <thead>
@@ -149,7 +149,7 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                                 <?php echo ucfirst(klytos_esc_html($user['status'] ?? 'active')); ?>
                             </span>
                         </td>
-                        <td style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap;">
+                        <td class="flex flex-center flex-gap-sm flex-wrap">
                             <button type="button" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm btnAiEditUser"
                                 data-user-id="<?php echo klytos_esc_attr($user['id'] ?? ''); ?>"
                                 data-user-username="<?php echo klytos_esc_attr($user['username'] ?? ''); ?>"
@@ -160,14 +160,14 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                             >Edit</button>
                             <?php if (($user['role'] ?? '') !== 'owner'): ?>
                                 <?php if (($user['status'] ?? 'active') === 'active'): ?>
-                                    <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
+                                    <form method="post" action="<?php echo $panelUrl; ?>" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="ai_panel_user_action" value="suspend">
                                         <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr($user['id'] ?? ''); ?>">
-                                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" onclick="return confirm('Are you sure?')">Suspend</button>
+                                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" data-confirm="Are you sure?">Suspend</button>
                                     </form>
                                 <?php else: ?>
-                                    <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
+                                    <form method="post" action="<?php echo $panelUrl; ?>" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="ai_panel_user_action" value="activate">
                                         <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr($user['id'] ?? ''); ?>">
@@ -215,7 +215,7 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                             <option value="viewer">Viewer</option>
                         </select>
                     </div>
-                    <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+                    <div class="flex flex-gap-sm flex-end mt-2">
                         <button type="button" class="ai-panel-btn ai-panel-btn-outline" id="btnAiCancelUser">Cancel</button>
                         <button type="submit" class="ai-panel-btn ai-panel-btn-primary">Create User</button>
                     </div>
@@ -265,24 +265,24 @@ $panelUrl = klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users');
                         <label>New Password (leave blank to keep current)</label>
                         <input type="password" name="password" class="ai-panel-form-control" minlength="12" data-klytos-pwgen data-klytos-pwgen-style="ai-panel">
                     </div>
-                    <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+                    <div class="flex flex-gap-sm flex-end mt-2">
                         <button type="button" class="ai-panel-btn ai-panel-btn-outline" id="btnAiCancelEdit">Cancel</button>
                         <button type="submit" class="ai-panel-btn ai-panel-btn-primary">Save Changes</button>
                     </div>
                 </form>
-                <hr style="margin:1rem 0;border-color:var(--chat-border)">
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                    <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
+                <hr class="divider">
+                <div class="flex flex-gap-sm flex-wrap">
+                    <form method="post" action="<?php echo $panelUrl; ?>" class="inline-form">
                         <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="ai_panel_user_action" value="send_password_reset">
                         <input type="hidden" name="user_id" class="aiEditModalUserId">
-                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" onclick="return confirm('Send password reset link?')">Send Reset Link</button>
+                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" data-confirm="Send password reset link?">Send Reset Link</button>
                     </form>
-                    <form method="post" action="<?php echo $panelUrl; ?>" style="display:inline">
+                    <form method="post" action="<?php echo $panelUrl; ?>" class="inline-form">
                         <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="ai_panel_user_action" value="force_logout">
                         <input type="hidden" name="user_id" class="aiEditModalUserId">
-                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" onclick="return confirm('Close all active sessions?')">Close All Sessions</button>
+                        <button type="submit" class="ai-panel-btn ai-panel-btn-outline ai-panel-btn-sm" data-confirm="Close all active sessions?">Close All Sessions</button>
                     </form>
                 </div>
             </div>

@@ -425,8 +425,8 @@ include __DIR__ . '/templates/sidebar.php';
                             require_once __DIR__ . '/includes/custom-field-renderer.php';
                             ?>
                             <?php klytos_do_action( 'editor.before_custom_fields', $page ?? null, $isEditing ?? false ); ?>
-                        <div class="klytos-custom-fields" style="padding:1.5rem 2rem;border-top:1px solid var(--admin-border, #e2e8f0);background:var(--admin-surface, #fff);">
-                            <h3 style="margin:0 0 1rem 0;font-size:0.95rem;font-weight:600;color:var(--admin-text, #1e293b);">Custom Fields</h3>
+                        <div class="klytos-custom-fields" style="padding:1.5rem 2rem;border-top:1px solid var(--klytos-border, #e2e8f0);background:var(--klytos-surface, #fff);">
+                            <h3 style="margin:0 0 1rem 0;font-size:0.95rem;font-weight:600;color:var(--klytos-text, #1e293b);">Custom Fields</h3>
                             <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem;">
                                 <?php foreach ($cfDefs as $cfDef): ?>
                                     <?php echo renderCustomField($cfDef, $cfValues[$cfDef['id']] ?? null); ?>
@@ -521,7 +521,7 @@ include __DIR__ . '/templates/sidebar.php';
                                 <h3 class="klytos-editor-settings__heading">Meta Description</h3>
 
                                 <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo klytos_esc_textarea( $pageMetaDesc ); ?></textarea>
-                                <div class="form-help" id="meta-counter" style="display:flex;justify-content:space-between;">
+                                <div class="form-help flex flex-between" id="meta-counter">
                                     <span id="meta-count-text">0/160</span>
                                     <span id="meta-quality"></span>
                                 </div>
@@ -610,7 +610,7 @@ include __DIR__ . '/templates/sidebar.php';
                                         <div class="form-help" style="font-size:0.75rem;">Hold Ctrl/Cmd to select multiple.</div>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                    <p style="font-size:0.85rem;color:var(--admin-text-muted);">No terms available. <a href="taxonomy.php?post_type=<?php echo urlencode($pagePostType); ?>&taxonomy=<?php echo urlencode($taxId); ?>">Add terms</a></p>
+                                    <p class="text-sm text-muted">No terms available. <a href="taxonomy.php?post_type=<?php echo urlencode($pagePostType); ?>&taxonomy=<?php echo urlencode($taxId); ?>">Add terms</a></p>
                                     <?php endif; ?>
                             </div>
                                     <?php

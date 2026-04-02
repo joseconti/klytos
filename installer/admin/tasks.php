@@ -84,15 +84,15 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-label">Open</div>
-        <div class="stat-value" style="color:var(--admin-primary)"><?php echo $openCount; ?></div>
+        <div class="stat-value" style="color:var(--klytos-primary)"><?php echo $openCount; ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">In Progress</div>
-        <div class="stat-value" style="color:var(--admin-warning)"><?php echo $progressCount; ?></div>
+        <div class="stat-value" style="color:var(--klytos-warning)"><?php echo $progressCount; ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Completed</div>
-        <div class="stat-value" style="color:var(--admin-success)"><?php echo $completedCount; ?></div>
+        <div class="stat-value" style="color:var(--klytos-success)"><?php echo $completedCount; ?></div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Total</div>
@@ -121,16 +121,16 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php foreach ($tasks as $task): ?>
     <div class="card" style="border-left: 4px solid <?php
         echo match($task['priority'] ?? 'medium') {
-            'urgent' => 'var(--admin-error)',
+            'urgent' => 'var(--klytos-error)',
             'high'   => '#f97316',
-            'medium' => 'var(--admin-primary)',
-            'low'    => 'var(--admin-success)',
-            default  => 'var(--admin-border)',
+            'medium' => 'var(--klytos-primary)',
+            'low'    => 'var(--klytos-success)',
+            default  => 'var(--klytos-border)',
         };
     ?>;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
-            <div style="flex:1">
-                <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">
+        <div class="flex flex-between" style="align-items:flex-start;gap:1rem">
+            <div class="flex-1">
+                <div class="flex flex-center flex-gap-sm" style="margin-bottom:0.4rem">
                     <span class="priority-dot <?php echo klytos_esc_attr( $task['priority'] ?? 'medium'); ?>"></span>
                     <span class="badge-status badge-<?php echo klytos_esc_attr( $task['priority'] ?? 'medium'); ?>">
                         <?php echo ucfirst( klytos_esc_html( $task['priority'] ?? 'medium')); ?>
@@ -140,7 +140,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     </span>
                 </div>
                 <p style="margin-bottom:0.4rem"><?php echo klytos_esc_html( $task['description'] ?? ''); ?></p>
-                <div style="font-size:0.8rem;color:var(--admin-text-muted);display:flex;gap:1rem;flex-wrap:wrap">
+                <div class="text-xs text-muted flex flex-gap-sm flex-wrap">
                     <span>Page: <strong><?php echo klytos_esc_html( $task['page_slug'] ?? '—'); ?></strong></span>
                     <?php if (!empty($task['css_selector'])): ?>
                         <span>Element: <code style="font-size:0.75rem"><?php echo klytos_esc_html( $task['css_selector'] ); ?></code></span>
@@ -148,15 +148,15 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <span><?php echo $task['created_at'] ? date( 'M j, Y H:i', strtotime($task['created_at'])) : ''; ?></span>
                 </div>
             </div>
-            <div style="display:flex;gap:0.3rem;flex-shrink:0">
+            <div class="flex" style="gap:0.3rem;flex-shrink:0">
                 <?php if (($task['status'] ?? '') !== 'completed' && ($task['status'] ?? '') !== 'dismissed'): ?>
-                    <form method="post" style="display:inline">
+                    <form method="post" class="inline-form">
                         <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="action" value="complete">
                         <input type="hidden" name="task_id" value="<?php echo klytos_esc_attr( $task['id'] ?? ''); ?>">
                         <button type="submit" class="btn btn-primary btn-sm" title="Complete">✓</button>
                     </form>
-                    <form method="post" style="display:inline">
+                    <form method="post" class="inline-form">
                         <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="action" value="dismiss">
                         <input type="hidden" name="task_id" value="<?php echo klytos_esc_attr( $task['id'] ?? ''); ?>">

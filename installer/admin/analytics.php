@@ -45,7 +45,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action( 'admin.analytics.before' ); ?>
 
 <!-- Privacy badge -->
-<div class="alert alert-info" style="display:flex;align-items:center;gap:0.75rem">
+<div class="alert alert-info flex flex-center" style="gap:0.75rem">
     <span style="font-size:1.3rem">🔒</span>
     <div>
         <strong>Privacy-First Analytics</strong> — No cookies, no fingerprinting, no personal data.
@@ -54,7 +54,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Period selector -->
-<div class="tabs" style="margin-bottom:1.5rem">
+<div class="tabs mb-3">
     <a href="?period=24h" class="tab <?php echo $period === '24h' ? 'active' : ''; ?>">Last 24h</a>
     <a href="?period=7d" class="tab <?php echo $period === '7d' ? 'active' : ''; ?>">Last 7 days</a>
     <a href="?period=30d" class="tab <?php echo $period === '30d' ? 'active' : ''; ?>">Last 30 days</a>
@@ -104,7 +104,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                  title="<?php echo klytos_esc_attr( $date ); ?>: <?php echo $count; ?> views"></div>
         <?php endforeach; ?>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--admin-text-muted);margin-top:0.4rem">
+    <div class="flex-between text-xs text-muted" style="margin-top:0.4rem">
         <span><?php echo $dateFrom; ?></span>
         <span><?php echo $dateTo; ?></span>
     </div>
@@ -118,18 +118,18 @@ require_once __DIR__ . '/templates/sidebar.php';
             <h3>Top Pages</h3>
         </div>
         <?php if (empty($summary['top_pages'])): ?>
-            <p style="color:var(--admin-text-muted)">No data yet. Analytics starts recording when pages receive visits.</p>
+            <p class="text-muted">No data yet. Analytics starts recording when pages receive visits.</p>
         <?php else: ?>
             <div class="table-wrap">
                 <table>
                     <thead>
-                        <tr><th>Page</th><th style="text-align:right">Views</th></tr>
+                        <tr><th>Page</th><th class="text-right">Views</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach (array_slice($summary['top_pages'], 0, 10, true) as $path => $views): ?>
                         <tr>
-                            <td><code style="font-size:0.85rem"><?php echo klytos_esc_html( $path ); ?></code></td>
-                            <td style="text-align:right;font-weight:600"><?php echo number_format( $views); ?></td>
+                            <td><code class="text-sm"><?php echo klytos_esc_html( $path ); ?></code></td>
+                            <td class="text-right font-bold"><?php echo number_format( $views); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -144,18 +144,18 @@ require_once __DIR__ . '/templates/sidebar.php';
             <h3>Top Referrers</h3>
         </div>
         <?php if (empty($summary['top_referrers'])): ?>
-            <p style="color:var(--admin-text-muted)">No referrer data yet.</p>
+            <p class="text-muted">No referrer data yet.</p>
         <?php else: ?>
             <div class="table-wrap">
                 <table>
                     <thead>
-                        <tr><th>Domain</th><th style="text-align:right">Visits</th></tr>
+                        <tr><th>Domain</th><th class="text-right">Visits</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach ($summary['top_referrers'] as $domain => $count): ?>
                         <tr>
                             <td><?php echo klytos_esc_html( $domain ); ?></td>
-                            <td style="text-align:right;font-weight:600"><?php echo number_format( $count); ?></td>
+                            <td class="text-right font-bold"><?php echo number_format( $count); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -171,9 +171,9 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="card-header">
         <h3>Devices</h3>
     </div>
-    <div style="display:flex;gap:2rem;flex-wrap:wrap">
+    <div class="flex" style="gap:2rem;flex-wrap:wrap">
         <?php foreach ($summary['devices'] as $category => $info): ?>
-        <div style="text-align:center">
+        <div class="text-center">
             <div style="font-size:2rem;margin-bottom:0.25rem">
                 <?php echo match ($category) {
                     'mobile'  => '📱',
@@ -182,9 +182,9 @@ require_once __DIR__ . '/templates/sidebar.php';
                     default   => '❓',
                 } ?>
             </div>
-            <div style="font-weight:700;font-size:1.2rem"><?php echo $info['percentage']; ?>%</div>
-            <div style="font-size:0.8rem;color:var(--admin-text-muted)"><?php echo ucfirst( klytos_esc_html( $category )); ?></div>
-            <div style="font-size:0.75rem;color:var(--admin-text-muted)"><?php echo number_format( $info['count']); ?> visits</div>
+            <div class="font-bold" style="font-size:1.2rem"><?php echo $info['percentage']; ?>%</div>
+            <div class="text-xs text-muted"><?php echo ucfirst( klytos_esc_html( $category )); ?></div>
+            <div class="text-xs text-muted"><?php echo number_format( $info['count']); ?> visits</div>
         </div>
         <?php endforeach; ?>
     </div>
