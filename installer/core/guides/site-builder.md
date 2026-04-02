@@ -252,7 +252,7 @@ Consult `klytos_get_guide('post-types-and-fields')` BEFORE creating any CPT.
 
 ### Homepage
 
-Define which page is the homepage via `klytos_set_site_config` with `homepage_slug`.
+**CRITICAL: The homepage MUST be created with slug `index`.** The build engine maps slug `index` → `/index.html` (site root). Any other slug (e.g., `inicio`, `home`) creates a subdirectory like `/inicio/index.html` which is NOT the homepage. Always use slug `index` regardless of language — the page title can be localized (e.g., title "Inicio" with slug "index").
 
 ### MCP Tools
 
