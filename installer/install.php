@@ -708,10 +708,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $adminUrl    = $protocol . '://' . $host . $basePath . $finalDir . '/admin/';
                 $mcpEndpoint = $protocol . '://' . $host . $basePath . $finalDir . '/mcp';
 
-                // ── Persist correct URLs in config ──
-                // The setup wizard needs these to display the correct MCP endpoint,
-                // especially after a directory rename.
+                // ── Persist correct URLs and base path in config ──
+                // install_base is the URL path prefix before the admin directory.
+                // e.g. '/prueba/' for klytos.io/prueba/xxx-admin/, or '/' for root installs.
+                // All URL calculations use this as the single source of truth.
                 $adminFinalPath = $dirRenamed ? $newDirPath : $rootPath;
+                $config['install_base'] = $basePath;
                 $config['admin_dir']    = $finalDir;
                 $config['mcp_endpoint'] = $mcpEndpoint;
                 $config['admin_url']    = $adminUrl;

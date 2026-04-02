@@ -152,21 +152,18 @@ if ( $pendingRename !== null ) {
         }
 
         if ( $renamed ) {
-            // Update config: clear pending flag, set real admin_dir.
+            // Update config: clear pending flag, set real admin_dir + URLs.
             $cfg = $app->getConfig();
             $cfg['admin_dir'] = $pendingRename;
             unset( $cfg['pending_rename'] );
 
-            // Recalculate URLs.
-            $scheme = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
-            $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-            $base   = dirname( dirname( $_SERVER['SCRIPT_NAME'] ) );
-            $base   = ( $base === '/' || $base === '\\' ) ? '/' : rtrim( $base, '/' ) . '/';
-            // Replace old dir name with new one in the base path.
-            $base   = preg_replace( '#/' . preg_quote( $currentDir, '#' ) . '/#', '/' . $pendingRename . '/', $base );
+            // Recalculate URLs using install_base (set during installation).
+            $scheme      = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
+            $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $installBase = $cfg['install_base'] ?? '/';
 
-            $cfg['mcp_endpoint'] = $scheme . '://' . $host . $base . $pendingRename . '/mcp';
-            $cfg['admin_url']    = $scheme . '://' . $host . $base . $pendingRename . '/admin/';
+            $cfg['mcp_endpoint'] = $scheme . '://' . $host . rtrim( $installBase, '/' ) . '/' . $pendingRename . '/mcp';
+            $cfg['admin_url']    = $scheme . '://' . $host . rtrim( $installBase, '/' ) . '/' . $pendingRename . '/admin/';
 
             $app->getStorage()->writeTo( $targetPath . '/config', 'config.json.enc', $cfg );
 
