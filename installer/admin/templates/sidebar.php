@@ -399,9 +399,9 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
         }
         ?>
     <div class="sidebar-item-wrap" data-item-id="<?php echo klytos_esc_attr( $item['id'] ); ?>">
-        <span class="sidebar-item-drag-handle" aria-hidden="true">&#x2807;</span>
         <a href="<?php echo klytos_esc_url($item['url']); ?>"
            class="<?php echo $isParentActive ? 'active' : ''; ?>">
+            <span class="sidebar-item-drag-handle" aria-hidden="true">&#x2807;</span>
             <i class="<?php echo klytos_esc_attr($item['icon'] ?? 'fa-solid fa-circle'); ?>"></i>
             <span class="sidebar-label"><?php echo klytos_esc_html($item['title']); ?></span>
             <?php if (!empty($item['badge'])): ?>
