@@ -67,6 +67,7 @@ require_once $rootPath . '/core/block-manager.php';
 require_once $rootPath . '/core/page-template-manager.php';
 require_once $rootPath . '/core/user-manager.php';
 require_once $rootPath . '/core/seed-data.php';
+require_once $rootPath . '/core/post-type-manager.php';
 
 use Klytos\Core\Encryption;
 use Klytos\Core\FileStorage;
