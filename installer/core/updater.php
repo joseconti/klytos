@@ -484,7 +484,7 @@ class Updater
         // ── 7. Apply update (copy files) ──────────────────────────
         // Copy VERSION last so a failed update still reports the old version.
         try {
-            $allowedDirs = [ 'core', 'admin', 'templates' ];
+            $allowedDirs = [ 'core', 'admin', 'templates', 'vendor-ai' ];
             foreach ( $allowedDirs as $dir ) {
                 $src = $extractRoot . '/' . $dir;
                 if ( is_dir( $src ) ) {

@@ -267,6 +267,8 @@ class ToolRegistry
             // v0.9.0 AI chat tools.
             'ai-tools.php',
             'translation-tools.php',
+            // Site builder.
+            'site-builder-tools.php',
         ];
 
         foreach ($toolFiles as $file) {

@@ -401,8 +401,10 @@ class IntegrityChecker
             'plugins/*', 'themes/*', 'custom-templates/*',
             'public/assets/images/*', 'public/assets/uploads/*',
             '.git/*', '.claude/*', 'node_modules/*', 'vendor/*',
-            'tests/*', 'docs/*', '.env', '.DS_Store', '*/.DS_Store',
+            'tests/*', 'docs/*', '.env',
             '.gitkeep', '*/.gitkeep', '.gitignore',
+            '.install.done.php',
+            'public/index.html', 'public/css/style.css',
         ];
         $scanExcludes = array_unique( array_merge( $excludes, $runtimeExcludes ) );
         $localFiles   = $this->scanDirectory( $basePath, $scanExcludes );

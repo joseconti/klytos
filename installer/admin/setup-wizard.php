@@ -763,37 +763,21 @@ $providerLogos = [
         $isSpanish   = str_starts_with( $adminLang, 'es' );
 
         if ( $isSpanish ) {
-            $promptText = "Quiero que me ayudes a configurar mi nuevo sitio web con Klytos CMS.
+            $promptText = "Quiero crear mi sitio web con Klytos CMS.
 
 Mi sitio se llama \"{$siteName}\" y esta disponible en {$siteUrl}
 El endpoint MCP es: {$mcpEndpoint}
 
-Por favor, ayudame con lo siguiente:
-1. Configurar el diseno del sitio (colores, tipografias, layout) segun mis preferencias
-2. Crear las paginas principales (Inicio, Sobre nosotros, Contacto, etc.)
-3. Configurar los Custom Post Types que pueda necesitar
-4. Crear taxonomias para organizar el contenido
-5. Configurar los ajustes SEO y meta tags
-6. Configurar los menus de navegacion
-7. Crear un diseno de pagina de inicio que refleje mi marca
-
-Empieza preguntandome sobre mi marca, mi publico objetivo y que tipo de sitio web quiero construir (negocio, portfolio, blog, e-commerce, etc.).";
+Llama a la herramienta klytos_start_site_builder para comenzar el proceso guiado de creacion del sitio.
+Sigue todas las fases de la guia que recibiras, preguntandome en cada paso antes de ejecutar nada.";
         } else {
-            $promptText = "I want you to help me set up my new Klytos CMS website.
+            $promptText = "I want to create my website with Klytos CMS.
 
 My site is called \"{$siteName}\" and it's available at {$siteUrl}
 The MCP endpoint is: {$mcpEndpoint}
 
-Please help me with the following:
-1. Configure the site design (colors, fonts, layout) based on my preferences
-2. Create the main pages (Home, About, Contact, etc.)
-3. Set up any Custom Post Types I might need
-4. Create taxonomies for content organization
-5. Configure SEO settings and meta tags
-6. Set up the navigation menus
-7. Create a homepage design that matches my brand
-
-Start by asking me about my brand, target audience, and what kind of website I want to build (business, portfolio, blog, e-commerce, etc.).";
+Call the klytos_start_site_builder tool to start the guided site creation process.
+Follow all phases from the guide you'll receive, asking me at each step before executing anything.";
         }
     ?>
     <div class="card">
