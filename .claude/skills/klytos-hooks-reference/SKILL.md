@@ -1,0 +1,110 @@
+---
+name: Klytos Hooks Reference
+description: Complete reference of all hooks (actions and filters) available in Klytos CMS for intercepting and extending functionality. Use when hooking into Klytos events, modifying behavior through filters, adding custom behavior at lifecycle points, or understanding the hook system and priorities.
+---
+
+# Klytos Hooks Reference
+
+## Actions vs Filters
+
+| | Actions | Filters |
+|---|---|---|
+| **Purpose** | Execute code at specific points | Modify and return data |
+| **Return** | None (void) | Modified value |
+| **Register** | `klytos_add_action()` | `klytos_add_filter()` |
+| **Fire** | `klytos_do_action()` | `klytos_apply_filters()` |
+
+---
+
+## Hook API
+
+```php
+klytos_add_action(string $hook, callable $callback, int $priority = 10): void
+klytos_do_action(string $hook, mixed ...$args): void
+klytos_add_filter(string $hook, callable $callback, int $priority = 10): void
+klytos_apply_filters(string $hook, mixed $value, mixed ...$args): mixed
+klytos_remove_action(string $hook, callable $callback): bool
+klytos_remove_filter(string $hook, callable $callback): bool
+klytos_has_action(string $hook): bool
+klytos_has_filter(string $hook): bool
+```
+
+### Bulk Removal
+
+```php
+klytos_remove_all_actions(string $hook): void
+klytos_remove_all_filters(string $hook): void
+```
+
+### Debugging
+
+```php
+klytos_did_action(string $hook): int           // Times action was fired
+klytos_get_fired_actions(): array              // ['hook' => fire_count, ...]
+klytos_get_registered_hooks(): array           // ['actions' => ['hook' => count], 'filters' => [...]]
+```
+
+> **IMPORTANT**: ALWAYS use the global `klytos_*` functions. NEVER use `Hooks::` class methods directly.
+> The `Hooks` class is an internal engine — plugins and core code must use the `klytos_*` wrappers.
+
+---
+
+## Priority System
+
+- **1-9**: Runs BEFORE most plugins
+- **10**: Default
+- **11-99**: Runs AFTER most plugins
+
+---
+
+## Page Detection Helpers
+
+```php
+klytos_current_admin_page(): string       // 'settings', 'users', 'dashboard', etc.
+klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('settings.*')
+```
+
+---
+
+## Quick Hook Reference
+
+### Page Lifecycle
+- `page.before_save`, `page.after_save`, `page.before_delete`, `page.after_delete` (actions)
+- `page.content` (filter)
+
+### Build Process
+- `build.before`, `build.after`, `build.page.before`, `build.page.after` (actions)
+- `build.page.output`, `build.head_html`, `build.body_end_html`, `build.sitemap_urls` (filters)
+
+### MCP Tools
+- `mcp.tools_list` (filter) — register new tools
+- `mcp.handle_tool` (filter) — handle tool calls
+- `mcp.tool_response` (filter) — modify responses
+- `mcp.tool_called` (action) — tool was called
+
+### Authentication
+- `auth.before_login`, `auth.after_login` (actions)
+- `auth.capabilities` (filter)
+
+### Admin Panel
+- `admin.sidebar_items` (filter) — customize sidebar
+- `admin.head`, `admin.footer` (actions)
+- `admin.{page}.before`, `admin.{page}.after` (actions)
+
+### Blocks & Templates
+- `block.before_save`, `block.after_save` (actions)
+- `block.rendered_html` (filter)
+- `page_template.before_save`, `page_template.after_save`, `page_template.approved` (actions)
+
+### Plugins
+- `plugin.activated`, `plugin.deactivated` (actions)
+- `plugin.loaded`, `plugin.installed` (actions)
+
+---
+
+## Source Files
+
+- Hook engine: `installer/core/hooks.php`
+- Global wrappers: `installer/core/helpers-global.php`
+
+**For the complete hook catalog with all arguments and sources, see the `references/complete-hooks.md` file.**

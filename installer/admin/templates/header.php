@@ -16,6 +16,7 @@ use Klytos\Core\Auth;
 use Klytos\Core\Helpers;
 
 $cspNonce = Auth::generateCspNonce();
+$GLOBALS['klytos_csp_nonce'] = $cspNonce;
 Auth::sendSecurityHeaders($cspNonce, $customCsp ?? null);
 $basePath    = Helpers::getBasePath();
 $adminPath   = $basePath . 'admin/';

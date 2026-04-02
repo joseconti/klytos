@@ -149,6 +149,32 @@ try {
     error_log( 'Klytos scheduler fallback error: ' . $e->getMessage() );
 }
 
+// ─── Admin Notices auto-render ──────────────────────────────
+// Render queued notices at the top of every admin page via the
+// 'admin.page.before_content' hook fired in sidebar.php.
+klytos_add_action( 'admin.page.before_content', function ( string $currentPage ) use ( $app ): void {
+    $cspNonce = $GLOBALS['klytos_csp_nonce'] ?? '';
+    $app->getNoticeManager()->render( $cspNonce, $currentPage );
+}, 5 );
+
+// ─── System Notices ─────────────────────────────────────────
+// Register core system notices with condition hooks.
+klytos_add_action( 'klytos.init', function ( $app ): void {
+    // Indexing-blocked warning: only shows when indexing is disabled.
+    $app->getNoticeManager()->ensureSystemNotice( 'indexing-blocked', [
+        'message'        => __( 'indexing.blocked_title' ) . ' — ' . __( 'indexing.blocked_description' ),
+        'type'           => 'warning',
+        'dismissible'    => false,
+        'context'        => 'dashboard',
+        'condition_hook' => 'notice.condition.indexing_blocked',
+    ] );
+} );
+
+klytos_add_filter( 'notice.condition.indexing_blocked', function ( bool $show ): bool {
+    $config = klytos_app()->getSiteConfig()->get();
+    return ! ( $config['indexing_enabled'] ?? false );
+} );
+
 // ─── Auth guard ──────────────────────────────────────────────
 // If not authenticated and not on login page, redirect to login.
 $currentScript = basename( $_SERVER['SCRIPT_NAME'] );

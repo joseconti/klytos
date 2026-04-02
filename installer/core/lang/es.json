@@ -37,7 +37,8 @@
     "required": "Obligatorio",
     "optional": "Opcional",
     "view": "Ver",
-    "all": "Todos"
+    "all": "Todos",
+    "no_results": "Sin resultados"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -325,11 +326,12 @@
     "missing_fields": "El nombre del cliente y la URI de redirección son obligatorios."
   },
   "indexing": {
-    "disabled_title": "La indexación en buscadores está desactivada",
-    "disabled_description": "Tu sitio no aparecerá en Google ni en otros buscadores. Actívala cuando tu sitio esté listo para ser público.",
-    "enable_button": "Activar indexación",
-    "enabled_title": "Indexación activada",
-    "enabled_description": "Tu sitio ya es visible para los buscadores. Recuerda hacer un build para aplicar los cambios."
+    "blocked_title": "Los buscadores están bloqueados",
+    "blocked_description": "Tu sitio no aparecerá en Google ni en otros buscadores. Desactiva el bloqueo cuando tu sitio esté listo para ser público.",
+    "disable_block": "Desactivar bloqueo",
+    "allowed_title": "Los buscadores pueden acceder a tu sitio",
+    "allowed_description": "Tu sitio es visible para Google y otros buscadores. Recuerda hacer un build para aplicar los cambios.",
+    "enable_block": "Activar bloqueo"
   },
   "security": {
     "title": "Seguridad",

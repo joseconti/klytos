@@ -1,0 +1,23 @@
+{
+  "skill_name": "accessibility-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Necesito que audites la accesibilidad del formulario de login del admin panel de Klytos. El archivo esta en installer/admin/login.php. Quiero saber si cumple con WCAG 2.2 AA y con la EAA, y necesito el informe completo con las correcciones.",
+      "expected_output": "Informe de auditoria con findings especificos del formulario de login, clasificacion de severidad, criterios WCAG violados, y recomendaciones de correccion con codigo.",
+      "files": ["installer/admin/login.php"]
+    },
+    {
+      "id": 2,
+      "prompt": "Revisa la plantilla HTML default del frontend de Klytos (installer/templates/default.html y sus partials en installer/templates/parts/) para verificar que cumple con los estandares de accesibilidad. El sitio se vende en la UE y EEUU asi que necesito cumplir EAA y ADA.",
+      "expected_output": "Informe cubriendo estructura semantica HTML, landmarks, heading hierarchy, contraste, y cumplimiento tanto de EAA como ADA con checklist completo.",
+      "files": ["installer/templates/default.html", "installer/templates/parts/head.html", "installer/templates/parts/header.html", "installer/templates/parts/footer.html"]
+    },
+    {
+      "id": 3,
+      "prompt": "Tengo el editor de formularios del plugin klytos-forms en installer/plugins/klytos-forms/admin/form-editor.php. Los usuarios se quejan de que no pueden usar el editor con teclado. Haz una auditoria de accesibilidad centrada en la navegacion por teclado y compatibilidad con lectores de pantalla.",
+      "expected_output": "Informe enfocado en operabilidad por teclado (WCAG 2.1), ARIA patterns, focus management, y compatibilidad con screen readers, con recomendaciones concretas de codigo.",
+      "files": ["installer/plugins/klytos-forms/admin/form-editor.php"]
+    }
+  ]
+}

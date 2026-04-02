@@ -157,6 +157,9 @@ class App
     /** @var PostTypeManager|null Custom post types and taxonomies. */
     private ?PostTypeManager $postTypeManager = null;
 
+    /** @var NoticeManager|null Admin notices API (transient + persistent). */
+    private ?NoticeManager $noticeManager = null;
+
     /** @var Mailer|null Central email sending service. */
     private ?Mailer $mailer = null;
 
@@ -337,7 +340,8 @@ class App
         $this->optionsManager = new OptionsManager($this->storage);
         $this->optionsManager->setActiveTextDomain('_core');
         // CacheManager injection happens later (Step 10e) when it is initialized.
-        $this->metaManager    = new MetaManager($this->storage);
+        $this->metaManager    = new MetaManager( $this->storage );
+        $this->noticeManager  = new NoticeManager( $this->storage );
 
         // Step 10d: Initialize TemplateResolver and RouteManager (before plugins so they can register).
         $this->templateResolver = new TemplateResolver($this);
@@ -682,6 +686,12 @@ class App
     public function getMetaManager(): MetaManager
     {
         return $this->metaManager;
+    }
+
+    /** Get the Notice API manager. */
+    public function getNoticeManager(): NoticeManager
+    {
+        return $this->noticeManager;
     }
 
     /**

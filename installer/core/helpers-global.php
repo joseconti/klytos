@@ -725,6 +725,70 @@ function klytos_get_all_meta(string $collection, string $entityId): array
     return App::getInstance()->getMetaManager()->getAll($collection, $entityId);
 }
 
+// ─── Notice API ─────────────────────────────────────────────
+// Admin notices displayed at the top of admin pages.
+// Two modes: transient (flash, shown once) and persistent (stored, survives requests).
+
+/**
+ * Add a transient (flash) admin notice.
+ *
+ * The notice is shown once on the current page load (or after a redirect).
+ * Text-only — HTML is stripped automatically.
+ *
+ * @param string $message     Plain text message.
+ * @param string $type        Notice type: 'success', 'error', 'warning', 'info'.
+ * @param bool   $dismissible Whether the user can close the notice.
+ */
+function klytos_add_notice( string $message, string $type = 'info', bool $dismissible = true ): void
+{
+    App::getInstance()->getNoticeManager()->addTransient( $message, $type, $dismissible );
+}
+
+/**
+ * Add or update a persistent admin notice (idempotent by ID).
+ *
+ * Persistent notices survive across page loads and sessions.
+ * If a notice with the given ID already exists, it is updated.
+ *
+ * @param  string $id          Unique notice identifier.
+ * @param  string $message     Plain text message.
+ * @param  string $type        Notice type: 'success', 'error', 'warning', 'info'.
+ * @param  bool   $dismissible Whether the user can close the notice.
+ * @param  array  $options     Optional: 'context' (page filter), 'condition_hook' (conditional display filter).
+ * @return array  The notice record.
+ */
+function klytos_add_persistent_notice( string $id, string $message, string $type = 'info', bool $dismissible = true, array $options = [] ): array
+{
+    $data = array_merge( $options, [
+        'message'     => $message,
+        'type'        => $type,
+        'dismissible' => $dismissible,
+    ] );
+
+    return App::getInstance()->getNoticeManager()->ensureSystemNotice( $id, $data );
+}
+
+/**
+ * Dismiss a persistent notice for the current user session.
+ *
+ * @param string $id Notice ID to dismiss.
+ */
+function klytos_dismiss_notice( string $id ): void
+{
+    App::getInstance()->getNoticeManager()->dismiss( $id );
+}
+
+/**
+ * Get all notices that should be rendered on the current page.
+ *
+ * @param  string $currentPage Current admin page slug (optional).
+ * @return array  Array of notice records.
+ */
+function klytos_get_notices( string $currentPage = '' ): array
+{
+    return App::getInstance()->getNoticeManager()->getRenderable( $currentPage );
+}
+
 // ─── Cache API ──────────────────────────────────────────────
 // Persistent cache with auto-detected driver (APCu, Redis, Memcached, File).
 // Keys should use group:key notation for group-level flush support.

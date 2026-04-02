@@ -26,12 +26,17 @@ $lastBuild  = $siteConfig['last_build'] ?? null;
 
 $indexingEnabled = $siteConfig['indexing_enabled'] ?? false;
 
-// Handle enable indexing action.
-if ( $_SERVER['REQUEST_METHOD'] === 'POST' && ( $_POST['action'] ?? '' ) === 'enable_indexing' ) {
-    if ( klytos_verify_csrf() ) {
+// Handle indexing toggle action.
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
+    $action = $_POST['action'] ?? '';
+    if ( $action === 'disable_block' ) {
         $app->getSiteConfig()->set( ['indexing_enabled' => true] );
         $indexingEnabled = true;
         $siteConfig['indexing_enabled'] = true;
+    } elseif ( $action === 'enable_block' ) {
+        $app->getSiteConfig()->set( ['indexing_enabled' => false] );
+        $indexingEnabled = false;
+        $siteConfig['indexing_enabled'] = false;
     }
 }
 
@@ -39,24 +44,24 @@ require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 klytos_do_action( 'admin.dashboard.before' );
 
-// Show noindex warning banner.
+// Indexing warning banner is now rendered automatically by the Notice API.
+// Only the toggle action form remains here.
 if ( ! $indexingEnabled ) : ?>
-<div class="alert alert-warning flex-between flex-wrap flex-gap">
-    <div class="flex-center flex-gap">
-        <span class="text-lg">&#9888;&#65039;</span>
-        <div>
-            <strong><?php echo __( 'indexing.disabled_title' ); ?></strong>
-            <p class="text-sm mt-1"><?php echo __( 'indexing.disabled_description' ); ?></p>
-        </div>
-    </div>
-    <form method="post" class="mb-0">
-        <?php echo klytos_csrf_field(); ?>
-        <input type="hidden" name="action" value="enable_indexing">
-        <button type="submit" class="btn btn-primary btn-sm">
-            <?php echo __( 'indexing.enable_button' ); ?>
-        </button>
-    </form>
-</div>
+<form method="post" class="mb-md flex-end">
+    <?php echo klytos_csrf_field(); ?>
+    <input type="hidden" name="action" value="disable_block">
+    <button type="submit" class="btn btn-primary btn-sm">
+        <?php echo __( 'indexing.disable_block' ); ?>
+    </button>
+</form>
+<?php else : ?>
+<form method="post" class="mb-md flex-end">
+    <?php echo klytos_csrf_field(); ?>
+    <input type="hidden" name="action" value="enable_block">
+    <button type="submit" class="btn btn-outline btn-sm">
+        <?php echo __( 'indexing.enable_block' ); ?>
+    </button>
+</form>
 <?php endif; ?>
 
 <?php klytos_do_action('admin.dashboard.before_stats'); ?>
