@@ -196,7 +196,8 @@ if ( $step === 'app_password_show' ) {
 }
 
 // Build MCP endpoint URL.
-$mcpEndpoint = Helpers::siteUrl( 'mcp' );
+// Prefer the URL persisted by the installer (correct even after directory rename).
+$mcpEndpoint = $config['mcp_endpoint'] ?? Helpers::siteUrl( 'mcp' );
 
 // CSRF token for forms.
 $csrf = klytos_csrf_field();
@@ -221,10 +222,10 @@ $totalSteps = ($connectionType === 'mcp') ? 4 : 5;
 
 // ─── Provider logos (inline SVG paths) ──────────────────────
 $providerLogos = [
-    'anthropic'  => '<svg viewBox="0 0 24 24" width="32" height="32"><path fill="#D4A574" d="M13.83 1.2L21.6 22.8h-4.35l-7.77-21.6h4.35zm-7.98 0h4.35l7.77 21.6H13.62L5.85 1.2z"/></svg>',
-    'openai'     => '<svg viewBox="0 0 24 24" width="32" height="32"><path fill="#10A37F" d="M22.28 9.37a5.88 5.88 0 00-.51-4.85 5.94 5.94 0 00-6.41-2.83A5.88 5.88 0 0011.04 0 5.94 5.94 0 005.4 3.68a5.88 5.88 0 00-3.93 2.85 5.94 5.94 0 00.73 6.97 5.88 5.88 0 00.51 4.85 5.94 5.94 0 006.41 2.83A5.88 5.88 0 0012.96 24a5.94 5.94 0 005.64-3.68 5.88 5.88 0 003.93-2.85 5.94 5.94 0 00-.73-6.97l.48-1.13zM12.96 22.3a4.4 4.4 0 01-2.83-1.03l.14-.08 4.7-2.71a.77.77 0 00.38-.67v-6.62l1.99 1.15a.07.07 0 01.04.05v5.49a4.42 4.42 0 01-4.42 4.42zM3.69 18.18a4.4 4.4 0 01-.53-2.96l.14.09 4.7 2.71a.77.77 0 00.77 0l5.74-3.32v2.3a.07.07 0 01-.03.06l-4.75 2.74a4.42 4.42 0 01-6.04-1.62zM2.44 7.87a4.4 4.4 0 012.3-1.93v5.58a.77.77 0 00.38.67l5.74 3.31-1.99 1.15a.07.07 0 01-.07 0L4.05 13.9a4.42 4.42 0 01-1.62-6.04zm16.49 3.84l-5.74-3.31 1.99-1.15a.07.07 0 01.07 0l4.75 2.74a4.42 4.42 0 01-.68 7.97v-5.58a.77.77 0 00-.39-.67zm1.98-2.98l-.14-.08-4.7-2.71a.77.77 0 00-.77 0L9.56 9.26V6.96a.07.07 0 01.03-.06l4.75-2.74a4.42 4.42 0 016.57 4.57zM8.48 12.75l-1.99-1.15a.07.07 0 01-.04-.05V6.06a4.42 4.42 0 017.25-3.39l-.14.08-4.7 2.71a.77.77 0 00-.38.67v6.62zm1.08-2.33l2.56-1.48 2.56 1.48v2.96l-2.56 1.48-2.56-1.48V10.42z"/></svg>',
-    'gemini'     => '<svg viewBox="0 0 24 24" width="32" height="32"><path fill="#8E75B2" d="M12 0C9.41 3.57 8.57 4.41 5 7c3.57 2.59 4.41 3.43 7 7 2.59-3.57 3.43-4.41 7-7-3.57-2.59-4.41-3.43-7-7z"/><path fill="#4285F4" d="M12 10c-1.38 1.95-2.05 2.62-4 4 1.95 1.38 2.62 2.05 4 4 1.38-1.95 2.05-2.62 4-4-1.95-1.38-2.62-2.05-4-4z"/><path fill="#34A853" d="M12 18c-.69.97-1.03 1.31-2 2 .97.69 1.31 1.03 2 2 .69-.97 1.03-1.31 2-2-.97-.69-1.31-1.03-2-2z"/></svg>',
-    'openrouter' => '<svg viewBox="0 0 24 24" width="32" height="32"><rect fill="#6366F1" width="24" height="24" rx="4"/><path fill="#fff" d="M7 8h10v2H7zm0 3h10v2H7zm0 3h7v2H7z"/></svg>',
+    'anthropic'  => '<img src="assets/images/claude-color.webp" width="32" height="32" alt="Anthropic Claude" style="border-radius:6px">',
+    'openai'     => '<img src="assets/images/openai-white.webp" width="32" height="32" alt="OpenAI" style="border-radius:6px">',
+    'gemini'     => '<img src="assets/images/gemini-color.webp" width="32" height="32" alt="Google Gemini" style="border-radius:6px">',
+    'openrouter' => '<img src="assets/images/openrouter-white.webp" width="32" height="32" alt="OpenRouter" style="border-radius:6px">',
 ];
 
 ?>
@@ -499,7 +500,7 @@ $providerLogos = [
             var uri = <?php echo json_encode( $totpUri, JSON_UNESCAPED_SLASHES ); ?>;
             var container = document.getElementById('qrCode');
             if (container && window.KlytosQR) {
-                container.innerHTML = window.KlytosQR.toSVG(uri, { size: 200, margin: 2 });
+                window.KlytosQR.generate('qrCode', uri, { moduleSize: 4, quietZone: 4 });
             }
         });
     </script>
@@ -682,6 +683,15 @@ $providerLogos = [
 
     <?php elseif ( $step === 'app_password_show' ): ?>
     <?php
+        // Build the full MCP URL with embedded credentials.
+        // Format: https://user:pass@domain.com/path/mcp
+        $parsedUrl  = parse_url( $mcpEndpoint );
+        $mcpAuthUrl = ( $parsedUrl['scheme'] ?? 'https' ) . '://'
+                    . urlencode( $username ) . ':' . urlencode( $newAppPassword )
+                    . '@' . ( $parsedUrl['host'] ?? '' )
+                    . ( isset( $parsedUrl['port'] ) ? ':' . $parsedUrl['port'] : '' )
+                    . ( $parsedUrl['path'] ?? '' );
+
         $basicAuth = base64_encode( $username . ':' . $newAppPassword );
         $mcpJson   = json_encode([
             'mcpServers' => [
@@ -697,36 +707,61 @@ $providerLogos = [
     <div class="card">
         <h2>Your MCP Configuration</h2>
         <p class="subtitle">
-            Copy this configuration and paste it into your AI assistant (Claude Desktop, Claude Code, Cursor, etc.).
+            Copy this URL and paste it into your AI assistant (Claude Desktop, Claude Code, Cursor, etc.).
         </p>
 
         <div class="alert alert-warning">
             <strong>Save this information now!</strong> The Application Password will not be shown again.
         </div>
 
+        <!-- ① MCP URL with credentials (PRIMARY — copy and paste) -->
         <div class="form-group">
-            <label>Application Password</label>
-            <div class="token-box highlight" id="appPassBox">
-                <?php echo klytos_esc_html( $newAppPassword ); ?>
-                <button type="button" class="copy-btn" data-copy="appPassBox">Copy</button>
+            <label>MCP Connection URL</label>
+            <p class="small" style="margin-top:0;margin-bottom:0.5rem">
+                This is the URL your AI assistant will use to connect to your site.
+            </p>
+            <div class="token-box highlight" id="mcpUrlBox">
+                <?php echo klytos_esc_html( $mcpAuthUrl ); ?>
+                <button type="button" class="copy-btn" data-copy="mcpUrlBox">Copy</button>
             </div>
-            <p class="small">User: <strong><?php echo klytos_esc_html( $username ); ?></strong></p>
         </div>
 
-        <div class="form-group">
-            <label>MCP Configuration (copy &amp; paste into your AI assistant)</label>
-            <div class="mcp-config" id="mcpConfigBox"><?php echo klytos_esc_html( $mcpJson ); ?><button type="button" class="copy-btn" data-copy="mcpConfigBox">Copy</button></div>
-        </div>
+        <!-- ② JSON config (SECONDARY — collapsible) -->
+        <details style="margin-bottom: 1.25rem;">
+            <summary style="cursor:pointer;font-weight:600;font-size:0.9rem;color:#a5b4fc;">
+                JSON Configuration (for manual setup)
+            </summary>
+            <div class="mcp-config" id="mcpConfigBox" style="margin-top:0.75rem"><?php echo klytos_esc_html( $mcpJson ); ?><button type="button" class="copy-btn" data-copy="mcpConfigBox">Copy</button></div>
+        </details>
 
-        <div class="form-group">
-            <label>cURL Example</label>
-            <div class="mcp-config" id="curlBox">curl -u "<?php echo klytos_esc_html( $username ); ?>:<?php echo klytos_esc_html( $newAppPassword ); ?>" \
-  -X POST <?php echo klytos_esc_html( $mcpEndpoint ); ?> \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'<button type="button" class="copy-btn" data-copy="curlBox">Copy</button></div>
-        </div>
+        <!-- ③ Credentials (TERTIARY — collapsible) -->
+        <details style="margin-bottom: 1.25rem;">
+            <summary style="cursor:pointer;font-weight:600;font-size:0.9rem;color:#94a3b8;">
+                Show credentials separately
+            </summary>
+            <div style="margin-top:0.75rem;">
+                <div class="form-group">
+                    <label>MCP Endpoint</label>
+                    <div class="token-box" id="endpointBox">
+                        <?php echo klytos_esc_html( $mcpEndpoint ); ?>
+                        <button type="button" class="copy-btn" data-copy="endpointBox">Copy</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>User</label>
+                    <div class="token-box"><?php echo klytos_esc_html( $username ); ?></div>
+                </div>
+                <div class="form-group">
+                    <label>Application Password</label>
+                    <div class="token-box highlight" id="appPassBox">
+                        <?php echo klytos_esc_html( $newAppPassword ); ?>
+                        <button type="button" class="copy-btn" data-copy="appPassBox">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </details>
 
-        <form method="post" style="margin-top: 1.5rem;">
+        <form method="post" style="margin-top: 1rem;">
             <?php echo $csrf; ?>
             <input type="hidden" name="wizard_action" value="go_to_congrats">
             <button type="submit" class="btn btn-success btn-block">Continue</button>
@@ -739,7 +774,6 @@ $providerLogos = [
                 btn.addEventListener('click', function() {
                     var targetId = btn.getAttribute('data-copy');
                     var el = document.getElementById(targetId);
-                    // Get text content excluding the button text.
                     var text = el.textContent.replace(/Copy|Copied!/, '').trim();
                     navigator.clipboard.writeText(text).then(function() {
                         btn.textContent = 'Copied!';

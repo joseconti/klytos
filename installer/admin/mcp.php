@@ -112,7 +112,7 @@ $currentTab = $_GET['tab'] ?? 'mcp';
 
 $appPasswords = $auth->listAppPasswords();
 $oauthClients = $oauthServer->listClients();
-$mcpEndpoint  = Helpers::siteUrl( 'mcp' );
+$mcpEndpoint  = $app->getConfig()['mcp_endpoint'] ?? Helpers::siteUrl( 'mcp' );
 $username     = $auth->getUsername();
 
 // Build the example JSON config (shown after creating an app password).
