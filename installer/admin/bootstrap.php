@@ -132,6 +132,55 @@ register_shutdown_function( function () use ( $app ) {
     }
 } );
 
+// ─── Pending directory rename ────────────────────────────────
+// If the installer couldn't rename the directory (common on shared hosting
+// because PHP had files open), retry now on the first subsequent request.
+$pendingRename = $app->getConfig()['pending_rename'] ?? null;
+if ( $pendingRename !== null ) {
+    $currentDir = basename( dirname( __DIR__ ) );
+    $parentDir  = dirname( dirname( __DIR__ ) );
+    $targetPath = $parentDir . '/' . $pendingRename;
+
+    if ( $currentDir !== $pendingRename && ! is_dir( $targetPath ) ) {
+        $renamed = @rename( dirname( __DIR__ ), $targetPath );
+
+        if ( ! $renamed && function_exists( 'exec' ) ) {
+            $src = escapeshellarg( dirname( __DIR__ ) );
+            $dst = escapeshellarg( $targetPath );
+            @exec( "mv {$src} {$dst} 2>&1", $out, $code );
+            $renamed = ( $code === 0 && is_dir( $targetPath ) );
+        }
+
+        if ( $renamed ) {
+            // Update config: clear pending flag, set real admin_dir.
+            $cfg = $app->getConfig();
+            $cfg['admin_dir'] = $pendingRename;
+            unset( $cfg['pending_rename'] );
+
+            // Recalculate URLs.
+            $scheme = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
+            $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+            $base   = dirname( dirname( $_SERVER['SCRIPT_NAME'] ) );
+            $base   = ( $base === '/' || $base === '\\' ) ? '/' : rtrim( $base, '/' ) . '/';
+            // Replace old dir name with new one in the base path.
+            $base   = preg_replace( '#/' . preg_quote( $currentDir, '#' ) . '/#', '/' . $pendingRename . '/', $base );
+
+            $cfg['mcp_endpoint'] = $scheme . '://' . $host . $base . $pendingRename . '/mcp';
+            $cfg['admin_url']    = $scheme . '://' . $host . $base . $pendingRename . '/admin/';
+
+            $app->getStorage()->writeTo( $targetPath . '/config', 'config.json.enc', $cfg );
+
+            // Redirect to the new URL.
+            $newUrl = $cfg['admin_url'] . basename( $_SERVER['SCRIPT_NAME'] );
+            if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
+                $newUrl .= '?' . $_SERVER['QUERY_STRING'];
+            }
+            header( 'Location: ' . $newUrl );
+            exit;
+        }
+    }
+}
+
 // ─── Start admin session ─────────────────────────────────────
 $app->getAuth()->startSession();
 
