@@ -1,75 +1,6 @@
----
-name: klytos-hooks-reference
-description: Complete reference of all hooks (actions and filters) available in Klytos CMS. Use when extending the CMS via plugins, modifying behavior, or intercepting events.
-trigger: When the user needs to hook into Klytos events, modify data through filters, add custom behavior, or understand the hook system.
----
+# Complete Klytos Hooks Catalog
 
-# Klytos Hooks Reference
-
-## Actions vs Filters
-
-| | Actions | Filters |
-|---|---|---|
-| **Purpose** | Execute code at specific points | Modify and return data |
-| **Return** | None (void) | Modified value |
-| **Register** | `klytos_add_action()` | `klytos_add_filter()` |
-| **Fire** | `klytos_do_action()` | `klytos_apply_filters()` |
-
----
-
-## Hook API
-
-```php
-klytos_add_action(string $hook, callable $callback, int $priority = 10): void
-klytos_do_action(string $hook, mixed ...$args): void
-klytos_add_filter(string $hook, callable $callback, int $priority = 10): void
-klytos_apply_filters(string $hook, mixed $value, mixed ...$args): mixed
-klytos_remove_action(string $hook, callable $callback): bool
-klytos_remove_filter(string $hook, callable $callback): bool
-klytos_has_action(string $hook): bool
-klytos_has_filter(string $hook): bool
-```
-
-### Bulk Removal
-
-```php
-klytos_remove_all_actions(string $hook): void
-klytos_remove_all_filters(string $hook): void
-```
-
-### Debugging
-
-```php
-klytos_did_action(string $hook): int           // Times action was fired
-klytos_get_fired_actions(): array              // ['hook' => fire_count, ...]
-klytos_get_registered_hooks(): array           // ['actions' => ['hook' => count], 'filters' => [...]]
-```
-
-> **IMPORTANT**: ALWAYS use the global `klytos_*` functions. NEVER use `Hooks::` class methods directly.
-> The `Hooks` class is an internal engine — plugins and core code must use the `klytos_*` wrappers.
-
----
-
-## Priority System
-
-- **1-9**: Runs BEFORE most plugins
-- **10**: Default
-- **11-99**: Runs AFTER most plugins
-
----
-
-## Page Detection Helpers
-
-```php
-klytos_current_admin_page(): string       // 'settings', 'users', 'dashboard', etc.
-klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('settings.*')
-```
-
----
-
-## Complete Hook Catalog
-
-### 1. System & Lifecycle
+## 1. System & Lifecycle
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -78,7 +9,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `router.before_dispatch` | action | `string $route` | core/router.php |
 | `router.after_dispatch` | action | `string $route` | core/router.php |
 
-#### MCP Tools
+### MCP Tools
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -87,7 +18,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `mcp.tool_response` | filter | `array $response, string $toolName` | core/mcp/tool-registry.php |
 | `mcp.tool_called` | action | `string $toolName, array $params` | core/mcp/tool-registry.php |
 
-### 2. Authentication & Users
+## 2. Authentication & Users
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -115,7 +46,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `login.after_form` | action | — | admin/login.php |
 | `login.footer` | action | — | admin/login.php |
 
-### 3. Pages
+## 3. Pages
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -125,7 +56,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `page.after_delete` | action | `string $slug` | core/page-manager.php |
 | `page.content` | filter | `string $html, array $page` | core/build-engine.php |
 
-### 4. Post Types, Taxonomies, Terms & Custom Fields
+## 4. Post Types, Taxonomies, Terms & Custom Fields
 
 #### Post Types
 
@@ -163,7 +94,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `custom_field.after_delete` | action | `string $postTypeId, string $fieldId` | core/post-type-manager.php |
 | `custom_field.after_reorder` | action | `string $postTypeId, array $fieldIds` | core/post-type-manager.php |
 
-### 5. Blocks & Page Templates
+## 5. Blocks & Page Templates
 
 #### Blocks
 
@@ -189,7 +120,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `page_template.structure` | filter | `array $structure, string $type` | core/page-template-manager.php |
 | `template_part.{$partName}` | filter | `mixed $value` — dynamic per template part name | core/template-resolver.php |
 
-### 6. Build & Frontend
+## 6. Build & Frontend
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -204,7 +135,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `build.sitemap_urls` | filter | `array $urls` | core/build-engine.php |
 | `build.global_blocks` | filter | `array $cache` | core/build-engine.php |
 
-### 7. Options & Metadata
+## 7. Options & Metadata
 
 #### Options
 
@@ -226,7 +157,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `meta.after_delete` | action | `string $collection, string $entityId, string $key` | core/meta-manager.php |
 | `meta.get` | filter | `mixed $value, string $collection, string $entityId, string $key` | core/meta-manager.php |
 
-### 8. Notices
+## 8. Notices
 
 #### Actions
 
@@ -247,7 +178,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `notice.render_html` | filter | `string $html, array $notice` | core/notice-manager.php |
 | `{condition_hook}` | filter | `bool $show` — dynamic per notice | core/notice-manager.php |
 
-### 9. Plugins
+## 9. Plugins
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -263,7 +194,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `plugin.logs_enabled` | action | `string $pluginId` | core/plugin-loader.php |
 | `plugin.logs_disabled` | action | `string $pluginId` | core/plugin-loader.php |
 
-### 9. Logging
+## 10. Logging
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -279,7 +210,7 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `admin.logs_file_list` | filter | `array $files` | admin/logs.php |
 | `admin.logs_toolbar` | filter | `string $html` | admin/logs.php |
 
-### 10. Admin Panel
+## 11. Admin Panel
 
 #### Layout (Header, Footer, Page Wrapper)
 
@@ -397,7 +328,7 @@ Every admin page fires `admin.{pagename}.before` and `admin.{pagename}.after`. A
 | `admin.webhooks.before_form` | action | — | admin/webhooks.php |
 | `admin.webhooks.after_form` | action | — | admin/webhooks.php |
 
-### 10. AI & Chat
+## 12. AI & Chat
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -410,7 +341,7 @@ Every admin page fires `admin.{pagename}.before` and `admin.{pagename}.after`. A
 | `ai.system_prompt` | filter | `string $prompt, string $userId, array $site` | core/ai/chat-engine.php |
 | `ai.tools_for_chat` | filter | `array $tools, string $userId` | core/ai/chat-engine.php |
 
-### 11. Terminal
+## 13. Terminal
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
@@ -420,7 +351,7 @@ Every admin page fires `admin.{pagename}.before` and `admin.{pagename}.after`. A
 | `terminal.command_output` | filter | `string $output, string $commandName` | core/terminal-executor.php |
 | `terminal.category_labels` | filter | `array $labels` | core/terminal-executor.php |
 
-### 12. Mailer, Webhooks, Cron & Scheduler
+## 14. Mailer, Webhooks, Cron & Scheduler
 
 #### Mailer
 
@@ -475,7 +406,7 @@ Every admin page fires `admin.{pagename}.before` and `admin.{pagename}.after`. A
 | `scheduler.batch_complete` | action | `array $results` | core/action-scheduler.php |
 | `{$action['hook']}` | action | `mixed ...$args` — dynamic, fires the scheduled action's hook | core/action-scheduler.php |
 
-### 13. Assets, Theme & Analytics
+## 15. Assets, Theme & Analytics
 
 #### Assets
 
@@ -502,8 +433,6 @@ Every admin page fires `admin.{pagename}.before` and `admin.{pagename}.after`. A
 | `analytics.event` | filter | `array $entry` | core/analytics-manager.php |
 | `kses_post_allowed_tags` | filter | `array $tags` | core/helpers.php |
 
----
-
 ## Creating Custom Hooks
 
 ```php
@@ -518,8 +447,6 @@ klytos_add_action('my_plugin.data_imported', function (int $count, array $errors
     klytos_log('info', "Imported {$count} records");
 });
 ```
-
----
 
 ## Source Files
 

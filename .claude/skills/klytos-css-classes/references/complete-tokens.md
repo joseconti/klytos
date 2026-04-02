@@ -1,22 +1,6 @@
----
-name: klytos-css-classes
-description: Complete reference of all CSS design tokens, component classes, and utility classes available in Klytos CMS. Use when building content, plugins, or admin templates that need consistent styling.
-trigger: When the user needs to style content, use CSS classes, apply design tokens, or build visually consistent UI in Klytos.
----
+# Complete Klytos CSS Tokens & Classes Reference
 
-# Klytos CSS Classes & Design Tokens
-
-## When to Use This Skill
-
-Use this reference when building or modifying any UI in Klytos — admin pages, plugin interfaces, frontend content, or templates. **Always use design tokens and core CSS classes instead of hardcoding colors or writing custom CSS.**
-
-For design principles and composition patterns, see the `klytos-design-system` skill.
-
----
-
-## CSS Custom Properties (Design Tokens)
-
-All tokens use the `--klytos-` prefix. Defined in `installer/admin/assets/css/klytos-tokens.css`.
+## All Design Tokens
 
 ### Backgrounds
 
@@ -137,9 +121,7 @@ All tokens use the `--klytos-` prefix. Defined in `installer/admin/assets/css/kl
 | `--klytos-sidebar-width` | `260px` |
 | `--klytos-sidebar-collapsed` | `60px` |
 
----
-
-## Admin Component Classes
+## All Component Classes
 
 ### Buttons
 
@@ -275,9 +257,7 @@ JS in `footer.php` auto-adds `.selected` class on input change.
 | `.priority-dot` + `.urgent`/`.high`/`.medium`/`.low` | Colored dot indicator |
 | `.chart-bar` / `.chart-bar-item` | Simple bar chart |
 
----
-
-## Utility Classes
+## All Utility Classes
 
 ### Grid System
 
@@ -308,7 +288,7 @@ All grids collapse to 1 column on mobile (768px).
 | `.flex-gap-md` | `gap: 1rem` |
 | `.flex-gap-lg` | `gap: 1.5rem` |
 
-### Spacing — Margins
+### Spacing - Margins
 
 | Class | Value |
 |-------|-------|
@@ -317,7 +297,7 @@ All grids collapse to 1 column on mobile (768px).
 | `.mr-1`, `.mr-2` | Right margin |
 | `.ml-auto` | Push to right |
 
-### Spacing — Padding
+### Spacing - Padding
 
 | Class | Value |
 |-------|-------|
@@ -374,8 +354,6 @@ All grids collapse to 1 column on mobile (768px).
 | `.rounded` / `.rounded-lg` / `.rounded-full` | Border radius |
 | `.border` / `.border-b` | Borders |
 
----
-
 ## Frontend CSS Classes (Public-Facing)
 
 ### Layout
@@ -431,8 +409,6 @@ All grids collapse to 1 column on mobile (768px).
 | `.klytos-team` | Team member grid |
 | `.klytos-logos` | Logo bar |
 
----
-
 ## Frontend Design Tokens
 
 ```css
@@ -452,39 +428,6 @@ All grids collapse to 1 column on mobile (768px).
 --klytos-spacing         /* Base spacing unit (default: 1rem) */
 ```
 
----
+## Backward Compatibility
 
-## Responsive Breakpoints
-
-| Breakpoint | Target | Effect |
-|------------|--------|--------|
-| `max-width: 768px` | Mobile | Grids collapse, sidebar collapses, padding reduces |
-| `max-width: 782px` | Editor | Editor sidebar hidden, header compressed |
-| `max-width: 480px` | Small phones | Stats grid 1-column |
-
----
-
-## Best Practices
-
-1. **Always use `--klytos-*` tokens** — never hardcode colors
-2. **Always use component/utility classes** — never use inline `style=""`
-3. **Test both themes** — dark (default) and light mode
-4. **Test at 768px** — ensure mobile layout works
-5. **Use plugin ID prefix** for custom classes: `.my-plugin-widget`
-6. **Never override core classes** — extend with your own selectors
-7. **Backward compat aliases exist** for `--admin-*` and unprefixed vars — do NOT use them in new code
-
----
-
-## Source Files
-
-| File | Purpose |
-|------|---------|
-| `installer/admin/assets/css/klytos-tokens.css` | All design tokens |
-| `installer/admin/assets/css/klytos-base.css` | Reset, body, layout |
-| `installer/admin/assets/css/klytos-components.css` | All components |
-| `installer/admin/assets/css/klytos-sidebar.css` | Sidebar navigation |
-| `installer/admin/assets/css/klytos-utilities.css` | Utility classes |
-| `installer/admin/templates/header.php` | Loads all CSS |
-| `core/build-engine.php` | Frontend CSS generation |
-| `installer/seed-data.php` | Seed data with block HTML/CSS |
+Legacy aliases exist for `--admin-*` and unprefixed vars — do NOT use them in new code. Always prefer `--klytos-*` prefixed tokens.

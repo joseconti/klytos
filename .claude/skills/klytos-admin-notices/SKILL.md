@@ -1,7 +1,6 @@
 ---
 name: klytos-admin-notices
-description: Guide for displaying admin notices in Klytos CMS. Use when showing success/error/warning/info messages to the admin user.
-trigger: When the user needs to show admin notices, flash messages, alerts, success/error feedback, or persistent warnings in the Klytos admin panel.
+description: Guide for displaying admin notices in Klytos CMS. Use when showing success, error, warning, or info messages to admin users, implementing flash messages after form submissions, creating persistent warnings that survive page loads, adding conditional notices that auto-hide when conditions change, or handling notice dismissal via AJAX. Also trigger when working with the NoticeManager, transient notices, or the notice.before_render filter.
 ---
 
 # Klytos Admin Notices API
@@ -10,8 +9,8 @@ trigger: When the user needs to show admin notices, flash messages, alerts, succ
 
 Use this reference when you need to display messages to admin users. Klytos provides two types of notices:
 
-1. **Transient notices** — Flash messages shown once (e.g., "Settings saved", "Page deleted")
-2. **Persistent notices** — Stored messages that survive across page loads until dismissed or a condition changes (e.g., "Indexing is disabled")
+1. **Transient notices** -- Flash messages shown once (e.g., "Settings saved", "Page deleted")
+2. **Persistent notices** -- Stored messages that survive across page loads until dismissed or a condition changes (e.g., "Indexing is disabled")
 
 ## Key Rules
 
@@ -37,7 +36,7 @@ klytos_add_notice( string $message, string $type = 'info', bool $dismissible = t
 
 | Parameter      | Type   | Default | Description                              |
 |---------------|--------|---------|------------------------------------------|
-| `$message`     | string | —       | Plain text message (HTML stripped)        |
+| `$message`     | string | --       | Plain text message (HTML stripped)        |
 | `$type`        | string | `'info'` | `'success'`, `'error'`, `'warning'`, `'info'` |
 | `$dismissible` | bool   | `true`  | Whether user can close with X button     |
 
@@ -68,7 +67,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
     } else {
         klytos_add_notice( __( 'myplugin.settings_failed' ), 'error' );
     }
-    // Redirect to avoid form resubmission — notice survives the redirect.
+    // Redirect to avoid form resubmission -- notice survives the redirect.
     header( 'Location: ' . $_SERVER['REQUEST_URI'] );
     exit;
 }
@@ -96,8 +95,8 @@ klytos_add_persistent_notice(
 
 | Parameter      | Type   | Default | Description                                  |
 |---------------|--------|---------|----------------------------------------------|
-| `$id`          | string | —       | Unique identifier (slug format)              |
-| `$message`     | string | —       | Plain text message                           |
+| `$id`          | string | --       | Unique identifier (slug format)              |
+| `$message`     | string | --       | Plain text message                           |
 | `$type`        | string | `'info'` | `'success'`, `'error'`, `'warning'`, `'info'` |
 | `$dismissible` | bool   | `true`  | Whether user can close with X button         |
 | `$options`     | array  | `[]`    | Optional: `context`, `condition_hook`        |
@@ -111,7 +110,7 @@ klytos_add_persistent_notice(
 
 ### The `condition_hook` Pattern
 
-This is the key innovation. A persistent notice declares a filter hook name. At render time, the Notice API calls `klytos_apply_filters( $condition_hook, true )`. If it returns `false`, the notice is silently skipped — no code needs to delete it.
+This is the key innovation. A persistent notice declares a filter hook name. At render time, the Notice API calls `klytos_apply_filters( $condition_hook, true )`. If it returns `false`, the notice is silently skipped -- no code needs to delete it.
 
 ```php
 // Register a conditional persistent notice.
@@ -123,7 +122,7 @@ klytos_add_persistent_notice( 'ssl-missing', 'Your site is not using HTTPS.', 'e
 klytos_add_filter( 'notice.condition.ssl_missing', function ( bool $show ): bool {
     return ! isset( $_SERVER['HTTPS'] ) || $_SERVER['HTTPS'] !== 'on';
 } );
-// Notice auto-hides when HTTPS is enabled — no code needs to remove it.
+// Notice auto-hides when HTTPS is enabled -- no code needs to remove it.
 ```
 
 ### Idempotent
@@ -172,7 +171,7 @@ Dismissible notices render an X button. Clicking it:
 2. Sends a `POST` to `/admin/api/notices.php` with `action=dismiss` and the notice `id`.
 3. The server stores the dismiss in the session.
 
-No plugin code needed — this is handled automatically.
+No plugin code needed -- this is handled automatically.
 
 ---
 
@@ -283,7 +282,7 @@ Colors come from `--klytos-{type}-subtle` (background), `--klytos-{type}-text` (
 
 | Method | Action    | Parameters | Description                |
 |--------|-----------|------------|----------------------------|
-| `GET`  | —         | `?page=`   | List renderable notices    |
+| `GET`  | --         | `?page=`   | List renderable notices    |
 | `POST` | `dismiss` | `id`       | Dismiss a persistent notice |
 
 Requires authentication and CSRF token.

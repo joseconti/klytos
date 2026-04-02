@@ -1,100 +1,6 @@
----
-name: klytos-plugin-development
-description: Complete guide for developing Klytos CMS plugins. Use when creating, modifying, or debugging plugins for Klytos.
-trigger: When the user asks to create a plugin, extend Klytos functionality, add MCP tools, add admin pages, or register hooks/filters.
----
+# Advanced Klytos Plugin Features
 
-# Klytos Plugin Development Guide
-
-## Architecture Overview
-
-Klytos is an **AI-First CMS** controlled via MCP (Model Context Protocol). Plugins extend core functionality through a WordPress-inspired hook system (actions + filters) WITHOUT modifying core files.
-
-**Key principle**: Every feature should be exposed as an MCP tool FIRST, admin UI second.
-
-## Plugin Identification (IMMUTABLE CONTRACT)
-
-A Klytos plugin is identified by a directory `plugins/{plugin-id}/` containing a PHP file named `{plugin-id}.php` with a `Plugin Name:` header in its docblock. This contract can NEVER change.
-
-### Minimum Viable Plugin
-
-```php
-<?php
-// plugins/hello-world/hello-world.php
-/**
- * Plugin Name: Hello World
- */
-```
-
-That's it. Klytos discovers it, lists it in admin, and allows activation.
-
-## Plugin Structure
-
-```
-plugins/{plugin-id}/
-├── {plugin-id}.php      ← REQUIRED: identification + entry point (PHP header)
-├── klytos-plugin.json   ← OPTIONAL: extended metadata (admin_pages, mcp_tools, etc.)
-├── install.php          ← Optional: runs on first activation
-├── deactivate.php       ← Optional: runs on deactivation
-├── uninstall.php        ← Optional: removes plugin data permanently
-├── admin/               ← Optional: admin page views
-│   └── settings.php
-├── assets/              ← Optional: CSS, JS, images (publicly accessible)
-│   ├── style.css
-│   └── script.js
-├── lang/                ← Optional: translation files
-│   ├── en.json
-│   └── es.json
-├── src/                 ← Optional: PHP source classes
-│   └── MyManager.php
-├── templates/           ← Optional: HTML templates
-└── migrations/          ← Optional: data migrations
-```
-
-## PHP Header (Canonical Identity)
-
-The main PHP file MUST contain a docblock with at least `Plugin Name:`. All other fields are optional.
-
-```php
-<?php
-// plugins/my-plugin/my-plugin.php
-/**
- * Plugin Name: My Plugin
- * Plugin URI: https://example.com/my-plugin
- * Description: What this plugin does.
- * Version: 1.0.0
- * Author: Author Name
- * Author URI: https://example.com
- * Requires Klytos: 0.15.0
- * Requires PHP: 8.1
- * License: ELv2
- * Text Domain: my-plugin
- * Premium: false
- * Logs: true
- */
-```
-
-## Extended Manifest (klytos-plugin.json) — OPTIONAL
-
-For complex structured data that doesn't fit in a PHP header comment. The `id` field is NOT needed — it's derived from the directory name. Identity fields in the JSON are ignored (the PHP header is canonical).
-
-```json
-{
-  "permissions": ["pages.edit"],
-  "admin_pages": [
-    {
-      "id": "my-plugin-settings",
-      "title": "My Plugin",
-      "icon": "P",
-      "position": 86,
-      "section": "system"
-    }
-  ],
-  "mcp_tools": ["my_plugin_do_something"]
-}
-```
-
-## Registering Plugin Admin Pages
+## Registering Admin Pages
 
 Use `klytos_register_admin_page()` to add sidebar items that route to `admin/plugin-page.php`:
 
@@ -209,9 +115,8 @@ klytos_add_action('page.after_save', function (array $page, string $action): voi
 
 ## Available Hook Functions
 
-> **IMPORTANT**: ALWAYS use the global `klytos_*` functions below. NEVER use `Hooks::` class methods directly.
+**IMPORTANT**: ALWAYS use the global `klytos_*` functions. NEVER use `Hooks::` class methods directly.
 
-### Actions (fire-and-forget)
 ```php
 klytos_add_action(string $hook, callable $callback, int $priority = 10): void
 klytos_do_action(string $hook, mixed ...$args): void
@@ -219,10 +124,7 @@ klytos_remove_action(string $hook, callable $callback): bool
 klytos_has_action(string $hook): bool
 klytos_remove_all_actions(string $hook): void
 klytos_did_action(string $hook): int
-```
 
-### Filters (modify data)
-```php
 klytos_add_filter(string $hook, callable $callback, int $priority = 10): void
 klytos_apply_filters(string $hook, mixed $value, mixed ...$args): mixed
 klytos_remove_filter(string $hook, callable $callback): bool
@@ -253,76 +155,17 @@ klytos_log($level, $msg, $ctx) → Write to log file
 klytos_register_translations($pluginId, $langDir) → Register i18n
 ```
 
-## Available Hooks
+## Premium Plugin License Verification
 
-### Page Lifecycle
-- `page.before_save` (action) — args: $page, $action ('create'|'update')
-- `page.after_save` (action) — args: $page, $action
-- `page.before_delete` (action) — args: $slug
-- `page.after_delete` (action) — args: $slug
-- `page.content` (filter) — modify page HTML content
+Premium plugins set `"premium": true` in the manifest. The PluginLoader automatically verifies their license against plugins.joseconti.com before loading.
 
-### Build Lifecycle
-- `build.before` (action)
-- `build.after` (action)
-- `build.head_html` (filter) — inject CSS/meta into <head>
-- `build.body_end_html` (filter) — inject JS before </body>
-- `build.robots_txt` (filter) — modify robots.txt content
-- `build.sitemap_urls` (filter) — add URLs to sitemap.xml
-- `block.rendered_html` (filter) — modify block output
-
-### Admin Panel
-- `admin.sidebar_items` (filter) — add menu items
-- `admin.dashboard_widgets` (filter) — add dashboard widgets
-- `admin.styles` (filter) — enqueue CSS
-- `admin.scripts` (filter) — enqueue JS
-- `admin.head` (action) — inject into admin <head>
-- `admin.footer` (action) — inject before admin </body>
-
-### MCP Tools
-- `mcp.tools_list` (filter) — register new MCP tools
-- `mcp.handle_tool` (filter) — handle tool calls
-- `mcp.tool_response` (filter) — modify tool responses
-- `mcp.tool_called` (action) — notification when a tool is called
-
-### Authentication & Permissions
-- `auth.capabilities` (filter) — register custom permissions
-- `user.login` (action) — user logged in
-- `user.logout` (action) — user logged out
-- `user.created` (action) — new user created
-
-### Plugins
-- `plugin.activated` (action) — plugin activated
-- `plugin.deactivated` (action) — plugin deactivated
-- `plugin.uninstalled` (action) — plugin uninstalled
-
-### Webhooks & Cron
-- `webhooks.events` (filter) — register custom webhook events
-- `cron.tasks` (filter) — register scheduled tasks
-
-### Blocks & Templates
-- `block.available_types` (filter) — register custom block types
-- `block.slot_types` (filter) — register custom slot types
-- `block.rendered_html` (filter) — modify rendered block HTML
-- `block.global_data_changed` (action) — global block data updated
-- `page_template.available_types` (filter) — register custom templates
-- `page_template.wrapper_html` (filter) — modify template wrapper
-- `page_template.approved` (action) — template approved
-
-## Storage Pattern for Plugin Data
+License data is stored in: `config/plugin_licenses/{plugin-id}.json.enc`
 
 ```php
-// Read/write plugin-specific data using the storage API.
-$storage = klytos_storage();
-
-// Write plugin data to its own collection.
-$storage->write('my-plugin-data', 'settings', [
-    'api_key' => 'xxx',
-    'enabled' => true,
-]);
-
-// Read it back.
-$data = $storage->read('my-plugin-data', 'settings');
+/**
+ * Plugin Name: Premium Plugin
+ * Premium: true
+ */
 ```
 
 ## Registering Cron Tasks
@@ -354,45 +197,22 @@ $webhookManager = new \Klytos\Core\WebhookManager(klytos_storage());
 $webhookManager->dispatch('my_plugin.data_synced', ['records' => 42]);
 ```
 
-## Premium Plugin License Verification
+## Registering Translations (i18n) — MANDATORY
 
-Premium plugins set `"premium": true` in the manifest. The PluginLoader automatically
-verifies their license against plugins.joseconti.com before loading.
+When a plugin uses translations (`__()` function), it is **MANDATORY** to create the file `lang/en.json` with ALL translation keys in English. This file serves as the master reference for the Translation Manager in the admin panel.
 
-License data is stored in: `config/plugin_licenses/{plugin-id}.json.enc`
+Without `en.json`, the plugin's keys will NOT appear in System > Translations and cannot be translated from the admin UI or via MCP tools.
 
-## Plugin Logging
+Minimum structure for `lang/en.json`:
 
-Plugins can opt into the centralized logging system by declaring `Logs: true` in their PHP header. When declared, an "Enable Logs" action appears in the plugin management page.
-
-**Requirements for logging to work:**
-1. Developer Mode must be active (Settings → Developer → `developer_mode: true`)
-2. The plugin must declare `Logs: true` in its header
-3. The admin must enable logging for the plugin (via Plugins page action)
-
-**Writing logs from a plugin:**
-
-```php
-// PSR-3 levels: emergency, alert, critical, error, warning, notice, info, debug
-klytos_log( 'info', 'Order processed', ['order_id' => 42], 'my-plugin' );
-
-// Convenience helpers (last param is always the plugin ID):
-klytos_log_error( 'Payment failed', ['gateway' => 'stripe'], 'my-plugin' );
-klytos_log_warning( 'Rate limit approaching', [], 'my-plugin' );
-klytos_log_info( 'Cache refreshed', [], 'my-plugin' );
-klytos_log_debug( 'Request payload', $data, 'my-plugin' );
+```json
+{
+    "plugin_id.key_name": "English text",
+    "plugin_id.another_key": "Another English text"
+}
 ```
 
-Logs are stored in `data/logs-{random}/debug-YYYY-MM-DD.log` with daily rotation and 5MB file-size splitting. View logs in System → Logs.
-
-## Security Requirements for Plugins
-
-1. **Never access the filesystem directly** — use `klytos_storage()`.
-2. **Always sanitize HTML output** — use `htmlspecialchars()` or `Helpers::sanitizeHtml()`.
-3. **Always validate input** — check types, lengths, and formats.
-4. **Use capabilities for access control** — register via `auth.capabilities` filter.
-5. **Never store secrets in cleartext** — use the encrypted storage.
-6. **Include the ELv2 license header** in all PHP files if distributing.
+Optionally, include other language files (`es.json`, `fr.json`, etc.) to ship built-in translations with the plugin.
 
 ## Plugin Assets (CSS, JS, Images)
 
@@ -499,79 +319,6 @@ If your plugin sets `Requires Klytos: 0.14.0` and the user runs `0.14.0-beta.4`,
  */
 ```
 
-## Translations — Plugin i18n
-
-### Registering Translations
-
-Place JSON translation files in `plugins/{plugin-id}/lang/`:
-
-```
-plugins/my-plugin/lang/
-├── en.json
-└── es.json
-```
-
-Register them in your main plugin file:
-
-```php
-klytos_register_translations('my-plugin', klytos_plugin_path('my-plugin', 'lang'));
-```
-
-### Translation File Format
-
-Both flat dot-notation keys and nested arrays are supported:
-
-```json
-// FLAT FORMAT (recommended for plugins — simpler):
-{
-    "my_plugin.settings_title": "My Plugin Settings",
-    "my_plugin.save": "Save Changes",
-    "my_plugin.success": "Operation completed"
-}
-
-// NESTED FORMAT (also works):
-{
-    "my_plugin": {
-        "settings_title": "My Plugin Settings",
-        "save": "Save Changes"
-    }
-}
-```
-
-**IMPORTANT**: Use underscores (`_`) in translation keys, not hyphens. The key prefix should match a consistent namespace for your plugin (e.g. `my_plugin.`). The dot is the separator for nested lookup.
-
-### Using Plugin Translations
-
-```php
-// Keys use dot-notation — the I18n system resolves them:
-echo __('my_plugin.settings_title');  // → "My Plugin Settings"
-echo __('my_plugin.success');         // → "Operation completed"
-
-// With replacements:
-echo __('my_plugin.greeting', ['name' => 'José']);  // → "Hello, José!"
-```
-
-### MANDATORY RULE: en.json File
-
-When a plugin uses translations (`__()` function), it is **MANDATORY** to create the file
-`lang/en.json` with ALL translation keys in English. This file serves as the master
-reference for the Translation Manager in the admin panel.
-
-Without `en.json`, the plugin's keys will NOT appear in System > Translations and cannot
-be translated from the admin UI or via MCP tools.
-
-Minimum structure for `lang/en.json`:
-
-```json
-{
-    "plugin_id.key_name": "English text",
-    "plugin_id.another_key": "Another English text"
-}
-```
-
-Optionally, include other language files (`es.json`, `fr.json`, etc.) to ship
-built-in translations with the plugin.
-
 ## Installing Plugins via ZIP
 
 Plugins can be installed or updated by uploading a ZIP file through the admin UI (`Plugins → Install Plugin`).
@@ -596,6 +343,55 @@ When installing a plugin that already exists, Klytos automatically creates a bac
 
 - Maximum **5 backups** per plugin (oldest are purged automatically with no trace)
 - Restore is available via the **Restore** button in each plugin's action row
+
+## Plugin Logging
+
+Plugins can opt into the centralized logging system by declaring `Logs: true` in their PHP header. When declared, an "Enable Logs" action appears in the plugin management page.
+
+**Requirements for logging to work:**
+1. Developer Mode must be active (Settings → Developer → `developer_mode: true`)
+2. The plugin must declare `Logs: true` in its header
+3. The admin must enable logging for the plugin (via Plugins page action)
+
+**Writing logs from a plugin:**
+
+```php
+// PSR-3 levels: emergency, alert, critical, error, warning, notice, info, debug
+klytos_log( 'info', 'Order processed', ['order_id' => 42], 'my-plugin' );
+
+// Convenience helpers (last param is always the plugin ID):
+klytos_log_error( 'Payment failed', ['gateway' => 'stripe'], 'my-plugin' );
+klytos_log_warning( 'Rate limit approaching', [], 'my-plugin' );
+klytos_log_info( 'Cache refreshed', [], 'my-plugin' );
+klytos_log_debug( 'Request payload', $data, 'my-plugin' );
+```
+
+Logs are stored in `data/logs-{random}/debug-YYYY-MM-DD.log` with daily rotation and 5MB file-size splitting. View logs in System → Logs.
+
+## Storage Pattern for Plugin Data
+
+```php
+// Read/write plugin-specific data using the storage API.
+$storage = klytos_storage();
+
+// Write plugin data to its own collection.
+$storage->write('my-plugin-data', 'settings', [
+    'api_key' => 'xxx',
+    'enabled' => true,
+]);
+
+// Read it back.
+$data = $storage->read('my-plugin-data', 'settings');
+```
+
+## Security Requirements for Plugins
+
+1. **Never access the filesystem directly** — use `klytos_storage()`.
+2. **Always sanitize HTML output** — use `htmlspecialchars()` or `Helpers::sanitizeHtml()`.
+3. **Always validate input** — check types, lengths, and formats.
+4. **Use capabilities for access control** — register via `auth.capabilities` filter.
+5. **Never store secrets in cleartext** — use the encrypted storage.
+6. **Include the ELv2 license header** in all PHP files if distributing.
 
 ## Troubleshooting — Common Plugin Errors
 
@@ -684,6 +480,49 @@ require_once dirname(__DIR__, 3) . '/admin/templates/sidebar.php';
 <!-- Your page content here -->
 
 <?php require_once dirname(__DIR__, 3) . '/admin/templates/footer.php'; ?>
+```
+
+## Extending Permissions from a Plugin
+
+Register custom permissions that plugins can use:
+
+```php
+klytos_add_filter('auth.capabilities', function (array $capabilities): array {
+    $capabilities['my_plugin.manage'] = ['owner', 'admin'];
+    $capabilities['my_plugin.view']   = ['owner', 'admin', 'editor'];
+    return $capabilities;
+});
+```
+
+## Options API (Plugin Settings)
+
+Convention: `'plugin_id.setting_name'` (e.g. `'my-gallery.columns'`).
+
+```php
+klytos_get_option(string $key, mixed $default = null): mixed
+klytos_set_option(string $key, mixed $value): void
+klytos_delete_option(string $key): bool
+klytos_option_exists(string $key): bool
+```
+
+## Meta API (Entity Metadata)
+
+```php
+klytos_get_meta(string $collection, string $entityId, string $key): mixed
+klytos_set_meta(string $collection, string $entityId, string $key, mixed $value): void
+klytos_delete_meta(string $collection, string $entityId, string $key): bool
+klytos_get_all_meta(string $collection, string $entityId): array
+```
+
+## Action Scheduler API
+
+```php
+klytos_schedule_single_action(int $timestamp, string $hook, array $args = [], string $group = ''): string
+klytos_schedule_recurring_action(int $timestamp, int $intervalSeconds, string $hook, array $args = [], string $group = ''): string
+klytos_cancel_scheduled_action(string $actionId): bool
+klytos_unschedule_all_actions(string $hook, array $args = [], string $group = ''): int
+klytos_next_scheduled_action(string $hook, array $args = [], string $group = ''): ?int
+klytos_is_scheduled_action(string $hook, array $args = [], string $group = ''): bool
 ```
 
 ## File Locations
