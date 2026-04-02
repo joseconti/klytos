@@ -28,7 +28,7 @@ function registerGuideTools( ToolRegistry $registry ): void
     $registry->register(
         'klytos_list_guides',
         'List all available guides for AI assistants. Call this first to discover what documentation is available. Guides teach you how to create pages with correct Gutenberg block markup, SEO best practices, accessibility standards, and more. You SHOULD read the relevant guides before creating or editing content.',
-        (object) [],
+        [],
         function ( array $params, App $app ): array {
             $guidesDir = $app->getRootPath() . '/core/guides';
             $guides    = [];

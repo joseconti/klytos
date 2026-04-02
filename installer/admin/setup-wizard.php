@@ -196,7 +196,8 @@ if ( $step === 'app_password_show' ) {
 }
 
 // Build MCP endpoint URL.
-$mcpEndpoint = Helpers::siteUrl( 'mcp' );
+// Prefer the URL persisted by the installer (correct even after directory rename).
+$mcpEndpoint = $config['mcp_endpoint'] ?? Helpers::siteUrl( 'mcp' );
 
 // CSRF token for forms.
 $csrf = klytos_csrf_field();

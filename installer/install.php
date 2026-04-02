@@ -612,9 +612,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $dirRenamed     = false;
 
                 if ($adminDirName !== $currentDirName && !file_exists($newDirPath)) {
-                    $dirRenamed = @rename($rootPath, $newDirPath);
+                    $dirRenamed = rename($rootPath, $newDirPath);
                     if (!$dirRenamed) {
                         error_log("Klytos: could not rename admin directory from '{$currentDirName}' to '{$adminDirName}'. Check directory permissions.");
+                        // Update config with the REAL directory name so URLs are correct.
+                        $config['admin_dir'] = $currentDirName;
+                        $storage->writeTo($rootPath . '/config', 'config.json.enc', $config);
                     }
                 }
 
@@ -675,6 +678,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $adminUrl    = $protocol . '://' . $host . $basePath . $finalDir . '/admin/';
                 $mcpEndpoint = $protocol . '://' . $host . $basePath . $finalDir . '/mcp';
+
+                // ── Persist correct URLs in config ──
+                // The setup wizard needs these to display the correct MCP endpoint,
+                // especially after a directory rename.
+                $adminFinalPath = $dirRenamed ? $newDirPath : $rootPath;
+                $config['admin_dir']    = $finalDir;
+                $config['mcp_endpoint'] = $mcpEndpoint;
+                $config['admin_url']    = $adminUrl;
+
+                if ($storageDriver === 'file') {
+                    $finalStorage = new FileStorage($enc, $adminFinalPath . '/data');
+                    $finalStorage->writeTo($adminFinalPath . '/config', 'config.json.enc', $config);
+                } else {
+                    $storage->writeTo($adminFinalPath . '/config', 'config.json.enc', $config);
+                }
 
                 // ── Done! Show completion screen with credentials ──
                 $step = 'complete';
