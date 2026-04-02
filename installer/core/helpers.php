@@ -189,23 +189,34 @@ class Helpers
     }
 
     /**
-     * Get the base URL path of the Klytos installation.
-     * Auto-detects the subdirectory from the request.
+     * Get the base URL path of the Klytos installation (the PUBLIC web root).
      *
-     * @return string Base path with trailing slash (e.g. '/klytos/' or '/cms/').
+     * The admin directory has a randomized name (e.g. "b2aa9a98e70d-admin")
+     * that must NEVER appear in public URLs. This method computes the path
+     * to the web root (parent of the admin directory) relative to DOCUMENT_ROOT.
+     *
+     * @return string Base path with trailing slash (e.g. '/prueba/' or '/').
      */
     public static function getBasePath(): string
     {
-        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-        $basePath   = dirname($scriptName);
+        // The web root is the parent of the admin/installer directory.
+        $webRoot = dirname( dirname( __DIR__ ) );
 
-        // Normalize
-        $basePath = rtrim(str_replace('\\', '/', $basePath), '/') . '/';
+        $docRoot = realpath( $_SERVER['DOCUMENT_ROOT'] ?? $webRoot );
+        $webRoot = realpath( $webRoot );
 
-        // Remove admin/ or other subdirectories from detection
-        $basePath = preg_replace('#/(admin|public)/.*$#', '/', $basePath);
+        if ( $docRoot && $webRoot && str_starts_with( $webRoot, $docRoot ) ) {
+            $basePath = substr( $webRoot, strlen( $docRoot ) );
+        } else {
+            // Fallback: parse SCRIPT_NAME and strip the admin directory segment.
+            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+            $basePath   = dirname( $scriptName );
+            // Strip any segment ending in "-admin" or literal "admin" or "public".
+            $basePath = preg_replace( '#/[a-f0-9]*-?admin(/.*)?$#i', '', $basePath );
+            $basePath = preg_replace( '#/public(/.*)?$#', '', $basePath );
+        }
 
-        return $basePath;
+        return rtrim( str_replace( '\\', '/', $basePath ), '/' ) . '/';
     }
 
     /**
@@ -245,10 +256,10 @@ class Helpers
     }
 
     /**
-     * Get the public site URL (domain root, WITHOUT the admin directory path).
+     * Get the public site URL (web root, WITHOUT the admin directory path).
      *
-     * siteUrl() returns: https://klytos.io/28974823476283542/some/path
-     * publicUrl() returns: https://klytos.io/some/path
+     * siteUrl() returns: https://klytos.io/prueba/b2aa9a98e70d-admin/some/path
+     * publicUrl() returns: https://klytos.io/prueba/some/path
      *
      * This is used for canonical URLs, sitemap, Open Graph, etc.
      * because the public HTML pages are at the web root, not inside the admin dir.
@@ -258,12 +269,13 @@ class Helpers
      */
     public static function publicUrl( string $path = '' ): string
     {
-        $scheme = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
-        $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $url    = $scheme . '://' . $host . '/';
+        $scheme   = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
+        $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $basePath = self::getBasePath();
+        $url      = $scheme . '://' . $host . $basePath;
 
         if ( !empty( $path ) ) {
-            $url .= ltrim( $path, '/' );
+            $url = rtrim( $url, '/' ) . '/' . ltrim( $path, '/' );
         }
 
         return $url;
@@ -359,15 +371,15 @@ class Helpers
      * @param  string $dir
      * @return bool
      */
-    public static function ensureWritableDir(string $dir): bool
+    public static function ensureWritableDir( string $dir, int $permissions = 0755 ): bool
     {
-        if (!is_dir($dir)) {
-            if (!mkdir($dir, 0700, true)) {
+        if ( !is_dir( $dir ) ) {
+            if ( !mkdir( $dir, $permissions, true ) ) {
                 return false;
             }
         }
 
-        return is_writable($dir);
+        return is_writable( $dir );
     }
 
     /**

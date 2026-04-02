@@ -123,10 +123,13 @@ class BuildEngine
         // 6. Generate llms.txt and llms-full.txt for AI crawler indexing
         $this->generateLlmsTxt($pages, $siteConfig);
 
-        // 7. Update build timestamp
+        // 7. Ensure public .htaccess exists with clean URL rewrite rules.
+        $this->ensurePublicHtaccess();
+
+        // 8. Update build timestamp
         $this->app->getSiteConfig()->updateBuildTimestamp();
 
-        // 8. Fire build.after hook for plugins.
+        // 9. Fire build.after hook for plugins.
         klytos_do_action('build.after', $pagesBuilt, $errors);
 
         $durationMs = round((microtime(true) - $startTime) * 1000);
@@ -684,6 +687,45 @@ class BuildEngine
         $name = Helpers::escHtml($siteConfig['site_name'] ?? 'Klytos Site');
         $year = date('Y');
         return "<footer class=\"klytos-footer\"><p>&copy; {$year} {$name}</p></footer>";
+    }
+
+    /**
+     * Ensure the public web root has a proper .htaccess with clean URL rules.
+     *
+     * Creates or updates the .htaccess so that:
+     * - /slug/ serves /slug/index.html (DirectoryIndex)
+     * - /slug  redirects to /slug/ (trailing slash)
+     * - Static files are served directly
+     */
+    private function ensurePublicHtaccess(): void
+    {
+        $htaccessPath = $this->outputPath . '/.htaccess';
+
+        $content = "# Klytos — Public Site\n"
+            . "DirectoryIndex index.html index.php\n\n"
+            . "# Deny access to sensitive files\n"
+            . "<FilesMatch \"^\\.(htaccess|htpasswd|install\\.done\\.php)$\">\n"
+            . "    Require all denied\n"
+            . "</FilesMatch>\n\n"
+            . "# Clean URLs for static pages\n"
+            . "RewriteEngine On\n\n"
+            . "# If the exact file exists, serve it directly\n"
+            . "RewriteCond %{REQUEST_FILENAME} -f\n"
+            . "RewriteRule ^ - [L]\n\n"
+            . "# If the directory exists (with index.html inside), serve it\n"
+            . "RewriteCond %{REQUEST_FILENAME} -d\n"
+            . "RewriteRule ^ - [L]\n\n"
+            . "# Add trailing slash if a directory with that name exists\n"
+            . "RewriteCond %{REQUEST_FILENAME} !-f\n"
+            . "RewriteCond %{REQUEST_FILENAME}/ -d\n"
+            . "RewriteRule ^(.+[^/])$ $1/ [R=301,L]\n\n"
+            . "# Serve /slug/ as /slug/index.html\n"
+            . "RewriteCond %{REQUEST_FILENAME} !-f\n"
+            . "RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI}/index.html -f [OR]\n"
+            . "RewriteCond %{REQUEST_FILENAME}/index.html -f\n"
+            . "RewriteRule ^(.+)/$ $1/index.html [L]\n";
+
+        file_put_contents( $htaccessPath, $content, LOCK_EX );
     }
 
     /**

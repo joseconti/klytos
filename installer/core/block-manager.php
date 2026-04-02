@@ -206,11 +206,26 @@ class BlockManager
             }
         }
 
+        // Build a map of slot names → types for context-aware escaping.
+        $slotTypes = [];
+        foreach ( $block['slots'] ?? [] as $slot ) {
+            $slotTypes[$slot['name']] = $slot['type'] ?? 'text';
+        }
+
+        // Slot types whose values contain legitimate HTML — must NOT be escaped.
+        $htmlSlotTypes = [ 'html', 'richtext' ];
+
         // Replace slot placeholders with data values.
         foreach ($data as $key => $value) {
             if (is_string($value)) {
-                // Sanitize output to prevent XSS.
-                $safeValue = Helpers::escAttr( $value );
+                $slotType = $slotTypes[$key] ?? 'text';
+                if ( in_array( $slotType, $htmlSlotTypes, true ) ) {
+                    // HTML/richtext slots: output raw (content is author-controlled).
+                    $safeValue = $value;
+                } else {
+                    // All other slots: sanitize output to prevent XSS.
+                    $safeValue = Helpers::escAttr( $value );
+                }
                 $html = str_replace('{{' . $key . '}}', $safeValue, $html);
             } elseif (is_bool($value)) {
                 $html = str_replace('{{' . $key . '}}', $value ? 'true' : 'false', $html);

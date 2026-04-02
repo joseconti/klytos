@@ -20,6 +20,9 @@ For each page, call `klytos_create_page` with:
 
 Built-in templates: `default`, `landing`, `blog-post`, `blank`
 
+**CRITICAL: Homepage slug MUST be `index`.**
+The build engine maps slug `index` → `/index.html` (site root). Any other slug (e.g., `inicio`, `home`, `accueil`) creates a subdirectory like `/inicio/index.html` which is NOT the homepage. Always use slug `index` for the homepage regardless of language.
+
 ---
 
 ## 1. Blog Personal
@@ -203,7 +206,7 @@ klytos_create_page with language="fr" → /fr/a-propos
 
 | Page | ES | EN | FR | CA |
 |------|----|----|----|-----|
-| Home | inicio | home | accueil | inici |
+| Home | index | index | index | index |
 | About | sobre-nosotros | about | a-propos | sobre-nosaltres |
 | Services | servicios | services | services | serveis |
 | Blog | blog | blog | blog | blog |

@@ -45,14 +45,18 @@ function registerSiteBuilderTools( ToolRegistry $registry ): void
             $mainGuide = $guidesDir . '/site-builder.md';
 
             if ( ! file_exists( $mainGuide ) ) {
+                // List available guides to help diagnose.
+                $available = [];
+                if ( is_dir( $guidesDir ) ) {
+                    foreach ( glob( $guidesDir . '/*.md' ) as $f ) {
+                        $available[] = basename( $f, '.md' );
+                    }
+                }
+
                 return [
-                    'content' => [ [
-                        'type' => 'text',
-                        'text' => json_encode( [
-                            'error' => 'Site builder guide not found. Please verify the installation.',
-                        ] ),
-                    ] ],
-                    'isError' => true,
+                    'error'            => 'Site builder guide not found. Please verify the installation.',
+                    'guides_dir'       => $guidesDir,
+                    'available_guides' => $available,
                 ];
             }
 
@@ -64,11 +68,11 @@ function registerSiteBuilderTools( ToolRegistry $registry ): void
             $siteType = $params['site_type'] ?? null;
             $language = $params['language'] ?? null;
 
-            // Build response with context.
+            // Build response — plain array, ToolRegistry wraps it.
             $response = [
-                'guide'    => trim( $content ),
-                'hint'     => 'Follow the 9 phases in order. Start with Phase 1 (Discovery). Each phase ends with user confirmation before proceeding. Use klytos_get_guide() to load auxiliary guides referenced in each phase (site-builder-types, site-builder-palettes, site-builder-page-trees, site-builder-content, site-builder-checklist).',
-                'auxiliar_guides' => [
+                'guide'           => trim( $content ),
+                'hint'            => 'Follow the 9 phases in order. Start with Phase 1 (Discovery). Each phase ends with user confirmation before proceeding. Use klytos_get_guide() to load auxiliary guides referenced in each phase (site-builder-types, site-builder-palettes, site-builder-page-trees, site-builder-content, site-builder-checklist).',
+                'auxiliary_guides' => [
                     'site-builder-types'      => 'Site types and recommended structures (CPTs, fields, taxonomies)',
                     'site-builder-palettes'   => 'Color palettes by sector and site type',
                     'site-builder-page-trees' => 'Page hierarchies and menu structures by site type',
@@ -87,13 +91,7 @@ function registerSiteBuilderTools( ToolRegistry $registry ): void
                 $response['hint'] .= ' The user prefers communication in language "' . $language . '". Adapt your responses accordingly.';
             }
 
-            return [
-                'content' => [ [
-                    'type' => 'text',
-                    'text' => json_encode( $response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ),
-                ] ],
-                'isError' => false,
-            ];
+            return $response;
         },
         [ 'readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true ],
         []

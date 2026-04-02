@@ -629,12 +629,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Create a root .htaccess for the public site.
-                $rootHtaccess = "# Klytos — Document Root\n"
+                $rootHtaccess = "# Klytos — Public Site\n"
                     . "DirectoryIndex index.html index.php\n\n"
                     . "# Deny access to sensitive files\n"
                     . "<FilesMatch \"^\\.(htaccess|htpasswd|install\\.done\\.php)$\">\n"
                     . "    Require all denied\n"
-                    . "</FilesMatch>\n";
+                    . "</FilesMatch>\n\n"
+                    . "# Clean URLs for static pages\n"
+                    . "RewriteEngine On\n\n"
+                    . "# If the exact file exists, serve it directly\n"
+                    . "RewriteCond %{REQUEST_FILENAME} -f\n"
+                    . "RewriteRule ^ - [L]\n\n"
+                    . "# If the directory exists (with index.html inside), serve it\n"
+                    . "RewriteCond %{REQUEST_FILENAME} -d\n"
+                    . "RewriteRule ^ - [L]\n\n"
+                    . "# Add trailing slash if a directory with that name exists\n"
+                    . "RewriteCond %{REQUEST_FILENAME} !-f\n"
+                    . "RewriteCond %{REQUEST_FILENAME}/ -d\n"
+                    . "RewriteRule ^(.+[^/])$ \$1/ [R=301,L]\n\n"
+                    . "# Serve /slug/ as /slug/index.html\n"
+                    . "RewriteCond %{REQUEST_FILENAME} !-f\n"
+                    . "RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI}/index.html -f [OR]\n"
+                    . "RewriteCond %{REQUEST_FILENAME}/index.html -f\n"
+                    . "RewriteRule ^(.+)/$ \$1/index.html [L]\n";
                 if (!file_exists($parentDir . '/.htaccess')) {
                     file_put_contents($parentDir . '/.htaccess', $rootHtaccess, LOCK_EX);
                 }
