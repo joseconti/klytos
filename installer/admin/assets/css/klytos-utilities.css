@@ -175,6 +175,7 @@
 .hidden        { display: none; }
 .block         { display: block; }
 .inline-block  { display: inline-block; }
+.inline-form   { display: inline; }
 
 /* ============================================================
    WIDTH / SIZING
@@ -195,6 +196,7 @@
 .rounded-full { border-radius: var(--klytos-radius-full); }
 
 .border       { border: 1px solid var(--klytos-border); }
+.border-t     { border-top: 1px solid var(--klytos-border); }
 .border-b     { border-bottom: 1px solid var(--klytos-border); }
 
 /* ============================================================
