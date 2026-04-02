@@ -285,6 +285,39 @@ tr:hover td {
     border-color: rgba(91, 141, 239, 0.3);
 }
 
+.alert-dismissible {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--klytos-space);
+}
+
+.alert-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    border-radius: var(--klytos-radius);
+    background: transparent;
+    color: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+    transition: opacity var(--klytos-transition-fast, 0.15s) ease,
+                background var(--klytos-transition-fast, 0.15s) ease;
+}
+
+.alert-close:hover,
+.alert-close:focus-visible {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
 /* ============================================================
    STATS GRID
    ============================================================ */

@@ -1,7 +1,6 @@
 ---
-name: klytos-helper-functions
-description: Reference of all global helper functions available in Klytos CMS. Use when developing plugins, extending the CMS, or needing to access core services.
-trigger: When the user needs to access core services, check permissions, generate URLs, log messages, or use any klytos_* global function.
+name: Klytos Helper Functions
+description: Reference of all global helper functions available in Klytos CMS. Use when developing plugins, extending the CMS, accessing core services, checking permissions, generating URLs, logging messages, or calling any klytos_* global function from PHP code.
 ---
 
 # Klytos Helper Functions Reference
@@ -241,19 +240,6 @@ klytos_add_filter('auth.capabilities', function (array $capabilities): array {
     return $capabilities;
 });
 ```
-
----
-
-## Notice API (Admin Messages)
-
-```php
-klytos_add_notice(string $message, string $type = 'info', bool $dismissible = true): void
-klytos_add_persistent_notice(string $id, string $message, string $type = 'info', bool $dismissible = true, array $options = []): array
-klytos_dismiss_notice(string $id): void
-klytos_get_notices(string $currentPage = ''): array
-```
-
-Types: `'success'`, `'error'`, `'warning'`, `'info'`. See skill `klytos-admin-notices` for full reference.
 
 ---
 

@@ -326,11 +326,12 @@
     "missing_fields": "Client name and redirect URI are required."
   },
   "indexing": {
-    "disabled_title": "Search engine indexing is disabled",
-    "disabled_description": "Your site will not appear on Google or other search engines. Enable it when your site is ready to go public.",
-    "enable_button": "Enable indexing",
-    "enabled_title": "Indexing enabled",
-    "enabled_description": "Your site is now visible to search engines. Remember to build your site to apply the changes."
+    "blocked_title": "Search engines are blocked",
+    "blocked_description": "Your site will not appear on Google or other search engines. Disable the block when your site is ready to go public.",
+    "disable_block": "Disable block",
+    "allowed_title": "Search engines can access your site",
+    "allowed_description": "Your site is visible to Google and other search engines. Remember to build your site to apply the changes.",
+    "enable_block": "Enable block"
   },
   "security": {
     "title": "Security",

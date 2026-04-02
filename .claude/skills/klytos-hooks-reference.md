@@ -226,7 +226,28 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 | `meta.after_delete` | action | `string $collection, string $entityId, string $key` | core/meta-manager.php |
 | `meta.get` | filter | `mixed $value, string $collection, string $entityId, string $key` | core/meta-manager.php |
 
-### 8. Plugins
+### 8. Notices
+
+#### Actions
+
+| Hook | Type | Arguments | Source |
+|---|---|---|---|
+| `notice.created` | action | `array $notice` | core/notice-manager.php |
+| `notice.dismissed` | action | `string $id` | core/notice-manager.php |
+| `notice.deleted` | action | `string $id` | core/notice-manager.php |
+| `notice.render.before` | action | `array $notices` | core/notice-manager.php |
+| `notice.render.after` | action | `array $notices` | core/notice-manager.php |
+
+#### Filters
+
+| Hook | Type | Arguments | Source |
+|---|---|---|---|
+| `notice.transient.add` | filter | `array $notice` | core/notice-manager.php |
+| `notice.before_render` | filter | `array $notices, string $page` | core/notice-manager.php |
+| `notice.render_html` | filter | `string $html, array $notice` | core/notice-manager.php |
+| `{condition_hook}` | filter | `bool $show` — dynamic per notice | core/notice-manager.php |
+
+### 9. Plugins
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
