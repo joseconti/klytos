@@ -132,7 +132,7 @@ $providerOptions = ob_get_clean();
                     </button>
                 </div>
 
-                <div class="ai-chat-search-box" id="ai-chat-search-box" style="display:none;">
+                <div class="ai-chat-search-box hidden" id="ai-chat-search-box">
                     <input type="text" class="ai-chat-search-input" id="ai-chat-search-input"
                            placeholder="<?php echo klytos_esc_attr(__('ai_chat.search_placeholder')); ?>"
                            autocomplete="off">
@@ -163,7 +163,7 @@ $providerOptions = ob_get_clean();
                 </div>
                 <div class="ai-chat-user-avatar"><?php echo klytos_esc_html($userInitial); ?></div>
                 <span class="ai-chat-user-name"><?php echo klytos_esc_html($username); ?></span>
-                <i class="fa-solid fa-chevron-up" style="color:var(--chat-text-dim);font-size:0.7rem;margin-left:auto;"></i>
+                <i class="fa-solid fa-chevron-up text-xs" style="color:var(--chat-text-dim);margin-left:auto;"></i>
             </div>
         </div>
 
@@ -175,7 +175,7 @@ $providerOptions = ob_get_clean();
                 <?php require_once __DIR__ . '/partials/ai-panel-' . $panel . '.php'; ?>
             <?php else: ?>
                 <!-- Chats Browser (hidden by default) -->
-                <div class="ai-chat-browser" id="ai-chat-browser" style="display:none;">
+                <div class="ai-chat-browser hidden" id="ai-chat-browser">
                     <div class="ai-chat-browser-header">
                         <h1><?php echo klytos_esc_html(__('ai_chat.chats')); ?></h1>
                         <button class="ai-chat-browser-new-btn" id="ai-chat-browser-new">
@@ -204,7 +204,7 @@ $providerOptions = ob_get_clean();
                                       placeholder="<?php echo klytos_esc_attr(__('ai_chat.welcome_placeholder')); ?>"></textarea>
                             <div class="ai-chat-welcome-actions">
                                 <div class="ai-chat-model-select">
-                                    <img class="ai-chat-provider-logo" id="ai-chat-provider-logo-welcome" src="" alt="" style="height: 20px; width: auto; display: none;">
+                                    <img class="ai-chat-provider-logo hidden" id="ai-chat-provider-logo-welcome" src="" alt="" style="height: 20px; width: auto;">
                                     <select id="ai-provider-select-welcome">
                                         <?php echo $providerOptions; ?>
                                     </select>
@@ -221,7 +221,7 @@ $providerOptions = ob_get_clean();
                 <?php if (!$hasProvider): ?>
                     <div class="ai-chat-no-provider" id="ai-chat-no-provider">
                         <h3><i class="fa-solid fa-robot" style="margin-right: 0.5rem; opacity: 0.5;"></i> <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></h3>
-                        <p style="margin-top: 0.75rem;">
+                        <p style="margin-top:0.75rem;">
                             <?php echo klytos_esc_html(__('ai_chat.configure_key')); ?>
                             <a href="<?php echo klytos_esc_url($basePath . 'admin/mcp.php?tab=api-ia'); ?>">
                                 <?php echo klytos_esc_html(__('ai_keys.title')); ?>
@@ -231,10 +231,10 @@ $providerOptions = ob_get_clean();
                 <?php endif; ?>
 
                 <!-- Chat View (hidden by default) -->
-                <div class="ai-chat-view" id="ai-chat-view" style="display:none;">
+                <div class="ai-chat-view hidden" id="ai-chat-view">
                     <div class="ai-chat-view-topbar">
                         <div class="ai-chat-model-select">
-                            <img class="ai-chat-provider-logo" id="ai-chat-provider-logo" src="" alt="" style="height: 20px; width: auto; display: none;">
+                            <img class="ai-chat-provider-logo hidden" id="ai-chat-provider-logo" src="" alt="" style="height: 20px; width: auto;">
                             <select id="ai-provider-select">
                                 <?php echo $providerOptions; ?>
                             </select>

@@ -141,11 +141,11 @@ require_once __DIR__ . '/templates/sidebar.php';
         <h3>Post Type: <?php echo klytos_esc_html($postType['name'] ?? $ptId); ?></h3>
         <a href="post-types.php" class="btn btn-outline btn-sm">Back</a>
     </div>
-    <form method="post" style="padding:1.5rem;">
+    <form method="post" class="p-3">
         <input type="hidden" name="action" value="update">
         <?php echo klytos_csrf_field(); ?>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
             <div class="form-group">
                 <label>Name</label>
                 <input type="text" name="name" class="form-control" value="<?php echo klytos_esc_attr($postType['name'] ?? ''); ?>" required>
@@ -159,8 +159,8 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
 
         <?php if (!empty($languages)): ?>
-        <h4 style="margin-top:1.5rem;margin-bottom:0.5rem;">Slug per Language</h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:1rem;">
+        <h4 class="mt-3 mb-1">Slug per Language</h4>
+        <div class="grid-3">
             <?php foreach ($languages as $lang):
                 $code = $lang['code'] ?? '';
                 $langSlug = $postType['slug_i18n'][$code] ?? '';
@@ -174,19 +174,23 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php endif; ?>
 
         <!-- Content Editor -->
-        <h4 style="margin-top:1.5rem;margin-bottom:0.5rem;"><?php echo __('editor.title'); ?></h4>
+        <h4 class="mt-3 mb-1"><?php echo __('editor.title'); ?></h4>
         <div class="form-group">
             <label><?php echo __('editor.choose'); ?></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="editor" value="gutenberg" <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong>Gutenberg</strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.gutenberg_desc'); ?></p>
+            <div class="selection-cards cols-2 mt-1">
+                <label class="selection-card">
+                    <input type="radio" name="editor" value="gutenberg" <?php echo ($postType['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title">Gutenberg</span>
+                        <span class="selection-card-desc"><?php echo __('editor.gutenberg_desc'); ?></span>
+                    </div>
                 </label>
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="editor" value="tinymce" <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong>TinyMCE</strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('editor.tinymce_desc'); ?></p>
+                <label class="selection-card">
+                    <input type="radio" name="editor" value="tinymce" <?php echo ($postType['editor'] ?? 'gutenberg') === 'tinymce' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title">TinyMCE</span>
+                        <span class="selection-card-desc"><?php echo __('editor.tinymce_desc'); ?></span>
+                    </div>
                 </label>
             </div>
         </div>
@@ -196,7 +200,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Taxonomies -->
-<div class="card" style="margin-top:1.5rem;">
+<div class="card mt-3">
     <div class="card-header">
         <h3>Taxonomies (<?php echo count($postType['taxonomies'] ?? []); ?>)</h3>
     </div>
@@ -226,9 +230,9 @@ require_once __DIR__ . '/templates/sidebar.php';
                             <?php echo ($tax['hierarchical'] ?? false) ? 'Yes' : 'No'; ?>
                         </span>
                     </td>
-                    <td style="display:flex;gap:0.5rem;align-items:center;">
+                    <td class="flex-center flex-gap-sm">
                         <a href="taxonomy.php?post_type=<?php echo urlencode($ptId); ?>&taxonomy=<?php echo urlencode($tax['id'] ?? ''); ?>" class="btn btn-outline btn-sm">Terms</a>
-                        <form method="post" style="display:inline;" class="form-confirm-delete">
+                        <form method="post" class="inline-form form-confirm-delete">
                             <input type="hidden" name="action" value="remove_taxonomy">
                             <input type="hidden" name="tax_id" value="<?php echo klytos_esc_attr($tax['id'] ?? ''); ?>">
                             <?php echo klytos_csrf_field(); ?>
@@ -246,11 +250,11 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
     <?php endif; ?>
 
-    <form method="post" style="padding:1.5rem;border-top:1px solid var(--admin-border, #e2e8f0);">
-        <h4 style="margin-bottom:1rem;">Add Taxonomy</h4>
+    <form method="post" class="p-3 border-t">
+        <h4 class="mb-2">Add Taxonomy</h4>
         <input type="hidden" name="action" value="add_taxonomy">
         <?php echo klytos_csrf_field(); ?>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+        <div class="grid-3">
             <div class="form-group">
                 <label>ID</label>
                 <input type="text" name="tax_id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. color">
@@ -267,7 +271,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div class="form-group">
             <label><input type="checkbox" name="hierarchical" value="1"> Hierarchical</label>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm">Add Taxonomy</button>
+        <button type="submit" class="btn btn-primary">Add Taxonomy</button>
     </form>
 </div>
 
@@ -288,7 +292,7 @@ $fieldTypeGroups = [
 
 $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
 ?>
-<div class="card" style="margin-top:1.5rem;">
+<div class="card mt-3">
     <div class="card-header">
         <h3>Custom Fields (<?php echo count($customFields); ?>)</h3>
     </div>
@@ -316,11 +320,11 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
                             <?php echo ($cf['required'] ?? false) ? 'Yes' : 'No'; ?>
                         </span>
                     </td>
-                    <td style="display:flex;gap:0.5rem;align-items:center;">
+                    <td class="flex-center flex-gap-sm">
                         <?php if (!empty($cf['options'])): ?>
-                            <span style="font-size:0.8rem;color:var(--admin-text-muted);"><?php echo count($cf['options']); ?> opts</span>
+                            <span class="text-sm text-muted"><?php echo count($cf['options']); ?> opts</span>
                         <?php endif; ?>
-                        <form method="post" style="display:inline;" class="form-confirm-delete">
+                        <form method="post" class="inline-form form-confirm-delete">
                             <input type="hidden" name="action" value="remove_custom_field">
                             <input type="hidden" name="cf_field_id" value="<?php echo klytos_esc_attr($cf['id'] ?? ''); ?>">
                             <?php echo klytos_csrf_field(); ?>
@@ -338,12 +342,12 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
     </div>
     <?php endif; ?>
 
-    <form method="post" style="padding:1.5rem;border-top:1px solid var(--admin-border, #e2e8f0);">
-        <h4 style="margin-bottom:1rem;">Add Custom Field</h4>
+    <form method="post" class="p-3 border-t">
+        <h4 class="mb-2">Add Custom Field</h4>
         <input type="hidden" name="action" value="add_custom_field">
         <?php echo klytos_csrf_field(); ?>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+        <div class="grid-3">
             <div class="form-group">
                 <label>ID</label>
                 <input type="text" name="cf_id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. price">
@@ -367,7 +371,7 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
             <div class="form-group">
                 <label>Description</label>
                 <input type="text" name="cf_description" class="form-control" placeholder="Help text shown below the field">
@@ -383,13 +387,13 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
         </div>
 
         <!-- Options section (for select, multiselect, radio, checkbox_group) -->
-        <div id="cf-options-section" style="display:none;margin-top:1rem;padding:1rem;background:var(--admin-bg);border-radius:var(--admin-radius);">
-            <h5 style="margin-bottom:0.5rem;">Options</h5>
+        <div id="cf-options-section" class="hidden mt-2 p-2 rounded" style="background:var(--klytos-bg);">
+            <h5 class="mb-1">Options</h5>
             <div id="cf-options-list"></div>
-            <button type="button" class="btn btn-outline btn-sm" onclick="addOptionRow()" style="margin-top:0.5rem;">+ Add Option</button>
+            <button type="button" class="btn btn-outline btn-sm mt-1" id="btn-add-option">+ Add Option</button>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-sm" style="margin-top:1rem;">Add Custom Field</button>
+        <button type="submit" class="btn btn-primary mt-2">Add Custom Field</button>
     </form>
 </div>
 
@@ -418,17 +422,24 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
 
     typeSelect.addEventListener('change', updateOptionsVisibility);
     updateOptionsVisibility();
-})();
 
-function addOptionRow() {
-    var list = document.getElementById('cf-options-list');
-    var div = document.createElement('div');
-    div.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;';
-    div.innerHTML = '<input type="text" name="cf_opt_value[]" class="form-control" placeholder="Value" style="flex:1;" required>' +
-                    '<input type="text" name="cf_opt_label[]" class="form-control" placeholder="Label" style="flex:1;">' +
-                    '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">×</button>';
-    list.appendChild(div);
-}
+    /* Add option rows */
+    var addOptionBtn = document.getElementById('btn-add-option');
+    if (addOptionBtn) {
+        addOptionBtn.addEventListener('click', function() {
+            var list = document.getElementById('cf-options-list');
+            var div = document.createElement('div');
+            div.className = 'flex-center flex-gap-sm mb-1';
+            div.innerHTML = '<input type="text" name="cf_opt_value[]" class="form-control flex-1" placeholder="Value" required>' +
+                            '<input type="text" name="cf_opt_label[]" class="form-control flex-1" placeholder="Label">' +
+                            '<button type="button" class="btn btn-danger btn-sm btn-remove-option">×</button>';
+            list.appendChild(div);
+            div.querySelector('.btn-remove-option').addEventListener('click', function() {
+                div.remove();
+            });
+        });
+    }
+})();
 </script>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

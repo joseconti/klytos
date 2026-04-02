@@ -82,9 +82,9 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php if ($generated): ?>
 <div class="card">
     <div class="card-header"><h3><?php echo __( 'ai_images.generated' ); ?></h3></div>
-    <div style="text-align:center;">
-        <img src="<?php echo klytos_esc_url(Helpers::url($generated['asset']['path'] ?? '')); ?>" alt="AI Generated" style="max-width:100%;border-radius:8px;margin-bottom:1rem;">
-        <p class="mono" style="font-size:0.85rem;color:var(--admin-text-muted);"><?php echo klytos_esc_html( $generated['asset']['path'] ?? ''); ?></p>
+    <div class="text-center">
+        <img src="<?php echo klytos_esc_url(Helpers::url($generated['asset']['path'] ?? '')); ?>" alt="AI Generated" style="max-width:100%;border-radius:8px;" class="mb-2">
+        <p class="mono text-sm text-muted"><?php echo klytos_esc_html( $generated['asset']['path'] ?? ''); ?></p>
     </div>
 </div>
 <?php endif; ?>
@@ -98,7 +98,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <label><?php echo __( 'ai_images.prompt' ); ?></label>
             <textarea name="prompt" class="form-control" rows="4" required placeholder="<?php echo __( 'ai_images.prompt' ); ?>"><?php echo klytos_esc_textarea( $_POST['prompt'] ?? ''); ?></textarea>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
             <div class="form-group">
                 <label><?php echo __( 'ai_images.model' ); ?></label>
                 <select name="model" class="form-control">
@@ -133,9 +133,9 @@ require_once __DIR__ . '/templates/sidebar.php';
             <tbody>
                 <?php foreach ($history as $item): ?>
                 <tr>
-                    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?php echo klytos_esc_html( $item['prompt'] ?? ''); ?></td>
-                    <td class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $item['model'] ?? ''); ?></td>
-                    <td class="mono" style="font-size:0.8rem;"><?php echo klytos_esc_html( $item['filename'] ?? ''); ?></td>
+                    <td class="text-truncate"><?php echo klytos_esc_html( $item['prompt'] ?? ''); ?></td>
+                    <td class="mono text-xs"><?php echo klytos_esc_html( $item['model'] ?? ''); ?></td>
+                    <td class="mono text-xs"><?php echo klytos_esc_html( $item['filename'] ?? ''); ?></td>
                     <td><?php echo !empty($item['created_at']) ? date( 'Y-m-d H:i', strtotime($item['created_at'])) : ''; ?></td>
                 </tr>
                 <?php endforeach; ?>

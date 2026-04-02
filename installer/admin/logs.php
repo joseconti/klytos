@@ -81,12 +81,12 @@ require_once __DIR__ . '/templates/sidebar.php';
 <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-logs.css' ); ?>" nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 
 <?php if (!$isDevMode): ?>
-    <div class="card" style="margin-bottom: 1.5rem; background: rgba(245, 158, 11, 0.1); border-color: #f59e0b;">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <div class="card mb-3" style="background: rgba(245, 158, 11, 0.1); border-color: #f59e0b;">
+        <div class="flex flex-center" style="gap: 0.75rem;">
             <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; font-size: 1.2rem;"></i>
             <div>
                 <strong><?php echo __( 'logs.dev_mode_off_title' ); ?></strong>
-                <p style="color: var(--admin-text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">
+                <p class="text-muted text-sm" style="margin: 0.25rem 0 0;">
                     <?php echo __( 'logs.dev_mode_off_desc' ); ?>
                 </p>
             </div>
@@ -95,7 +95,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php endif; ?>
 
 <?php if ($success): ?>
-    <div class="card" style="margin-bottom: 1rem; background: rgba(34, 197, 94, 0.1); border-color: #22c55e; padding: 0.75rem 1rem;">
+    <div class="card mb-2" style="background: rgba(34, 197, 94, 0.1); border-color: #22c55e; padding: 0.75rem 1rem;">
         <i class="fa-solid fa-check-circle" style="color: #22c55e;"></i>
         <?php echo klytos_esc_html( $success ); ?>
     </div>
@@ -119,7 +119,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div class="logs-file-list-body">
             <?php if (empty( $logFiles )): ?>
                 <div class="logs-empty-list">
-                    <i class="fa-solid fa-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                    <i class="fa-solid fa-inbox mb-1" style="font-size: 2rem; display: block;"></i>
                     <?php echo __( 'logs.no_files' ); ?>
                 </div>
             <?php else: ?>
@@ -139,7 +139,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php if ($selectedFile !== ''): ?>
             <div class="logs-viewer-toolbar">
                 <?php echo klytos_apply_filters( 'admin.logs_toolbar', '' ); ?>
-                <select id="logs-level-filter" onchange="filterLogs()">
+                <select id="logs-level-filter">
                     <option value=""><?php echo __( 'logs.all_levels' ); ?></option>
                     <?php foreach ($levels as $lvl): ?>
                         <option value="<?php echo klytos_esc_attr( $lvl ); ?>" <?php echo $filterLevel === $lvl ? 'selected' : ''; ?>>
@@ -180,8 +180,8 @@ require_once __DIR__ . '/templates/sidebar.php';
             </div>
         <?php else: ?>
             <div class="logs-viewer-empty">
-                <div style="text-align: center;">
-                    <i class="fa-solid fa-scroll" style="font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.3;"></i>
+                <div class="text-center">
+                    <i class="fa-solid fa-scroll mb-2" style="font-size: 3rem; display: block; opacity: 0.3;"></i>
                     <?php echo __( 'logs.select_file' ); ?>
                 </div>
             </div>
@@ -215,6 +215,11 @@ require_once __DIR__ . '/templates/sidebar.php';
         });
     }
 })();
+
+var levelFilter = document.getElementById('logs-level-filter');
+if (levelFilter) {
+    levelFilter.addEventListener('change', filterLogs);
+}
 
 function filterLogs() {
     var level  = document.getElementById('logs-level-filter').value;

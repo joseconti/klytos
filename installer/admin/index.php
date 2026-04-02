@@ -41,18 +41,18 @@ klytos_do_action( 'admin.dashboard.before' );
 
 // Show noindex warning banner.
 if ( ! $indexingEnabled ) : ?>
-<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
-    <div style="display:flex;align-items:center;gap:0.75rem;">
-        <span style="font-size:1.5rem;">&#9888;&#65039;</span>
+<div class="alert alert-warning flex-between flex-wrap flex-gap">
+    <div class="flex-center flex-gap">
+        <span class="text-lg">&#9888;&#65039;</span>
         <div>
-            <strong style="color:#92400e;"><?php echo __( 'indexing.disabled_title' ); ?></strong>
-            <p style="color:#a16207;margin:0.25rem 0 0;font-size:0.85rem;"><?php echo __( 'indexing.disabled_description' ); ?></p>
+            <strong><?php echo __( 'indexing.disabled_title' ); ?></strong>
+            <p class="text-sm mt-1"><?php echo __( 'indexing.disabled_description' ); ?></p>
         </div>
     </div>
-    <form method="post" style="margin:0;">
+    <form method="post" class="mb-0">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="enable_indexing">
-        <button type="submit" style="background:#059669;color:white;border:none;padding:0.5rem 1.25rem;border-radius:6px;font-size:0.85rem;font-weight:600;cursor:pointer;">
+        <button type="submit" class="btn btn-primary btn-sm">
             <?php echo __( 'indexing.enable_button' ); ?>
         </button>
     </form>
@@ -69,7 +69,7 @@ if ( ! $indexingEnabled ) : ?>
 
     <div class="stat-card">
         <div class="stat-label"><?php echo __( 'dashboard.last_build' ); ?></div>
-        <div class="stat-value" style="font-size:1rem;">
+        <div class="stat-value text-base">
             <?php echo $lastBuild ? date( 'Y-m-d H:i', strtotime($lastBuild)) : '—'; ?>
         </div>
         <div class="stat-detail"><?php echo $lastBuild ? 'UTC' : __( 'pages.no_pages' ); ?></div>
@@ -77,7 +77,7 @@ if ( ! $indexingEnabled ) : ?>
 
     <div class="stat-card">
         <div class="stat-label"><?php echo __( 'dashboard.mcp_status' ); ?></div>
-        <div class="stat-value" style="font-size:1rem;">
+        <div class="stat-value text-base">
             <span class="badge-status badge-<?php echo count( $tokens) > 0 ? 'active' : 'inactive'; ?>">
                 <?php echo count( $tokens) > 0 ? __( 'common.status' ) . ': OK' : __( 'mcp.no_tokens' ); ?>
             </span>
@@ -87,7 +87,7 @@ if ( ! $indexingEnabled ) : ?>
 
     <div class="stat-card">
         <div class="stat-label"><?php echo __( 'dashboard.klytos_version' ); ?></div>
-        <div class="stat-value" style="font-size:1rem;">
+        <div class="stat-value text-base">
             v<?php echo klytos_esc_html( $app->getVersion()); ?>
         </div>
         <div class="stat-detail">PHP <?php echo PHP_VERSION; ?></div>
@@ -96,12 +96,12 @@ if ( ! $indexingEnabled ) : ?>
 <?php klytos_do_action('admin.dashboard.after_stats'); ?>
 
 <?php klytos_do_action('admin.dashboard.before_widgets'); ?>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+<div class="grid-2">
     <div class="card">
         <div class="card-header">
             <h3><?php echo __( 'dashboard.quick_actions' ); ?></h3>
         </div>
-        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        <div class="flex-col flex-gap-sm">
             <a href="pages.php" class="btn btn-primary"><?php echo __( 'pages.create_page' ); ?></a>
             <a href="theme.php" class="btn btn-outline"><?php echo __( 'theme.title' ); ?></a>
             <a href="mcp.php" class="btn btn-outline"><?php echo __( 'mcp.create_token' ); ?></a>
@@ -114,9 +114,9 @@ if ( ! $indexingEnabled ) : ?>
             <h3><?php echo __( 'dashboard.system_info' ); ?></h3>
         </div>
         <table>
-            <tr><td style="font-weight:600;"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo klytos_esc_html( $app->getVersion()); ?></td></tr>
-            <tr><td style="font-weight:600;"><?php echo __( 'dashboard.php_version' ); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
-            <tr><td style="font-weight:600;"><?php echo __( 'dashboard.server' ); ?></td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
+            <tr><td class="font-bold"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo klytos_esc_html( $app->getVersion()); ?></td></tr>
+            <tr><td class="font-bold"><?php echo __( 'dashboard.php_version' ); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
+            <tr><td class="font-bold"><?php echo __( 'dashboard.server' ); ?></td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
         </table>
     </div>
 </div>

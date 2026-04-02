@@ -174,9 +174,9 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- DATA EXPORT TAB                                                -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 
-<div class="card" style="border-left:4px solid var(--admin-primary);">
-    <h3 style="margin-bottom:0.5rem;"><?php echo klytos_esc_html( __( 'privacy.export_title' ) ); ?></h3>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;font-size:0.9rem;">
+<div class="card" style="border-left:4px solid var(--klytos-primary);">
+    <h3 class="mb-1"><?php echo klytos_esc_html( __( 'privacy.export_title' ) ); ?></h3>
+    <p class="text-muted mb-2 text-sm">
         <?php echo klytos_esc_html( __( 'privacy.export_desc' ) ); ?>
     </p>
 
@@ -184,8 +184,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="search_user">
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input type="text" name="query" class="form-control" style="flex:1;max-width:400px;"
+        <div class="flex flex-center flex-gap-sm">
+            <input type="text" name="query" class="form-control flex-1" style="max-width:400px;"
                    placeholder="<?php echo klytos_esc_attr( __( 'privacy.search_placeholder' ) ); ?>"
                    value="<?php echo klytos_esc_attr( $_POST['query'] ?? '' ); ?>" required>
             <button type="submit" class="btn btn-primary"><?php echo klytos_esc_html( __( 'privacy.search_button' ) ); ?></button>
@@ -195,11 +195,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <?php if ( $foundUser !== null ): ?>
     <!-- User found card -->
-    <div class="card" style="margin-top:1rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <div class="card mt-2">
+        <div class="flex-between mb-2">
             <div>
-                <h4 style="margin:0;"><?php echo klytos_esc_html( $foundUser['display_name'] ); ?></h4>
-                <p style="color:var(--admin-text-muted);margin:0.25rem 0 0;font-size:0.85rem;">
+                <h4 class="mb-0"><?php echo klytos_esc_html( $foundUser['display_name'] ); ?></h4>
+                <p class="text-muted text-sm" style="margin:0.25rem 0 0;">
                     <strong>@<?php echo klytos_esc_html( $foundUser['username'] ); ?></strong>
                     &middot; <?php echo klytos_esc_html( $foundUser['email'] ); ?>
                     &middot; <span class="badge badge-primary"><?php echo klytos_esc_html( $foundUser['role'] ); ?></span>
@@ -208,12 +208,12 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
 
         <?php if ( $exportData !== null && !empty( $exportData['sections'] ) ): ?>
-            <h5 style="margin-bottom:0.5rem;"><?php echo klytos_esc_html( __( 'privacy.export_sections' ) ); ?></h5>
-            <table class="table" style="margin-bottom:1.5rem;">
+            <h5 class="mb-1"><?php echo klytos_esc_html( __( 'privacy.export_sections' ) ); ?></h5>
+            <table class="table mb-3">
                 <thead>
                     <tr>
                         <th><?php echo klytos_esc_html( __( 'privacy.section' ) ); ?></th>
-                        <th style="text-align:right;"><?php echo klytos_esc_html( __( 'privacy.items' ) ); ?></th>
+                        <th class="text-right"><?php echo klytos_esc_html( __( 'privacy.items' ) ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -222,18 +222,18 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <td>
                             <?php echo klytos_esc_html( $section['label'] ); ?>
                             <?php if ( ( $section['source'] ?? 'core' ) !== 'core' ): ?>
-                                <span class="badge badge-info" style="font-size:0.7rem;margin-left:0.25rem;"><?php echo klytos_esc_html( $section['source'] ); ?></span>
+                                <span class="badge badge-info text-xs" style="margin-left:0.25rem;"><?php echo klytos_esc_html( $section['source'] ); ?></span>
                             <?php endif; ?>
                         </td>
-                        <td style="text-align:right;"><?php echo (int) ( $section['count'] ?? 1 ); ?></td>
+                        <td class="text-right"><?php echo (int) ( $section['count'] ?? 1 ); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
 
             <!-- Export action buttons -->
-            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>" style="display:inline;">
+            <div class="flex flex-gap-sm flex-wrap">
+                <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>" class="inline-form">
                     <?php echo klytos_csrf_field(); ?>
                     <input type="hidden" name="action" value="export_json">
                     <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $foundUser['id'] ); ?>">
@@ -242,7 +242,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     </button>
                 </form>
 
-                <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>" style="display:inline;">
+                <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>" class="inline-form">
                     <?php echo klytos_csrf_field(); ?>
                     <input type="hidden" name="action" value="export_html">
                     <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $foundUser['id'] ); ?>">
@@ -251,7 +251,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     </button>
                 </form>
 
-                <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>" style="display:inline;">
+                <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=export' ); ?>" class="inline-form">
                     <?php echo klytos_csrf_field(); ?>
                     <input type="hidden" name="action" value="send_export_email">
                     <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $foundUser['id'] ); ?>">
@@ -261,7 +261,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </form>
             </div>
         <?php elseif ( $exportData !== null ): ?>
-            <p style="color:var(--admin-text-muted);"><?php echo klytos_esc_html( __( 'privacy.no_data' ) ); ?></p>
+            <p class="text-muted"><?php echo klytos_esc_html( __( 'privacy.no_data' ) ); ?></p>
         <?php endif; ?>
     </div>
 <?php endif; ?>
@@ -271,9 +271,9 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- DATA ERASURE TAB                                               -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 
-<div class="card" style="border-left:4px solid var(--admin-danger, #e74c3c);">
-    <h3 style="margin-bottom:0.5rem;"><?php echo klytos_esc_html( __( 'privacy.erasure_title' ) ); ?></h3>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;font-size:0.9rem;">
+<div class="card" style="border-left:4px solid var(--klytos-danger, #e74c3c);">
+    <h3 class="mb-1"><?php echo klytos_esc_html( __( 'privacy.erasure_title' ) ); ?></h3>
+    <p class="text-muted mb-2 text-sm">
         <?php echo klytos_esc_html( __( 'privacy.erasure_desc' ) ); ?>
     </p>
 
@@ -281,8 +281,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post" action="<?php echo klytos_esc_url( $adminPath . 'privacy.php?tab=erasure' ); ?>">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="search_user">
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input type="text" name="query" class="form-control" style="flex:1;max-width:400px;"
+        <div class="flex flex-center flex-gap-sm">
+            <input type="text" name="query" class="form-control flex-1" style="max-width:400px;"
                    placeholder="<?php echo klytos_esc_attr( __( 'privacy.search_placeholder' ) ); ?>"
                    value="<?php echo klytos_esc_attr( $_POST['query'] ?? '' ); ?>" required>
             <button type="submit" class="btn btn-primary"><?php echo klytos_esc_html( __( 'privacy.search_button' ) ); ?></button>
@@ -292,11 +292,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <?php if ( $foundUser !== null ): ?>
     <!-- User found card -->
-    <div class="card" style="margin-top:1rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <div class="card mt-2">
+        <div class="flex-between mb-2">
             <div>
-                <h4 style="margin:0;"><?php echo klytos_esc_html( $foundUser['display_name'] ); ?></h4>
-                <p style="color:var(--admin-text-muted);margin:0.25rem 0 0;font-size:0.85rem;">
+                <h4 class="mb-0"><?php echo klytos_esc_html( $foundUser['display_name'] ); ?></h4>
+                <p class="text-muted text-sm" style="margin:0.25rem 0 0;">
                     <strong>@<?php echo klytos_esc_html( $foundUser['username'] ); ?></strong>
                     &middot; <?php echo klytos_esc_html( $foundUser['email'] ); ?>
                     &middot; <span class="badge badge-primary"><?php echo klytos_esc_html( $foundUser['role'] ); ?></span>
@@ -305,7 +305,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
 
         <?php if ( ( $foundUser['role'] ?? '' ) === 'owner' ): ?>
-            <div class="alert alert-warning" style="margin-bottom:1rem;">
+            <div class="alert alert-warning mb-2">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <?php echo klytos_esc_html( __( 'privacy.owner_cannot_erase' ) ); ?>
             </div>
@@ -313,13 +313,13 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         <?php if ( $erasureResults !== null ): ?>
             <!-- Erasure results -->
-            <h5 style="margin-bottom:0.5rem;"><?php echo klytos_esc_html( __( 'privacy.status' ) ); ?></h5>
-            <table class="table" style="margin-bottom:1rem;">
+            <h5 class="mb-1"><?php echo klytos_esc_html( __( 'privacy.status' ) ); ?></h5>
+            <table class="table mb-2">
                 <thead>
                     <tr>
                         <th><?php echo klytos_esc_html( __( 'privacy.section' ) ); ?></th>
                         <th><?php echo klytos_esc_html( __( 'privacy.status' ) ); ?></th>
-                        <th style="text-align:right;"><?php echo klytos_esc_html( __( 'privacy.items' ) ); ?></th>
+                        <th class="text-right"><?php echo klytos_esc_html( __( 'privacy.items' ) ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -338,12 +338,12 @@ require_once __DIR__ . '/templates/sidebar.php';
                             ?>
                             <span class="badge <?php echo $badgeClass; ?>"><?php echo klytos_esc_html( __( 'privacy.' . $statusKey ) ); ?></span>
                             <?php if ( !empty( $result['reason'] ) && $result['reason'] === 'legally_retained' ): ?>
-                                <span style="color:var(--admin-text-muted);font-size:0.8rem;margin-left:0.25rem;">
+                                <span class="text-muted text-xs" style="margin-left:0.25rem;">
                                     <i class="fa-solid fa-lock"></i> <?php echo klytos_esc_html( __( 'privacy.legally_retained' ) ); ?>
                                 </span>
                             <?php endif; ?>
                         </td>
-                        <td style="text-align:right;"><?php echo (int) ( $result['count'] ?? 0 ); ?></td>
+                        <td class="text-right"><?php echo (int) ( $result['count'] ?? 0 ); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -356,13 +356,13 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <input type="hidden" name="action" value="erase_data">
                 <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr( $foundUser['id'] ); ?>">
 
-                <table class="table" style="margin-bottom:1.5rem;">
+                <table class="table mb-3">
                     <thead>
                         <tr>
                             <th style="width:40px;"></th>
                             <th><?php echo klytos_esc_html( __( 'privacy.section' ) ); ?></th>
                             <th><?php echo klytos_esc_html( __( 'privacy.method' ) ); ?></th>
-                            <th style="text-align:right;"><?php echo klytos_esc_html( __( 'privacy.items' ) ); ?></th>
+                            <th class="text-right"><?php echo klytos_esc_html( __( 'privacy.items' ) ); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -373,17 +373,17 @@ require_once __DIR__ . '/templates/sidebar.php';
                                     <input type="checkbox" name="sections[]"
                                            value="<?php echo klytos_esc_attr( $section['id'] ); ?>">
                                 <?php else: ?>
-                                    <i class="fa-solid fa-lock" style="color:var(--admin-text-muted);"
+                                    <i class="fa-solid fa-lock text-muted"
                                        title="<?php echo klytos_esc_attr( $section['retention_reason'] ?? __( 'privacy.legally_retained' ) ); ?>"></i>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php echo klytos_esc_html( $section['label'] ); ?>
                                 <?php if ( ( $section['source'] ?? 'core' ) !== 'core' ): ?>
-                                    <span class="badge badge-info" style="font-size:0.7rem;margin-left:0.25rem;"><?php echo klytos_esc_html( $section['source'] ); ?></span>
+                                    <span class="badge badge-info text-xs" style="margin-left:0.25rem;"><?php echo klytos_esc_html( $section['source'] ); ?></span>
                                 <?php endif; ?>
                                 <?php if ( !$section['erasable'] && !empty( $section['retention_reason'] ) ): ?>
-                                    <br><span style="color:var(--admin-text-muted);font-size:0.8rem;">
+                                    <br><span class="text-muted text-xs">
                                         <i class="fa-solid fa-scale-balanced"></i>
                                         <?php echo klytos_esc_html( $section['retention_reason'] ); ?>
                                     </span>
@@ -398,7 +398,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                     <?php echo klytos_esc_html( __( $methodKey ) ); ?>
                                 </span>
                             </td>
-                            <td style="text-align:right;"><?php echo (int) ( $section['item_count'] ?? 0 ); ?></td>
+                            <td class="text-right"><?php echo (int) ( $section['item_count'] ?? 0 ); ?></td>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>

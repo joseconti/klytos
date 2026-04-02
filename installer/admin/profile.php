@@ -107,7 +107,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <input type="email" name="email" class="form-control" value="<?php echo klytos_esc_attr($user['email'] ?? ''); ?>" required>
         </div>
 
-        <hr style="margin:1.5rem 0;border-color:var(--admin-border)">
+        <hr class="divider">
 
         <div class="form-group">
             <label>Current Password (required to save changes)</label>
@@ -120,7 +120,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
 
         <?php klytos_do_action( 'admin.profile.after_fields', $user ); ?>
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+        <div class="flex flex-gap-sm flex-end mt-2">
             <button type="submit" class="btn btn-primary">Save Profile</button>
         </div>
     </form>

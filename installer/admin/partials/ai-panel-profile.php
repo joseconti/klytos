@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ai_panel_profile_acti
                 <input type="email" name="email" class="ai-panel-form-control" value="<?php echo klytos_esc_attr($user['email'] ?? ''); ?>" required>
             </div>
 
-            <hr style="margin:1.5rem 0;border-color:var(--chat-border)">
+            <hr class="divider">
 
             <div class="ai-panel-form-group">
                 <label>Current Password (required to save changes)</label>
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ai_panel_profile_acti
                 <input type="password" name="new_password" class="ai-panel-form-control" minlength="12" data-klytos-pwgen data-klytos-pwgen-style="ai-panel">
             </div>
 
-            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+            <div class="flex flex-gap-sm flex-end mt-2">
                 <button type="submit" class="ai-panel-btn ai-panel-btn-primary">Save Profile</button>
             </div>
         </form>

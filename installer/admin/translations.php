@@ -113,10 +113,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action( 'admin.translations.before_filters' ); ?>
 
 <!-- Filter bar -->
-<div class="card" style="padding:1rem;margin-bottom:1.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
+<div class="card flex flex-gap-sm flex-wrap flex-center" style="padding:1rem;margin-bottom:1.5rem;">
     <!-- Source dropdown -->
     <div>
-        <label for="translationSource" style="font-size:0.85rem;color:var(--admin-text-muted);display:block;margin-bottom:0.25rem;">
+        <label for="translationSource" class="text-sm text-muted" style="display:block;margin-bottom:0.25rem;">
             <?php echo __( 'translations.source' ); ?>
         </label>
         <select id="translationSource" class="form-control" style="min-width:180px;">
@@ -132,7 +132,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     <!-- Language dropdown -->
     <div>
-        <label for="translationLocale" style="font-size:0.85rem;color:var(--admin-text-muted);display:block;margin-bottom:0.25rem;">
+        <label for="translationLocale" class="text-sm text-muted" style="display:block;margin-bottom:0.25rem;">
             <?php echo __( 'translations.language' ); ?>
         </label>
         <select id="translationLocale" class="form-control" style="min-width:160px;">
@@ -146,18 +146,18 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 
     <!-- Search -->
-    <div style="flex:1;min-width:200px;">
-        <label for="translationSearch" style="font-size:0.85rem;color:var(--admin-text-muted);display:block;margin-bottom:0.25rem;">
+    <div class="flex-1" style="min-width:200px;">
+        <label for="translationSearch" class="text-sm text-muted" style="display:block;margin-bottom:0.25rem;">
             &nbsp;
         </label>
         <input type="text" id="translationSearch" class="form-control"
                placeholder="<?php echo klytos_esc_attr( __( 'translations.search_placeholder' ) ); ?>"
-               style="width:100%;">
+               class="w-full">
     </div>
 
     <!-- Show only missing toggle -->
-    <div style="display:flex;align-items:flex-end;">
-        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.9rem;padding-bottom:0.35rem;">
+    <div class="flex" style="align-items:flex-end;">
+        <label class="flex flex-center flex-gap-sm text-sm" style="padding-bottom:0.35rem;">
             <input type="checkbox" id="showMissingOnly">
             <?php echo __( 'translations.show_missing_only' ); ?>
         </label>
@@ -165,32 +165,32 @@ require_once __DIR__ . '/templates/sidebar.php';
 
     <!-- Progress bar -->
     <div style="min-width:220px;">
-        <div style="font-size:0.85rem;color:var(--admin-text-muted);margin-bottom:0.35rem;" id="progressText">
+        <div class="text-sm text-muted" style="margin-bottom:0.35rem;" id="progressText">
             <?php echo __( 'translations.progress', [
                 'translated' => $stats['translated'],
                 'total'      => $stats['total'],
                 'percent'    => $stats['percent'],
             ] ); ?>
         </div>
-        <div style="background:var(--admin-border);border-radius:4px;height:8px;overflow:hidden;">
-            <div id="progressBar" style="background:var(--admin-accent);height:100%;border-radius:4px;transition:width 0.3s;width:<?php echo (int) $stats['percent']; ?>%;"></div>
+        <div style="background:var(--klytos-border);border-radius:4px;height:8px;overflow:hidden;">
+            <div id="progressBar" style="background:var(--klytos-accent);height:100%;border-radius:4px;transition:width 0.3s;width:<?php echo (int) $stats['percent']; ?>%;"></div>
         </div>
     </div>
 
     <?php if ( !empty( $aiProviders ) ): ?>
     <!-- Translate all missing button -->
-    <div style="display:flex;align-items:flex-end;">
+    <div class="flex" style="align-items:flex-end;">
         <div class="dropdown" style="position:relative;">
             <button type="button" class="btn btn-sm btn-primary" id="translateAllBtn"
                     <?php echo $stats['missing'] === 0 ? 'disabled' : ''; ?>>
                 <i class="fa-solid fa-language"></i>
                 <?php echo __( 'translations.translate_all_missing' ); ?>
             </button>
-            <div class="dropdown-menu" id="translateAllMenu" style="display:none;position:absolute;right:0;top:100%;background:var(--admin-card-bg);border:1px solid var(--admin-border);border-radius:var(--admin-radius, 6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:180px;">
+            <div class="dropdown-menu" id="translateAllMenu" style="display:none;position:absolute;right:0;top:100%;background:var(--klytos-card-bg);border:1px solid var(--klytos-border);border-radius:var(--klytos-radius, 6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:180px;">
                 <?php foreach ( $aiProviders as $provider ): ?>
                     <button type="button" class="dropdown-item js-translate-all-provider"
                             data-provider="<?php echo klytos_esc_attr( $provider['id'] ); ?>"
-                            style="display:block;width:100%;text-align:left;padding:0.5rem 1rem;border:none;background:none;cursor:pointer;color:var(--admin-text);font-size:0.9rem;">
+                            style="display:block;width:100%;text-align:left;padding:0.5rem 1rem;border:none;background:none;cursor:pointer;color:var(--klytos-text);font-size:0.9rem;">
                         <?php echo klytos_esc_html( $provider['name'] ); ?>
                     </button>
                 <?php endforeach; ?>
@@ -205,19 +205,19 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action( 'admin.translations.before_table' ); ?>
 
 <?php if ( !$hasData ): ?>
-    <div class="card" style="padding:2rem;text-align:center;color:var(--admin-text-muted);">
+    <div class="card p-3 text-center text-muted">
         <?php echo __( 'translations.all_translated' ); ?>
     </div>
 <?php else: ?>
 
 <!-- Bulk progress indicator (hidden by default) -->
-<div id="bulkProgress" style="display:none;margin-bottom:1rem;">
-    <div class="card" style="padding:1rem;">
-        <div style="display:flex;align-items:center;gap:1rem;">
+<div id="bulkProgress" class="hidden mb-2">
+    <div class="card p-2">
+        <div class="flex flex-center" style="gap:1rem;">
             <i class="fa-solid fa-spinner fa-spin"></i>
             <span id="bulkProgressText"><?php echo __( 'translations.translating' ); ?></span>
-            <div style="flex:1;background:var(--admin-border);border-radius:4px;height:8px;overflow:hidden;">
-                <div id="bulkProgressBar" style="background:var(--admin-accent);height:100%;border-radius:4px;transition:width 0.3s;width:0%;"></div>
+            <div class="flex-1" style="background:var(--klytos-border);border-radius:4px;height:8px;overflow:hidden;">
+                <div id="bulkProgressBar" style="background:var(--klytos-accent);height:100%;border-radius:4px;transition:width 0.3s;width:0%;"></div>
             </div>
         </div>
     </div>
@@ -229,7 +229,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <table class="table" id="translationsTable">
             <thead>
                 <tr>
-                    <th style="width:25%;font-size:0.85rem;"><?php echo __( 'translations.key' ); ?></th>
+                    <th class="text-sm" style="width:25%;"><?php echo __( 'translations.key' ); ?></th>
                     <th style="width:30%;"><?php echo __( 'translations.english' ); ?></th>
                     <th style="width:45%;"><?php echo klytos_esc_html( $localeName ); ?></th>
                 </tr>
@@ -245,10 +245,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                         data-english="<?php echo klytos_esc_attr( strtolower( $englishValue ) ); ?>"
                         data-translation="<?php echo klytos_esc_attr( strtolower( $currentTranslation ) ); ?>"
                         class="<?php echo $isMissing ? 'translation-missing' : 'translation-done'; ?>">
-                        <td style="font-family:monospace;font-size:0.8rem;color:var(--admin-text-muted);word-break:break-all;">
+                        <td class="text-mono text-xs text-muted break-all">
                             <?php echo klytos_esc_html( $key ); ?>
                         </td>
-                        <td style="background:var(--admin-bg);font-size:0.9rem;">
+                        <td class="text-sm" style="background:var(--klytos-bg);">
                             <?php echo klytos_esc_html( $englishValue ); ?>
                         </td>
                         <td colspan="2">
@@ -258,7 +258,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                                           data-original="<?php echo klytos_esc_attr( $currentTranslation ); ?>"
                                           placeholder="<?php echo klytos_esc_attr( $englishValue ); ?>"
                                           rows="1"
-                                          style="resize:none;overflow:hidden;font-size:0.85rem;padding:0.35rem 0.5rem;line-height:1.4;border-color:var(--admin-border);width:100%;min-height:0;"><?php echo klytos_esc_html( $currentTranslation ); ?></textarea>
+                                          class="w-full"
+                                          style="resize:none;overflow:hidden;font-size:0.85rem;padding:0.35rem 0.5rem;line-height:1.4;border-color:var(--klytos-border);min-height:0;"><?php echo klytos_esc_html( $currentTranslation ); ?></textarea>
                                 <div class="translation-actions">
                                     <button type="button" class="btn btn-sm btn-primary js-save-btn" data-key="<?php echo klytos_esc_attr( $key ); ?>" style="display:none;">
                                         <i class="fa-solid fa-floppy-disk"></i> <?php echo __( 'common.save' ); ?>
@@ -271,12 +272,12 @@ require_once __DIR__ . '/templates/sidebar.php';
                                         <button type="button" class="btn btn-sm btn-outline js-ai-translate-btn" title="<?php echo klytos_esc_attr( __( 'translations.translate_with' ) ); ?>">
                                             <i class="fa-solid fa-wand-magic-sparkles"></i> IA
                                         </button>
-                                        <div class="dropdown-menu js-ai-dropdown" style="display:none;position:absolute;right:0;top:100%;background:var(--admin-card-bg);border:1px solid var(--admin-border);border-radius:var(--admin-radius, 6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:160px;">
+                                        <div class="dropdown-menu js-ai-dropdown" style="display:none;position:absolute;right:0;top:100%;background:var(--klytos-card-bg);border:1px solid var(--klytos-border);border-radius:var(--klytos-radius, 6px);box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:100;min-width:160px;">
                                             <?php foreach ( $aiProviders as $provider ): ?>
                                                 <button type="button" class="dropdown-item js-ai-provider-btn"
                                                         data-provider="<?php echo klytos_esc_attr( $provider['id'] ); ?>"
                                                         data-key="<?php echo klytos_esc_attr( $key ); ?>"
-                                                        style="display:block;width:100%;text-align:left;padding:0.5rem 1rem;border:none;background:none;cursor:pointer;color:var(--admin-text);font-size:0.85rem;">
+                                                        style="display:block;width:100%;text-align:left;padding:0.5rem 1rem;border:none;background:none;cursor:pointer;color:var(--klytos-text);font-size:0.85rem;">
                                                     <?php echo klytos_esc_html( $provider['name'] ); ?>
                                                 </button>
                                             <?php endforeach; ?>

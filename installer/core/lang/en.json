@@ -554,6 +554,11 @@
     "uninstall_keep": "Keep",
     "uninstall_keep_notice": "You can delete them anytime from System > Options Management"
   },
+  "sidebar": {
+    "section_content": "Content",
+    "customize": "Customize menu",
+    "reset_order": "Reset order"
+  },
   "translations": {
     "title": "Translations",
     "source": "Source",

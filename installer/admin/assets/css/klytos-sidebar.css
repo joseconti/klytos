@@ -1,0 +1,478 @@
+/**
+ * Klytos Design System — Sidebar
+ * Admin sidebar navigation: brand, search, nav items, collapsed state, tooltips.
+ *
+ * @license    Elastic License 2.0 (ELv2)
+ * @copyright  Copyright (c) 2026 José Conti
+ */
+
+/* ============================================================
+   SIDEBAR CONTAINER
+   ============================================================ */
+
+.admin-sidebar {
+    width: var(--klytos-sidebar-width);
+    background: var(--klytos-sidebar-bg);
+    color: var(--klytos-sidebar-text);
+    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    z-index: 50;
+    transition: width 0.25s ease;
+}
+
+/* ============================================================
+   BRAND / LOGO
+   ============================================================ */
+
+.sidebar-brand {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--klytos-sidebar-border);
+}
+
+.sidebar-brand h2 {
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.sidebar-brand small {
+    color: var(--klytos-sidebar-text);
+    font-size: 0.75rem;
+}
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+.sidebar-search {
+    padding: var(--klytos-space) var(--klytos-space-md);
+}
+
+.sidebar-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space-sm);
+    background: var(--klytos-sidebar-hover);
+    border: 1px solid var(--klytos-sidebar-border);
+    border-radius: var(--klytos-radius);
+    padding: 0.4rem 0.65rem;
+    transition: border-color var(--klytos-transition-fast), background var(--klytos-transition-fast);
+}
+
+.sidebar-search-wrap:focus-within {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.sidebar-search-icon {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.sidebar-search-wrap input {
+    background: none;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 0.82rem;
+    width: 100%;
+}
+
+.sidebar-search-wrap input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.sidebar-search-kbd {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--klytos-radius-sm);
+    font-family: inherit;
+    flex-shrink: 0;
+    line-height: 1.4;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+.sidebar-nav {
+    padding: var(--klytos-space-sm) 0;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space);
+    padding: 0.65rem 1.5rem;
+    color: var(--klytos-sidebar-text);
+    font-size: 0.9rem;
+    transition: all var(--klytos-transition-fast);
+    text-decoration: none;
+}
+
+.sidebar-nav a i.fa-solid,
+.sidebar-nav a i.fa-regular,
+.sidebar-nav a i.fa-brands {
+    width: 1.25rem;
+    text-align: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.sidebar-nav a:hover {
+    background: var(--klytos-sidebar-hover);
+    color: #fff;
+    text-decoration: none;
+}
+
+.sidebar-nav a.active {
+    background: var(--klytos-sidebar-active);
+    color: #fff;
+    font-weight: 500;
+}
+
+/* —— Section headers —— */
+
+.sidebar-section {
+    padding: 0.75rem 1.5rem 0.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* —— Badges in sidebar —— */
+
+.sidebar-nav .badge {
+    background: var(--klytos-error);
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--klytos-radius-full);
+    margin-left: auto;
+}
+
+/* —— Child items —— */
+
+.sidebar-nav a.sidebar-child {
+    padding: 0.4rem 1.5rem 0.4rem 3.25rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.sidebar-nav a.sidebar-child:hover {
+    color: #fff;
+}
+
+.sidebar-nav a.sidebar-child.active {
+    color: #fff;
+    font-weight: 500;
+    background: rgba(91, 141, 239, 0.2);
+}
+
+/* ============================================================
+   COLLAPSED STATE
+   ============================================================ */
+
+.admin-sidebar.collapsed {
+    width: var(--klytos-sidebar-collapsed);
+    overflow: visible;
+}
+
+.admin-sidebar.collapsed .sidebar-brand {
+    padding: 1.25rem 0;
+    text-align: center;
+}
+
+.admin-sidebar.collapsed .sidebar-brand h2 {
+    font-size: 0.9rem;
+}
+
+.admin-sidebar.collapsed .sidebar-brand small {
+    display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-search {
+    display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-section {
+    font-size: 0;
+    padding: 0.5rem 0 0.25rem;
+    text-align: center;
+}
+
+.admin-sidebar.collapsed .sidebar-section::after {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 auto;
+}
+
+.admin-sidebar.collapsed .sidebar-nav a {
+    justify-content: center;
+    padding: 0.65rem 0;
+    position: relative;
+}
+
+.admin-sidebar.collapsed .sidebar-nav a span {
+    margin: 0;
+}
+
+.admin-sidebar.collapsed .sidebar-nav a .sidebar-label,
+.admin-sidebar.collapsed .sidebar-nav a .badge {
+    display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-nav a.sidebar-child {
+    display: none;
+}
+
+/* ============================================================
+   TOOLTIPS (collapsed state)
+   ============================================================ */
+
+.sidebar-item-wrap {
+    position: relative;
+}
+
+.sidebar-tooltip {
+    display: none;
+    position: fixed;
+    left: var(--klytos-sidebar-collapsed);
+    background: var(--klytos-sidebar-bg);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 0 var(--klytos-radius) var(--klytos-radius) 0;
+    padding: var(--klytos-space-sm) var(--klytos-space);
+    min-width: 180px;
+    z-index: 200;
+    box-shadow: 4px 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.sidebar-tooltip .tooltip-title {
+    padding: 0.5rem 1.25rem;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    display: block;
+    text-decoration: none;
+}
+
+.sidebar-tooltip .tooltip-title:hover {
+    background: var(--klytos-sidebar-hover);
+    text-decoration: none;
+}
+
+.sidebar-tooltip .tooltip-child {
+    display: block;
+    padding: 0.35rem 1.25rem 0.35rem 2rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.82rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.sidebar-tooltip .tooltip-child:hover {
+    color: #fff;
+    background: var(--klytos-sidebar-hover);
+    text-decoration: none;
+}
+
+.admin-sidebar.collapsed .sidebar-item-wrap:hover .sidebar-tooltip {
+    display: block;
+}
+
+/* ============================================================
+   SEARCH FILTERING
+   ============================================================ */
+
+.sidebar-item-wrap.search-hidden {
+    display: none;
+}
+
+.sidebar-section.search-hidden,
+.sidebar-section-group.search-hidden {
+    display: none;
+}
+
+.sidebar-search-no-results {
+    padding: var(--klytos-space-md) var(--klytos-space-lg);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.82rem;
+    text-align: center;
+    display: none;
+}
+
+.sidebar-search-no-results.visible {
+    display: block;
+}
+
+/* Force show children during search */
+.sidebar-item-wrap.search-child-match a.sidebar-child {
+    display: flex !important;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .admin-sidebar {
+        width: var(--klytos-sidebar-collapsed);
+        overflow: visible;
+    }
+
+    .admin-sidebar .sidebar-brand {
+        padding: 1.25rem 0;
+        text-align: center;
+    }
+
+    .admin-sidebar .sidebar-brand h2 {
+        font-size: 0.9rem;
+    }
+
+    .admin-sidebar .sidebar-brand small {
+        display: none;
+    }
+
+    .admin-sidebar .sidebar-search {
+        display: none;
+    }
+
+    .admin-sidebar .sidebar-section {
+        font-size: 0;
+        padding: 0.5rem 0 0.25rem;
+        text-align: center;
+    }
+
+    .admin-sidebar .sidebar-section::after {
+        content: '';
+        display: block;
+        width: 24px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 0 auto;
+    }
+
+    .admin-sidebar .sidebar-nav a {
+        justify-content: center;
+        padding: 0.65rem 0;
+    }
+
+    .admin-sidebar .sidebar-nav a .sidebar-label,
+    .admin-sidebar .sidebar-nav a .badge {
+        display: none;
+    }
+
+    .admin-sidebar .sidebar-nav a.sidebar-child {
+        display: none;
+    }
+
+    .admin-sidebar .sidebar-item-wrap:hover .sidebar-tooltip {
+        display: block;
+    }
+
+    .sidebar-edit-controls {
+        display: none;
+    }
+}
+
+/* ============================================================
+   SIDEBAR EDIT / REORDER MODE
+   ============================================================ */
+
+/* Edit controls footer */
+.sidebar-edit-controls {
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--klytos-sidebar-border);
+}
+
+.sidebar-edit-toggle,
+.sidebar-edit-reset {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space);
+    width: 100%;
+    padding: 0.5rem 0;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: color var(--klytos-transition-fast);
+}
+
+.sidebar-edit-toggle:hover,
+.sidebar-edit-reset:hover {
+    color: #fff;
+}
+
+/* Drag handles (hidden by default, shown in edit mode) */
+.sidebar-item-drag-handle,
+.sidebar-section-drag-handle {
+    display: none;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+/* Edit mode active */
+.sidebar-editing .sidebar-item-drag-handle,
+.sidebar-editing .sidebar-section-drag-handle {
+    display: inline-flex;
+    align-items: center;
+}
+
+.sidebar-editing .sidebar-nav a {
+    cursor: default;
+}
+
+.sidebar-editing .sidebar-section {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* SortableJS ghost and chosen states */
+.sidebar-sortable-ghost {
+    opacity: 0.4;
+    background: rgba(91, 141, 239, 0.15);
+}
+
+.sidebar-sortable-chosen {
+    background: rgba(91, 141, 239, 0.25);
+}
+
+/* Editing indicator on toggle button */
+.sidebar-editing .sidebar-edit-toggle {
+    color: var(--klytos-primary, #5b8def);
+}
+
+/* Collapsed sidebar hides edit controls label */
+.admin-sidebar.collapsed .sidebar-edit-controls .sidebar-label {
+    display: none;
+}
+
+.admin-sidebar.collapsed .sidebar-edit-controls {
+    padding: 0.75rem 0;
+    text-align: center;
+}
+
+.admin-sidebar.collapsed .sidebar-edit-toggle,
+.admin-sidebar.collapsed .sidebar-edit-reset {
+    justify-content: center;
+}

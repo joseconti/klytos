@@ -138,15 +138,15 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <!-- ─── Recovery Codes (shown once after generation) ─── -->
 <?php if ($recoveryCodes): ?>
-<div class="card security-recovery-card" style="border: 2px solid var(--admin-warning); background: #fffbeb;">
+<div class="card security-recovery-card" style="border: 2px solid var(--klytos-warning); background: var(--klytos-warning-subtle);">
     <div class="card-header"><h3><?php echo __('security.recovery_codes_title'); ?></h3></div>
-    <p class="security-recovery-text" style="color:#92400e;margin-bottom:1rem;"><?php echo __('security.recovery_codes_warning'); ?></p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;max-width:400px;margin-bottom:1rem;">
+    <p class="security-recovery-text mb-2" style="color:#92400e;"><?php echo __('security.recovery_codes_warning'); ?></p>
+    <div class="grid-2 max-w-sm mb-2">
         <?php foreach ($recoveryCodes as $code): ?>
-            <code class="security-recovery-code" style="background:var(--admin-surface);padding:0.5rem;border-radius:6px;text-align:center;font-size:1.1rem;border:1px solid var(--admin-border);"><?php echo klytos_esc_html($code); ?></code>
+            <code class="security-recovery-code text-center text-lg" style="background:var(--klytos-surface);padding:0.5rem;border-radius:6px;border:1px solid var(--klytos-border);"><?php echo klytos_esc_html($code); ?></code>
         <?php endforeach; ?>
     </div>
-    <p class="security-recovery-text" style="color:#92400e;font-size:0.85rem;"><?php echo __('security.recovery_codes_count', ['count' => count($recoveryCodes)]); ?></p>
+    <p class="security-recovery-text text-sm" style="color:#92400e;"><?php echo __('security.recovery_codes_count', ['count' => count($recoveryCodes)]); ?></p>
 </div>
 <?php endif; ?>
 
@@ -157,22 +157,22 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="card-header">
         <h3><?php echo __('security.2fa_title'); ?></h3>
         <?php if ($tfConfig['enabled'] ?? false): ?>
-            <span class="security-status-active" style="background:#dcfce7;color:#166534;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.8rem;font-weight:600;"><?php echo __('security.2fa_active'); ?></span>
+            <span class="security-status-active badge-status badge-active text-xs font-bold" style="padding:0.25rem 0.75rem;border-radius:20px;"><?php echo __('security.2fa_active'); ?></span>
         <?php else: ?>
-            <span class="security-status-inactive" style="background:#fef2f2;color:#dc2626;padding:0.25rem 0.75rem;border-radius:20px;font-size:0.8rem;font-weight:600;"><?php echo __('security.2fa_inactive'); ?></span>
+            <span class="security-status-inactive badge-status badge-inactive text-xs font-bold" style="padding:0.25rem 0.75rem;border-radius:20px;"><?php echo __('security.2fa_inactive'); ?></span>
         <?php endif; ?>
     </div>
-    <p style="color:var(--admin-text-muted);margin-bottom:1.5rem;"><?php echo __('security.2fa_description'); ?></p>
+    <p class="text-muted mb-3"><?php echo __('security.2fa_description'); ?></p>
 
     <?php if ($tfConfig['enabled'] ?? false): ?>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+    <div class="flex flex-gap-sm flex-wrap mb-2">
         <?php foreach ($tfConfig['methods'] as $method): ?>
-            <span class="security-method-badge" style="background:#eff6ff;color:#2563eb;padding:0.25rem 0.75rem;border-radius:6px;font-size:0.85rem;font-weight:600;">
+            <span class="security-method-badge text-sm font-bold" style="background:#eff6ff;color:#2563eb;padding:0.25rem 0.75rem;border-radius:6px;">
                 <?php echo klytos_esc_html(__('security.method_' . $method)); ?>
             </span>
         <?php endforeach; ?>
     </div>
-    <p style="font-size:0.85rem;color:var(--admin-text-muted);">
+    <p class="text-sm text-muted">
         <?php echo __('security.recovery_codes_remaining', ['count' => $tfConfig['recovery_codes_left']]); ?>
     </p>
     <?php endif; ?>
@@ -181,21 +181,21 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ─── TOTP (Authenticator App) ─── -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('security.totp_title'); ?></h3></div>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;"><?php echo __('security.totp_description'); ?></p>
+    <p class="text-muted mb-2"><?php echo __('security.totp_description'); ?></p>
 
     <?php if ($tfConfig['totp_configured'] ?? false): ?>
-        <p class="security-active-text" style="color:#166534;font-weight:600;margin-bottom:1rem;"><?php echo __('security.totp_active'); ?></p>
+        <p class="security-active-text font-bold mb-2" style="color:#166534;"><?php echo __('security.totp_active'); ?></p>
         <form method="post">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="totp_disable">
-            <button type="submit" class="btn btn-outline" onclick="return confirm('<?php echo __('security.confirm_disable'); ?>');"><?php echo __('security.disable_totp'); ?></button>
+            <button type="submit" class="btn btn-outline" data-confirm="<?php echo klytos_esc_attr(__('security.confirm_disable')); ?>"><?php echo __('security.disable_totp'); ?></button>
         </form>
     <?php elseif ($totpSetupSecret): ?>
         <!-- TOTP Setup Step 2: Verify -->
         <div class="totp-setup-box">
-            <p style="font-weight:600;margin-bottom:0.5rem;"><?php echo __('security.totp_scan_qr'); ?></p>
-            <div id="klytos-qr-code" style="text-align:center;margin:1rem 0;"></div>
-            <p style="font-size:0.85rem;color:var(--admin-text-muted);margin-bottom:0.5rem;"><?php echo __('security.totp_manual_key'); ?></p>
+            <p class="font-bold mb-1"><?php echo __('security.totp_scan_qr'); ?></p>
+            <div id="klytos-qr-code" class="text-center" style="margin:1rem 0;"></div>
+            <p class="text-sm text-muted mb-1"><?php echo __('security.totp_manual_key'); ?></p>
             <code class="totp-manual-key"><?php echo klytos_esc_html($totpSetupSecret); ?></code>
         </div>
         <script nonce="<?php echo klytos_esc_attr($cspNonce); ?>" src="<?php echo klytos_esc_url($basePath . 'admin/assets/js/klytos-qrcode.js'); ?>"></script>
@@ -224,10 +224,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ─── Magic Link (Email) ─── -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('security.email_title'); ?></h3></div>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;"><?php echo __('security.email_description'); ?></p>
+    <p class="text-muted mb-2"><?php echo __('security.email_description'); ?></p>
 
     <?php if (in_array('email', $tfConfig['methods'] ?? [], true)): ?>
-        <p class="security-active-text" style="color:#166534;font-weight:600;margin-bottom:1rem;"><?php echo __('security.email_active'); ?></p>
+        <p class="security-active-text font-bold mb-2" style="color:#166534;"><?php echo __('security.email_active'); ?></p>
         <form method="post">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="email_disable">
@@ -245,10 +245,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ─── Passkeys (WebAuthn) ─── -->
 <div class="card">
     <div class="card-header"><h3><?php echo __('security.passkey_title'); ?></h3></div>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;"><?php echo __('security.passkey_description'); ?></p>
+    <p class="text-muted mb-2"><?php echo __('security.passkey_description'); ?></p>
 
     <?php if (!empty($tfConfig['passkeys'])): ?>
-    <table class="table" style="margin-bottom:1rem;">
+    <table class="table mb-2">
         <thead><tr><th><?php echo __('common.name'); ?></th><th><?php echo __('common.date'); ?></th><th><?php echo __('common.actions'); ?></th></tr></thead>
         <tbody>
             <?php foreach ($tfConfig['passkeys'] as $pk): ?>
@@ -256,11 +256,11 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <td><?php echo klytos_esc_html($pk['label']); ?></td>
                 <td><?php echo klytos_esc_html($pk['created_at']); ?></td>
                 <td>
-                    <form method="post" style="display:inline;">
+                    <form method="post" class="inline-form">
                         <?php echo klytos_csrf_field(); ?>
                         <input type="hidden" name="action" value="remove_passkey">
                         <input type="hidden" name="credential_id" value="<?php echo klytos_esc_attr($pk['credential_id']); ?>">
-                        <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('<?php echo __('common.confirm_delete'); ?>');"><?php echo __('common.delete'); ?></button>
+                        <button type="submit" class="btn btn-sm btn-outline" data-confirm="<?php echo klytos_esc_attr(__('common.confirm_delete')); ?>"><?php echo __('common.delete'); ?></button>
                     </form>
                 </td>
             </tr>
@@ -342,25 +342,25 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php if ($tfConfig['enabled'] ?? false): ?>
 <div class="card">
     <div class="card-header"><h3><?php echo __('security.recovery_title'); ?></h3></div>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;">
+    <p class="text-muted mb-2">
         <?php echo __('security.recovery_description'); ?>
         <strong><?php echo __('security.recovery_codes_remaining', ['count' => $tfConfig['recovery_codes_left']]); ?></strong>
     </p>
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="regenerate_recovery">
-        <button type="submit" class="btn btn-outline" onclick="return confirm('<?php echo __('security.confirm_regenerate'); ?>');"><?php echo __('security.regenerate_recovery'); ?></button>
+        <button type="submit" class="btn btn-outline" data-confirm="<?php echo klytos_esc_attr(__('security.confirm_regenerate')); ?>"><?php echo __('security.regenerate_recovery'); ?></button>
     </form>
 </div>
 
 <!-- ─── Disable All 2FA ─── -->
-<div class="card security-danger-card" style="border-color:#fecaca;">
-    <div class="card-header"><h3 style="color:#dc2626;"><?php echo __('security.disable_all_title'); ?></h3></div>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;"><?php echo __('security.disable_all_description'); ?></p>
+<div class="card security-danger-card" style="border-color:var(--klytos-error-subtle);">
+    <div class="card-header"><h3 class="text-error"><?php echo __('security.disable_all_title'); ?></h3></div>
+    <p class="text-muted mb-2"><?php echo __('security.disable_all_description'); ?></p>
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="disable_all">
-        <button type="submit" class="btn" style="background:#dc2626;color:#fff;" onclick="return confirm('<?php echo __('security.confirm_disable_all'); ?>');"><?php echo __('security.disable_all_button'); ?></button>
+        <button type="submit" class="btn btn-danger" data-confirm="<?php echo klytos_esc_attr(__('security.confirm_disable_all')); ?>"><?php echo __('security.disable_all_button'); ?></button>
     </form>
 </div>
 <?php endif; ?>

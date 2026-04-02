@@ -1,0 +1,229 @@
+/**
+ * Klytos Design System — Utilities
+ * Layout helpers, grids, spacing, typography, and action bars.
+ *
+ * @license    Elastic License 2.0 (ELv2)
+ * @copyright  Copyright (c) 2026 José Conti
+ */
+
+/* ============================================================
+   GRID SYSTEM
+   ============================================================ */
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--klytos-space-md);
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--klytos-space-md);
+}
+
+.grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--klytos-space-md);
+}
+
+.grid-2-1 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--klytos-space-md);
+}
+
+.grid-1-2 {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--klytos-space-md);
+}
+
+/* ============================================================
+   FLEXBOX
+   ============================================================ */
+
+.flex             { display: flex; }
+.flex-col         { display: flex; flex-direction: column; }
+.flex-center      { display: flex; align-items: center; }
+.flex-between     { display: flex; align-items: center; justify-content: space-between; }
+.flex-end         { display: flex; align-items: center; justify-content: flex-end; }
+.flex-wrap        { flex-wrap: wrap; }
+.flex-1           { flex: 1; }
+
+.flex-gap-xs      { gap: var(--klytos-space-xs); }
+.flex-gap-sm      { gap: var(--klytos-space-sm); }
+.flex-gap         { gap: var(--klytos-space); }
+.flex-gap-md      { gap: var(--klytos-space-md); }
+.flex-gap-lg      { gap: var(--klytos-space-lg); }
+
+/* ============================================================
+   SPACING — Margins
+   ============================================================ */
+
+.mb-0  { margin-bottom: 0; }
+.mb-1  { margin-bottom: var(--klytos-space-sm); }
+.mb-2  { margin-bottom: var(--klytos-space-md); }
+.mb-3  { margin-bottom: var(--klytos-space-lg); }
+.mb-4  { margin-bottom: var(--klytos-space-xl); }
+
+.mt-0  { margin-top: 0; }
+.mt-1  { margin-top: var(--klytos-space-sm); }
+.mt-2  { margin-top: var(--klytos-space-md); }
+.mt-3  { margin-top: var(--klytos-space-lg); }
+
+.mr-1  { margin-right: var(--klytos-space-sm); }
+.mr-2  { margin-right: var(--klytos-space-md); }
+
+.ml-auto { margin-left: auto; }
+
+/* ============================================================
+   SPACING — Padding
+   ============================================================ */
+
+.p-0   { padding: 0; }
+.p-1   { padding: var(--klytos-space-sm); }
+.p-2   { padding: var(--klytos-space-md); }
+.p-3   { padding: var(--klytos-space-lg); }
+
+.px-1  { padding-left: var(--klytos-space-sm); padding-right: var(--klytos-space-sm); }
+.px-2  { padding-left: var(--klytos-space-md); padding-right: var(--klytos-space-md); }
+
+.pt-1  { padding-top: var(--klytos-space-sm); }
+.pt-2  { padding-top: var(--klytos-space-md); }
+
+.py-1  { padding-top: var(--klytos-space-sm); padding-bottom: var(--klytos-space-sm); }
+.py-2  { padding-top: var(--klytos-space-md); padding-bottom: var(--klytos-space-md); }
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
+.text-xs      { font-size: 0.75rem; }
+.text-sm      { font-size: 0.85rem; }
+.text-base    { font-size: 0.9rem; }
+.text-lg      { font-size: 1.1rem; }
+.text-xl      { font-size: 1.25rem; }
+.text-2xl     { font-size: 1.5rem; }
+
+.text-muted   { color: var(--klytos-text-secondary); }
+.text-dim     { color: var(--klytos-text-tertiary); }
+.text-accent  { color: var(--klytos-accent); }
+.text-success { color: var(--klytos-success-text); }
+.text-warning { color: var(--klytos-warning-text); }
+.text-error   { color: var(--klytos-error-text); }
+
+.text-center  { text-align: center; }
+.text-right   { text-align: right; }
+.text-upper   { text-transform: uppercase; letter-spacing: 0.03em; }
+.text-mono    { font-family: var(--klytos-font-mono); }
+
+.font-normal  { font-weight: 400; }
+.font-medium  { font-weight: 500; }
+.font-bold    { font-weight: 600; }
+.font-heavy   { font-weight: 700; }
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.break-all    { word-break: break-all; }
+
+/* ============================================================
+   ACTION BAR
+   ============================================================ */
+
+.action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--klytos-space-md);
+}
+
+.action-bar .filters {
+    display: flex;
+    gap: var(--klytos-space-sm);
+    align-items: center;
+}
+
+/* ============================================================
+   TOPBAR HELPERS
+   ============================================================ */
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space);
+}
+
+.topbar-center {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space-sm);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--klytos-space);
+}
+
+/* ============================================================
+   DISPLAY
+   ============================================================ */
+
+.hidden        { display: none; }
+.block         { display: block; }
+.inline-block  { display: inline-block; }
+.inline-form   { display: inline; }
+
+/* ============================================================
+   WIDTH / SIZING
+   ============================================================ */
+
+.w-full   { width: 100%; }
+.w-auto   { width: auto; }
+.max-w-sm { max-width: 400px; }
+.max-w-md { max-width: 600px; }
+.max-w-lg { max-width: 800px; }
+
+/* ============================================================
+   BORDERS & RADIUS
+   ============================================================ */
+
+.rounded      { border-radius: var(--klytos-radius); }
+.rounded-lg   { border-radius: var(--klytos-radius-lg); }
+.rounded-full { border-radius: var(--klytos-radius-full); }
+
+.border       { border: 1px solid var(--klytos-border); }
+.border-t     { border-top: 1px solid var(--klytos-border); }
+.border-b     { border-bottom: 1px solid var(--klytos-border); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .grid-2,
+    .grid-3,
+    .grid-4,
+    .grid-2-1,
+    .grid-1-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .action-bar {
+        flex-direction: column;
+        gap: var(--klytos-space);
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

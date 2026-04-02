@@ -183,7 +183,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="social">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
             <?php foreach (['twitter','github','linkedin','instagram','youtube','mastodon'] as $social): ?>
                 <div class="form-group">
                     <label><?php echo ucfirst($social); ?></label>
@@ -230,7 +230,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <option value="smtp" <?php echo ($siteConfig['email']['transport'] ?? '') === 'smtp' ? 'selected' : ''; ?>>SMTP</option>
             </select>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="grid-2">
             <div class="form-group">
                 <label><?php echo __('settings.email_from_name'); ?></label>
                 <input type="text" name="email_from_name" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['from_name'] ?? ''); ?>" placeholder="<?php echo klytos_esc_attr($siteConfig['site_name'] ?? 'Klytos'); ?>">
@@ -244,7 +244,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <label><?php echo __('settings.email_reply_to'); ?></label>
             <input type="email" name="email_reply_to" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['reply_to'] ?? ''); ?>" placeholder="<?php echo __('common.optional'); ?>">
         </div>
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1rem">
             <div class="form-group">
                 <label><?php echo __('settings.smtp_host'); ?></label>
                 <input type="text" name="smtp_host" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['smtp_host'] ?? ''); ?>" placeholder="smtp.example.com">
@@ -254,7 +254,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <input type="number" name="smtp_port" class="form-control" value="<?php echo (int)($siteConfig['email']['smtp_port'] ?? 587); ?>" placeholder="587">
             </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+        <div class="grid-3">
             <div class="form-group">
                 <label><?php echo __('settings.smtp_user'); ?></label>
                 <input type="text" name="smtp_user" class="form-control" value="<?php echo klytos_esc_attr($siteConfig['email']['smtp_user'] ?? ''); ?>">
@@ -272,7 +272,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </select>
             </div>
         </div>
-        <div style="display:flex;gap:0.5rem;">
+        <div class="flex flex-gap-sm">
             <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
             <button type="submit" name="test_email" value="1" class="btn btn-outline"><?php echo __('settings.email_test'); ?></button>
         </div>
@@ -287,7 +287,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <form method="post">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="languages">
-        <p style="font-size:0.85rem;color:var(--admin-text-muted);margin-bottom:1rem;">Define the languages available on your site. These will be used for post type slug translations and content localization.</p>
+        <p class="text-sm text-muted mb-2">Define the languages available on your site. These will be used for post type slug translations and content localization.</p>
         <div id="languages-list">
             <?php
             $languages = $siteConfig['languages'] ?? [];
@@ -295,14 +295,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                 $languages = [['code' => '', 'name' => '']];
             }
             foreach ($languages as $i => $lang): ?>
-                <div class="form-group" style="display:flex;gap:0.5rem;align-items:end;">
+                <div class="form-group flex flex-gap-sm" style="align-items:end">
                     <div>
                         <?php if ($i === 0):
                             ?><label>Code</label><?php
                         endif; ?>
                         <input type="text" name="lang_code[]" class="form-control" value="<?php echo klytos_esc_attr($lang['code'] ?? ''); ?>" placeholder="es" style="width:80px;">
                     </div>
-                    <div style="flex:1;">
+                    <div class="flex-1">
                         <?php if ($i === 0):
                             ?><label>Name</label><?php
                         endif; ?>
@@ -311,7 +311,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </div>
             <?php endforeach; ?>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" id="btn-add-language" style="margin-bottom:1rem;">+ Add Language</button>
+        <button type="button" class="btn btn-outline btn-sm mb-2" id="btn-add-language">+ Add Language</button>
         <br>
         <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
     </form>
@@ -324,10 +324,10 @@ require_once __DIR__ . '/templates/sidebar.php';
         btn.addEventListener('click', function() {
             var list = document.getElementById('languages-list');
             var div = document.createElement('div');
-            div.className = 'form-group';
-            div.style.cssText = 'display:flex;gap:0.5rem;align-items:end;';
+            div.className = 'form-group flex flex-gap-sm';
+            div.style.cssText = 'align-items:end;';
             div.innerHTML = '<div><input type="text" name="lang_code[]" class="form-control" placeholder="en" style="width:80px;"></div>' +
-                            '<div style="flex:1;"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
+                            '<div class="flex-1"><input type="text" name="lang_name[]" class="form-control" placeholder="English"></div>';
             list.appendChild(div);
         });
     }
@@ -344,16 +344,20 @@ require_once __DIR__ . '/templates/sidebar.php';
         <input type="hidden" name="section" value="appearance">
         <div class="form-group">
             <label><?php echo __('settings.appearance_choose'); ?></label>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'light' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="admin_theme" value="light" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'light' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong><i class="fa-solid fa-sun" style="margin-right:0.25rem;"></i> <?php echo __('settings.appearance_light'); ?></strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('settings.appearance_light_desc'); ?></p>
+            <div class="selection-cards cols-2 mt-1">
+                <label class="selection-card">
+                    <input type="radio" name="admin_theme" value="light" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'light' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title"><i class="fa-solid fa-sun mr-1"></i> <?php echo __('settings.appearance_light'); ?></span>
+                        <span class="selection-card-desc"><?php echo __('settings.appearance_light_desc'); ?></span>
+                    </div>
                 </label>
-                <label style="display:block;padding:1rem;border:2px solid <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'dark' ? 'var(--admin-primary)' : 'var(--admin-border)'; ?>;border-radius:8px;cursor:pointer;">
-                    <input type="radio" name="admin_theme" value="dark" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'dark' ? 'checked' : ''; ?> style="margin-right:0.5rem;">
-                    <strong><i class="fa-solid fa-moon" style="margin-right:0.25rem;"></i> <?php echo __('settings.appearance_dark'); ?></strong>
-                    <p style="margin:0.5rem 0 0;font-size:0.85rem;color:var(--admin-text-muted);"><?php echo __('settings.appearance_dark_desc'); ?></p>
+                <label class="selection-card">
+                    <input type="radio" name="admin_theme" value="dark" <?php echo ($siteConfig['admin_theme'] ?? 'dark') === 'dark' ? 'checked' : ''; ?>>
+                    <div class="selection-card-body">
+                        <span class="selection-card-title"><i class="fa-solid fa-moon mr-1"></i> <?php echo __('settings.appearance_dark'); ?></span>
+                        <span class="selection-card-desc"><?php echo __('settings.appearance_dark_desc'); ?></span>
+                    </div>
                 </label>
             </div>
         </div>
@@ -389,19 +393,19 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="section" value="developer">
         <div class="form-group">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <label class="flex flex-center flex-gap-sm" style="cursor:pointer">
                 <input type="checkbox" name="developer_mode" value="1" <?php echo !empty( $devConfig['developer_mode'] ) ? 'checked' : ''; ?>>
                 <?php echo __( 'settings.developer_mode' ); ?>
             </label>
             <p class="form-help"><?php echo __( 'settings.developer_mode_help' ); ?></p>
         </div>
         <?php if (!empty( $devConfig['developer_mode'] )): ?>
-            <div style="padding: 0.75rem; margin-bottom: 1rem; background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; border-radius: 6px; font-size: 0.85rem;">
-                <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i>
+            <div class="text-sm mb-2" style="padding:0.75rem;background:var(--klytos-warning-subtle);border:1px solid var(--klytos-warning);border-radius:6px">
+                <i class="fa-solid fa-triangle-exclamation" style="color:var(--klytos-warning)"></i>
                 <?php echo __( 'settings.developer_mode_warning' ); ?>
             </div>
-            <h4 style="margin: 1.5rem 0 0.75rem; font-size: 0.95rem;"><?php echo __( 'settings.devbar_panels' ); ?></h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.5rem;">
+            <h4 class="mt-3 mb-1" style="font-size:0.95rem"><?php echo __( 'settings.devbar_panels' ); ?></h4>
+            <div class="grid-2" style="gap:0.5rem 1.5rem">
                 <?php
                 $devbarToggles = [
                     'devbar_show_performance'  => __( 'settings.devbar_performance' ),
@@ -412,17 +416,17 @@ require_once __DIR__ . '/templates/sidebar.php';
                     'devbar_show_environment'  => __( 'settings.devbar_environment' ),
                 ];
                 foreach ( $devbarToggles as $key => $label ): ?>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.25rem 0;">
+                    <label class="flex flex-center flex-gap-sm" style="cursor:pointer;padding:0.25rem 0">
                         <input type="checkbox" name="<?php echo $key; ?>" value="1" <?php echo ( $devConfig[$key] ?? true ) ? 'checked' : ''; ?>>
                         <?php echo klytos_esc_html( $label ); ?>
                     </label>
                 <?php endforeach; ?>
             </div>
-            <div class="form-group" style="margin-top: 1rem;">
+            <div class="form-group mt-2">
                 <label><?php echo __( 'settings.devbar_slow_threshold' ); ?></label>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="number" name="devbar_log_slow_threshold" class="form-control" style="width: 120px;" value="<?php echo (int) ( $devConfig['devbar_log_slow_threshold'] ?? 200 ); ?>" min="10" step="10">
-                    <span style="font-size: 0.85rem; color: var(--admin-text-muted);">ms</span>
+                <div class="flex flex-center flex-gap-sm">
+                    <input type="number" name="devbar_log_slow_threshold" class="form-control" style="width:120px" value="<?php echo (int) ( $devConfig['devbar_log_slow_threshold'] ?? 200 ); ?>" min="10" step="10">
+                    <span class="text-sm text-muted">ms</span>
                 </div>
                 <p class="form-help"><?php echo __( 'settings.devbar_slow_threshold_help' ); ?></p>
             </div>

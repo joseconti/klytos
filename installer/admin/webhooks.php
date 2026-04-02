@@ -94,8 +94,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php if ($createdSecret): ?>
     <div class="alert alert-warning">
         <strong>Signing Secret (copy now — will not be shown again):</strong>
-        <div class="token-display" style="margin-top:0.5rem"><?php echo klytos_esc_html( $createdSecret ); ?></div>
-        <p style="font-size:0.8rem;margin-top:0.4rem">
+        <div class="token-display mt-1"><?php echo klytos_esc_html( $createdSecret ); ?></div>
+        <p class="text-xs" style="margin-top:0.4rem">
             Use this secret to verify webhook signatures via the <code>X-Klytos-Signature</code> header.
             Signature format: <code>sha256=HMAC(body, secret)</code>
         </p>
@@ -122,8 +122,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- Action bar -->
 <div class="action-bar">
     <div></div>
-    <div style="display:flex;gap:0.5rem">
-        <form method="post" style="display:inline">
+    <div class="flex flex-gap-sm">
+        <form method="post" class="inline-form">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="test">
             <button type="submit" class="btn btn-outline">Send Test Event</button>
@@ -158,14 +158,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <?php foreach ($webhooks as $wh): ?>
                     <tr>
                         <td>
-                            <code style="font-size:0.8rem"><?php echo klytos_esc_html( $wh['url'] ?? ''); ?></code>
+                            <code class="text-xs"><?php echo klytos_esc_html( $wh['url'] ?? ''); ?></code>
                             <?php if (!empty($wh['description'])): ?>
-                                <br><small style="color:var(--admin-text-muted)"><?php echo klytos_esc_html( $wh['description'] ); ?></small>
+                                <br><small class="text-muted"><?php echo klytos_esc_html( $wh['description'] ); ?></small>
                             <?php endif; ?>
                         </td>
                         <td>
                             <?php foreach (($wh['events'] ?? []) as $event): ?>
-                                <span class="badge-status badge-medium" style="margin:1px 0;display:inline-block"><?php echo klytos_esc_html( $event ); ?></span>
+                                <span class="badge-status badge-medium" style="margin:1px 0;display:inline-block;"><?php echo klytos_esc_html( $event ); ?></span>
                             <?php endforeach; ?>
                         </td>
                         <td>
@@ -175,15 +175,15 @@ require_once __DIR__ . '/templates/sidebar.php';
                         </td>
                         <td>
                             <?php $fails = $wh['failure_count'] ?? 0; ?>
-                            <span style="color:<?php echo $fails > 0 ? 'var(--admin-error)' : 'var(--admin-text-muted)'; ?>">
+                            <span style="color:<?php echo $fails > 0 ? 'var(--klytos-error)' : 'var(--klytos-text-muted)'; ?>">
                                 <?php echo $fails; ?>
                             </span>
                         </td>
-                        <td style="font-size:0.85rem;color:var(--admin-text-muted)">
+                        <td class="text-sm text-muted">
                             <?php echo $wh['last_triggered'] ? date( 'M j H:i', strtotime($wh['last_triggered'])) : '—'; ?>
                         </td>
                         <td>
-                            <form method="post" style="display:inline">
+                            <form method="post" class="inline-form">
                                 <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="webhook_id" value="<?php echo klytos_esc_attr( $wh['id'] ?? ''); ?>">
@@ -221,9 +221,9 @@ require_once __DIR__ . '/templates/sidebar.php';
 
             <div class="form-group">
                 <label>Events to subscribe</label>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-top:0.3rem">
+                <div class="grid-2" style="gap:0.4rem;margin-top:0.3rem">
                     <?php foreach ($availableEvents as $event => $desc): ?>
-                    <label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;font-size:0.85rem;cursor:pointer">
+                    <label class="flex flex-center text-sm" style="gap:0.4rem;font-weight:400;cursor:pointer">
                         <input type="checkbox" name="events[]" value="<?php echo klytos_esc_attr( $event ); ?>">
                         <span title="<?php echo klytos_esc_attr( $desc ); ?>"><?php echo klytos_esc_html( $event ); ?></span>
                     </label>
@@ -231,7 +231,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </div>
             </div>
 
-            <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+            <div class="flex flex-gap-sm mt-2" style="justify-content:flex-end">
                 <button type="button" class="btn btn-outline" id="btnCancelWebhook">Cancel</button>
                 <button type="submit" class="btn btn-primary">Create Webhook</button>
             </div>

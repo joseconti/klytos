@@ -59,10 +59,10 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div id="plugin-toast-container" class="plugin-toast-container"></div>
 
 <!-- Marketplace link -->
-<div class="card" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+<div class="card flex flex-between flex-center mb-3">
     <div>
         <strong>Plugin Marketplace</strong>
-        <p style="color: var(--admin-text-muted); font-size: 0.85rem; margin: 0;">
+        <p class="text-muted text-sm" style="margin: 0;">
             Discover free and premium plugins to extend Klytos.
         </p>
     </div>
@@ -73,15 +73,15 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <!-- Installed plugins list -->
 <div class="card" id="plugins-container" data-csrf="<?php echo klytos_esc_attr( $auth->getCsrfToken() ); ?>" data-api-url="<?php echo klytos_esc_url( $adminPath . 'api/plugins.php' ); ?>">
-    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0;">Installed Plugins</h3>
+    <div class="card-header flex flex-between flex-center">
+        <h3 style="margin:0;">Installed Plugins</h3>
         <button type="button" class="btn btn-primary btn-sm" id="plugin-install-btn">
             <i class="fa-solid fa-upload"></i> Install Plugin
         </button>
     </div>
 
     <?php if (empty($plugins)): ?>
-        <p style="color: var(--admin-text-muted); padding: 1rem;">
+        <p class="text-muted p-2">
             No plugins installed. Visit the <a href="https://klytos.io/plugins" target="_blank" rel="noopener">Marketplace</a> to find plugins.
         </p>
     <?php else: ?>
@@ -256,7 +256,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="plugin-delete-modal-body">
             <p>Are you sure you want to delete <strong id="plugin-modal-name"></strong>?</p>
-            <p style="color: var(--admin-text-muted); font-size: 0.85rem;">
+            <p class="text-muted text-sm">
                 This action will remove all plugin files. Plugin data will be kept unless you check the option below.
             </p>
             <label>
@@ -280,16 +280,16 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="plugin-delete-modal-body">
             <p>Upload a plugin ZIP file to install or update a plugin.</p>
-            <p style="color: var(--admin-text-muted); font-size: 0.85rem;">
+            <p class="text-muted text-sm">
                 If the plugin already exists, a backup of the current version will be created automatically before updating.
             </p>
             <div class="plugin-upload-area" id="plugin-upload-area">
-                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--admin-text-muted); margin-bottom: 0.5rem;"></i>
-                <p style="margin: 0; font-size: 0.9rem;">Drop one or more ZIP files here, or click to browse</p>
-                <input type="file" id="plugin-install-file" accept=".zip" multiple style="display: none;">
+                <i class="fa-solid fa-cloud-arrow-up text-muted mb-1" style="font-size:2rem;"></i>
+                <p class="text-sm" style="margin:0;">Drop one or more ZIP files here, or click to browse</p>
+                <input type="file" id="plugin-install-file" accept=".zip" multiple class="hidden">
             </div>
-            <div id="plugin-install-file-list" class="plugin-install-file-list" style="display: none;"></div>
-            <div id="plugin-install-progress" style="display: none; margin-top: 1rem;"></div>
+            <div id="plugin-install-file-list" class="plugin-install-file-list hidden"></div>
+            <div id="plugin-install-progress" class="hidden mt-2"></div>
         </div>
         <div class="plugin-delete-modal-footer">
             <button type="button" class="btn btn-outline" id="plugin-install-cancel">Cancel</button>
@@ -307,8 +307,8 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="plugin-delete-modal-body">
             <p>Select a backup to restore for <strong id="plugin-restore-name"></strong>:</p>
-            <div id="plugin-restore-list" style="max-height: 300px; overflow-y: auto;">
-                <p style="color: var(--admin-text-muted);">Loading backups...</p>
+            <div id="plugin-restore-list" style="max-height:300px;overflow-y:auto;">
+                <p class="text-muted">Loading backups...</p>
             </div>
         </div>
         <div class="plugin-delete-modal-footer">

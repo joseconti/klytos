@@ -1,5 +1,5 @@
 /**
- * Klytos — AI Chat Styles (Claude-inspired dark theme)
+ * Klytos — AI Chat Styles (dark theme)
  * Styles for the integrated AI chat in the admin panel.
  *
  * @package Klytos
@@ -7,24 +7,26 @@
  */
 
 /* ─── Chat Theme Variables ────────────────────────────────── */
+/* Maps to the unified --klytos-* design tokens while preserving
+   the chat's warm personality via slight overrides.            */
 :root {
-    --chat-bg: #292521;
-    --chat-bg-alt: #1f1d1a;
-    --chat-surface: #353230;
-    --chat-surface-hover: #3d3935;
-    --chat-text: #e8e4df;
-    --chat-text-muted: #9b9590;
-    --chat-text-dim: #6b6560;
-    --chat-border: #3d3935;
-    --chat-accent: #c4713b;
-    --chat-accent-hover: #d4814b;
-    --chat-user-bubble: #403b35;
-    --chat-input-bg: #353230;
-    --chat-input-border: #4a453f;
+    --chat-bg: var(--klytos-bg, #1a1a1a);
+    --chat-bg-alt: var(--klytos-bg-sunken, #141414);
+    --chat-surface: var(--klytos-surface, #262626);
+    --chat-surface-hover: var(--klytos-surface-hover, #333333);
+    --chat-text: var(--klytos-text, #e8e8e8);
+    --chat-text-muted: var(--klytos-text-secondary, #999999);
+    --chat-text-dim: var(--klytos-text-tertiary, #666666);
+    --chat-border: var(--klytos-border, #3a3a3a);
+    --chat-accent: var(--klytos-accent, #5b8def);
+    --chat-accent-hover: var(--klytos-accent-hover, #4a7de0);
+    --chat-user-bubble: var(--klytos-surface-active, #3a3a3a);
+    --chat-input-bg: var(--klytos-surface, #262626);
+    --chat-input-border: var(--klytos-border, #3a3a3a);
     --chat-max-width: 768px;
     --chat-radius: 24px;
     --chat-radius-sm: 12px;
-    --chat-radius-xs: 8px;
+    --chat-radius-xs: var(--klytos-radius, 8px);
 }
 
 /* ─── Body Override ───────────────────────────────────────── */

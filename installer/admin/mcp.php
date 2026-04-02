@@ -145,8 +145,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- QUICK START GUIDE                                              -->
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="card" style="border-left:4px solid var(--admin-primary);">
-    <h3 style="margin-bottom:0.5rem;">🚀 <?php echo __( 'mcp.quick_start' ); ?></h3>
-    <p style="color:var(--admin-text-muted);margin-bottom:1rem;font-size:0.9rem;">
+    <h3 class="mb-1">🚀 <?php echo __( 'mcp.quick_start' ); ?></h3>
+    <p class="text-muted text-sm mb-2">
         <?php echo __( 'mcp.quick_start_desc' ); ?>
     </p>
 
@@ -173,8 +173,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ═══════════════════════════════════════════════════════════════ -->
 <div class="card">
     <div class="card-header"><h3>MCP Endpoint</h3></div>
-    <div class="token-display" style="font-size:0.95rem;"><?php echo klytos_esc_html( $mcpEndpoint ); ?></div>
-    <p style="font-size:0.8rem;color:var(--admin-text-muted);margin-top:0.5rem;">
+    <div class="token-display text-sm"><?php echo klytos_esc_html( $mcpEndpoint ); ?></div>
+    <p class="text-xs text-muted mt-1">
         <?php echo __( 'mcp.endpoint_desc' ); ?>
     </p>
 </div>
@@ -205,17 +205,17 @@ require_once __DIR__ . '/templates/sidebar.php';
         ],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
         ?>
-<div class="alert alert-warning" style="font-size:0.9rem;">
+<div class="alert alert-warning text-sm">
     <strong>⚠️ <?php echo __( 'app_passwords.password_created' ); ?></strong>
 
     <!-- ① MCP URL with credentials (PRIMARY — copy and paste) -->
-    <h4 style="margin-top:1.25rem;margin-bottom:0.5rem;">🔗 <?php echo __( 'mcp.url_title' ); ?></h4>
-    <p style="font-size:0.82rem;color:var(--admin-text-muted);margin-bottom:0.5rem;">
+    <h4 class="mt-2 mb-1">🔗 <?php echo __( 'mcp.url_title' ); ?></h4>
+    <p class="text-xs text-muted mb-1">
         <?php echo __( 'mcp.url_desc' ); ?>
     </p>
     <div style="position:relative;">
-        <div class="token-display" id="mcpAuthUrl"
-             style="background:#fffbeb;font-size:0.85rem;word-break:break-all;padding-right:4.5rem;">
+        <div class="token-display text-sm break-all" id="mcpAuthUrl"
+             style="background:var(--klytos-warning-subtle);padding-right:4.5rem;">
             <?php echo klytos_esc_html( $mcpAuthUrl ); ?>
         </div>
         <button class="btn btn-sm btn-primary" id="btnCopyUrl"
@@ -225,14 +225,14 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 
     <!-- Divider -->
-    <div style="border-top:1px solid rgba(0,0,0,0.1);margin:1.25rem 0;"></div>
+    <div class="border-t mt-2 mb-2"></div>
 
     <!-- ② JSON config (SECONDARY — for manual configuration) -->
     <details>
-        <summary style="cursor:pointer;font-weight:600;font-size:0.85rem;">
+        <summary class="font-bold text-sm">
             📋 <?php echo __( 'mcp.json_config_title' ); ?>
         </summary>
-        <p style="font-size:0.82rem;color:var(--admin-text-muted);margin:0.5rem 0;">
+        <p class="text-xs text-muted mt-1 mb-1">
             <?php echo __( 'mcp.json_config_desc' ); ?>
         </p>
         <div style="position:relative;">
@@ -245,19 +245,19 @@ require_once __DIR__ . '/templates/sidebar.php';
     </details>
 
     <!-- Divider -->
-    <div style="border-top:1px solid rgba(0,0,0,0.1);margin:1.25rem 0;"></div>
+    <div class="border-t mt-2 mb-2"></div>
 
     <!-- ③ Raw credentials (TERTIARY — in case they need them separately) -->
-    <details style="font-size:0.82rem;">
-        <summary style="cursor:pointer;color:var(--admin-text-muted);"><?php echo __( 'mcp.show_raw_credentials' ); ?></summary>
-        <div style="margin-top:0.75rem;">
-            <div style="margin-bottom:0.5rem;">
-                <span style="color:var(--admin-text-muted);"><?php echo __( 'auth.username' ); ?>:</span>
+    <details class="text-xs">
+        <summary class="text-muted"><?php echo __( 'mcp.show_raw_credentials' ); ?></summary>
+        <div class="mt-1">
+            <div class="mb-1">
+                <span class="text-muted"><?php echo __( 'auth.username' ); ?>:</span>
                 <code><?php echo klytos_esc_html( $username ); ?></code>
             </div>
             <div>
-                <span style="color:var(--admin-text-muted);"><?php echo __( 'auth.password' ); ?>:</span>
-                <code style="background:#fffbeb;padding:0.2rem 0.4rem;border-radius:4px;"><?php echo klytos_esc_html( $newAppPass ); ?></code>
+                <span class="text-muted"><?php echo __( 'auth.password' ); ?>:</span>
+                <code style="background:var(--klytos-warning-subtle);padding:0.2rem 0.4rem;border-radius:4px;"><?php echo klytos_esc_html( $newAppPass ); ?></code>
             </div>
         </div>
     </details>
@@ -271,19 +271,19 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="card-header">
         <h3><?php echo __( 'app_passwords.title' ); ?> <span class="badge-status badge-active" style="font-size:0.7rem;vertical-align:middle;"><?php echo __( 'mcp.recommended' ); ?></span></h3>
     </div>
-    <p style="color:var(--admin-text-muted);font-size:0.85rem;margin-bottom:1rem;">
+    <p class="text-muted text-sm mb-2">
         <?php echo __( 'mcp.app_password_desc' ); ?>
     </p>
 
-    <form method="post" style="display:flex;gap:0.5rem;align-items:flex-end;margin-bottom:1.5rem;">
+    <form method="post" class="flex flex-gap-sm mb-3" style="align-items:flex-end;">
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="create_app_password">
-        <div class="form-group" style="flex:1;margin-bottom:0;">
+        <div class="form-group flex-1 mb-0">
             <label><?php echo __( 'mcp.connection_name' ); ?></label>
             <input type="text" name="label" class="form-control"
                    placeholder="<?php echo __( 'app_passwords.label_placeholder' ); ?>" required>
         </div>
-        <button type="submit" class="btn btn-primary" style="white-space:nowrap;">
+        <button type="submit" class="btn btn-primary">
             <?php echo __( 'mcp.generate_password' ); ?>
         </button>
     </form>
@@ -305,14 +305,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <td>
                             <strong><?php echo klytos_esc_html( $appPass['label'] ?? '' ); ?></strong>
                         </td>
-                        <td style="font-size:0.85rem;color:var(--admin-text-muted);">
+                        <td class="text-sm text-muted">
                             <?php echo $appPass['created_at'] ? date( 'M j, Y', strtotime( $appPass['created_at'] ) ) : ''; ?>
                         </td>
-                        <td style="font-size:0.85rem;color:var(--admin-text-muted);">
+                        <td class="text-sm text-muted">
                             <?php echo $appPass['last_used'] ? date( 'M j, Y H:i', strtotime( $appPass['last_used'] ) ) : '—'; ?>
                         </td>
-                        <td style="text-align:right;">
-                            <form method="post" style="display:inline;" class="confirm-revoke-form">
+                        <td class="text-right">
+                            <form method="post" class="inline-form confirm-revoke-form">
                                 <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="revoke_app_password">
                                 <input type="hidden" name="password_id" value="<?php echo klytos_esc_attr( $appPass['id'] ?? '' ); ?>">
@@ -325,7 +325,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             </table>
         </div>
     <?php else: ?>
-        <p style="color:var(--admin-text-muted);font-size:0.85rem;">
+        <p class="text-muted text-sm">
             <?php echo __( 'app_passwords.no_passwords' ); ?>
         </p>
     <?php endif; ?>
@@ -337,18 +337,18 @@ require_once __DIR__ . '/templates/sidebar.php';
 <div class="card">
     <div class="card-header" id="oauthToggleHeader" style="cursor:pointer;">
         <h3>OAuth 2.0 / 2.1 <span class="badge-status badge-draft" style="font-size:0.7rem;vertical-align:middle;"><?php echo __( 'mcp.advanced' ); ?></span></h3>
-        <span id="oauthToggleIcon" style="font-size:1.2rem;color:var(--admin-text-muted);">▸</span>
+        <span id="oauthToggleIcon" class="text-muted" style="font-size:1.2rem;">▸</span>
     </div>
 
-    <div id="oauthSection" style="display:none;">
-        <p style="color:var(--admin-text-muted);font-size:0.85rem;margin-bottom:1rem;">
+    <div id="oauthSection" class="hidden">
+        <p class="text-muted text-sm mb-2">
             <?php echo __( 'mcp.oauth_desc' ); ?>
         </p>
 
         <!-- OAuth Endpoints -->
-        <div style="background:var(--admin-bg);border-radius:var(--admin-radius);padding:1rem;margin-bottom:1.5rem;">
-            <h4 style="font-size:0.85rem;margin-bottom:0.5rem;"><?php echo __( 'oauth.endpoints' ); ?></h4>
-            <table style="font-size:0.82rem;">
+        <div class="p-2 mb-3 rounded" style="background:var(--admin-bg);">
+            <h4 class="text-sm mb-1"><?php echo __( 'oauth.endpoints' ); ?></h4>
+            <table class="text-xs">
                 <tr><td style="padding:0.2rem 1rem 0.2rem 0;color:var(--admin-text-muted);">Authorization</td><td><code><?php echo klytos_esc_html( $oauthAuthorizeUrl ); ?></code></td></tr>
                 <tr><td style="padding:0.2rem 1rem 0.2rem 0;color:var(--admin-text-muted);">Token</td><td><code><?php echo klytos_esc_html( $oauthTokenUrl ); ?></code></td></tr>
                 <tr><td style="padding:0.2rem 1rem 0.2rem 0;color:var(--admin-text-muted);">Metadata</td><td><code><?php echo klytos_esc_html( $oauthMetadataUrl ); ?></code></td></tr>
@@ -357,14 +357,14 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         <!-- New OAuth Client Result -->
         <?php if ( $newOAuthClient ): ?>
-        <div class="alert alert-warning" style="font-size:0.9rem;">
+        <div class="alert alert-warning text-sm">
             <strong>⚠️ <?php echo __( 'oauth.client_created' ); ?></strong>
-            <div style="margin-top:0.75rem;">
-                <div style="font-size:0.8rem;color:#64748b;">Client ID</div>
-                <div class="token-display" style="margin-bottom:0.5rem;"><?php echo klytos_esc_html( $newOAuthClient['client_id'] ?? '' ); ?></div>
+            <div class="mt-1">
+                <div class="text-xs text-muted">Client ID</div>
+                <div class="token-display mb-1"><?php echo klytos_esc_html( $newOAuthClient['client_id'] ?? '' ); ?></div>
                 <?php if ( isset( $newOAuthClient['client_secret'] ) ): ?>
-                    <div style="font-size:0.8rem;color:#64748b;">Client Secret</div>
-                    <div class="token-display" style="background:#fffbeb;"><?php echo klytos_esc_html( $newOAuthClient['client_secret'] ); ?></div>
+                    <div class="text-xs text-muted">Client Secret</div>
+                    <div class="token-display" style="background:var(--klytos-warning-subtle);"><?php echo klytos_esc_html( $newOAuthClient['client_secret'] ); ?></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -400,7 +400,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         <!-- OAuth Client List -->
         <?php if ( !empty( $oauthClients ) ): ?>
-        <div class="table-wrap" style="margin-top:1.5rem;">
+        <div class="table-wrap mt-3">
             <table>
                 <thead>
                     <tr>
@@ -420,14 +420,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 <?php echo ( $oaClient['is_confidential'] ?? true ) ? __( 'oauth.confidential' ) : __( 'oauth.public' ); ?>
                             </span>
                         </td>
-                        <td style="font-size:0.8rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;">
+                        <td class="text-xs" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">
                             <?php echo klytos_esc_url( $oaClient['redirect_uri'] ?? '' ); ?>
                         </td>
-                        <td style="font-size:0.85rem;color:var(--admin-text-muted);">
+                        <td class="text-sm text-muted">
                             <?php echo $oaClient['created_at'] ? date( 'M j, Y', strtotime( $oaClient['created_at'] ) ) : ''; ?>
                         </td>
-                        <td style="text-align:right;">
-                            <form method="post" style="display:inline;" class="confirm-revoke-form">
+                        <td class="text-right">
+                            <form method="post" class="inline-form confirm-revoke-form">
                                 <?php echo klytos_csrf_field(); ?>
                                 <input type="hidden" name="action" value="revoke_oauth_client">
                                 <input type="hidden" name="oauth_client_id" value="<?php echo klytos_esc_attr( $oaClient['client_id'] ?? '' ); ?>">
@@ -586,7 +586,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         ?>
 <div class="card" style="<?php echo $isActive ? 'border-left: 4px solid var(--admin-success);' : ''; ?>">
     <div class="card-header">
-        <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+        <h3 class="flex flex-center flex-gap-sm">
             <?php if ( $logo ) : ?>
                 <?php if ( isset( $logo['color'] ) ) : ?>
                     <img src="<?php echo klytos_esc_url( $imgBase . $logo['color'] ); ?>" alt="<?php echo klytos_esc_attr( $p['name'] ); ?>" class="ai-provider-logo" style="height: 24px; width: auto;">
@@ -597,19 +597,19 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php endif; ?>
             <?php echo klytos_esc_html( $p['name'] ); ?>
             <?php if ( $isActive ): ?>
-                <span class="badge-status badge-active" style="margin-left: 0.5rem;">Active</span>
+                <span class="badge-status badge-active ml-auto">Active</span>
             <?php endif; ?>
         </h3>
     </div>
 
         <?php if ( $hasKey ): ?>
-        <p style="margin-bottom: 0.75rem;">
+        <p class="mb-1">
             <strong>API Key:</strong> <code><?php echo klytos_esc_html( $maskedKey ); ?></code>
         </p>
 
         <!-- Set as active -->
             <?php if ( !$isActive ): ?>
-        <form method="POST" style="display: inline;">
+        <form method="POST" class="inline-form">
                 <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="set_active_ai">
             <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
@@ -619,7 +619,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             <?php endif; ?>
 
         <!-- Remove key -->
-        <form method="POST" style="display: inline;" class="confirm-revoke-form">
+        <form method="POST" class="inline-form confirm-revoke-form">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="remove_ai_key">
             <input type="hidden" name="ai_provider" value="<?php echo klytos_esc_attr( $p['id'] ); ?>">
@@ -629,7 +629,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php else: ?>
         <!-- Configure key form -->
             <?php if ( isset( $providerKeyUrls[ $p['id'] ] ) ) : ?>
-            <p style="margin-bottom: 0.75rem; font-size: 0.85rem;">
+            <p class="mb-1 text-sm">
                 Get your API key at <a href="<?php echo klytos_esc_url( $providerKeyUrls[ $p['id'] ] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo klytos_esc_html( str_replace( 'https://', '', $providerKeyUrls[ $p['id'] ] ) ); ?> ↗</a>
             </p>
             <?php endif; ?>

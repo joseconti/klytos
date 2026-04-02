@@ -42,10 +42,10 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
     $htmlId   = 'cf-' . klytos_esc_attr($id);
     $reqAttr  = $required ? ' required' : '';
 
-    $html = '<div class="form-group" style="margin-bottom:1rem;">';
+    $html = '<div class="form-group mb-2">';
     $html .= '<label for="' . $htmlId . '">' . klytos_esc_html($label);
     if ($required) {
-        $html .= ' <span style="color:var(--admin-error);">*</span>';
+        $html .= ' <span class="text-error">*</span>';
     }
     $html .= '</label>';
 
@@ -75,15 +75,15 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
             break;
 
         case 'richtext':
-            $html .= '<textarea id="' . $htmlId . '" name="' . $name . '" class="form-control" rows="8" placeholder="' . klytos_esc_attr($placeholder) . '"' . $reqAttr . ' style="font-family:inherit;">' . klytos_esc_html((string) ($value ?? '')) . '</textarea>';
-            $html .= '<p class="form-help" style="font-size:0.8rem;">HTML content is supported.</p>';
+            $html .= '<textarea id="' . $htmlId . '" name="' . $name . '" class="form-control" rows="8" placeholder="' . klytos_esc_attr($placeholder) . '"' . $reqAttr . '>' . klytos_esc_html((string) ($value ?? '')) . '</textarea>';
+            $html .= '<p class="form-help text-xs">HTML content is supported.</p>';
             break;
 
         case 'code':
             $lang = $validation['language'] ?? '';
-            $html .= '<textarea id="' . $htmlId . '" name="' . $name . '" class="form-control" rows="8" placeholder="' . klytos_esc_attr($placeholder) . '"' . $reqAttr . ' style="font-family:monospace;font-size:0.85rem;">' . klytos_esc_html((string) ($value ?? '')) . '</textarea>';
+            $html .= '<textarea id="' . $htmlId . '" name="' . $name . '" class="form-control text-mono text-sm" rows="8" placeholder="' . klytos_esc_attr($placeholder) . '"' . $reqAttr . '>' . klytos_esc_html((string) ($value ?? '')) . '</textarea>';
             if ($lang) {
-                $html .= '<p class="form-help" style="font-size:0.8rem;">Language: ' . klytos_esc_html($lang) . '</p>';
+                $html .= '<p class="form-help text-xs">Language: ' . klytos_esc_html($lang) . '</p>';
             }
             break;
 
@@ -106,9 +106,9 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
             $max  = $validation['max'] ?? 100;
             $step = $validation['step'] ?? 1;
             $val  = $value ?? $min;
-            $html .= '<div style="display:flex;align-items:center;gap:0.5rem;">';
-            $html .= '<input type="range" id="' . $htmlId . '" name="' . $name . '" min="' . klytos_esc_attr((string) $min) . '" max="' . klytos_esc_attr((string) $max) . '" step="' . klytos_esc_attr((string) $step) . '" value="' . klytos_esc_attr((string) $val) . '" style="flex:1;" oninput="document.getElementById(\'' . $htmlId . '-val\').textContent=this.value">';
-            $html .= '<span id="' . $htmlId . '-val" style="min-width:3rem;text-align:center;">' . klytos_esc_html((string) $val) . '</span>';
+            $html .= '<div class="flex flex-center flex-gap-sm">';
+            $html .= '<input type="range" id="' . $htmlId . '" name="' . $name . '" min="' . klytos_esc_attr((string) $min) . '" max="' . klytos_esc_attr((string) $max) . '" step="' . klytos_esc_attr((string) $step) . '" value="' . klytos_esc_attr((string) $val) . '" class="flex-1" data-range-output="' . $htmlId . '-val">';
+            $html .= '<span id="' . $htmlId . '-val" class="text-center" style="min-width:3rem;">' . klytos_esc_html((string) $val) . '</span>';
             $html .= '</div>';
             break;
 
@@ -126,9 +126,9 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
 
         case 'color':
             $colorVal = (string) ($value ?? '#000000');
-            $html .= '<div style="display:flex;align-items:center;gap:0.5rem;">';
-            $html .= '<input type="color" id="' . $htmlId . '" name="' . $name . '" value="' . klytos_esc_attr($colorVal) . '" style="width:50px;height:36px;padding:2px;border:1px solid var(--admin-border);border-radius:var(--admin-radius);">';
-            $html .= '<input type="text" value="' . klytos_esc_attr($colorVal) . '" class="form-control" style="width:120px;" oninput="document.getElementById(\'' . $htmlId . '\').value=this.value" onfocus="this.previousElementSibling.addEventListener(\'input\',function(e){this.nextElementSibling&&(this.nextElementSibling.value=e.target.value)}.bind(this.previousElementSibling),{once:false})">';
+            $html .= '<div class="flex flex-center flex-gap-sm">';
+            $html .= '<input type="color" id="' . $htmlId . '" name="' . $name . '" value="' . klytos_esc_attr($colorVal) . '" style="width:50px;height:36px;padding:2px;border:1px solid var(--klytos-border);border-radius:var(--klytos-radius);">';
+            $html .= '<input type="text" value="' . klytos_esc_attr($colorVal) . '" class="form-control" style="width:120px;" data-color-sync="' . $htmlId . '">';
             $html .= '</div>';
             break;
 
@@ -154,13 +154,13 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
                 $html .= '<option value="' . klytos_esc_attr($optVal) . '"' . $selected . '>' . klytos_esc_html($optLabel) . '</option>';
             }
             $html .= '</select>';
-            $html .= '<p class="form-help" style="font-size:0.8rem;">Hold Ctrl/Cmd to select multiple.</p>';
+            $html .= '<p class="form-help text-xs">Hold Ctrl/Cmd to select multiple.</p>';
             break;
 
         case 'checkbox':
             $checked = !empty($value) ? ' checked' : '';
             $html .= '<input type="hidden" name="' . $name . '" value="0">';
-            $html .= '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">';
+            $html .= '<label class="flex flex-center flex-gap-sm">';
             $html .= '<input type="checkbox" id="' . $htmlId . '" name="' . $name . '" value="1"' . $checked . '>';
             $html .= klytos_esc_html($label);
             $html .= '</label>';
@@ -168,12 +168,12 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
 
         case 'checkbox_group':
             $selectedVals = is_array($value) ? $value : [];
-            $html .= '<div style="display:flex;flex-direction:column;gap:0.25rem;">';
+            $html .= '<div class="flex-col flex-gap-xs">';
             foreach ($options as $opt) {
                 $optVal   = $opt['value'] ?? '';
                 $optLabel = $opt['label'] ?? $optVal;
                 $checked  = in_array($optVal, $selectedVals, true) ? ' checked' : '';
-                $html .= '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">';
+                $html .= '<label class="flex flex-center flex-gap-sm">';
                 $html .= '<input type="checkbox" name="' . $name . '[]" value="' . klytos_esc_attr($optVal) . '"' . $checked . '>';
                 $html .= klytos_esc_html($optLabel);
                 $html .= '</label>';
@@ -182,12 +182,12 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
             break;
 
         case 'radio':
-            $html .= '<div style="display:flex;flex-direction:column;gap:0.25rem;">';
+            $html .= '<div class="flex-col flex-gap-xs">';
             foreach ($options as $opt) {
                 $optVal   = $opt['value'] ?? '';
                 $optLabel = $opt['label'] ?? $optVal;
                 $checked  = ((string) $value === (string) $optVal) ? ' checked' : '';
-                $html .= '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">';
+                $html .= '<label class="flex flex-center flex-gap-sm">';
                 $html .= '<input type="radio" name="' . $name . '" value="' . klytos_esc_attr($optVal) . '"' . $checked . '>';
                 $html .= klytos_esc_html($optLabel);
                 $html .= '</label>';
@@ -198,16 +198,16 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
         case 'toggle':
             $checked = !empty($value) ? ' checked' : '';
             $html .= '<input type="hidden" name="' . $name . '" value="0">';
-            $html .= '<label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">';
+            $html .= '<label class="flex flex-center flex-gap-sm">';
             $html .= '<input type="checkbox" id="' . $htmlId . '" name="' . $name . '" value="1"' . $checked . ' style="width:2.5rem;height:1.25rem;">';
-            $html .= '<span style="font-size:0.9rem;">' . klytos_esc_html($label) . '</span>';
+            $html .= '<span class="text-sm">' . klytos_esc_html($label) . '</span>';
             $html .= '</label>';
             break;
 
         case 'image':
             $html .= '<input type="url" id="' . $htmlId . '" name="' . $name . '" class="form-control" value="' . klytos_esc_attr((string) ($value ?? '')) . '" placeholder="' . klytos_esc_attr($placeholder ?: 'Image URL') . '"' . $reqAttr . '>';
             if (!empty($value)) {
-                $html .= '<div style="margin-top:0.5rem;"><img src="' . klytos_esc_attr((string) $value) . '" style="max-width:200px;max-height:150px;border-radius:var(--admin-radius);border:1px solid var(--admin-border);" alt="Preview"></div>';
+                $html .= '<div class="mt-1"><img src="' . klytos_esc_attr((string) $value) . '" style="max-width:200px;max-height:150px;border-radius:var(--klytos-radius);border:1px solid var(--klytos-border);" alt="Preview"></div>';
             }
             break;
 
@@ -219,18 +219,18 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
             $images = is_array($value) ? $value : [];
             $html .= '<div id="' . $htmlId . '-list">';
             foreach ($images as $i => $img) {
-                $html .= '<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">';
-                $html .= '<input type="url" name="' . $name . '[]" class="form-control" value="' . klytos_esc_attr((string) $img) . '" placeholder="Image URL" style="flex:1;">';
-                $html .= '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">x</button>';
+                $html .= '<div class="flex flex-center flex-gap-sm mb-1">';
+                $html .= '<input type="url" name="' . $name . '[]" class="form-control" value="' . klytos_esc_attr((string) $img) . '" placeholder="Image URL" class="flex-1">';
+                $html .= '<button type="button" class="btn btn-danger btn-sm" data-action="remove-parent">x</button>';
                 $html .= '</div>';
             }
             $html .= '</div>';
-            $html .= '<button type="button" class="btn btn-outline btn-sm" onclick="addGalleryRow(\'' . $htmlId . '\',\'' . klytos_esc_attr($name) . '\')">+ Add Image</button>';
+            $html .= '<button type="button" class="btn btn-outline btn-sm" data-action="add-gallery-row" data-target="' . $htmlId . '-list" data-name="' . klytos_esc_attr($name) . '">+ Add Image</button>';
             break;
 
         case 'json':
             $jsonStr = is_string($value) ? $value : json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-            $html .= '<textarea id="' . $htmlId . '" name="' . $name . '" class="form-control" rows="6" placeholder="' . klytos_esc_attr($placeholder ?: '{}') . '"' . $reqAttr . ' style="font-family:monospace;font-size:0.85rem;">' . klytos_esc_html((string) ($jsonStr ?? '')) . '</textarea>';
+            $html .= '<textarea id="' . $htmlId . '" name="' . $name . '" class="form-control text-mono text-sm" rows="6" placeholder="' . klytos_esc_attr($placeholder ?: '{}') . '"' . $reqAttr . '>' . klytos_esc_html((string) ($jsonStr ?? '')) . '</textarea>';
             break;
 
         case 'repeater':
@@ -241,23 +241,23 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
                 $html .= renderRepeaterRow($name, $htmlId, $subFields, $rowIdx, $row);
             }
             $html .= '</div>';
-            $html .= '<button type="button" class="btn btn-outline btn-sm" onclick="addRepeaterRow(\'' . $htmlId . '\',\'' . klytos_esc_attr($name) . '\',' . json_encode($subFields) . ')">+ Add Row</button>';
+            $html .= '<button type="button" class="btn btn-outline btn-sm" data-action="add-repeater-row" data-target="' . $htmlId . '-rows" data-name="' . klytos_esc_attr($name) . '" data-subfields="' . klytos_esc_attr(json_encode($subFields)) . '">+ Add Row</button>';
             break;
 
         case 'relationship':
             $relValues = is_array($value) ? $value : ($value ? [$value] : []);
             $html .= '<div id="' . $htmlId . '-list">';
             foreach ($relValues as $i => $slug) {
-                $html .= '<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">';
-                $html .= '<input type="text" name="' . $name . '[]" class="form-control" value="' . klytos_esc_attr((string) $slug) . '" placeholder="Entry slug" style="flex:1;">';
-                $html .= '<button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">x</button>';
+                $html .= '<div class="flex flex-center flex-gap-sm mb-1">';
+                $html .= '<input type="text" name="' . $name . '[]" class="form-control" value="' . klytos_esc_attr((string) $slug) . '" placeholder="Entry slug" class="flex-1">';
+                $html .= '<button type="button" class="btn btn-danger btn-sm" data-action="remove-parent">x</button>';
                 $html .= '</div>';
             }
             $html .= '</div>';
             $relConfig = $fieldDef['relationship'] ?? [];
             $ptNames   = !empty($relConfig['post_types']) ? implode(', ', $relConfig['post_types']) : 'any';
-            $html .= '<button type="button" class="btn btn-outline btn-sm" onclick="addRelRow(\'' . $htmlId . '\',\'' . klytos_esc_attr($name) . '\')">+ Add Reference</button>';
-            $html .= '<p class="form-help" style="font-size:0.8rem;">References: ' . klytos_esc_html($ptNames) . '</p>';
+            $html .= '<button type="button" class="btn btn-outline btn-sm" data-action="add-rel-row" data-target="' . $htmlId . '-list" data-name="' . klytos_esc_attr($name) . '">+ Add Reference</button>';
+            $html .= '<p class="form-help text-xs">References: ' . klytos_esc_html($ptNames) . '</p>';
             break;
 
         default:
@@ -279,10 +279,10 @@ function renderCustomField(array $fieldDef, mixed $currentValue, string $namePre
  */
 function renderRepeaterRow(string $name, string $htmlId, array $subFields, int $rowIdx, array $row): string
 {
-    $html = '<div class="repeater-row" style="padding:0.75rem;margin-bottom:0.5rem;background:var(--admin-bg);border-radius:var(--admin-radius);border:1px solid var(--admin-border);">';
-    $html .= '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">';
-    $html .= '<strong style="font-size:0.85rem;">Row ' . ($rowIdx + 1) . '</strong>';
-    $html .= '<button type="button" class="btn btn-danger btn-sm" onclick="this.closest(\'.repeater-row\').remove()">x</button>';
+    $html = '<div class="repeater-row rounded mb-1" style="padding:0.75rem;background:var(--klytos-bg);border:1px solid var(--klytos-border);">';
+    $html .= '<div class="flex-between mb-1">';
+    $html .= '<strong class="text-sm">Row ' . ($rowIdx + 1) . '</strong>';
+    $html .= '<button type="button" class="btn btn-danger btn-sm" data-action="remove-closest" data-target=".repeater-row">x</button>';
     $html .= '</div>';
 
     foreach ($subFields as $subDef) {
@@ -308,9 +308,9 @@ function renderSubField(array $fieldDef, mixed $value, string $name): string
     $placeholder = $fieldDef['placeholder'] ?? '';
     $required    = ($fieldDef['required'] ?? false) ? ' required' : '';
 
-    $html = '<div class="form-group" style="margin-bottom:0.5rem;">';
+    $html = '<div class="form-group mb-1">';
     if ($label) {
-        $html .= '<label style="font-size:0.85rem;">' . klytos_esc_html($label) . '</label>';
+        $html .= '<label class="text-sm">' . klytos_esc_html($label) . '</label>';
     }
 
     switch ($type) {

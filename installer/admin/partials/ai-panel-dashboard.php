@@ -37,12 +37,12 @@ $lastBuild  = $siteConfig['last_build'] ?? null;
             </div>
             <div class="ai-panel-stat">
                 <div class="ai-panel-stat-label"><?php echo klytos_esc_html(__('dashboard.last_build')); ?></div>
-                <div class="ai-panel-stat-value" style="font-size:1rem;"><?php echo $lastBuild ? date('Y-m-d H:i', strtotime($lastBuild)) : '—'; ?></div>
+                <div class="ai-panel-stat-value" class="text-sm"><?php echo $lastBuild ? date('Y-m-d H:i', strtotime($lastBuild)) : '—'; ?></div>
                 <div class="ai-panel-stat-detail"><?php echo $lastBuild ? 'UTC' : klytos_esc_html(__('pages.no_pages')); ?></div>
             </div>
             <div class="ai-panel-stat">
                 <div class="ai-panel-stat-label"><?php echo klytos_esc_html(__('dashboard.mcp_status')); ?></div>
-                <div class="ai-panel-stat-value" style="font-size:1rem;">
+                <div class="ai-panel-stat-value" class="text-sm">
                     <span class="ai-panel-badge ai-panel-badge-<?php echo count($tokens) > 0 ? 'active' : 'inactive'; ?>">
                         <?php echo count($tokens) > 0 ? klytos_esc_html(__('common.status')) . ': OK' : klytos_esc_html(__('mcp.no_tokens')); ?>
                     </span>
@@ -51,7 +51,7 @@ $lastBuild  = $siteConfig['last_build'] ?? null;
             </div>
             <div class="ai-panel-stat">
                 <div class="ai-panel-stat-label"><?php echo klytos_esc_html(__('dashboard.klytos_version')); ?></div>
-                <div class="ai-panel-stat-value" style="font-size:1rem;">v<?php echo klytos_esc_html($app->getVersion()); ?></div>
+                <div class="ai-panel-stat-value" class="text-sm">v<?php echo klytos_esc_html($app->getVersion()); ?></div>
                 <div class="ai-panel-stat-detail">PHP <?php echo PHP_VERSION; ?></div>
             </div>
         </div>
@@ -59,9 +59,9 @@ $lastBuild  = $siteConfig['last_build'] ?? null;
         <h3><?php echo klytos_esc_html(__('dashboard.system_info')); ?></h3>
         <div class="ai-panel-card">
             <table class="ai-panel-table">
-                <tr><td style="font-weight:600;"><?php echo klytos_esc_html(__('dashboard.klytos_version')); ?></td><td><?php echo klytos_esc_html($app->getVersion()); ?></td></tr>
-                <tr><td style="font-weight:600;"><?php echo klytos_esc_html(__('dashboard.php_version')); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
-                <tr><td style="font-weight:600;">Server</td><td><?php echo klytos_esc_html($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
+                <tr><td class="font-bold"><?php echo klytos_esc_html(__('dashboard.klytos_version')); ?></td><td><?php echo klytos_esc_html($app->getVersion()); ?></td></tr>
+                <tr><td class="font-bold"><?php echo klytos_esc_html(__('dashboard.php_version')); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
+                <tr><td class="font-bold">Server</td><td><?php echo klytos_esc_html($_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
             </table>
         </div>
 

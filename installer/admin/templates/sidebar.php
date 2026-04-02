@@ -317,6 +317,52 @@ $sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);
 // Sort items by position (lower = higher in the menu).
 usort($sidebarItems, fn(array $a, array $b): int => ($a['position'] ?? 99) <=> ($b['position'] ?? 99));
 
+// ─── Apply per-user custom sidebar order (if any) ────────────
+$customOrder      = null;
+$userSectionOrder = null;
+try {
+    $currentUserId = $app->getAuth()->getUserId();
+    if ( $currentUserId ) {
+        $customOrder = $app->getMetaManager()->get( 'users', $currentUserId, 'klytos.sidebar_order' );
+    }
+} catch ( \Throwable $e ) {
+    // Silently ignore — use default order.
+}
+
+if ( ! empty( $customOrder ) && is_array( $customOrder ) ) {
+    $itemsById = [];
+    foreach ( $sidebarItems as $item ) {
+        $itemsById[$item['id']] = $item;
+    }
+
+    $reordered    = [];
+    $itemOrderMap = $customOrder['items'] ?? [];
+
+    foreach ( $itemOrderMap as $section => $orderedIds ) {
+        if ( ! is_array( $orderedIds ) ) {
+            continue;
+        }
+        $position = 1;
+        foreach ( $orderedIds as $id ) {
+            if ( isset( $itemsById[$id] ) ) {
+                $itemsById[$id]['section']  = $section;
+                $itemsById[$id]['position'] = $position++;
+                $reordered[] = $itemsById[$id];
+                unset( $itemsById[$id] );
+            }
+        }
+    }
+
+    // Append any remaining items not in the custom order (e.g., new plugin items).
+    foreach ( $itemsById as $item ) {
+        $reordered[] = $item;
+    }
+
+    $sidebarItems = $reordered;
+    usort( $sidebarItems, fn( array $a, array $b ): int => ( $a['position'] ?? 99 ) <=> ( $b['position'] ?? 99 ) );
+    $userSectionOrder = $customOrder['sections'] ?? null;
+}
+
 // Group items by section for rendering.
 $sections = [];
 foreach ($sidebarItems as $item) {
@@ -352,9 +398,10 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
             }
         }
         ?>
-    <div class="sidebar-item-wrap">
+    <div class="sidebar-item-wrap" data-item-id="<?php echo klytos_esc_attr( $item['id'] ); ?>">
         <a href="<?php echo klytos_esc_url($item['url']); ?>"
            class="<?php echo $isParentActive ? 'active' : ''; ?>">
+            <span class="sidebar-item-drag-handle" aria-hidden="true">&#x2807;</span>
             <i class="<?php echo klytos_esc_attr($item['icon'] ?? 'fa-solid fa-circle'); ?>"></i>
             <span class="sidebar-label"><?php echo klytos_esc_html($item['title']); ?></span>
             <?php if (!empty($item['badge'])): ?>
@@ -389,7 +436,9 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
 } // End function_exists.
 ?>
 <?php klytos_do_action('admin.sidebar.before'); ?>
-<aside class="admin-sidebar" id="sidebar">
+<aside class="admin-sidebar" id="sidebar"
+    data-csrf="<?php echo klytos_esc_attr( $app->getAuth()->getCsrfToken() ); ?>"
+    data-api-url="<?php echo klytos_esc_url( $adminPath . 'api/sidebar-order.php' ); ?>">
     <div class="sidebar-brand">
         <h2>Klytos</h2>
         <small>v<?php echo klytos_esc_html( $app->getVersion() ); ?></small>
@@ -412,42 +461,61 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
 <?php klytos_do_action('admin.sidebar.after_search'); ?>
 
     <nav class="sidebar-nav">
-        <?php if (!empty($sections['content'])): ?>
-            <?php klytos_do_action('admin.sidebar.before_section', 'content'); ?>
-            <div class="sidebar-section"><?php echo __( 'common.name' ); ?></div>
-            <?php foreach ($sections['content'] as $item): ?>
-                <?php klytos_render_sidebar_item($item, $currentItemId); ?>
-            <?php endforeach; ?>
-            <?php klytos_do_action('admin.sidebar.after_section', 'content'); ?>
-        <?php endif; ?>
+<?php
+// Determine section rendering order.
+$sectionOrder = $userSectionOrder ?? ['content', 'system'];
+// Append any custom plugin sections not already listed.
+foreach ( array_keys( $sections ) as $sName ) {
+    if ( ! in_array( $sName, $sectionOrder, true ) ) {
+        $sectionOrder[] = $sName;
+    }
+}
+$sectionOrder = klytos_apply_filters( 'admin.sidebar_section_order', $sectionOrder );
 
-        <?php if (!empty($sections['system'])): ?>
-            <?php klytos_do_action('admin.sidebar.before_section', 'system'); ?>
-            <div class="sidebar-section">System</div>
-            <?php foreach ($sections['system'] as $item): ?>
-                <?php klytos_render_sidebar_item($item, $currentItemId); ?>
+$sectionLabels = [
+    'content' => __( 'sidebar.section_content' ),
+    'system'  => 'System',
+];
+?>
+<?php klytos_do_action( 'admin.sidebar.before_sections' ); ?>
+<div class="sidebar-sections-container" id="sidebarSectionsContainer">
+<?php foreach ( $sectionOrder as $sectionName ):
+    if ( empty( $sections[$sectionName] ) ) {
+        continue;
+    }
+    $sectionLabel = $sectionLabels[$sectionName] ?? ucfirst( $sectionName );
+    $sectionLabel = klytos_apply_filters( 'admin.sidebar_section_label', $sectionLabel, $sectionName );
+?>
+    <div class="sidebar-section-group" data-section="<?php echo klytos_esc_attr( $sectionName ); ?>">
+        <?php klytos_do_action( 'admin.sidebar.before_section', $sectionName ); ?>
+        <div class="sidebar-section">
+            <span class="sidebar-section-drag-handle" aria-hidden="true">&#x2807;</span>
+            <span class="sidebar-section-label"><?php echo klytos_esc_html( $sectionLabel ); ?></span>
+        </div>
+        <div class="sidebar-section-items" data-section="<?php echo klytos_esc_attr( $sectionName ); ?>">
+            <?php foreach ( $sections[$sectionName] as $item ): ?>
+                <?php klytos_render_sidebar_item( $item, $currentItemId ); ?>
             <?php endforeach; ?>
-            <?php klytos_do_action('admin.sidebar.after_section', 'system'); ?>
-        <?php endif; ?>
-
-        <?php
-        // Render any additional custom sections added by plugins.
-        foreach ($sections as $sectionName => $items):
-            if ($sectionName === 'content' || $sectionName === 'system') {
-                continue;
-            }
-            ?>
-            <?php klytos_do_action('admin.sidebar.before_section', $sectionName); ?>
-            <div class="sidebar-section"><?php echo klytos_esc_html( ucfirst( $sectionName ) ); ?></div>
-            <?php foreach ($items as $item): ?>
-                <?php klytos_render_sidebar_item($item, $currentItemId); ?>
-            <?php endforeach; ?>
-            <?php klytos_do_action('admin.sidebar.after_section', $sectionName); ?>
-        <?php endforeach; ?>
+        </div>
+        <?php klytos_do_action( 'admin.sidebar.after_section', $sectionName ); ?>
+    </div>
+<?php endforeach; ?>
+</div>
+<?php klytos_do_action( 'admin.sidebar.after_sections' ); ?>
         <div class="sidebar-search-no-results" id="sidebarNoResults">
             <?php echo klytos_esc_html( __( 'common.no_results' ) ); ?>
         </div>
-<?php klytos_do_action('admin.sidebar.footer'); ?>
+<?php klytos_do_action( 'admin.sidebar.footer' ); ?>
+        <div class="sidebar-edit-controls" id="sidebarEditControls">
+            <button type="button" class="sidebar-edit-toggle" id="sidebarEditToggle" title="<?php echo klytos_esc_attr( __( 'sidebar.customize' ) ); ?>">
+                <i class="fa-solid fa-grip-vertical"></i>
+                <span class="sidebar-label"><?php echo klytos_esc_html( __( 'sidebar.customize' ) ); ?></span>
+            </button>
+            <button type="button" class="sidebar-edit-reset" id="sidebarEditReset" style="display:none;" title="<?php echo klytos_esc_attr( __( 'sidebar.reset_order' ) ); ?>">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span class="sidebar-label"><?php echo klytos_esc_html( __( 'sidebar.reset_order' ) ); ?></span>
+            </button>
+        </div>
     </nav>
 </aside>
 <?php klytos_do_action('admin.sidebar.after'); ?>
@@ -455,19 +523,19 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
 <div class="admin-content">
     <?php klytos_do_action('admin.topbar_before'); ?>
     <div class="admin-topbar">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div class="topbar-left">
             <button type="button" class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
                 <i class="fa-solid fa-bars"></i>
             </button>
             <strong><?php echo klytos_esc_html( $pageTitle ?? '' ); ?></strong>
             <?php echo klytos_apply_filters('admin.topbar_left', ''); ?>
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div class="topbar-center">
             <?php echo klytos_apply_filters('admin.topbar_center', ''); ?>
         </div>
-        <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="topbar-right">
             <?php
-            $aiButtonHtml = '<a href="' . klytos_esc_url($adminPath . 'ai-chat.php') . '" class="btn btn-outline btn-sm" style="display:inline-flex;align-items:center;gap:0.4rem;">'
+            $aiButtonHtml = '<a href="' . klytos_esc_url($adminPath . 'ai-chat.php') . '" class="btn btn-outline btn-sm">'
                           . '<i class="fa-solid fa-robot"></i> '
                           . klytos_esc_html(__( 'ai_chat.ai_mode' ))
                           . '</a>';
@@ -481,7 +549,7 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
                     : $app->getAuth()->getUsername();
                 $displayLabel = klytos_apply_filters('admin.topbar_user_display', $displayLabel, $currentUser);
             ?>
-            <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" style="font-size:0.85rem;color:var(--admin-text-muted);text-decoration:none;">
+            <a href="<?php echo klytos_esc_url($adminPath . 'profile.php'); ?>" class="text-sm text-muted">
                 <?php echo klytos_esc_html( $displayLabel ); ?>
             </a>
             <?php echo klytos_apply_filters('admin.topbar_right', ''); ?>
@@ -523,7 +591,6 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
         var noResults    = document.getElementById('sidebarNoResults');
         var nav          = sidebar.querySelector('.sidebar-nav');
         var allItems     = nav.querySelectorAll('.sidebar-item-wrap');
-        var allSections  = nav.querySelectorAll('.sidebar-section');
 
         function filterSidebar() {
             var query = searchInput.value.trim().toLowerCase();
@@ -533,8 +600,8 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
                 allItems.forEach(function(wrap) {
                     wrap.classList.remove('search-hidden', 'search-child-match');
                 });
-                allSections.forEach(function(sec) {
-                    sec.classList.remove('search-hidden');
+                nav.querySelectorAll('.sidebar-section-group').forEach(function(g) {
+                    g.classList.remove('search-hidden');
                 });
                 noResults.classList.remove('visible');
                 return;
@@ -578,20 +645,20 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
                 }
             });
 
-            // Hide section headers if all their items are hidden.
-            allSections.forEach(function(sec) {
-                var next = sec.nextElementSibling;
-                var sectionHasVisible = false;
-                while (next && !next.classList.contains('sidebar-section')) {
-                    if (next.classList.contains('sidebar-item-wrap') && !next.classList.contains('search-hidden')) {
-                        sectionHasVisible = true;
+            // Hide section groups if all their items are hidden.
+            var allGroups = nav.querySelectorAll('.sidebar-section-group');
+            allGroups.forEach(function(group) {
+                var groupItems = group.querySelectorAll('.sidebar-item-wrap');
+                var groupHasVisible = false;
+                groupItems.forEach(function(item) {
+                    if (!item.classList.contains('search-hidden')) {
+                        groupHasVisible = true;
                     }
-                    next = next.nextElementSibling;
-                }
-                if (sectionHasVisible) {
-                    sec.classList.remove('search-hidden');
+                });
+                if (groupHasVisible) {
+                    group.classList.remove('search-hidden');
                 } else {
-                    sec.classList.add('search-hidden');
+                    group.classList.add('search-hidden');
                 }
             });
 
@@ -648,5 +715,7 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
         });
     })();
     </script>
+    <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/vendor/sortable/Sortable.min.js' ); ?>"></script>
+    <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/js/klytos-sidebar-sort.js' ); ?>"></script>
     <div class="admin-main">
 <?php klytos_do_action('admin.page.before_content', $currentPage); ?>

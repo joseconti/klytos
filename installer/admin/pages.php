@@ -104,9 +104,9 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 <?php echo ($page['status'] ?? '') === 'published' ? __( 'pages.published' ) : __( 'pages.draft' ); ?>
                             </span>
                         </td>
-                        <td style="display:flex;gap:0.5rem;align-items:center;">
+                        <td class="flex flex-gap-sm flex-center">
                             <a href="page-editor.php?slug=<?php echo urlencode( $page['slug'] ?? '' ); ?>" class="btn btn-outline btn-sm"><?php echo __( 'common.edit' ); ?></a>
-                            <form method="post" style="display:inline;" class="form-confirm-delete">
+                            <form method="post" class="inline-form form-confirm-delete">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="slug" value="<?php echo klytos_esc_attr( $page['slug'] ?? '' ); ?>">
                                 <?php echo klytos_csrf_field(); ?>

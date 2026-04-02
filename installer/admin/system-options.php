@@ -65,13 +65,13 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <div class="content-header">
     <h1><?php echo klytos_esc_html($pageTitle); ?></h1>
-    <p style="color:var(--admin-text-muted);margin-top:0.25rem;">
+    <p class="text-muted mt-1">
         <?php echo __('options.description'); ?>
     </p>
 </div>
 
 <!-- Filter tabs -->
-<div class="tabs" style="margin-bottom:1.5rem;">
+<div class="tabs mb-3">
     <?php
     $tabs = [
         'all'      => ['label' => __('options.tab_all'),      'count' => $totalOptions],
@@ -92,9 +92,9 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <!-- Migration notice -->
 <?php if (($counts['unknown'] ?? 0) > 0): ?>
-<div class="alert alert-warning" id="migrate-notice" style="margin-bottom:1.5rem;">
+<div class="alert alert-warning mb-3" id="migrate-notice">
     <strong><?php echo __('options.migrate_notice'); ?></strong>
-    <button class="btn btn-sm btn-warning" id="btn-migrate" style="margin-left:1rem;">
+    <button class="btn btn-sm btn-warning ml-2" id="btn-migrate">
         <?php echo __('options.migrate_button'); ?>
     </button>
 </div>
@@ -111,7 +111,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                     <th><?php echo __('options.col_value'); ?></th>
                     <th><?php echo __('options.col_created'); ?></th>
                     <th><?php echo __('options.col_updated'); ?></th>
-                    <th style="text-align:right;"><?php echo __('options.col_actions'); ?></th>
+                    <th class="text-right"><?php echo __('options.col_actions'); ?></th>
                 </tr>
             </thead>
             <tbody id="options-tbody">
@@ -159,7 +159,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 </td>
                                 <td><?php echo klytos_esc_html($record['created_at'] ?? '-'); ?></td>
                                 <td><?php echo klytos_esc_html($record['updated_at'] ?? '-'); ?></td>
-                                <td style="text-align:right;">
+                                <td class="text-right">
                                     <button class="btn btn-sm btn-danger js-delete-option" data-option-key="<?php echo klytos_esc_attr($key); ?>">
                                         <?php echo __('options.btn_delete'); ?>
                                     </button>
@@ -170,7 +170,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 endforeach;
 
                 if (!$hasRows): ?>
-                    <tr><td colspan="6" style="text-align:center;color:var(--admin-text-muted);padding:2rem;">
+                    <tr><td colspan="6" class="text-center text-muted p-3">
                         <?php echo __('options.no_options'); ?>
                     </td></tr>
                 <?php endif; ?>

@@ -234,7 +234,7 @@ if ($show2fa) {
                 </div>
                 <button type="submit" class="btn"><?php echo __('security.verify'); ?></button>
             </form>
-            <form method="post" style="margin-top:1rem;">
+            <form method="post" class="mt-2">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="emergency_email">
@@ -254,7 +254,7 @@ if ($show2fa) {
                 <input type="hidden" name="2fa_method" value="passkey">
                 <input type="hidden" name="2fa_code" id="passkey-response">
             </form>
-            <form method="post" style="margin-top:1rem;">
+            <form method="post" class="mt-2">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
                 <input type="hidden" name="2fa_method" value="emergency_email">

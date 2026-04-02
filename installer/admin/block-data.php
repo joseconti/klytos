@@ -95,8 +95,8 @@ require_once __DIR__ . '/templates/sidebar.php';
 ?>
 <?php klytos_do_action( 'admin.block_data.before' ); ?>
 
-<div style="margin-bottom:1rem;">
-    <a href="blocks.php" style="color:var(--admin-primary);text-decoration:none;">&larr; <?php echo __( 'design.blocks' ); ?></a>
+<div class="mb-2">
+    <a href="blocks.php" style="color:var(--klytos-primary);text-decoration:none;">&larr; <?php echo __( 'design.blocks' ); ?></a>
 </div>
 
 <?php if ( !empty( $success ) ): ?>
@@ -106,7 +106,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+<div class="grid-2" style="gap:1.5rem;align-items:start;">
     <!-- Form -->
     <div class="card">
         <div class="card-header">
@@ -123,10 +123,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                     $value   = $globalData[ $name ] ?? ( $slot['default'] ?? '' );
                     $inputId = 'field-' . $name;
                     ?>
-                    <div class="form-group" style="margin-bottom:1rem;">
+                    <div class="form-group mb-2">
                         <label for="<?php echo klytos_esc_attr( $inputId ); ?>" style="display:block;font-weight:500;margin-bottom:0.3rem;">
                             <?php echo klytos_esc_html( $label ); ?>
-                            <span style="color:var(--admin-text-muted);font-weight:400;font-size:0.82rem;">(<?php echo klytos_esc_html( $type ); ?>)</span>
+                            <span class="text-muted text-xs" style="font-weight:400;">(<?php echo klytos_esc_html( $type ); ?>)</span>
                         </label>
                         <?php if ( $type === 'richtext' || $type === 'html' ): ?>
                             <textarea
@@ -134,10 +134,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 name="<?php echo klytos_esc_attr( $name ); ?>"
                                 rows="5"
                                 class="form-control"
-                                style="width:100%;font-family:monospace;font-size:0.85rem;"
+                                class="w-full text-mono text-sm"
                             ><?php echo klytos_esc_html( (string) $value ); ?></textarea>
                         <?php elseif ( $type === 'boolean' ): ?>
-                            <label style="display:flex;align-items:center;gap:0.5rem;">
+                            <label class="flex flex-center flex-gap-sm">
                                 <input type="checkbox" name="<?php echo klytos_esc_attr( $name ); ?>" value="1" <?php echo $value ? 'checked' : ''; ?>>
                                 <?php echo klytos_esc_html( $label ); ?>
                             </label>
@@ -148,13 +148,13 @@ require_once __DIR__ . '/templates/sidebar.php';
                                 name="<?php echo klytos_esc_attr( $name ); ?>"
                                 value="<?php echo klytos_esc_attr( (string) $value ); ?>"
                                 class="form-control"
-                                style="width:100%;"
+                                class="w-full"
                             >
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
 
-                <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+                <div class="flex mt-3" style="gap:0.75rem;">
                     <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
                     <button type="submit" name="rebuild" value="1" class="btn btn-outline">Save &amp; Rebuild</button>
                 </div>
@@ -167,11 +167,11 @@ require_once __DIR__ . '/templates/sidebar.php';
         <div class="card-header">
             <h3><?php echo __( 'common.preview' ); ?></h3>
         </div>
-        <div style="border:1px solid var(--admin-border);border-radius:var(--admin-radius);overflow:hidden;background:#fff;">
+        <div style="border:1px solid var(--klytos-border);border-radius:var(--klytos-radius);overflow:hidden;background:#fff;">
             <?php if ( !empty( $previewHtml ) ): ?>
                 <iframe srcdoc="<?php echo klytos_esc_attr( '<!DOCTYPE html><html><head><style>body{font-family:system-ui,sans-serif;padding:1.5rem;margin:0;}</style></head><body>' . $previewHtml . '</body></html>' ); ?>" style="width:100%;height:300px;border:none;"></iframe>
             <?php else: ?>
-                <p style="color:var(--admin-text-muted);text-align:center;padding:2rem;">No preview available.</p>
+                <p class="text-muted text-center p-3">No preview available.</p>
             <?php endif; ?>
         </div>
     </div>

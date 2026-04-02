@@ -352,6 +352,61 @@ For dynamic admin functionality, use the existing AJAX patterns:
 
 All AJAX calls must include the CSRF token in the request body or `X-CSRF-Token` header.
 
+| `admin/api/sidebar-order.php` | POST/GET | Save/reset/get per-user sidebar order |
+
+---
+
+## Sidebar Drag-and-Drop Reordering
+
+Users can customize the sidebar order per-user via drag-and-drop.
+
+### How It Works
+
+1. A "Customize menu" button at the bottom of the sidebar toggles edit mode
+2. In edit mode, grip handles appear on items and section headers
+3. Items can be dragged within a section or across sections
+4. Section groups can be reordered as a whole
+5. Order is auto-saved on each drag via `admin/api/sidebar-order.php`
+6. A "Reset order" button restores the default order
+
+### Data Storage
+
+Order is stored as user meta via MetaManager:
+
+```php
+// Key: klytos.sidebar_order
+// Structure:
+[
+    'sections' => ['content', 'system'],     // section display order
+    'items'    => [
+        'content' => ['dashboard', 'pages', 'theme', ...],
+        'system'  => ['settings', 'plugins', ...],
+    ],
+]
+```
+
+### PHP: Applying Custom Order
+
+Custom order is read from user meta after the `admin.sidebar_items` filter and before rendering. Items not in the saved order (e.g., new plugin items) are appended at their default position.
+
+### Hooks
+
+| Hook | Type | Args |
+|---|---|---|
+| `admin.sidebar_section_order` | Filter | `$sectionOrder` (array of section names) |
+| `admin.sidebar_section_label` | Filter | `$label, $sectionName` |
+| `admin.sidebar_order.saved` | Action | `$userId, $sections, $items` |
+| `admin.sidebar_order.reset` | Action | `$userId` |
+| `admin.sidebar.before_sections` | Action | — |
+| `admin.sidebar.after_sections` | Action | — |
+
+### Source Files
+
+- SortableJS: `admin/assets/vendor/sortable/Sortable.min.js`
+- Sort JS: `admin/assets/js/klytos-sidebar-sort.js`
+- API: `admin/api/sidebar-order.php`
+- CSS: Edit mode styles in `admin/assets/css/klytos-sidebar.css`
+
 ---
 
 ## Security Checklist for Admin Pages

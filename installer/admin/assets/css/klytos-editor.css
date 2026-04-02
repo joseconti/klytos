@@ -751,8 +751,153 @@ body.klytos-block-tab-active .interface-complementary-area-header {
 }
 
 /* ============================================================
- * FORM HELP (shared)
+ * DARK MODE — Editor chrome (header, sidebar, toolbar)
+ * The content canvas stays light to show a realistic page preview.
  * ============================================================ */
+
+[data-theme="dark"] .klytos-editor-shell {
+    background: var(--klytos-bg, #1a1a1a);
+}
+
+[data-theme="dark"] .klytos-editor-header {
+    background: var(--klytos-bg-elevated, #2d2d2d);
+    border-bottom-color: var(--klytos-border, #3a3a3a);
+}
+
+[data-theme="dark"] .klytos-editor-header__back {
+    color: var(--klytos-text, #e8e8e8);
+}
+
+[data-theme="dark"] .klytos-editor-header__back:hover {
+    background: var(--klytos-surface-hover, #333333);
+}
+
+[data-theme="dark"] .klytos-editor-header__title {
+    color: var(--klytos-text, #e8e8e8);
+}
+
+[data-theme="dark"] .klytos-editor-header__title:focus {
+    box-shadow: 0 0 0 2px var(--klytos-accent, #5b8def);
+}
+
+[data-theme="dark"] .klytos-editor-header__title::placeholder {
+    color: var(--klytos-text-tertiary, #666666);
+}
+
+[data-theme="dark"] .klytos-editor-header__slug {
+    color: var(--klytos-text-tertiary, #666666);
+}
+
+[data-theme="dark"] .klytos-editor-header__status {
+    color: var(--klytos-text-secondary, #999999);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--primary {
+    background: var(--klytos-accent, #5b8def);
+    color: #fff;
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--primary:hover {
+    background: var(--klytos-accent-hover, #4a7de0);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--secondary {
+    background: var(--klytos-surface, #262626);
+    color: var(--klytos-text, #e8e8e8);
+    border-color: var(--klytos-border, #3a3a3a);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--secondary:hover {
+    background: var(--klytos-surface-hover, #333333);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--ghost {
+    color: var(--klytos-accent, #5b8def);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--ghost:hover {
+    background: var(--klytos-accent-subtle, rgba(91, 141, 239, 0.12));
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--icon {
+    color: var(--klytos-text, #e8e8e8);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--icon:hover {
+    background: var(--klytos-surface-hover, #333333);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--icon.active {
+    background: var(--klytos-text, #e8e8e8);
+    color: var(--klytos-bg, #1a1a1a);
+}
+
+/* —— Sidebar (settings panel) —— */
+
+[data-theme="dark"] .klytos-sidebar {
+    background: var(--klytos-surface, #262626);
+    border-left-color: var(--klytos-border, #3a3a3a);
+}
+
+[data-theme="dark"] .klytos-sidebar__tab {
+    color: var(--klytos-text-secondary, #999999);
+}
+
+[data-theme="dark"] .klytos-sidebar__tab:hover {
+    color: var(--klytos-text, #e8e8e8);
+}
+
+[data-theme="dark"] .klytos-sidebar__tab[aria-selected="true"] {
+    color: var(--klytos-accent, #5b8def);
+    border-bottom-color: var(--klytos-accent, #5b8def);
+}
+
+[data-theme="dark"] .klytos-sidebar__content {
+    color: var(--klytos-text, #e8e8e8);
+}
+
+[data-theme="dark"] .klytos-editor-settings__label {
+    color: var(--klytos-text-secondary, #999999);
+}
+
+[data-theme="dark"] .klytos-editor-settings__input {
+    background: var(--klytos-bg-sunken, #141414);
+    color: var(--klytos-text, #e8e8e8);
+    border-color: var(--klytos-border, #3a3a3a);
+}
+
+[data-theme="dark"] .klytos-editor-settings__input:focus {
+    border-color: var(--klytos-accent, #5b8def);
+    box-shadow: 0 0 0 2px var(--klytos-accent-subtle, rgba(91, 141, 239, 0.12));
+}
+
+[data-theme="dark"] .klytos-editor-settings__hint {
+    color: var(--klytos-text-tertiary, #666666);
+}
+
+/* —— Toast notifications —— */
+
+[data-theme="dark"] .klytos-toast {
+    background: var(--klytos-bg-elevated, #2d2d2d);
+    color: var(--klytos-text, #e8e8e8);
+    border-color: var(--klytos-border, #3a3a3a);
+    box-shadow: var(--klytos-shadow, 0 4px 12px rgba(0, 0, 0, 0.25));
+}
+
+/* —— SEO preview —— */
+
+[data-theme="dark"] .klytos-editor-seo-preview {
+    background: var(--klytos-bg-sunken, #141414);
+    border-color: var(--klytos-border, #3a3a3a);
+}
+
+/* —— Fallback textarea —— */
+
+[data-theme="dark"] .klytos-editor-fallback__textarea {
+    background: var(--klytos-bg-sunken, #141414);
+    color: var(--klytos-text, #e8e8e8);
+    border-color: var(--klytos-border, #3a3a3a);
+}
 
 /* ============================================================
  * RESPONSIVE

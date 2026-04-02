@@ -119,13 +119,13 @@ require_once __DIR__ . '/templates/sidebar.php';
     <!-- Cron Command -->
     <div class="card">
         <div class="card-header"><h3>Server Cron Command</h3></div>
-        <div style="padding:1rem">
-            <p style="margin-bottom:1rem;color:var(--admin-text-muted);font-size:0.9rem">
+        <div class="p-2">
+            <p class="mb-2 text-muted text-sm">
                 Add one of the following commands to your server's crontab. Choose how often the cron should run:
             </p>
 
-            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem">Run every</label>
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+            <label class="font-bold text-sm" style="display:block;margin-bottom:0.3rem">Run every</label>
+            <div class="flex flex-center flex-gap-sm mb-2">
                 <select id="cronInterval" class="form-control" style="width:auto;min-width:180px">
                     <option value="1">1 minute</option>
                     <option value="5" selected>5 minutes</option>
@@ -136,13 +136,13 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </select>
             </div>
 
-            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem">HTTP (curl)</label>
-            <div class="token-display" id="cronCurl" style="margin-bottom:1rem;word-break:break-all"></div>
+            <label class="font-bold text-sm" style="display:block;margin-bottom:0.3rem">HTTP (curl)</label>
+            <div class="token-display mb-2 break-all" id="cronCurl"></div>
 
-            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem">CLI (PHP)</label>
-            <div class="token-display" id="cronCli" style="margin-bottom:1rem;word-break:break-all"></div>
+            <label class="font-bold text-sm" style="display:block;margin-bottom:0.3rem">CLI (PHP)</label>
+            <div class="token-display mb-2 break-all" id="cronCli"></div>
 
-            <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+            <div class="flex flex-gap-sm mt-1">
                 <button class="btn btn-outline btn-sm" id="copyCurl">Copy HTTP</button>
                 <button class="btn btn-outline btn-sm" id="copyCli">Copy CLI</button>
             </div>
@@ -152,23 +152,23 @@ require_once __DIR__ . '/templates/sidebar.php';
     <!-- Cron Status -->
     <div class="card">
         <div class="card-header"><h3>Cron Status</h3></div>
-        <div style="padding:1rem">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="p-2">
+            <div class="grid-2">
                 <div>
-                    <div style="font-size:0.85rem;color:var(--admin-text-muted)">Last Execution</div>
-                    <div style="font-size:1.1rem;font-weight:600;margin-top:0.2rem">
+                    <div class="text-sm text-muted">Last Execution</div>
+                    <div class="text-lg font-bold" style="margin-top:0.2rem">
                         <?php if ($lastRun): ?>
                             <?php echo klytos_esc_html(date('M j, Y H:i:s', $lastRun)); ?>
                             <?php $ago = time() - $lastRun; ?>
-                            <small style="color:var(--admin-text-muted)">(<?php echo $ago < 60 ? $ago . 's ago' : (int)($ago / 60) . 'm ago'; ?>)</small>
+                            <small class="text-muted">(<?php echo $ago < 60 ? $ago . 's ago' : (int)($ago / 60) . 'm ago'; ?>)</small>
                         <?php else: ?>
-                            <span style="color:var(--admin-warning)">Never</span>
+                            <span class="text-warning">Never</span>
                         <?php endif; ?>
                     </div>
                 </div>
                 <div>
-                    <div style="font-size:0.85rem;color:var(--admin-text-muted)">Pending Actions</div>
-                    <div style="font-size:1.1rem;font-weight:600;margin-top:0.2rem">
+                    <div class="text-sm text-muted">Pending Actions</div>
+                    <div class="text-lg font-bold" style="margin-top:0.2rem">
                         <?php echo $pendingCount; ?>
                     </div>
                 </div>
@@ -179,8 +179,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     <!-- Regenerate Token -->
     <div class="card">
         <div class="card-header"><h3>Security Token</h3></div>
-        <div style="padding:1rem">
-            <p style="margin-bottom:1rem;color:var(--admin-text-muted);font-size:0.9rem">
+        <div class="p-2">
+            <p class="mb-2 text-muted text-sm">
                 The cron endpoint is protected by a secret token. Regenerating the token will invalidate the current crontab command — you'll need to update it on your server.
             </p>
             <form method="post">
@@ -196,14 +196,14 @@ require_once __DIR__ . '/templates/sidebar.php';
     <!-- Fallback Mode -->
     <div class="card">
         <div class="card-header"><h3>Fallback Mode</h3></div>
-        <div style="padding:1rem">
-            <p style="margin-bottom:1rem;color:var(--admin-text-muted);font-size:0.9rem">
+        <div class="p-2">
+            <p class="mb-2 text-muted text-sm">
                 When enabled, the action queue is also processed on admin page loads (pseudo-cron). This is a fallback for when the server cron is not configured. Disable once you have set up the server crontab.
             </p>
             <form method="post">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="toggle_fallback">
-                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <label class="flex flex-center flex-gap-sm">
                     <input type="checkbox" name="fallback_enabled" value="1" id="chkFallback" <?php echo $fallbackEnabled ? 'checked' : ''; ?>>
                     <span>Enable fallback pseudo-cron</span>
                 </label>
@@ -228,20 +228,20 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="stat-card">
             <div class="stat-label">Failed</div>
-            <div class="stat-value" style="color:<?php echo $failedCount > 0 ? 'var(--admin-error)' : 'inherit'; ?>"><?php echo $failedCount; ?></div>
+            <div class="stat-value <?php echo $failedCount > 0 ? 'text-error' : ''; ?>"><?php echo $failedCount; ?></div>
         </div>
     </div>
 
     <!-- Action bar -->
     <div class="action-bar">
-        <div style="display:flex;gap:0.3rem;flex-wrap:wrap">
+        <div class="flex flex-gap-sm flex-wrap">
             <?php
             $statuses = ['all' => 'All', 'pending' => 'Pending', 'running' => 'Running', 'complete' => 'Complete', 'failed' => 'Failed', 'canceled' => 'Canceled'];
             foreach ($statuses as $key => $label): ?>
                 <a href="?tab=actions&status=<?php echo $key; ?>" class="btn btn-sm <?php echo $statusFilter === $key ? 'btn-primary' : 'btn-outline'; ?>"><?php echo $label; ?></a>
             <?php endforeach; ?>
         </div>
-        <form method="post" style="display:inline">
+        <form method="post" class="inline-form">
             <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="action" value="prune_completed">
             <button type="submit" class="btn btn-outline btn-sm" id="btnPrune">
@@ -275,22 +275,22 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <?php foreach ($actions as $act): ?>
                         <tr>
                             <td>
-                                <code style="font-size:0.8rem"><?php echo klytos_esc_html($act['hook'] ?? ''); ?></code>
+                                <code class="text-xs"><?php echo klytos_esc_html($act['hook'] ?? ''); ?></code>
                                 <?php if (!empty($act['args'])): ?>
-                                    <br><small style="color:var(--admin-text-muted)"><?php echo klytos_esc_html(json_encode($act['args'])); ?></small>
+                                    <br><small class="text-muted"><?php echo klytos_esc_html(json_encode($act['args'])); ?></small>
                                 <?php endif; ?>
                                 <?php if (!empty($act['last_error'])): ?>
-                                    <br><small style="color:var(--admin-error)"><?php echo klytos_esc_html($act['last_error']); ?></small>
+                                    <br><small class="text-error"><?php echo klytos_esc_html($act['last_error']); ?></small>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if (!empty($act['group'])): ?>
                                     <span class="badge-status badge-medium"><?php echo klytos_esc_html($act['group']); ?></span>
                                 <?php else: ?>
-                                    <span style="color:var(--admin-text-muted)">—</span>
+                                    <span class="text-muted">—</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="font-size:0.85rem"><?php echo klytos_esc_html($act['type'] ?? 'single'); ?></td>
+                            <td class="text-sm"><?php echo klytos_esc_html($act['type'] ?? 'single'); ?></td>
                             <td>
                                 <?php
                                 $status = $act['status'] ?? 'pending';
@@ -305,22 +305,22 @@ require_once __DIR__ . '/templates/sidebar.php';
     ?>
                                 <span class="badge-status <?php echo $badgeClass; ?>"><?php echo klytos_esc_html(ucfirst($status)); ?></span>
                             </td>
-                            <td style="font-size:0.85rem;color:var(--admin-text-muted)">
+                            <td class="text-sm text-muted">
                                 <?php echo !empty($act['scheduled_at']) ? klytos_esc_html(date('M j H:i', strtotime($act['scheduled_at']))) : '—'; ?>
                             </td>
-                            <td style="text-align:center">
+                            <td class="text-center">
                                 <?php echo (int) ($act['attempts'] ?? 0); ?>/<?php echo (int) ($act['max_attempts'] ?? 3); ?>
                             </td>
                             <td>
                                 <?php if ($status === 'pending'): ?>
-                                    <form method="post" style="display:inline">
+                                    <form method="post" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="cancel_action">
                                         <input type="hidden" name="action_id" value="<?php echo klytos_esc_attr($act['id'] ?? ''); ?>">
                                         <button type="submit" class="btn btn-outline btn-sm">Cancel</button>
                                     </form>
                                 <?php elseif ($status === 'failed'): ?>
-                                    <form method="post" style="display:inline">
+                                    <form method="post" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="retry_action">
                                         <input type="hidden" name="action_id" value="<?php echo klytos_esc_attr($act['id'] ?? ''); ?>">
@@ -328,7 +328,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                                     </form>
                                 <?php endif; ?>
                                 <?php if (in_array($status, ['complete', 'failed', 'canceled'], true)): ?>
-                                    <form method="post" style="display:inline">
+                                    <form method="post" class="inline-form">
                                         <?php echo klytos_csrf_field(); ?>
                                         <input type="hidden" name="action" value="delete_action">
                                         <input type="hidden" name="action_id" value="<?php echo klytos_esc_attr($act['id'] ?? ''); ?>">
@@ -344,11 +344,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
             <!-- Pagination -->
             <?php if (count($actions) >= $perPage || $page > 1): ?>
-                <div style="padding:1rem;display:flex;gap:0.5rem;justify-content:center">
+                <div class="p-2 flex flex-gap-sm" style="justify-content:center">
                     <?php if ($page > 1): ?>
                         <a href="?tab=actions&status=<?php echo klytos_esc_attr($statusFilter); ?>&p=<?php echo $page - 1; ?>" class="btn btn-outline btn-sm">&larr; Previous</a>
                     <?php endif; ?>
-                    <span style="padding:0.4rem 0.8rem;font-size:0.85rem;color:var(--admin-text-muted)">Page <?php echo $page; ?></span>
+                    <span class="text-sm text-muted" style="padding:0.4rem 0.8rem;">Page <?php echo $page; ?></span>
                     <?php if (count($actions) >= $perPage): ?>
                         <a href="?tab=actions&status=<?php echo klytos_esc_attr($statusFilter); ?>&p=<?php echo $page + 1; ?>" class="btn btn-outline btn-sm">Next &rarr;</a>
                     <?php endif; ?>

@@ -186,7 +186,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </div>
             </div>
 
-            <div style="margin-top:1rem">
+            <div class="mt-2">
                 <button type="submit" class="btn btn-primary">Save & Rebuild</button>
             </div>
         </form>
@@ -194,16 +194,16 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Audit: Declarations by category -->
-<div class="card" style="margin-top:1.5rem">
-    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+<div class="card mt-3">
+    <div class="card-header flex-between">
         <h2 class="card-title">Cookie & Script Audit</h2>
-        <div style="display:flex;gap:0.5rem">
-            <form method="post" style="display:inline">
+        <div class="flex flex-gap-sm">
+            <form method="post" class="inline-form">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="export_json">
                 <button type="submit" class="btn btn-outline btn-sm">Export JSON</button>
             </form>
-            <form method="post" style="display:inline">
+            <form method="post" class="inline-form">
                 <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="action" value="export_csv">
                 <button type="submit" class="btn btn-outline btn-sm">Export CSV</button>
@@ -222,28 +222,28 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <?php $plugins = $catData['plugins']; ?>
                 <?php if ( empty( $plugins ) ) { continue; } ?>
 
-                <h3 style="margin:1.5rem 0 0.75rem;font-size:1rem;display:flex;align-items:center;gap:0.5rem">
+                <h3 class="mt-3 mb-1 flex flex-center flex-gap-sm" style="font-size:1rem">
                     <span class="badge-status badge-<?php echo $catId === 'necessary' ? 'active' : 'medium'; ?>">
                         <?php echo klytos_esc_html( $cat['name'] ?? $catId ); ?>
                     </span>
-                    <span style="color:var(--admin-text-muted);font-weight:400">
+                    <span class="text-muted" style="font-weight:400">
                         <?php echo count( $plugins ); ?> plugin<?php echo count( $plugins ) !== 1 ? 's' : ''; ?>
                         <?php if ( !empty( $cat['required'] ) ): ?> — Always active<?php endif; ?>
                     </span>
                 </h3>
 
                 <?php foreach ( $plugins as $plugin ): ?>
-                    <div class="card" style="margin-bottom:0.75rem;border:1px solid var(--admin-border)">
-                        <div class="card-body" style="padding:1rem">
-                            <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div class="card mb-1" style="border:1px solid var(--klytos-border)">
+                        <div class="card-body p-2">
+                            <div class="flex-between" style="align-items:start">
                                 <div>
                                     <strong><?php echo klytos_esc_html( $plugin['name'] ); ?></strong>
-                                    <code style="font-size:0.75rem;margin-left:0.5rem"><?php echo klytos_esc_html( $plugin['plugin_id'] ); ?></code>
+                                    <code class="text-xs" style="margin-left:0.5rem"><?php echo klytos_esc_html( $plugin['plugin_id'] ); ?></code>
                                     <?php if ( !empty( $plugin['vendor'] ) ): ?>
-                                        <span style="color:var(--admin-text-muted);font-size:0.85rem"> — <?php echo klytos_esc_html( $plugin['vendor'] ); ?></span>
+                                        <span class="text-muted text-sm"> — <?php echo klytos_esc_html( $plugin['vendor'] ); ?></span>
                                     <?php endif; ?>
                                 </div>
-                                <form method="post" style="display:inline">
+                                <form method="post" class="inline-form">
                                     <?php echo klytos_csrf_field(); ?>
                                     <input type="hidden" name="action" value="delete_declaration">
                                     <input type="hidden" name="plugin_id" value="<?php echo klytos_esc_attr( $plugin['plugin_id'] ); ?>">
@@ -252,19 +252,19 @@ require_once __DIR__ . '/templates/sidebar.php';
                             </div>
 
                             <?php if ( !empty( $plugin['description'] ) ): ?>
-                                <p style="color:var(--admin-text-muted);font-size:0.85rem;margin-top:0.25rem">
+                                <p class="text-muted text-sm" style="margin-top:0.25rem">
                                     <?php echo klytos_esc_html( $plugin['description'] ); ?>
                                 </p>
                             <?php endif; ?>
 
                             <?php if ( !empty( $plugin['privacy_url'] ) ): ?>
-                                <p style="font-size:0.8rem;margin-top:0.25rem">
+                                <p class="text-xs" style="margin-top:0.25rem">
                                     <a href="<?php echo klytos_esc_url( $plugin['privacy_url'] ); ?>" target="_blank" rel="noopener">Privacy policy</a>
                                 </p>
                             <?php endif; ?>
 
                             <?php if ( !empty( $plugin['cookies'] ) ): ?>
-                                <div class="table-wrap" style="margin-top:0.75rem">
+                                <div class="table-wrap mt-1">
                                     <table>
                                         <thead>
                                             <tr>
@@ -277,10 +277,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                                         <tbody>
                                             <?php foreach ( $plugin['cookies'] as $ck ): ?>
                                             <tr>
-                                                <td><code style="font-size:0.8rem"><?php echo klytos_esc_html( $ck['name'] ); ?></code></td>
+                                                <td><code class="text-xs"><?php echo klytos_esc_html( $ck['name'] ); ?></code></td>
                                                 <td><?php echo klytos_esc_html( $ck['type'] ?? 'cookie' ); ?></td>
                                                 <td><?php echo klytos_esc_html( $ck['duration'] ?? 'Session' ); ?></td>
-                                                <td style="font-size:0.85rem"><?php echo klytos_esc_html( $ck['description'] ?? '' ); ?></td>
+                                                <td class="text-sm"><?php echo klytos_esc_html( $ck['description'] ?? '' ); ?></td>
                                             </tr>
                                             <?php endforeach; ?>
                                         </tbody>
@@ -289,10 +289,10 @@ require_once __DIR__ . '/templates/sidebar.php';
                             <?php endif; ?>
 
                             <?php if ( !empty( $plugin['scripts'] ) ): ?>
-                                <div style="margin-top:0.5rem">
-                                    <strong style="font-size:0.8rem">External scripts:</strong>
+                                <div class="mt-1">
+                                    <strong class="text-xs">External scripts:</strong>
                                     <?php foreach ( $plugin['scripts'] as $script ): ?>
-                                        <div style="font-size:0.75rem;font-family:monospace;color:var(--admin-text-muted);word-break:break-all">
+                                        <div class="text-xs text-mono text-muted break-all">
                                             <?php echo klytos_esc_html( $script ); ?>
                                         </div>
                                     <?php endforeach; ?>

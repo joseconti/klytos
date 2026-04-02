@@ -72,22 +72,22 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ─── Toolbar ─────────────────────────────────────────────── -->
 <?php klytos_do_action( 'admin.assets.before_toolbar' ); ?>
 <div class="card" id="assets-toolbar">
-    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;justify-content:space-between;">
-        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;">
+    <div class="flex flex-wrap flex-gap-sm flex-center flex-between">
+        <div class="flex flex-wrap flex-gap-sm flex-center">
             <!-- Usage filter -->
-            <select id="filter-usage" class="form-control" style="width:auto;">
+            <select id="filter-usage" class="form-control w-auto">
                 <option value="all"><?php echo __( 'common.all' ); ?></option>
                 <option value="in_use"><?php echo __( 'assets.in_use' ); ?></option>
                 <option value="unused"><?php echo __( 'assets.unused' ); ?></option>
             </select>
 
             <!-- Category filter -->
-            <select id="filter-category" class="form-control" style="width:auto;">
+            <select id="filter-category" class="form-control w-auto">
                 <option value=""><?php echo __( 'assets.all_categories' ); ?></option>
             </select>
 
             <!-- Type filter -->
-            <select id="filter-type" class="form-control" style="width:auto;">
+            <select id="filter-type" class="form-control w-auto">
                 <option value=""><?php echo __( 'assets.all_types' ); ?></option>
                 <option value="image"><?php echo __( 'assets.type_image' ); ?></option>
                 <option value="video"><?php echo __( 'assets.type_video' ); ?></option>
@@ -96,10 +96,10 @@ require_once __DIR__ . '/templates/sidebar.php';
             </select>
 
             <!-- Search -->
-            <input type="text" id="filter-search" class="form-control" placeholder="<?php echo klytos_esc_attr( __( 'common.search' ) ); ?>" style="width:180px;">
+            <input type="text" id="filter-search" class="form-control" placeholder="<?php echo klytos_esc_attr( __( 'common.search' ) ); ?>" style="width:180px">
         </div>
 
-        <div style="display:flex;gap:0.5rem;align-items:center;">
+        <div class="flex flex-gap-sm flex-center">
             <!-- View toggle -->
             <button type="button" class="btn btn-outline btn-sm" id="btn-view-grid" title="Grid view">&#9638;</button>
             <button type="button" class="btn btn-outline btn-sm" id="btn-view-list" title="List view">&#9776;</button>
@@ -121,16 +121,16 @@ require_once __DIR__ . '/templates/sidebar.php';
         <?php echo klytos_csrf_field(); ?>
         <input type="hidden" name="action" value="upload">
 
-        <div id="drop-zone" style="border:2px dashed var(--admin-border,#555);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:1rem;">
-            <p style="margin:0 0 0.5rem;font-size:1.1rem;" id="drop-zone-text">
+        <div id="drop-zone" class="p-3 text-center rounded-lg mb-2" style="border:2px dashed var(--admin-border,#555);cursor:pointer;transition:border-color .2s,background .2s;">
+            <p class="mb-1" style="font-size:1.1rem;" id="drop-zone-text">
                 <?php echo __( 'assets.drop_zone_text' ); ?>
             </p>
-            <p style="margin:0;font-size:0.85rem;color:var(--admin-text-muted,#888);" id="drop-zone-file"></p>
-            <input type="file" name="file" id="file-input" style="display:none;" required>
+            <p class="mb-0 text-sm text-muted" id="drop-zone-file"></p>
+            <input type="file" name="file" id="file-input" class="hidden" required>
         </div>
 
-        <div style="display:flex;gap:1rem;align-items:end;">
-            <div class="form-group" style="flex:1;">
+        <div class="flex flex-gap-sm" style="align-items:end;">
+            <div class="form-group flex-1">
                 <label>Directory</label>
                 <select name="directory" class="form-control">
                     <option value="images">images</option>
@@ -146,21 +146,21 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- ─── Asset Grid View ─────────────────────────────────────── -->
-<div class="card" id="assets-grid-card" style="display:none;">
+<div class="card hidden" id="assets-grid-card">
     <div class="card-header">
         <h3 id="assets-grid-title"><?php echo __( 'assets.title' ); ?></h3>
     </div>
-    <div id="assets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;padding:1rem;">
+    <div id="assets-grid" class="p-2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;">
         <!-- Populated by JS -->
     </div>
-    <div id="assets-grid-empty" class="empty-state" style="display:none;">
+    <div id="assets-grid-empty" class="empty-state hidden">
         <h3><?php echo __( 'assets.no_assets' ); ?></h3>
     </div>
-    <div id="assets-pagination" style="display:flex;justify-content:center;gap:0.5rem;padding:1rem;"></div>
+    <div id="assets-pagination" class="flex flex-center flex-gap-sm p-2"></div>
 </div>
 
 <!-- ─── Asset List View ─────────────────────────────────────── -->
-<div class="card" id="assets-list-card" style="display:none;">
+<div class="card hidden" id="assets-list-card">
     <div class="card-header">
         <h3 id="assets-list-title"><?php echo __( 'assets.title' ); ?></h3>
     </div>
@@ -183,22 +183,22 @@ require_once __DIR__ . '/templates/sidebar.php';
             </tbody>
         </table>
     </div>
-    <div id="assets-list-empty" class="empty-state" style="display:none;">
+    <div id="assets-list-empty" class="empty-state hidden">
         <h3><?php echo __( 'assets.no_assets' ); ?></h3>
     </div>
-    <div id="assets-list-pagination" style="display:flex;justify-content:center;gap:0.5rem;padding:1rem;"></div>
+    <div id="assets-list-pagination" class="flex flex-center flex-gap-sm p-2"></div>
 </div>
 
 <!-- ─── Detail Panel (slide-in) ─────────────────────────────── -->
 <div id="asset-detail-overlay" class="modal-overlay">
     <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h3 id="detail-title" style="margin:0;"><?php echo __( 'assets.detail' ); ?></h3>
+        <div class="flex flex-between flex-center mb-2">
+            <h3 id="detail-title" class="mb-0"><?php echo __( 'assets.detail' ); ?></h3>
             <button type="button" class="btn btn-outline btn-sm" id="detail-close">&times;</button>
         </div>
 
         <!-- Preview -->
-        <div id="detail-preview" style="text-align:center;margin-bottom:1rem;background:var(--admin-bg);border-radius:8px;padding:1rem;min-height:120px;display:flex;align-items:center;justify-content:center;">
+        <div id="detail-preview" class="text-center mb-2 rounded-lg p-2 flex flex-center" style="background:var(--admin-bg);min-height:120px;justify-content:center;">
         </div>
 
         <!-- Editable fields -->
@@ -216,24 +216,24 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <div class="form-group">
             <label><?php echo __( 'assets.categories' ); ?></label>
-            <select id="detail-field-categories" class="form-control" multiple style="min-height:60px;"></select>
+            <select id="detail-field-categories" class="form-control" multiple style="min-height:60px"></select>
         </div>
 
         <!-- Usage table -->
-        <div style="margin:1rem 0;">
-            <h4 style="margin:0 0 0.5rem;"><?php echo __( 'assets.used_in' ); ?></h4>
-            <div id="detail-usage" style="font-size:0.85rem;"></div>
+        <div class="mt-2 mb-2">
+            <h4 class="mb-1"><?php echo __( 'assets.used_in' ); ?></h4>
+            <div id="detail-usage" class="text-sm"></div>
         </div>
 
         <!-- Technical info -->
-        <div style="margin:1rem 0;font-size:0.85rem;color:var(--admin-text-muted,#888);">
+        <div class="mt-2 mb-2 text-sm text-muted">
             <div id="detail-info"></div>
         </div>
 
         <?php klytos_do_action( 'admin.assets.detail_panel_extra' ); ?>
 
         <!-- Actions -->
-        <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+        <div class="flex flex-gap-sm mt-2">
             <button type="button" class="btn btn-primary" id="detail-save"><?php echo __( 'common.save' ); ?></button>
             <button type="button" class="btn btn-outline" id="detail-copy-url"><?php echo __( 'assets.copy_url' ); ?></button>
             <button type="button" class="btn btn-danger" id="detail-delete"><?php echo __( 'common.delete' ); ?></button>
@@ -244,15 +244,15 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ─── Categories Modal ────────────────────────────────────── -->
 <div id="categories-modal" class="modal-overlay">
     <div class="modal" style="max-width:500px;max-height:80vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h3 style="margin:0;"><?php echo __( 'assets.manage_categories' ); ?></h3>
+        <div class="flex flex-between flex-center mb-2">
+            <h3 class="mb-0"><?php echo __( 'assets.manage_categories' ); ?></h3>
             <button type="button" class="btn btn-outline btn-sm" id="categories-close">&times;</button>
         </div>
 
         <!-- Create category -->
-        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-            <input type="text" id="cat-new-name" class="form-control" placeholder="<?php echo klytos_esc_attr( __( 'assets.category_name' ) ); ?>" style="flex:1;">
-            <input type="text" id="cat-new-desc" class="form-control" placeholder="<?php echo klytos_esc_attr( __( 'assets.category_description' ) ); ?>" style="flex:1;">
+        <div class="flex flex-gap-sm mb-2">
+            <input type="text" id="cat-new-name" class="form-control flex-1" placeholder="<?php echo klytos_esc_attr( __( 'assets.category_name' ) ); ?>">
+            <input type="text" id="cat-new-desc" class="form-control flex-1" placeholder="<?php echo klytos_esc_attr( __( 'assets.category_description' ) ); ?>">
             <button type="button" class="btn btn-primary btn-sm" id="cat-create"><?php echo __( 'common.create' ); ?></button>
         </div>
 
@@ -264,14 +264,14 @@ require_once __DIR__ . '/templates/sidebar.php';
 <!-- ─── Cleanup Confirmation Modal ──────────────────────────── -->
 <div id="cleanup-modal" class="modal-overlay">
     <div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h3 style="margin:0;"><?php echo __( 'assets.cleanup_unused' ); ?></h3>
+        <div class="flex flex-between flex-center mb-2">
+            <h3 class="mb-0"><?php echo __( 'assets.cleanup_unused' ); ?></h3>
             <button type="button" class="btn btn-outline btn-sm" id="cleanup-close">&times;</button>
         </div>
         <p><?php echo __( 'assets.cleanup_confirm_text' ); ?></p>
-        <div id="cleanup-preview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:0.5rem;margin:1rem 0;max-height:300px;overflow-y:auto;"></div>
-        <p id="cleanup-count" style="font-weight:600;"></p>
-        <div style="display:flex;gap:0.5rem;">
+        <div id="cleanup-preview" class="mt-2 mb-2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:0.5rem;max-height:300px;overflow-y:auto;"></div>
+        <p id="cleanup-count" class="font-bold"></p>
+        <div class="flex flex-gap-sm">
             <button type="button" class="btn btn-danger" id="cleanup-confirm"><?php echo __( 'assets.cleanup_confirm' ); ?></button>
             <button type="button" class="btn btn-outline" id="cleanup-cancel"><?php echo __( 'common.cancel' ); ?></button>
         </div>
@@ -394,8 +394,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     function renderGrid() {
         var gridCard = document.getElementById( 'assets-grid-card' );
         var listCard = document.getElementById( 'assets-list-card' );
-        gridCard.style.display = '';
-        listCard.style.display = 'none';
+        gridCard.classList.remove( 'hidden' );
+        listCard.classList.add( 'hidden' );
 
         var container = document.getElementById( 'assets-grid' );
         var empty     = document.getElementById( 'assets-grid-empty' );
@@ -405,14 +405,14 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         if ( state.assets.length === 0 ) {
             container.innerHTML = '';
-            container.style.display = 'none';
-            empty.style.display = '';
+            container.classList.add( 'hidden' );
+            empty.classList.remove( 'hidden' );
             renderPagination( 'assets-pagination' );
             return;
         }
 
-        container.style.display = '';
-        empty.style.display = 'none';
+        container.classList.remove( 'hidden' );
+        empty.classList.add( 'hidden' );
 
         var html = '';
         state.assets.forEach( function( asset ) {
@@ -427,8 +427,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 html += '<span>' + esc( asset.mime_type || 'file' ) + '</span>';
             }
             html += '</div>';
-            html += '<div style="padding:0.4rem 0.5rem;font-size:0.75rem;display:flex;justify-content:space-between;align-items:center;background:var(--admin-surface);">';
-            html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" title="' + esc( asset.filename ) + '">' + esc( asset.filename ) + '</span>';
+            html += '<div class="flex flex-between flex-center text-xs px-1 py-1" style="background:var(--admin-surface);">';
+            html += '<span class="truncate flex-1" title="' + esc( asset.filename ) + '">' + esc( asset.filename ) + '</span>';
             html += '</div>';
             html += '</div>';
         });
@@ -447,8 +447,8 @@ require_once __DIR__ . '/templates/sidebar.php';
     function renderList() {
         var gridCard = document.getElementById( 'assets-grid-card' );
         var listCard = document.getElementById( 'assets-list-card' );
-        gridCard.style.display = 'none';
-        listCard.style.display = '';
+        gridCard.classList.add( 'hidden' );
+        listCard.classList.remove( 'hidden' );
 
         var tbody = document.getElementById( 'assets-list-tbody' );
         var empty = document.getElementById( 'assets-list-empty' );
@@ -458,12 +458,12 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         if ( state.assets.length === 0 ) {
             tbody.innerHTML = '';
-            empty.style.display = '';
+            empty.classList.remove( 'hidden' );
             renderPagination( 'assets-list-pagination' );
             return;
         }
 
-        empty.style.display = 'none';
+        empty.classList.add( 'hidden' );
 
         var html = '';
         state.assets.forEach( function( asset ) {
@@ -478,7 +478,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 html += '<div style="width:40px;height:40px;background:var(--admin-bg);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--admin-text-muted,#888);">FILE</div>';
             }
             html += '</td>';
-            html += '<td class="mono" style="font-size:0.8rem;">' + esc( asset.filename ) + '</td>';
+            html += '<td class="mono text-sm">' + esc( asset.filename ) + '</td>';
             html += '<td>' + esc( asset.mime_type ) + '</td>';
             html += '<td>' + esc( asset.size_human ) + '</td>';
             html += '<td>' + esc( cats ) + '</td>';
@@ -534,7 +534,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             // Preview.
             var preview = document.getElementById( 'detail-preview' );
             if ( isImage( a.mime_type ) ) {
-                preview.innerHTML = '<img src="' + esc( SITE_URL + '/' + a.path ) + '" alt="" style="max-width:100%;max-height:300px;border-radius:4px;">';
+                preview.innerHTML = '<img src="' + esc( SITE_URL + '/' + a.path ) + '" alt="" class="w-full rounded" style="max-height:300px">';
             } else {
                 preview.innerHTML = '<div style="padding:2rem;font-size:0.9rem;color:var(--admin-text-muted,#888);">' + esc( a.mime_type ) + '<br>' + esc( a.filename ) + '</div>';
             }
@@ -562,9 +562,9 @@ require_once __DIR__ . '/templates/sidebar.php';
             var usageDiv = document.getElementById( 'detail-usage' );
             var usages   = a.usage || [];
             if ( usages.length === 0 ) {
-                usageDiv.innerHTML = '<p style="color:var(--admin-text-muted,#888);">' + <?php echo json_encode( __( 'assets.not_in_use' ) ); ?> + '</p>';
+                usageDiv.innerHTML = '<p class="text-muted">' + <?php echo json_encode( __( 'assets.not_in_use' ) ); ?> + '</p>';
             } else {
-                var uHtml = '<table style="width:100%;font-size:0.8rem;"><thead><tr><th>' + <?php echo json_encode( __( 'common.type' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.context' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.field' ) ); ?> + '</th></tr></thead><tbody>';
+                var uHtml = '<table class="w-full text-sm"><thead><tr><th>' + <?php echo json_encode( __( 'common.type' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.context' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.field' ) ); ?> + '</th></tr></thead><tbody>';
                 usages.forEach( function( u ) {
                     uHtml += '<tr><td>' + esc( u.context_type ) + '</td><td>' + esc( u.context_label || u.context_id ) + '</td><td>' + esc( u.field ) + '</td></tr>';
                 });
@@ -658,15 +658,15 @@ require_once __DIR__ . '/templates/sidebar.php';
     function renderCategoryList() {
         var container = document.getElementById( 'categories-list' );
         if ( state.categories.length === 0 ) {
-            container.innerHTML = '<p style="color:var(--admin-text-muted,#888);">' + <?php echo json_encode( __( 'assets.no_categories' ) ); ?> + '</p>';
+            container.innerHTML = '<p class="text-muted">' + <?php echo json_encode( __( 'assets.no_categories' ) ); ?> + '</p>';
             return;
         }
 
-        var html = '<table style="width:100%;font-size:0.85rem;"><thead><tr><th>' + <?php echo json_encode( __( 'common.name' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.asset_count' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'common.actions' ) ); ?> + '</th></tr></thead><tbody>';
+        var html = '<table class="w-full text-sm"><thead><tr><th>' + <?php echo json_encode( __( 'common.name' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.asset_count' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'common.actions' ) ); ?> + '</th></tr></thead><tbody>';
         state.categories.forEach( function( cat ) {
             html += '<tr>';
             html += '<td><strong>' + esc( cat.name ) + '</strong>';
-            if ( cat.description ) html += '<br><small style="color:var(--admin-text-muted,#888);">' + esc( cat.description ) + '</small>';
+            if ( cat.description ) html += '<br><small class="text-muted">' + esc( cat.description ) + '</small>';
             html += '</td>';
             html += '<td>' + ( cat.asset_count || 0 ) + '</td>';
             html += '<td><button type="button" class="btn btn-danger btn-sm btn-cat-delete" data-id="' + esc( cat.id ) + '">' + <?php echo json_encode( __( 'common.delete' ) ); ?> + '</button></td>';
