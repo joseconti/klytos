@@ -60,6 +60,7 @@ installer/
 │       ├── json-rpc.php   ← JSON-RPC 2.0 parser/builder
 │       └── tools/         ← MCP tool definitions
 ├── admin/                 ← Admin panel pages
+│   ├── setup-wizard.php   ← Post-install setup wizard (2FA, AI keys, MCP)
 ├── plugins/               ← Plugin directory
 ├── public/                ← Static site output
 ├── data/                  ← Encrypted data storage
@@ -81,6 +82,19 @@ installer/
 10. Load Hooks engine + global helpers.
 11. Load PluginLoader → discover and load active plugins.
 12. Fire `klytos.init` action.
+
+## Installation & Setup Flow
+
+1. **Bootstrap** (`klytos-installer/installer.php`): Downloads CMS from GitHub releases.
+2. **Installer** (`install.php`): Simplified wizard — site name, username, password, dark/light preference, storage type. Sets `setup_completed => false` in config. Redirects to login after completion.
+3. **First Login**: User logs in (always dark theme). `bootstrap.php` detects `setup_completed === false` and redirects to `setup-wizard.php`.
+4. **Setup Wizard** (`admin/setup-wizard.php`): 5-screen guided setup:
+   - Screen 1: 2FA (TOTP) setup (skippable)
+   - Screen 2: Connection type (MCP / API Keys / Both)
+   - Screen 3: AI provider API keys (conditional, skippable)
+   - Screen 4: Application Password + MCP config (copy-paste ready)
+   - Screen 5: Congratulations + AI prompt for site creation
+5. **Completion**: Sets `setup_completed => true`. Existing/upgraded installs skip the wizard (key doesn't exist in config).
 
 ## Adding a New MCP Tool to Core
 

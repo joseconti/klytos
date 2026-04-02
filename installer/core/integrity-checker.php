@@ -259,17 +259,14 @@ class IntegrityChecker
      */
     private function verifyCore( bool $forceRefresh = false ): array
     {
-        $version  = KLYTOS_VERSION;
-        $manifest = $this->fetchManifest(
-            'core',
-            "{$this->apiBaseUrl}/integrity/core/{$version}.json",
-            $forceRefresh
-        );
+        $version     = KLYTOS_VERSION;
+        $manifestUrl = "{$this->apiBaseUrl}/integrity/core/{$version}.json";
+        $manifest    = $this->fetchManifest( 'core', $manifestUrl, $forceRefresh );
 
         if ( $manifest === null ) {
             return [
                 'status'  => 'error',
-                'message' => 'No se pudo obtener el manifiesto de integridad del core.',
+                'message' => "No se pudo obtener el manifiesto de integridad del core. URL: {$manifestUrl}",
             ];
         }
 
@@ -397,7 +394,18 @@ class IntegrityChecker
         }
 
         // 2. Detect added files (not in manifest).
-        $localFiles = $this->scanDirectory( $basePath, $excludes );
+        // Merge manifest excludes with runtime excludes (directories that
+        // legitimately exist in production but are not part of the distribution).
+        $runtimeExcludes = [
+            'config/*', 'data/*', 'backups/*', 'storage/*',
+            'plugins/*', 'themes/*', 'custom-templates/*',
+            'public/assets/images/*', 'public/assets/uploads/*',
+            '.git/*', '.claude/*', 'node_modules/*', 'vendor/*',
+            'tests/*', 'docs/*', '.env', '.DS_Store', '*/.DS_Store',
+            '.gitkeep', '*/.gitkeep', '.gitignore',
+        ];
+        $scanExcludes = array_unique( array_merge( $excludes, $runtimeExcludes ) );
+        $localFiles   = $this->scanDirectory( $basePath, $scanExcludes );
 
         foreach ( $localFiles as $relativePath ) {
             if ( !isset( $expectedFiles[$relativePath] ) ) {
@@ -472,6 +480,59 @@ class IntegrityChecker
         return false;
     }
 
+    // ─── HTTP ───────────────────────────────────────────────────
+
+    /**
+     * Download a URL via cURL (preferred) or file_get_contents fallback.
+     *
+     * @param  string      $url URL to fetch.
+     * @return string|null Response body or null on failure.
+     */
+    private function httpGet( string $url ): ?string
+    {
+        // Prefer cURL — works even when allow_url_fopen is disabled.
+        if ( function_exists( 'curl_init' ) ) {
+            $ch = curl_init( $url );
+            curl_setopt_array( $ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 15,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 3,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_HTTPHEADER     => [
+                    'Accept: application/json',
+                    'User-Agent: Klytos/' . KLYTOS_VERSION,
+                ],
+            ] );
+
+            $body = curl_exec( $ch );
+            $code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+            curl_close( $ch );
+
+            if ( $body === false || $code < 200 || $code >= 300 ) {
+                return null;
+            }
+
+            return $body;
+        }
+
+        // Fallback: file_get_contents (requires allow_url_fopen = On).
+        $context = stream_context_create( [
+            'http' => [
+                'timeout' => 15,
+                'header'  => "Accept: application/json\r\n"
+                           . 'User-Agent: Klytos/' . KLYTOS_VERSION . "\r\n",
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+            ],
+        ] );
+
+        $response = @file_get_contents( $url, false, $context );
+
+        return $response !== false ? $response : null;
+    }
+
     // ─── Manifest Download & Cache ──────────────────────────────
 
     /**
@@ -499,22 +560,11 @@ class IntegrityChecker
             }
         }
 
-        // Download.
+        // Download (cURL preferred, file_get_contents as fallback).
         try {
-            $context = stream_context_create( [
-                'http' => [
-                    'timeout' => 15,
-                    'header'  => "Accept: application/json\r\n"
-                               . 'User-Agent: Klytos/' . KLYTOS_VERSION . "\r\n",
-                ],
-                'ssl' => [
-                    'verify_peer' => true,
-                ],
-            ] );
+            $response = $this->httpGet( $url );
 
-            $response = @file_get_contents( $url, false, $context );
-
-            if ( $response === false ) {
+            if ( $response === null ) {
                 return null;
             }
 
