@@ -788,6 +788,8 @@ class DatabaseStorage implements StorageInterface
                 'assets',
                 'asset-categories',
                 'asset-usage',
+                'integrity',
+                'integrity-keys',
             ];
         }
 

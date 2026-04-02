@@ -120,6 +120,9 @@ class PluginLoader
         'Item Name'       => 'item_name',
         'Update URI'      => 'update_uri',
         'Logs'            => 'logs',
+        'Source'            => 'source',
+        'Integrity URL'     => 'integrity_url',
+        'Integrity Key URL' => 'integrity_key_url',
     ];
 
     /** @var int Maximum bytes to read from a plugin file for header parsing. */
@@ -508,6 +511,18 @@ class PluginLoader
         $this->removeDirectory($tmpDir);
 
         klytos_do_action('plugin.installed', $pluginId, $isUpdate);
+
+        // Register developer's integrity public key if the plugin provides one.
+        $header = $this->parsePluginHeader($pluginDir . '/' . $pluginId . '.php');
+        $integrityKeyUrl = $header['integrity_key_url'] ?? '';
+        if (!empty($integrityKeyUrl)) {
+            try {
+                $checker = App::getInstance()->getIntegrityChecker();
+                $checker->registerDeveloperKey($pluginId, $integrityKeyUrl);
+            } catch (\Throwable) {
+                // Non-critical — the key can be registered later.
+            }
+        }
 
         return ['success' => true, 'error' => null, 'plugin_id' => $pluginId];
     }

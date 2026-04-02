@@ -1,5 +1,5 @@
 /**
- * Klytos — AI Chat Styles (dark theme)
+ * Klytos — AI Chat Styles (light & dark theme)
  * Styles for the integrated AI chat in the admin panel.
  *
  * @package Klytos
@@ -23,10 +23,58 @@
     --chat-user-bubble: var(--klytos-surface-active, #3a3a3a);
     --chat-input-bg: var(--klytos-surface, #262626);
     --chat-input-border: var(--klytos-border, #3a3a3a);
+    /* Semantic status */
+    --chat-success:         var(--klytos-success, #22c55e);
+    --chat-success-text:    var(--klytos-success-text, #86efac);
+    --chat-success-subtle:  var(--klytos-success-subtle, rgba(34, 197, 94, 0.12));
+    --chat-error:           var(--klytos-error, #ef4444);
+    --chat-error-text:      var(--klytos-error-text, #fca5a5);
+    --chat-error-subtle:    var(--klytos-error-subtle, rgba(239, 68, 68, 0.12));
+
+    /* Code blocks (warm personality) */
+    --chat-code-bg:         #1a1816;
+    --chat-code-text:       #e2ddd8;
+
+    /* Accent on dark backgrounds */
+    --chat-accent-text:     var(--klytos-accent-text, #ffffff);
+
+    /* Badge colors */
+    --chat-badge-admin:       #60a5fa;
+    --chat-badge-admin-bg:    rgba(96, 165, 250, 0.15);
+    --chat-badge-editor:      #a78bfa;
+    --chat-badge-editor-bg:   rgba(167, 139, 250, 0.15);
+    --chat-badge-viewer:      #9ca3af;
+    --chat-badge-viewer-bg:   rgba(156, 163, 175, 0.15);
+    --chat-badge-owner:       #fbbf24;
+    --chat-badge-owner-bg:    rgba(251, 191, 36, 0.15);
+
+    /* Shadows & overlays */
+    --chat-shadow:          var(--klytos-shadow, 0 4px 12px rgba(0, 0, 0, 0.25));
+    --chat-shadow-lg:       var(--klytos-shadow-lg, 0 20px 60px rgba(0, 0, 0, 0.5));
+    --chat-overlay-bg:      rgba(0, 0, 0, 0.6);
+
+    /* Layout */
     --chat-max-width: 768px;
     --chat-radius: 24px;
     --chat-radius-sm: 12px;
     --chat-radius-xs: var(--klytos-radius, 8px);
+}
+
+/* ─── Light Mode Overrides ───────────────────────────────── */
+[data-theme="light"] {
+    --chat-code-bg:         #f8f5f2;
+    --chat-code-text:       #3d3630;
+
+    --chat-badge-admin:     #2563eb;
+    --chat-badge-admin-bg:  rgba(37, 99, 235, 0.1);
+    --chat-badge-editor:    #7c3aed;
+    --chat-badge-editor-bg: rgba(124, 58, 237, 0.1);
+    --chat-badge-viewer:    #6b7280;
+    --chat-badge-viewer-bg: rgba(107, 114, 128, 0.1);
+    --chat-badge-owner:     #d97706;
+    --chat-badge-owner-bg:  rgba(217, 119, 6, 0.1);
+
+    --chat-overlay-bg:      rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Body Override ───────────────────────────────────────── */
@@ -231,7 +279,7 @@ body:has(#ai-chat-app) {
 }
 
 .ai-chat-item-delete:hover {
-    color: #ef4444;
+    color: var(--chat-error);
 }
 
 /* Sidebar Footer */
@@ -248,7 +296,7 @@ body:has(#ai-chat-app) {
     height: 28px;
     border-radius: 50%;
     background: var(--chat-accent);
-    color: #fff;
+    color: var(--chat-accent-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -667,8 +715,8 @@ body:has(#ai-chat-app) {
 
 /* Code blocks inside assistant messages */
 .ai-msg-assistant pre {
-    background: #1a1816;
-    color: #e2ddd8;
+    background: var(--chat-code-bg);
+    color: var(--chat-code-text);
     padding: 0.85rem 1rem;
     border-radius: var(--chat-radius-xs);
     overflow-x: auto;
@@ -724,8 +772,8 @@ body:has(#ai-chat-app) {
     font-size: 0.75rem;
 }
 
-.ai-tool-call-status.success { color: #4ade80; }
-.ai-tool-call-status.error { color: #f87171; }
+.ai-tool-call-status.success { color: var(--chat-success-text); }
+.ai-tool-call-status.error { color: var(--chat-error-text); }
 
 .ai-tool-call-name {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -757,8 +805,8 @@ body:has(#ai-chat-app) {
 
 .ai-tool-call-body pre {
     margin: 0;
-    background: #1a1816;
-    color: #e2ddd8;
+    background: var(--chat-code-bg);
+    color: var(--chat-code-text);
     padding: 0.5rem 0.75rem;
     border-radius: 4px;
     font-size: 0.78rem;
@@ -901,7 +949,7 @@ body:has(#ai-chat-app) {
 /* ─── Error Messages ──────────────────────────────────────── */
 .ai-msg-error {
     align-self: flex-start;
-    color: #f87171;
+    color: var(--chat-error-text);
     font-size: 0.88rem;
     padding: 0.5rem 0;
     display: flex;
@@ -954,7 +1002,7 @@ body:has(#ai-chat-app) {
     border: 1px solid var(--chat-border);
     border-radius: var(--chat-radius-xs);
     padding: 0.35rem;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: var(--chat-shadow);
     z-index: 100;
 }
 
@@ -1113,8 +1161,8 @@ textarea.ai-panel-form-control { resize: vertical; min-height: 80px; }
 
 /* Panel Alerts */
 .ai-panel-alert { padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem; }
-.ai-panel-alert-success { background: rgba(74, 222, 128, 0.1); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.2); }
-.ai-panel-alert-error { background: rgba(248, 113, 113, 0.1); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.2); }
+.ai-panel-alert-success { background: var(--chat-success-subtle); color: var(--chat-success-text); border: 1px solid var(--chat-success-subtle); }
+.ai-panel-alert-error { background: var(--chat-error-subtle); color: var(--chat-error-text); border: 1px solid var(--chat-error-subtle); }
 
 /* Panel Stats */
 .ai-panel-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
@@ -1131,12 +1179,12 @@ textarea.ai-panel-form-control { resize: vertical; min-height: 80px; }
 
 /* Panel Badges */
 .ai-panel-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
-.ai-panel-badge-active { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
-.ai-panel-badge-inactive { background: rgba(248, 113, 113, 0.15); color: #f87171; }
-.ai-panel-badge-admin { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-.ai-panel-badge-editor { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
-.ai-panel-badge-viewer { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
-.ai-panel-badge-owner { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.ai-panel-badge-active { background: var(--chat-success-subtle); color: var(--chat-success-text); }
+.ai-panel-badge-inactive { background: var(--chat-error-subtle); color: var(--chat-error-text); }
+.ai-panel-badge-admin { background: var(--chat-badge-admin-bg); color: var(--chat-badge-admin); }
+.ai-panel-badge-editor { background: var(--chat-badge-editor-bg); color: var(--chat-badge-editor); }
+.ai-panel-badge-viewer { background: var(--chat-badge-viewer-bg); color: var(--chat-badge-viewer); }
+.ai-panel-badge-owner { background: var(--chat-badge-owner-bg); color: var(--chat-badge-owner); }
 
 /* Panel Card */
 .ai-panel-card { background: var(--chat-surface); border-radius: var(--chat-radius-xs); padding: 1.25rem; margin-bottom: 1rem; }
@@ -1147,7 +1195,7 @@ textarea.ai-panel-form-control { resize: vertical; min-height: 80px; }
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
+    background: var(--chat-overlay-bg);
     z-index: 200;
     align-items: center;
     justify-content: center;
@@ -1162,7 +1210,7 @@ textarea.ai-panel-form-control { resize: vertical; min-height: 80px; }
     padding: 1.5rem;
     width: 100%;
     max-width: 520px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    box-shadow: var(--chat-shadow-lg);
 }
 
 .ai-panel-modal h3 { color: var(--chat-text); font-size: 1.05rem; margin: 0 0 1.25rem; }

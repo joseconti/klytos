@@ -203,6 +203,26 @@ class CronManager
             ],
         ];
 
+        $coreTasks[] = [
+            'id'       => 'integrity_check',
+            'callback' => function (): void {
+                $checker = App::getInstance()->getIntegrityChecker();
+                $result  = $checker->verifyBatch();
+
+                // If the batch did not complete, reschedule in 5 minutes.
+                if ( !$result['completed'] ) {
+                    // Re-run will continue where it left off.
+                    klytos_schedule_single_action(
+                        time() + 300,
+                        'cron.integrity_check_continue',
+                        [],
+                        'integrity'
+                    );
+                }
+            },
+            'interval' => 'daily',
+        ];
+
         // Allow plugins to register their own cron tasks.
         // Each task must have: id (string), callback (callable), interval (string).
         $allTasks = klytos_apply_filters('cron.tasks', $coreTasks);

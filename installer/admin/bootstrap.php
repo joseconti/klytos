@@ -185,3 +185,19 @@ if ( $currentScript !== 'login.php' && $currentScript !== 'logout.php' && $curre
         exit;
     }
 }
+
+// ─── Setup wizard redirect (first-login only) ──────────────
+// Fresh installations set 'setup_completed' => false in config.
+// Existing/upgraded installs don't have this key, so they skip the wizard.
+if ( $currentScript !== 'setup-wizard.php'
+    && $currentScript !== 'login.php'
+    && $currentScript !== 'logout.php'
+    && $currentScript !== 'reset-password.php'
+) {
+    $klytosConfig = $app->getConfig();
+    if ( isset( $klytosConfig['setup_completed'] ) && $klytosConfig['setup_completed'] === false ) {
+        $wizardUrl = dirname( $_SERVER['SCRIPT_NAME'] ) . '/setup-wizard.php';
+        header( 'Location: ' . $wizardUrl );
+        exit;
+    }
+}

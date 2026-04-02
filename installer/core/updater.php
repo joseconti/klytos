@@ -482,23 +482,63 @@ class Updater
         }
 
         // ── 7. Apply update (copy files) ──────────────────────────
+        // Strategy: copy EVERYTHING from the package EXCEPT protected
+        // directories that contain user data. This ensures any new file
+        // or directory added in a future release gets deployed automatically.
         // Copy VERSION last so a failed update still reports the old version.
-        try {
-            $allowedDirs = [ 'core', 'admin', 'templates' ];
-            foreach ( $allowedDirs as $dir ) {
-                $src = $extractRoot . '/' . $dir;
-                if ( is_dir( $src ) ) {
-                    $this->copyDir( $src, $this->rootPath . '/' . $dir );
-                }
-            }
+        //
+        // Protected directories (NEVER overwritten by updates):
+        //   config/    — encryption keys, credentials, site config
+        //   data/      — pages, users, encrypted content
+        //   plugins/   — third-party and custom plugins
+        //   backups/   — backup archives
+        //   storage/   — runtime storage
+        //   custom-templates/ — user-created templates
+        //   public/assets/images/  — uploaded images
+        //   public/assets/uploads/ — uploaded files
+        $protectedDirs = [
+            'config',
+            'data',
+            'plugins',
+            'backups',
+            'storage',
+            'custom-templates',
+            'public/assets/images',
+            'public/assets/uploads',
+        ];
 
-            // Individual files (except VERSION).
-            $allowedFiles = [ 'index.php', '.htaccess', 'install.php' ];
-            foreach ( $allowedFiles as $file ) {
-                $src = $extractRoot . '/' . $file;
-                if ( file_exists( $src ) ) {
-                    if ( ! copy( $src, $this->rootPath . '/' . $file ) ) {
-                        throw new \RuntimeException( 'Failed to copy: ' . $file );
+        try {
+            // 7a. Sync directories: clean-replace everything except protected.
+            $extractEntries = array_diff( scandir( $extractRoot ), [ '.', '..', 'VERSION' ] );
+
+            foreach ( $extractEntries as $entry ) {
+                $src  = $extractRoot . '/' . $entry;
+                $dest = $this->rootPath . '/' . $entry;
+
+                if ( is_dir( $src ) ) {
+                    // Skip protected directories entirely.
+                    if ( in_array( $entry, $protectedDirs, true ) ) {
+                        continue;
+                    }
+
+                    // For 'public', we need to go one level deeper to protect
+                    // subdirectories like public/assets/images while replacing
+                    // public/js, public/css, etc.
+                    if ( $entry === 'public' ) {
+                        $this->syncPublicDir( $src, $dest, $protectedDirs );
+                        continue;
+                    }
+
+                    // Clean replace: remove old directory, copy new.
+                    if ( is_dir( $dest ) ) {
+                        $this->removeDir( $dest );
+                    }
+                    $this->copyDir( $src, $dest );
+                } elseif ( is_file( $src ) ) {
+                    // Root-level files (index.php, cli.php, .htaccess, etc.)
+                    // VERSION is handled separately in step 9.
+                    if ( ! copy( $src, $dest ) ) {
+                        throw new \RuntimeException( 'Failed to copy: ' . $entry );
                     }
                 }
             }
@@ -1184,6 +1224,75 @@ class Updater
         $fromMajor = (int) explode( '.', $from )[0];
         $toMajor   = (int) explode( '.', $to )[0];
         return $toMajor > $fromMajor;
+    }
+
+    /**
+     * Sync the public/ directory, protecting user-uploaded content.
+     *
+     * Iterates over the entries in the new public/ directory. For each entry:
+     * - If it matches a protected path (e.g. assets/images), skip it.
+     * - Otherwise, clean-replace the subdirectory or copy the file.
+     *
+     * @param string $src           Source public/ directory from the update package.
+     * @param string $dest          Destination public/ directory on the live site.
+     * @param array  $protectedDirs List of protected paths (relative to root, e.g. 'public/assets/images').
+     */
+    private function syncPublicDir( string $src, string $dest, array $protectedDirs ): void
+    {
+        if ( ! is_dir( $dest ) ) {
+            mkdir( $dest, 0755, true );
+        }
+
+        $entries = array_diff( scandir( $src ), [ '.', '..' ] );
+
+        foreach ( $entries as $entry ) {
+            $srcPath  = $src . '/' . $entry;
+            $destPath = $dest . '/' . $entry;
+
+            if ( is_dir( $srcPath ) ) {
+                // Check if any protected path starts with public/{entry}.
+                $isProtected = false;
+                $relativePath = 'public/' . $entry;
+
+                foreach ( $protectedDirs as $protected ) {
+                    if ( $relativePath === $protected ) {
+                        $isProtected = true;
+                        break;
+                    }
+                }
+
+                if ( $isProtected ) {
+                    continue;
+                }
+
+                // For nested dirs like public/assets, check children.
+                $hasProtectedChildren = false;
+                foreach ( $protectedDirs as $protected ) {
+                    if ( str_starts_with( $protected, $relativePath . '/' ) ) {
+                        $hasProtectedChildren = true;
+                        break;
+                    }
+                }
+
+                if ( $hasProtectedChildren ) {
+                    // Recurse one level deeper to handle mixed dirs like assets/.
+                    $this->syncPublicDir( $srcPath, $destPath, array_map(
+                        fn( string $p ) => str_starts_with( $p, $relativePath . '/' )
+                            ? substr( $p, strlen( $relativePath . '/' ) )
+                            : $p,
+                        $protectedDirs
+                    ) );
+                } else {
+                    // Safe to clean-replace entirely.
+                    if ( is_dir( $destPath ) ) {
+                        $this->removeDir( $destPath );
+                    }
+                    $this->copyDir( $srcPath, $destPath );
+                }
+            } elseif ( is_file( $srcPath ) ) {
+                copy( $srcPath, $destPath );
+            }
+        }
     }
 
     /**

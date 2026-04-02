@@ -127,6 +127,119 @@ if (
     exit;
 }
 
+// ─── Installer Translations ─────────────────────────────────
+$installTranslations = [
+    'en' => [
+        'page_title'         => 'Klytos — Installation',
+        'subtitle'           => 'AI-Powered CMS Installation',
+        'step_requirements'  => '1. Requirements',
+        'step_setup'         => '2. Setup',
+        'req_title'          => 'Requirements Check',
+        'req_php'            => 'PHP 8.1+',
+        'req_php_current'    => 'current',
+        'req_extensions'     => 'Required extensions',
+        'req_missing'        => 'Missing',
+        'req_writable'       => 'writable',
+        'req_continue'       => 'Continue to Setup',
+        'req_fix'            => 'Please fix the issues above before continuing.',
+        'cfg_title'          => 'Site Configuration',
+        'cfg_site_name'      => 'Site Name',
+        'cfg_language'       => 'Admin Panel Language',
+        'cfg_username'       => 'Admin Username',
+        'cfg_password'       => 'Password (min 12 characters)',
+        'cfg_password_confirm' => 'Confirm Password',
+        'cfg_email'          => 'Admin Email',
+        'cfg_design'         => 'Design',
+        'cfg_appearance'     => 'Admin Panel Appearance',
+        'cfg_dark'           => '&#9790; Dark Mode',
+        'cfg_light'          => '&#9788; Light Mode',
+        'cfg_storage'        => 'Data Storage',
+        'cfg_storage_mode'   => 'Storage Mode',
+        'cfg_flat_file'      => 'Flat File',
+        'cfg_mysql'          => 'MySQL / MariaDB',
+        'cfg_flat_title'     => 'Flat File',
+        'cfg_flat_1'         => 'No database required — simpler setup',
+        'cfg_flat_2'         => 'Easy to backup (just copy files)',
+        'cfg_flat_3'         => 'Ideal for small sites with few pages',
+        'cfg_flat_4'         => 'Not suited for large amounts of content',
+        'cfg_mysql_title'    => 'MySQL / MariaDB',
+        'cfg_mysql_1'        => 'Better performance with many pages',
+        'cfg_mysql_2'        => 'Supports news posts, custom post types, etc.',
+        'cfg_mysql_3'        => 'Advanced search and filtering capabilities',
+        'cfg_mysql_4'        => 'Requires a MySQL or MariaDB server',
+        'cfg_change_later'   => 'You can change this later in Settings.',
+        'cfg_db_host'        => 'Database Host',
+        'cfg_db_port'        => 'Port',
+        'cfg_db_name'        => 'Database Name',
+        'cfg_db_user'        => 'Database User',
+        'cfg_db_pass'        => 'Database Password',
+        'cfg_db_prefix'      => 'Table Prefix',
+        'cfg_db_prefix_help' => 'Only letters, numbers and underscores. Default: kly_',
+        'cfg_db_test'        => 'Test Connection',
+        'cfg_db_testing'     => 'Testing...',
+        'cfg_db_net_error'   => 'Network error. Check your connection.',
+        'cfg_install'        => 'Install Klytos',
+    ],
+    'es' => [
+        'page_title'         => 'Klytos — Instalación',
+        'subtitle'           => 'Instalación del CMS impulsado por IA',
+        'step_requirements'  => '1. Requisitos',
+        'step_setup'         => '2. Configuración',
+        'req_title'          => 'Comprobación de Requisitos',
+        'req_php'            => 'PHP 8.1+',
+        'req_php_current'    => 'actual',
+        'req_extensions'     => 'Extensiones requeridas',
+        'req_missing'        => 'Faltan',
+        'req_writable'       => 'escritura',
+        'req_continue'       => 'Continuar con la Configuración',
+        'req_fix'            => 'Por favor, soluciona los problemas anteriores antes de continuar.',
+        'cfg_title'          => 'Configuración del Sitio',
+        'cfg_site_name'      => 'Nombre del Sitio',
+        'cfg_language'       => 'Idioma del Panel de Administración',
+        'cfg_username'       => 'Usuario Administrador',
+        'cfg_password'       => 'Contraseña (mínimo 12 caracteres)',
+        'cfg_password_confirm' => 'Confirmar Contraseña',
+        'cfg_email'          => 'Email del Administrador',
+        'cfg_design'         => 'Diseño',
+        'cfg_appearance'     => 'Apariencia del Panel',
+        'cfg_dark'           => '&#9790; Modo Oscuro',
+        'cfg_light'          => '&#9788; Modo Claro',
+        'cfg_storage'        => 'Almacenamiento de Datos',
+        'cfg_storage_mode'   => 'Modo de Almacenamiento',
+        'cfg_flat_file'      => 'Archivos',
+        'cfg_mysql'          => 'MySQL / MariaDB',
+        'cfg_flat_title'     => 'Archivos',
+        'cfg_flat_1'         => 'Sin base de datos — configuración más sencilla',
+        'cfg_flat_2'         => 'Fácil de respaldar (solo copiar archivos)',
+        'cfg_flat_3'         => 'Ideal para sitios pequeños con pocas páginas',
+        'cfg_flat_4'         => 'No apto para grandes cantidades de contenido',
+        'cfg_mysql_title'    => 'MySQL / MariaDB',
+        'cfg_mysql_1'        => 'Mejor rendimiento con muchas páginas',
+        'cfg_mysql_2'        => 'Soporta noticias, tipos de contenido personalizados, etc.',
+        'cfg_mysql_3'        => 'Capacidades avanzadas de búsqueda y filtrado',
+        'cfg_mysql_4'        => 'Requiere un servidor MySQL o MariaDB',
+        'cfg_change_later'   => 'Puedes cambiar esto más tarde en Ajustes.',
+        'cfg_db_host'        => 'Host de la Base de Datos',
+        'cfg_db_port'        => 'Puerto',
+        'cfg_db_name'        => 'Nombre de la Base de Datos',
+        'cfg_db_user'        => 'Usuario de la Base de Datos',
+        'cfg_db_pass'        => 'Contraseña de la Base de Datos',
+        'cfg_db_prefix'      => 'Prefijo de Tablas',
+        'cfg_db_prefix_help' => 'Solo letras, números y guiones bajos. Por defecto: kly_',
+        'cfg_db_test'        => 'Probar Conexión',
+        'cfg_db_testing'     => 'Probando...',
+        'cfg_db_net_error'   => 'Error de red. Comprueba tu conexión.',
+        'cfg_install'        => 'Instalar Klytos',
+    ],
+];
+
+// Detect language from GET (passed by installer.php) or POST (form resubmission).
+$installLang = $_POST['admin_language'] ?? $_GET['lang'] ?? 'en';
+if (!array_key_exists($installLang, $installTranslations)) {
+    $installLang = 'en';
+}
+$t = $installTranslations[$installLang];
+
 // ─── Determine Current Step ───────────────────────────────────
 $step    = $_POST['step'] ?? $_GET['step'] ?? 'requirements';
 $error   = '';
@@ -141,17 +254,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $step = 'config'; // Show config form if validation fails.
 
         // ── Collect form data ──
-        $siteName      = trim($_POST['site_name'] ?? '');
-        $adminUser     = trim($_POST['admin_user'] ?? '');
-        $adminPass     = $_POST['admin_pass'] ?? '';
-        $adminPass2    = $_POST['admin_pass_confirm'] ?? '';
-        $adminEmail    = trim($_POST['admin_email'] ?? '');
-        $adminLang     = $_POST['admin_language'] ?? 'en';
-        $description   = trim($_POST['description'] ?? '');
-        $colorPreset   = $_POST['color_preset'] ?? 'blue';
-        $editorChoice  = $_POST['editor'] ?? 'gutenberg';
-        $storageDriver = $_POST['storage_driver'] ?? 'file';
-        $adminDirName  = trim($_POST['admin_dir_name'] ?? '');
+        $siteName         = trim($_POST['site_name'] ?? '');
+        $adminUser        = trim($_POST['admin_user'] ?? '');
+        $adminPass        = $_POST['admin_pass'] ?? '';
+        $adminPass2       = $_POST['admin_pass_confirm'] ?? '';
+        $adminEmail       = trim($_POST['admin_email'] ?? '');
+        $adminLang        = $_POST['admin_language'] ?? 'en';
+        $designPreference = $_POST['design_preference'] ?? 'dark';
+        $storageDriver    = $_POST['storage_driver'] ?? 'file';
+
+        // Derived defaults (configurable later from admin panel).
+        $description  = '';
+        $colorPreset  = $designPreference === 'dark' ? 'dark' : 'blue';
+        $editorChoice = 'gutenberg';
+        $adminDirName = ''; // Auto-generated below.
 
         // Database fields (only relevant if storage_driver === 'database').
         $dbHost   = trim($_POST['db_host'] ?? 'localhost');
@@ -179,14 +295,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'A valid email address is required.';
         }
 
-        // Generate or validate admin directory name (secret URL).
-        // If empty, auto-generate a random name for maximum security.
-        if (empty($adminDirName)) {
-            $adminDirName = bin2hex(random_bytes(6)) . '-admin'; // e.g. 'a3f7b2c1e9d4-admin'
-        }
-        if (!preg_match('/^[a-zA-Z0-9_\-]{4,64}$/', $adminDirName)) {
-            $errors[] = 'Admin directory name: 4-64 characters, letters, numbers, hyphens, underscores only.';
-        }
+        // Auto-generate admin directory name (secret URL) for maximum security.
+        $adminDirName = bin2hex(random_bytes(6)) . '-admin'; // e.g. 'a3f7b2c1e9d4-admin'
 
         // Validate database fields if MySQL storage is selected.
         if ($storageDriver === 'database') {
@@ -257,10 +367,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'mcp_secret'     => $mcpSecret,
                     'storage_driver' => $storageDriver,
                     'admin_dir'      => $adminDirName,
-                    'installed_at'   => Helpers::now(),
-                    'version'        => KLYTOS_VERSION,
-                    'update_channel' => 'stable',
-                    'timezone'       => 'Europe/Madrid',
+                    'installed_at'       => Helpers::now(),
+                    'version'            => KLYTOS_VERSION,
+                    'update_channel'     => 'stable',
+                    'timezone'           => 'Europe/Madrid',
+                    'design_preference'  => $designPreference,
+                    'setup_completed'    => false,
                 ];
                 $storage->writeTo($rootPath . '/config', 'config.json.enc', $config);
 
@@ -274,6 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'logo_url'         => '',
                     'indexing_enabled' => false,
                     'editor'           => $editorChoice,
+                    'admin_theme'      => $designPreference,
                     'social'           => [],
                     'analytics'        => [],
                     'seo'              => [],
@@ -657,11 +770,11 @@ function getColorPreset(string $name): array
 // ─── HTML Output ──────────────────────────────────────────────
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo klytos_esc_attr( substr( $installLang, 0, 2 ) ); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klytos — Installation</title>
+    <title><?php echo klytos_esc_html( $t['page_title'] ); ?></title>
     <style>
         *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -735,10 +848,6 @@ function getColorPreset(string $name): array
         .check-list li { padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; color: #94a3b8; }
         .check-ok { color: #34d399; font-weight: bold; }
         .check-fail { color: #f87171; font-weight: bold; }
-        .color-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
-        .color-preset { width: 100%; aspect-ratio: 1; border-radius: 0.5rem; border: 3px solid transparent; cursor: pointer; transition: all 0.2s; }
-        .color-preset.selected, .color-preset:hover { border-color: #a5b4fc; box-shadow: 0 0 12px rgba(99,102,241,0.3); }
-        .color-preset input { display: none; }
         .token-box {
             background: #0f172a; border: 1px solid #334155; border-radius: 0.5rem;
             padding: 1rem; font-family: monospace; font-size: 0.85rem;
@@ -795,14 +904,13 @@ function getColorPreset(string $name): array
     <div class="logo">
         <div class="logo-mark"><img src="admin/assets/images/klytos-logo-120.png" alt="Klytos"></div>
         <h1>Klytos</h1>
-        <p>AI-Powered CMS Installation</p>
+        <p><?php echo klytos_esc_html( $t['subtitle'] ); ?></p>
     </div>
 
-    <!-- Step indicators (3 steps: Requirements → Setup → Done) -->
+    <!-- Step indicators (2 steps: Requirements → Setup) -->
     <div class="steps">
-        <div class="step <?php echo $step === 'requirements' ? 'active' : ($step !== 'requirements' ? 'done' : ''); ?>">1. Requirements</div>
-        <div class="step <?php echo $step === 'config' || $step === 'install' ? 'active' : ($step === 'complete' ? 'done' : ''); ?>">2. Setup</div>
-        <div class="step <?php echo $step === 'complete' ? 'active' : ''; ?>">3. Done</div>
+        <div class="step <?php echo $step === 'requirements' ? 'active' : ($step !== 'requirements' ? 'done' : ''); ?>"><?php echo $t['step_requirements']; ?></div>
+        <div class="step <?php echo $step === 'config' || $step === 'install' ? 'active' : ''; ?>"><?php echo $t['step_setup']; ?></div>
     </div>
 
     <?php if (!empty($error)): ?>
@@ -812,21 +920,21 @@ function getColorPreset(string $name): array
     <!-- ─── Step 1: Requirements ─── -->
     <?php if ($step === 'requirements'): ?>
     <div class="card">
-        <h2>Requirements Check</h2>
+        <h2><?php echo $t['req_title']; ?></h2>
         <ul class="check-list">
             <li>
                 <span class="<?php echo $requirements['php_version']['ok'] ? 'check-ok' : 'check-fail'; ?>">
                     <?php echo $requirements['php_version']['ok'] ? '&#10003;' : '&#10007;'; ?>
                 </span>
-                PHP 8.1+ (current: <?php echo $requirements['php_version']['current']; ?>)
+                <?php echo $t['req_php']; ?> (<?php echo $t['req_php_current']; ?>: <?php echo $requirements['php_version']['current']; ?>)
             </li>
             <li>
                 <span class="<?php echo $requirements['extensions']['ok'] ? 'check-ok' : 'check-fail'; ?>">
                     <?php echo $requirements['extensions']['ok'] ? '&#10003;' : '&#10007;'; ?>
                 </span>
-                Required extensions
+                <?php echo $t['req_extensions']; ?>
                 <?php if (!$requirements['extensions']['ok']): ?>
-                    — Missing: <?php echo implode(', ', $requirements['extensions']['missing']); ?>
+                    — <?php echo $t['req_missing']; ?>: <?php echo implode(', ', $requirements['extensions']['missing']); ?>
                 <?php endif; ?>
             </li>
             <?php foreach ($requirements['directories'] as $dir => $writable): ?>
@@ -834,7 +942,7 @@ function getColorPreset(string $name): array
                 <span class="<?php echo $writable ? 'check-ok' : 'check-fail'; ?>">
                     <?php echo $writable ? '[OK]' : '[FAIL]'; ?>
                 </span>
-                <?php echo $dir; ?>/ writable
+                <?php echo $dir; ?>/ <?php echo $t['req_writable']; ?>
             </li>
             <?php endforeach; ?>
         </ul>
@@ -842,11 +950,12 @@ function getColorPreset(string $name): array
         <?php if ($requirements['all_ok']): ?>
             <form method="get" style="margin-top: 1.5rem;">
                 <input type="hidden" name="step" value="config">
-                <button type="submit" class="btn btn-block">Continue to Setup</button>
+                <input type="hidden" name="lang" value="<?php echo klytos_esc_attr( $installLang ); ?>">
+                <button type="submit" class="btn btn-block"><?php echo $t['req_continue']; ?></button>
             </form>
         <?php else: ?>
             <div class="alert alert-error" style="margin-top: 1rem;">
-                Please fix the issues above before continuing.
+                <?php echo $t['req_fix']; ?>
             </div>
         <?php endif; ?>
     </div>
@@ -854,200 +963,133 @@ function getColorPreset(string $name): array
     <!-- ─── Step 2: Configuration ─── -->
     <?php elseif ($step === 'config'): ?>
     <div class="card">
-        <h2>Site Configuration</h2>
+        <h2><?php echo $t['cfg_title']; ?></h2>
         <form method="post" id="configForm">
             <input type="hidden" name="step" value="install">
 
             <!-- Site name -->
             <div class="form-group">
-                <label for="site_name">Site Name</label>
+                <label for="site_name"><?php echo $t['cfg_site_name']; ?></label>
                 <input type="text" id="site_name" name="site_name" placeholder="My Website"
                        required value="<?php echo klytos_esc_attr( $_POST['site_name'] ?? '' ); ?>">
             </div>
 
-            <!-- Site description -->
+            <!-- Language selection (pre-populated from installer.php ?lang= or POST) -->
+            <?php $selectedLang = $_POST['admin_language'] ?? $_GET['lang'] ?? 'en'; ?>
             <div class="form-group">
-                <label for="description">Site Description</label>
-                <textarea id="description" name="description"
-                          placeholder="Brief description of your site..."><?php echo klytos_esc_html( $_POST['description'] ?? '' ); ?></textarea>
-            </div>
-
-            <!-- Language selection (with correct orthography) -->
-            <div class="form-group">
-                <label for="admin_language">Admin Panel Language</label>
+                <label for="admin_language"><?php echo $t['cfg_language']; ?></label>
                 <select id="admin_language" name="admin_language">
-                    <option value="es" <?php echo ($_POST['admin_language'] ?? '') === 'es' ? 'selected' : ''; ?>>Español</option>
-                    <option value="en" <?php echo ($_POST['admin_language'] ?? 'en') === 'en' ? 'selected' : ''; ?>>English</option>
-                    <option value="ca">Català</option>
-                    <option value="fr">Français</option>
-                    <option value="de">Deutsch</option>
-                    <option value="pt">Português</option>
-                    <option value="it">Italiano</option>
+                    <option value="es" <?php echo $selectedLang === 'es' ? 'selected' : ''; ?>>Español</option>
+                    <option value="en" <?php echo $selectedLang === 'en' ? 'selected' : ''; ?>>English</option>
+                    <option value="ca" <?php echo $selectedLang === 'ca' ? 'selected' : ''; ?>>Català</option>
+                    <option value="fr" <?php echo $selectedLang === 'fr' ? 'selected' : ''; ?>>Français</option>
+                    <option value="de" <?php echo $selectedLang === 'de' ? 'selected' : ''; ?>>Deutsch</option>
+                    <option value="pt" <?php echo $selectedLang === 'pt' ? 'selected' : ''; ?>>Português</option>
+                    <option value="it" <?php echo $selectedLang === 'it' ? 'selected' : ''; ?>>Italiano</option>
                 </select>
             </div>
 
             <!-- Admin credentials -->
             <div class="form-group">
-                <label for="admin_user">Admin Username</label>
+                <label for="admin_user"><?php echo $t['cfg_username']; ?></label>
                 <input type="text" id="admin_user" name="admin_user" required
                        value="<?php echo klytos_esc_attr( $_POST['admin_user'] ?? '' ); ?>"
                        autocomplete="off">
             </div>
 
             <div class="form-group">
-                <label for="admin_pass">Password (min 12 characters)</label>
+                <label for="admin_pass"><?php echo $t['cfg_password']; ?></label>
                 <input type="password" id="admin_pass" name="admin_pass"
                        required minlength="12" autocomplete="new-password"
                        data-klytos-pwgen data-klytos-pwgen-confirm="#admin_pass_confirm">
             </div>
 
             <div class="form-group">
-                <label for="admin_pass_confirm">Confirm Password</label>
+                <label for="admin_pass_confirm"><?php echo $t['cfg_password_confirm']; ?></label>
                 <input type="password" id="admin_pass_confirm" name="admin_pass_confirm"
                        required autocomplete="new-password">
             </div>
 
             <div class="form-group">
-                <label for="admin_email">Admin Email</label>
+                <label for="admin_email"><?php echo $t['cfg_email']; ?></label>
                 <input type="email" id="admin_email" name="admin_email" required
                        value="<?php echo klytos_esc_attr( $_POST['admin_email'] ?? '' ); ?>">
             </div>
 
-            <!-- Color palette -->
-            <div class="form-group">
-                <label>Color Palette</label>
-                <div class="color-presets">
-                    <label class="color-preset selected" style="background: linear-gradient(135deg, #2563eb, #7c3aed);" title="Blue">
-                        <input type="radio" name="color_preset" value="blue" checked>
-                    </label>
-                    <label class="color-preset" style="background: linear-gradient(135deg, #16a34a, #0d9488);" title="Green">
-                        <input type="radio" name="color_preset" value="green">
-                    </label>
-                    <label class="color-preset" style="background: linear-gradient(135deg, #7c3aed, #a855f7);" title="Purple">
-                        <input type="radio" name="color_preset" value="purple">
-                    </label>
-                    <label class="color-preset" style="background: linear-gradient(135deg, #0f172a, #334155);" title="Dark">
-                        <input type="radio" name="color_preset" value="dark">
-                    </label>
-                    <label class="color-preset" style="background: linear-gradient(135deg, #dc2626, #ea580c);" title="Warm">
-                        <input type="radio" name="color_preset" value="warm">
-                    </label>
-                </div>
-            </div>
-
-            <!-- ── Content Editor ── -->
-            <h3>Content Editor</h3>
+            <!-- ── Design Preference ── -->
+            <h3><?php echo $t['cfg_design']; ?></h3>
 
             <div class="form-group">
-                <label>Choose your page editor</label>
+                <label><?php echo $t['cfg_appearance']; ?></label>
                 <div class="storage-toggle">
                     <label>
-                        <input type="radio" name="editor" value="gutenberg"
-                               <?php echo ($_POST['editor'] ?? 'gutenberg') === 'gutenberg' ? 'checked' : ''; ?>
-                               id="editor_gutenberg">
-                        <span>Gutenberg</span>
+                        <input type="radio" name="design_preference" value="dark"
+                               <?php echo ($_POST['design_preference'] ?? 'dark') === 'dark' ? 'checked' : ''; ?>
+                               id="design_dark">
+                        <span><?php echo $t['cfg_dark']; ?></span>
                     </label>
                     <label>
-                        <input type="radio" name="editor" value="tinymce"
-                               <?php echo ($_POST['editor'] ?? '') === 'tinymce' ? 'checked' : ''; ?>
-                               id="editor_tinymce">
-                        <span>TinyMCE</span>
+                        <input type="radio" name="design_preference" value="light"
+                               <?php echo ($_POST['design_preference'] ?? '') === 'light' ? 'checked' : ''; ?>
+                               id="design_light">
+                        <span><?php echo $t['cfg_light']; ?></span>
                     </label>
-                </div>
-            </div>
-
-            <div id="editorInfo" class="info-grid">
-                <div class="info-box">
-                    <strong>Gutenberg (Block Editor)</strong>
-                    <ul>
-                        <li>Visual drag-and-drop blocks</li>
-                        <li>Rich layout options (columns, media, buttons...)</li>
-                        <li>Structured content — ideal for AI-generated pages</li>
-                        <li>Heavier interface — loads more resources</li>
-                    </ul>
-                </div>
-                <div class="info-box alt">
-                    <strong>TinyMCE (Classic Editor)</strong>
-                    <ul>
-                        <li>Familiar word-processor interface</li>
-                        <li>Lightweight and fast</li>
-                        <li>Simple HTML output — easy to style</li>
-                        <li>No block structure — less layout control</li>
-                    </ul>
-                </div>
-            </div>
-            <p class="small">You can change this later in Settings.</p>
-
-            <!-- ── Security: Admin Directory Name ── -->
-            <h3>Security</h3>
-
-            <div class="form-group">
-                <label for="admin_dir_name">Admin Panel Directory Name</label>
-                <input type="text" id="admin_dir_name" name="admin_dir_name" class="form-control"
-                       value="<?php echo klytos_esc_attr( $_POST['admin_dir_name'] ?? '' ); ?>"
-                       placeholder="Leave empty for auto-generated random name"
-                       pattern="[a-zA-Z0-9_\-]{4,64}">
-                <div class="form-help">
-                    <strong>Important:</strong> This is the secret URL for your admin panel.
-                    Leave empty to auto-generate a random name (recommended for maximum security).
-                    Example: <code>my-secret-panel</code> → your admin will be at <code>yourdomain.com/my-secret-panel/</code>.
-                    Nobody can discover your admin without knowing this name.
                 </div>
             </div>
 
             <!-- ── Storage Driver Selection ── -->
-            <h3>Data Storage</h3>
+            <h3><?php echo $t['cfg_storage']; ?></h3>
 
             <div class="form-group">
-                <label>Storage Mode</label>
+                <label><?php echo $t['cfg_storage_mode']; ?></label>
                 <div class="storage-toggle">
                     <label>
                         <input type="radio" name="storage_driver" value="file"
                                <?php echo ($_POST['storage_driver'] ?? 'file') === 'file' ? 'checked' : ''; ?>
                                id="storage_file">
-                        <span>Flat File</span>
+                        <span><?php echo $t['cfg_flat_file']; ?></span>
                     </label>
                     <label>
                         <input type="radio" name="storage_driver" value="database"
                                <?php echo ($_POST['storage_driver'] ?? '') === 'database' ? 'checked' : ''; ?>
                                id="storage_database">
-                        <span>MySQL / MariaDB</span>
+                        <span><?php echo $t['cfg_mysql']; ?></span>
                     </label>
                 </div>
             </div>
 
             <div id="storageInfo" class="info-grid">
                 <div class="info-box">
-                    <strong>Flat File</strong>
+                    <strong><?php echo $t['cfg_flat_title']; ?></strong>
                     <ul>
-                        <li>No database required — simpler setup</li>
-                        <li>Easy to backup (just copy files)</li>
-                        <li>Ideal for small sites with few pages</li>
-                        <li>Not suited for large amounts of content</li>
+                        <li><?php echo $t['cfg_flat_1']; ?></li>
+                        <li><?php echo $t['cfg_flat_2']; ?></li>
+                        <li><?php echo $t['cfg_flat_3']; ?></li>
+                        <li><?php echo $t['cfg_flat_4']; ?></li>
                     </ul>
                 </div>
                 <div class="info-box alt">
-                    <strong>MySQL / MariaDB</strong>
+                    <strong><?php echo $t['cfg_mysql_title']; ?></strong>
                     <ul>
-                        <li>Better performance with many pages</li>
-                        <li>Supports news posts, custom post types, etc.</li>
-                        <li>Advanced search and filtering capabilities</li>
-                        <li>Requires a MySQL or MariaDB server</li>
+                        <li><?php echo $t['cfg_mysql_1']; ?></li>
+                        <li><?php echo $t['cfg_mysql_2']; ?></li>
+                        <li><?php echo $t['cfg_mysql_3']; ?></li>
+                        <li><?php echo $t['cfg_mysql_4']; ?></li>
                     </ul>
                 </div>
             </div>
-            <p class="small">You can change this later in Settings.</p>
+            <p class="small"><?php echo $t['cfg_change_later']; ?></p>
 
             <!-- Database connection fields (shown/hidden via JS) -->
             <div class="db-fields" id="dbFields">
                 <div class="inline-row">
                     <div class="form-group">
-                        <label for="db_host">Database Host</label>
+                        <label for="db_host"><?php echo $t['cfg_db_host']; ?></label>
                         <input type="text" id="db_host" name="db_host"
                                value="<?php echo klytos_esc_attr( $_POST['db_host'] ?? 'localhost' ); ?>">
                     </div>
                     <div class="form-group">
-                        <label for="db_port">Port</label>
+                        <label for="db_port"><?php echo $t['cfg_db_port']; ?></label>
                         <input type="number" id="db_port" name="db_port"
                                value="<?php echo klytos_esc_attr( $_POST['db_port'] ?? '3306' ); ?>"
                                min="1" max="65535">
@@ -1055,7 +1097,7 @@ function getColorPreset(string $name): array
                 </div>
 
                 <div class="form-group">
-                    <label for="db_name">Database Name</label>
+                    <label for="db_name"><?php echo $t['cfg_db_name']; ?></label>
                     <input type="text" id="db_name" name="db_name"
                            value="<?php echo klytos_esc_attr( $_POST['db_name'] ?? '' ); ?>"
                            placeholder="klytos_db">
@@ -1063,50 +1105,40 @@ function getColorPreset(string $name): array
 
                 <div class="inline-row">
                     <div class="form-group">
-                        <label for="db_user">Database User</label>
+                        <label for="db_user"><?php echo $t['cfg_db_user']; ?></label>
                         <input type="text" id="db_user" name="db_user"
                                value="<?php echo klytos_esc_attr( $_POST['db_user'] ?? '' ); ?>"
                                autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label for="db_pass">Database Password</label>
+                        <label for="db_pass"><?php echo $t['cfg_db_pass']; ?></label>
                         <input type="password" id="db_pass" name="db_pass"
                                autocomplete="new-password">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="db_prefix">Table Prefix</label>
+                    <label for="db_prefix"><?php echo $t['cfg_db_prefix']; ?></label>
                     <input type="text" id="db_prefix" name="db_prefix"
                            value="<?php echo klytos_esc_attr( $_POST['db_prefix'] ?? 'kly_' ); ?>"
                            pattern="[a-zA-Z0-9_]+">
-                    <p class="small">Only letters, numbers and underscores. Default: kly_</p>
+                    <p class="small"><?php echo $t['cfg_db_prefix_help']; ?></p>
                 </div>
 
                 <!-- Test connection button -->
                 <button type="button" class="btn btn-sm btn-secondary" id="testDbBtn">
-                    Test Connection
+                    <?php echo $t['cfg_db_test']; ?>
                 </button>
                 <div class="db-test-result" id="dbTestResult"></div>
             </div>
 
             <div style="margin-top: 1.5rem;">
-                <button type="submit" class="btn btn-block" id="installBtn">Install Klytos</button>
+                <button type="submit" class="btn btn-block" id="installBtn"><?php echo $t['cfg_install']; ?></button>
             </div>
         </form>
     </div>
 
     <script>
-    // ── Color preset selector ──
-    document.querySelectorAll('.color-preset').forEach(function(el) {
-        el.addEventListener('click', function() {
-            document.querySelectorAll('.color-preset').forEach(function(p) {
-                p.classList.remove('selected');
-            });
-            el.classList.add('selected');
-        });
-    });
-
     // ── Storage driver toggle: show/hide database fields ──
     var dbFields   = document.getElementById('dbFields');
     var radioFile  = document.getElementById('storage_file');
@@ -1130,7 +1162,7 @@ function getColorPreset(string $name): array
         var result = document.getElementById('dbTestResult');
 
         btn.disabled  = true;
-        btn.textContent = 'Testing...';
+        btn.textContent = <?php echo json_encode( $t['cfg_db_testing'] ); ?>;
         result.className = 'db-test-result';
         result.style.display = 'none';
 
@@ -1161,97 +1193,22 @@ function getColorPreset(string $name): array
         .catch(function() {
             result.style.display = 'block';
             result.className = 'db-test-result error';
-            result.textContent = 'Network error. Check your connection.';
+            result.textContent = <?php echo json_encode( $t['cfg_db_net_error'] ); ?>;
         })
         .finally(function() {
             btn.disabled    = false;
-            btn.textContent = 'Test Connection';
+            btn.textContent = <?php echo json_encode( $t['cfg_db_test'] ); ?>;
         });
     });
     </script>
 
-    <!-- ─── Step 4: Complete ─── -->
+    <!-- ─── Step 3: Complete — redirect to login ─── -->
     <?php elseif ($step === 'complete'): ?>
-    <div class="card">
-        <h2>Klytos Installed Successfully</h2>
-
-        <p style="margin-bottom: 1rem; color: #94a3b8;">Your CMS is ready. Save the information below.</p>
-
-        <div class="alert alert-warning">
-            <strong>Important — Save your admin URL!</strong><br>
-            Your admin panel has a secret URL. Bookmark it. There is no public link to it.
-        </div>
-
-        <div class="form-group">
-            <label>Admin Panel (secret URL)</label>
-            <div class="token-box highlight">
-                <a href="<?php echo klytos_esc_url( $adminUrl ); ?>"><?php echo klytos_esc_html( $adminUrl ); ?></a>
-            </div>
-            <p class="small" style="color:#fbbf24;">&#9888; Bookmark this URL. There is no public link to it.</p>
-        </div>
-
-        <div class="form-group">
-            <label>MCP Endpoint</label>
-            <div class="token-box"><?php echo klytos_esc_html( $mcpEndpoint ); ?></div>
-        </div>
-
-        <h3 style="margin-top:1.5rem">MCP Authentication</h3>
-        <p style="font-size:0.9rem;color:#94a3b8;margin-bottom:1rem">
-            Klytos supports <strong style="color:#e2e8f0;">Application Passwords</strong> (Basic Auth) and <strong style="color:#e2e8f0;">OAuth 2.0/2.1</strong> for MCP connections.
-            You can create more Application Passwords or OAuth clients from the admin panel.
-        </p>
-
-        <div class="form-group">
-            <label>Application Password (copy now — will not be shown again)</label>
-            <div class="token-box highlight">
-                <?php echo klytos_esc_html( $appPassword ?? '' ); ?>
-            </div>
-            <p class="small">User: <strong><?php echo klytos_esc_html( $adminUser ); ?></strong> — Use with HTTP Basic Auth.</p>
-        </div>
-
         <?php
-        // Build the Basic Auth header value for the config examples.
-        $basicAuth = base64_encode($adminUser . ':' . ($appPassword ?? ''));
+        // Installation complete. Redirect to admin login for first-time setup wizard.
+        header('Location: ' . $adminUrl . 'login.php');
+        exit;
         ?>
-
-        <div class="form-group">
-            <label>Claude Desktop / Claude Code — MCP Configuration</label>
-            <div class="mcp-config">{
-  "mcpServers": {
-    "klytos": {
-      "url": "<?php echo klytos_esc_html( $mcpEndpoint ?? '' ); ?>",
-      "headers": {
-        "Authorization": "Basic <?php echo klytos_esc_html( $basicAuth ); ?>"
-      }
-    }
-  }
-}</div>
-        </div>
-
-        <div class="form-group">
-            <label>cURL Example</label>
-            <div class="mcp-config">curl -u "<?php echo klytos_esc_html( $adminUser ); ?>:<?php echo klytos_esc_html( $appPassword ?? '' ); ?>" \
-  -X POST <?php echo klytos_esc_html( $mcpEndpoint ?? '' ); ?> \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'</div>
-        </div>
-
-        <div class="alert alert-info" style="margin-top:1rem;">
-            <strong>OAuth 2.0/2.1</strong> is also available for advanced integrations.
-            Create OAuth clients from the admin panel &rarr; MCP section.
-            PKCE (S256) is required for all clients.
-        </div>
-
-        <?php if (($storageDriver ?? 'file') === 'database'): ?>
-        <div class="alert alert-success">
-            MySQL storage active. Tables created with prefix "<?php echo klytos_esc_html( $dbPrefix ?? 'kly_' ); ?>".
-        </div>
-        <?php endif; ?>
-
-        <a href="<?php echo klytos_esc_url( $adminUrl ); ?>" class="btn btn-block" style="text-decoration: none;">
-            Go to Admin Panel
-        </a>
-    </div>
     <?php endif; ?>
 
 </div>

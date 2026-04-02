@@ -205,6 +205,15 @@ $sidebarItems = [
         'capability' => null, // Visible to all authenticated users (each manages their own 2FA).
     ],
     [
+        'id'         => 'system-integrity',
+        'title'      => 'Integrity',
+        'url'        => $adminPath . 'system-integrity.php',
+        'icon'       => 'fa-solid fa-file-shield',
+        'position'   => 78.5,
+        'section'    => 'system',
+        'capability' => 'site.configure',
+    ],
+    [
         'id'         => 'logs',
         'title'      => __( 'logs.title' ),
         'url'        => $adminPath . 'logs.php',
