@@ -37,7 +37,8 @@
     "required": "Required",
     "optional": "Optional",
     "view": "View",
-    "all": "All"
+    "all": "All",
+    "no_results": "No results"
   },
   "auth": {
     "login": "Log in",

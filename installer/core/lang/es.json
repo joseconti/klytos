@@ -37,7 +37,8 @@
     "required": "Obligatorio",
     "optional": "Opcional",
     "view": "Ver",
-    "all": "Todos"
+    "all": "Todos",
+    "no_results": "Sin resultados"
   },
   "auth": {
     "login": "Iniciar sesión",
