@@ -140,31 +140,31 @@ if ($show2fa) {
     <title><?php echo __( 'auth.login' ); ?> — Klytos</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .login-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2.5rem; width: 100%; max-width: 400px; margin: 1rem; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card { background: #1e293b; border-radius: 1rem; box-shadow: 0 25px 60px rgba(0,0,0,0.4); border: 1px solid #334155; padding: 2.5rem; width: 100%; max-width: 400px; margin: 1rem; }
         .logo { text-align: center; margin-bottom: 2rem; }
-        .logo h1 { font-size: 1.8rem; color: #2563eb; font-weight: 700; }
+        .logo h1 { font-size: 1.8rem; color: #f8fafc; font-weight: 700; }
         .form-group { margin-bottom: 1.25rem; }
-        label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
-        input { width: 100%; padding: 0.7rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; }
-        input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        .btn { width: 100%; padding: 0.75rem; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
-        .btn:hover { background: #1d4ed8; }
+        label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; color: #e2e8f0; }
+        input { width: 100%; padding: 0.7rem; border: 1px solid #334155; border-radius: 8px; font-size: 0.95rem; background: #0f172a; color: #e2e8f0; }
+        input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+        .btn { width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.25s; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.4); }
         .alert { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; }
-        .alert-error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-        .alert-info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .alert-error { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .alert-info { background: rgba(99,102,241,0.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
         .method-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-        .method-tab { flex: 1; min-width: 80px; padding: 0.5rem; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; text-align: center; font-size: 0.8rem; font-weight: 600; color: #64748b; transition: all 0.2s; }
-        .method-tab:hover { border-color: #2563eb; color: #2563eb; }
-        .method-tab.active { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
+        .method-tab { flex: 1; min-width: 80px; padding: 0.5rem; border: 2px solid #334155; border-radius: 8px; background: transparent; cursor: pointer; text-align: center; font-size: 0.8rem; font-weight: 600; color: #94a3b8; transition: all 0.2s; }
+        .method-tab:hover { border-color: #6366f1; color: #a5b4fc; }
+        .method-tab.active { border-color: #6366f1; background: rgba(99,102,241,0.15); color: #a5b4fc; }
         .method-panel { display: none; }
         .method-panel.active { display: block; }
-        .link-cancel { display: block; text-align: center; margin-top: 1rem; color: #64748b; text-decoration: none; font-size: 0.85rem; }
-        .link-cancel:hover { color: #2563eb; }
-        .link-emergency { background: none; border: none; color: #64748b; font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 0; width: 100%; text-align: center; }
-        .link-emergency:hover { color: #dc2626; }
-        .tfa-subtitle { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem; }
-        input[type="text"].code-input { text-align: center; font-size: 1.5rem; letter-spacing: 0.3em; font-family: monospace; }
+        .link-cancel { display: block; text-align: center; margin-top: 1rem; color: #94a3b8; text-decoration: none; font-size: 0.85rem; }
+        .link-cancel:hover { color: #a5b4fc; }
+        .link-emergency { background: none; border: none; color: #94a3b8; font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 0; width: 100%; text-align: center; }
+        .link-emergency:hover { color: #fca5a5; }
+        .tfa-subtitle { text-align: center; color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem; }
+        input[type="text"].code-input { text-align: center; font-size: 1.5rem; letter-spacing: 0.3em; font-family: monospace; background: #0f172a; color: #e2e8f0; }
     </style>
 <?php klytos_do_action('login.head'); ?>
 </head>
