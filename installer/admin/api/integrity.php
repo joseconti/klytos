@@ -94,27 +94,53 @@ if ( $_SESSION[$key]['count'] > $limit ) {
 $input  = json_decode( file_get_contents( 'php://input' ), true ) ?? [];
 $action = $input['action'] ?? $_POST['action'] ?? '';
 
-switch ( $action ) {
-    case 'verify':
-        $report = $checker->verify( false );
-        Helpers::jsonResponse( $report );
-        break;
+// Integrity checks may take a while (downloading manifests + hashing files).
+set_time_limit( 120 );
 
-    case 'verify_force':
-        $report = $checker->verify( true );
-        Helpers::jsonResponse( $report );
-        break;
+try {
+    switch ( $action ) {
+        case 'verify':
+            $report = $checker->verify( false );
+            $json   = json_encode( $report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+            if ( $json === false ) {
+                Helpers::jsonResponse( [
+                    'error'      => 'JSON encode failed',
+                    'json_error' => json_last_error_msg(),
+                    'report_keys' => array_keys( $report ?? [] ),
+                ], 500 );
+            }
+            Helpers::jsonResponse( $report );
+            break;
 
-    case 'check_plugin':
-        $pluginId = $input['plugin_id'] ?? '';
-        if ( empty( $pluginId ) ) {
-            Helpers::jsonResponse( ['error' => 'plugin_id is required'], 400 );
-        }
-        $forceRefresh = !empty( $input['force_refresh'] );
-        $result = $checker->verifyOnePlugin( $pluginId, $forceRefresh );
-        Helpers::jsonResponse( $result );
-        break;
+        case 'verify_force':
+            $report = $checker->verify( true );
+            $json   = json_encode( $report, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+            if ( $json === false ) {
+                Helpers::jsonResponse( [
+                    'error'      => 'JSON encode failed',
+                    'json_error' => json_last_error_msg(),
+                    'report_keys' => array_keys( $report ?? [] ),
+                ], 500 );
+            }
+            Helpers::jsonResponse( $report );
+            break;
 
-    default:
-        Helpers::jsonResponse( ['error' => 'Invalid action'], 400 );
+        case 'check_plugin':
+            $pluginId = $input['plugin_id'] ?? '';
+            if ( empty( $pluginId ) ) {
+                Helpers::jsonResponse( ['error' => 'plugin_id is required'], 400 );
+            }
+            $forceRefresh = !empty( $input['force_refresh'] );
+            $result = $checker->verifyOnePlugin( $pluginId, $forceRefresh );
+            Helpers::jsonResponse( $result );
+            break;
+
+        default:
+            Helpers::jsonResponse( ['error' => 'Invalid action'], 400 );
+    }
+} catch ( \Throwable $e ) {
+    Helpers::jsonResponse( [
+        'error'   => 'Integrity check failed',
+        'message' => $e->getMessage(),
+    ], 500 );
 }

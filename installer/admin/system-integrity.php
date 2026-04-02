@@ -255,6 +255,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
         fetch(apiUrl, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
