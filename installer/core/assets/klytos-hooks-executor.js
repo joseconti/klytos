@@ -1,7 +1,7 @@
 
-    // ═══════════════════════════════════════════════════════════
+    // =========================================================
     // EXECUTOR (runs all registered hooks on DOMContentLoaded)
-    // ═══════════════════════════════════════════════════════════
+    // =========================================================
 
     document.addEventListener('DOMContentLoaded', function() {
         var hookPoints = document.querySelectorAll('[data-klytos-hook]');

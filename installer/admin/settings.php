@@ -112,6 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
             ],
         ]);
         $success = __( 'common.success' );
+    } elseif ($section === 'encryption_key_backup') {
+        $app->getSiteConfig()->set( ['encryption_key_backed_up' => true] );
+        $success = 'Encryption key marked as backed up.';
     } elseif ($section === 'ai') {
         $generator = new \Klytos\Core\AiImageGenerator(
             $app->getStorage(),
@@ -436,6 +439,93 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 <?php klytos_do_action('admin.settings.after_section', 'developer'); ?>
 <?php endif; ?>
+
+<?php klytos_do_action('admin.settings.before_section', 'encryption_key'); ?>
+<?php if ( klytos_has_permission( 'site.configure' ) ): ?>
+<?php
+    $keyPath   = dirname( __DIR__ ) . '/config/.encryption_key';
+    $keyExists = file_exists( $keyPath );
+    $keyBase64 = $keyExists ? base64_encode( file_get_contents( $keyPath ) ) : '';
+    $keyBackedUp = $siteConfig['encryption_key_backed_up'] ?? false;
+?>
+<div class="card">
+    <div class="card-header">
+        <h3>Encryption Key</h3>
+    </div>
+    <div class="p-2">
+        <?php if ( !$keyBackedUp ): ?>
+        <div class="alert alert-error mb-2">
+            <strong>Your encryption key has not been backed up.</strong>
+            If this key is lost, ALL site data (pages, users, settings) is permanently unrecoverable.
+        </div>
+        <?php endif; ?>
+
+        <p class="text-sm text-muted mb-2">
+            Klytos encrypts all data with AES-256-GCM. This key is required to decrypt your content.
+            Store it in a safe place (password manager, encrypted USB, offline backup).
+        </p>
+
+        <?php if ( $keyExists ): ?>
+        <div class="form-group">
+            <label>Encryption Key (Base64)</label>
+            <div class="token-display text-sm break-all" id="settingsEncKey"
+                 style="position:relative;padding-right:4.5rem">
+                <?php echo klytos_esc_html( $keyBase64 ); ?>
+            </div>
+        </div>
+
+        <div class="flex flex-gap-sm">
+            <button type="button" class="btn btn-sm btn-outline" id="btnCopyEncKey">Copy Key</button>
+            <button type="button" class="btn btn-sm btn-outline" id="btnDownloadEncKey">Download .key File</button>
+            <?php if ( !$keyBackedUp ): ?>
+            <form method="post" style="display:inline">
+                <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="section" value="encryption_key_backup">
+                <button type="submit" class="btn btn-sm btn-primary">Mark as Backed Up</button>
+            </form>
+            <?php endif; ?>
+        </div>
+        <?php else: ?>
+        <div class="alert alert-warning mb-0">
+            Encryption key file not found at the expected location.
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+(function() {
+    var copyBtn = document.getElementById('btnCopyEncKey');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            var el = document.getElementById('settingsEncKey');
+            navigator.clipboard.writeText(el.textContent.trim()).then(function() {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(function() { copyBtn.textContent = 'Copy Key'; }, 2000);
+            });
+        });
+    }
+
+    var dlBtn = document.getElementById('btnDownloadEncKey');
+    if (dlBtn) {
+        dlBtn.addEventListener('click', function() {
+            var keyB64 = <?php echo json_encode( $keyBase64 ); ?>;
+            var raw = atob(keyB64);
+            var bytes = new Uint8Array(raw.length);
+            for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+            var blob = new Blob([bytes], { type: 'application/octet-stream' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'klytos-encryption.key';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    }
+})();
+</script>
+<?php endif; ?>
+<?php klytos_do_action('admin.settings.after_section', 'encryption_key'); ?>
 
 <?php klytos_do_action('admin.settings.render_custom_sections', $siteConfig); ?>
 

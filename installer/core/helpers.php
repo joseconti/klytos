@@ -266,12 +266,46 @@ class Helpers
     }
 
     /**
+     * Get the public base path (web root, WITHOUT the admin directory).
+     *
+     * getBasePath() returns: /prueba/b2aa9a98e70d-admin/  (admin root)
+     * getPublicBasePath() returns: /prueba/                (public root)
+     *
+     * @return string Public base path with trailing slash.
+     */
+    public static function getPublicBasePath(): string
+    {
+        // Prefer install_base from config — set at installation time.
+        try {
+            $config = App::getInstance()->getConfig();
+            $installBase = $config['install_base'] ?? null;
+            if ( $installBase !== null ) {
+                return rtrim( $installBase, '/' ) . '/';
+            }
+        } catch ( \Throwable ) {
+            // App not booted yet — fall through.
+        }
+
+        // Fallback: derive from DOCUMENT_ROOT.
+        $klytosRoot = realpath( dirname( __DIR__ ) );
+        $parentDir  = dirname( $klytosRoot );
+        $docRoot    = realpath( $_SERVER['DOCUMENT_ROOT'] ?? $parentDir );
+
+        if ( $docRoot && $parentDir && str_starts_with( $parentDir, $docRoot ) ) {
+            $base = substr( $parentDir, strlen( $docRoot ) );
+            return rtrim( str_replace( '\\', '/', $base ), '/' ) . '/';
+        }
+
+        return '/';
+    }
+
+    /**
      * Get the public site URL (web root, WITHOUT the admin directory path).
      *
      * siteUrl() returns: https://klytos.io/prueba/b2aa9a98e70d-admin/some/path
      * publicUrl() returns: https://klytos.io/prueba/some/path
      *
-     * This is used for canonical URLs, sitemap, Open Graph, etc.
+     * This is used for canonical URLs, sitemap, Open Graph, menus, etc.
      * because the public HTML pages are at the web root, not inside the admin dir.
      *
      * @param  string $path Optional path to append.
@@ -281,7 +315,7 @@ class Helpers
     {
         $scheme   = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
         $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $basePath = self::getBasePath();
+        $basePath = self::getPublicBasePath();
         $url      = $scheme . '://' . $host . $basePath;
 
         if ( !empty( $path ) ) {

@@ -68,7 +68,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
 
     // ── Screen 1: 2FA ──
     if ( $action === 'skip_2fa' ) {
-        $_SESSION['klytos_setup_step'] = 'connection';
+        $_SESSION['klytos_setup_step'] = 'encryption_key';
         Helpers::redirect( Helpers::url( 'admin/setup-wizard.php' ) );
     }
 
@@ -210,16 +210,17 @@ $mcpEndpoint = $config['mcp_endpoint'] ?? Helpers::siteUrl( 'mcp' );
 $csrf = klytos_csrf_field();
 
 // Step mapping for progress indicator.
-$stepOrder = ['2fa', '2fa_verify', '2fa_recovery', 'connection', 'ai_keys', 'app_password', 'app_password_show', 'complete'];
+$stepOrder = ['2fa', '2fa_verify', '2fa_recovery', 'encryption_key', 'connection', 'ai_keys', 'app_password', 'app_password_show', 'congrats'];
 $stepLabels = [
-    '2fa'        => 1,
-    '2fa_verify' => 1,
-    '2fa_recovery' => 1,
-    'connection' => 2,
-    'ai_keys'    => 3,
-    'app_password'      => 4,
-    'app_password_show' => 4,
-    'congrats'   => 5,
+    '2fa'            => 1,
+    '2fa_verify'     => 1,
+    '2fa_recovery'   => 1,
+    'encryption_key' => 2,
+    'connection'     => 3,
+    'ai_keys'        => 4,
+    'app_password'       => 5,
+    'app_password_show'  => 5,
+    'congrats'       => 6,
 ];
 $currentStepNum = $stepLabels[$step] ?? 1;
 
@@ -428,7 +429,7 @@ $providerLogos = [
 
     <!-- Step progress bar -->
     <div class="steps">
-        <?php for ( $i = 1; $i <= 5; $i++ ): ?>
+        <?php for ( $i = 1; $i <= 6; $i++ ): ?>
             <div class="step-dot <?php
                 if ( $i < $currentStepNum ) echo 'done';
                 elseif ( $i === $currentStepNum ) echo 'active';
@@ -539,6 +540,92 @@ $providerLogos = [
             </button>
         </form>
     </div>
+
+    <!-- ─── Screen 1d: Encryption Key Backup ─── -->
+    <?php elseif ( $step === 'encryption_key' ): ?>
+    <?php
+        $keyPath = dirname( __DIR__ ) . '/config/.encryption_key';
+        $keyExists = file_exists( $keyPath );
+        $keyBase64 = $keyExists ? base64_encode( file_get_contents( $keyPath ) ) : '';
+    ?>
+    <div class="card">
+        <h2>Encryption Key Backup</h2>
+        <p class="subtitle">
+            Klytos encrypts all your data with AES-256-GCM. The encryption key is the
+            <strong>only way</strong> to access your content. If this key is lost,
+            <strong>all data is permanently unrecoverable</strong>.
+        </p>
+
+        <div class="alert alert-error" style="border-color:rgba(239,68,68,0.5)">
+            <strong>This is critical.</strong> Without this key, your pages, users, settings,
+            and all encrypted data cannot be recovered — not even by us.
+        </div>
+
+        <div class="form-group">
+            <label>Your Encryption Key</label>
+            <div class="token-box highlight" id="encKeyBox" style="font-size:0.75rem">
+                <?php echo klytos_esc_html( $keyBase64 ); ?>
+                <button type="button" class="copy-btn" data-copy="encKeyBox">Copy</button>
+            </div>
+            <p class="small">Format: Base64-encoded (decode to get the raw 32-byte key).</p>
+        </div>
+
+        <div class="form-group">
+            <label>Download as file</label>
+            <a href="#" id="downloadKeyBtn" class="btn btn-secondary btn-sm" style="display:inline-flex">
+                Download .key file
+            </a>
+            <p class="small">
+                Store this file in a safe place (password manager, encrypted USB, offline backup).
+                Never share it publicly.
+            </p>
+        </div>
+
+        <form method="post" style="margin-top: 1.5rem;">
+            <?php echo $csrf; ?>
+            <input type="hidden" name="wizard_action" value="encryption_key_confirmed">
+            <button type="submit" class="btn btn-success btn-block">
+                I have saved my encryption key
+            </button>
+        </form>
+    </div>
+
+    <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Copy button
+            document.querySelectorAll('.copy-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var targetId = btn.getAttribute('data-copy');
+                    var el = document.getElementById(targetId);
+                    var text = el.textContent.replace(/Copy|Copied!/, '').trim();
+                    navigator.clipboard.writeText(text).then(function() {
+                        btn.textContent = 'Copied!';
+                        btn.classList.add('copied');
+                        setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+                    });
+                });
+            });
+
+            // Download .key file
+            var dlBtn = document.getElementById('downloadKeyBtn');
+            if (dlBtn) {
+                dlBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var keyB64 = <?php echo json_encode( $keyBase64 ); ?>;
+                    var raw = atob(keyB64);
+                    var bytes = new Uint8Array(raw.length);
+                    for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+                    var blob = new Blob([bytes], { type: 'application/octet-stream' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'klytos-encryption.key';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+            }
+        });
+    </script>
 
     <!-- ─── Screen 2: Connection Types ─── -->
     <?php elseif ( $step === 'connection' ): ?>

@@ -221,6 +221,22 @@ klytos_add_filter( 'notice.condition.indexing_blocked', function ( bool $show ):
     return ! ( $config['indexing_enabled'] ?? false );
 } );
 
+// Encryption key backup warning: shows until the user confirms backup.
+klytos_add_action( 'klytos.init', function ( $app ): void {
+    $app->getNoticeManager()->ensureSystemNotice( 'encryption-key-backup', [
+        'message'        => 'Your encryption key has not been backed up. If this key is lost, ALL site data is permanently unrecoverable. Go to Settings to download your encryption key.',
+        'type'           => 'error',
+        'dismissible'    => false,
+        'context'        => '',
+        'condition_hook' => 'notice.condition.encryption_key_not_backed_up',
+    ] );
+} );
+
+klytos_add_filter( 'notice.condition.encryption_key_not_backed_up', function ( bool $show ): bool {
+    $config = klytos_app()->getSiteConfig()->get();
+    return ! ( $config['encryption_key_backed_up'] ?? false );
+} );
+
 // ─── Auth guard ──────────────────────────────────────────────
 // If not authenticated and not on login page, redirect to login.
 $currentScript = basename( $_SERVER['SCRIPT_NAME'] );
