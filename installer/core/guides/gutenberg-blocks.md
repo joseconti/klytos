@@ -1,22 +1,19 @@
 ---
-description: "Use when creating or editing pages in Klytos CMS via MCP. All HTML content MUST use Gutenberg block markup so it renders correctly in the visual editor."
+description: "Use when creating or editing pages in Klytos CMS via MCP. Covers both Gutenberg block markup AND free HTML design patterns. Read this guide AND design-patterns guide for visually rich pages."
 globs: ["**/*.php", "**/*.html"]
 alwaysApply: false
 ---
 
-# Klytos CMS — Gutenberg Block Markup Reference
+# Klytos CMS — Content Markup Reference
 
-## CRITICAL RULE
+## EDITOR MODES — Read This First
 
-When creating or updating pages in Klytos via MCP (`klytos_create_page`, `klytos_update_page`), the `content_html` field **MUST** use Gutenberg block comment delimiters. Without them, the visual editor (Gutenberg) cannot parse the content back into editable blocks.
+Klytos supports **two content editors** per Post Type. The editor mode determines the `content_html` format:
 
-**WRONG** (plain HTML — editor cannot parse it):
-```html
-<h2>About Us</h2>
-<p>We are a company...</p>
-```
+### Mode A: Gutenberg Editor (default for "page" post type)
 
-**CORRECT** (Gutenberg block markup — editor works perfectly):
+Use Gutenberg block comment delimiters. The visual editor parses these into editable blocks.
+
 ```html
 <!-- wp:heading {"level":2} -->
 <h2 class="wp-block-heading">About Us</h2>
@@ -26,6 +23,59 @@ When creating or updating pages in Klytos via MCP (`klytos_create_page`, `klytos
 <p>We are a company...</p>
 <!-- /wp:paragraph -->
 ```
+
+**For complex visual designs** (product grids, hero sections, pricing tables, etc.), use `<!-- wp:html -->` blocks containing any free HTML/CSS. The editor shows these as "Custom HTML" blocks:
+
+```html
+<!-- wp:html -->
+<section style="background:linear-gradient(135deg,var(--klytos-primary),#1e40af);color:#fff;padding:5rem 0;text-align:center">
+  <div class="klytos-container">
+    <h1 style="font-size:3rem;margin-bottom:1rem">Any Design You Want</h1>
+    <p style="font-size:1.25rem;opacity:0.9;max-width:600px;margin:0 auto 2rem">Total freedom inside wp:html blocks — CSS Grid, Flexbox, gradients, animations, SVG icons, anything.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="/start/" class="klytos-btn klytos-btn-lg" style="background:#fff;color:var(--klytos-primary)">Get Started</a>
+      <a href="/demo/" class="klytos-btn klytos-btn-lg" style="background:transparent;color:#fff;border:2px solid #fff">See Demo</a>
+    </div>
+  </div>
+</section>
+<!-- /wp:html -->
+```
+
+You can **MIX** standard Gutenberg blocks and `wp:html` blocks in the same page.
+
+### Mode B: TinyMCE / Classic Editor
+
+Use **plain HTML directly** — no block markup needed, no `<!-- wp: -->` comments. Write standard HTML/CSS with total design freedom:
+
+```html
+<h2>About Us</h2>
+<p>We are a company...</p>
+<section style="background:#f8fafc;padding:3rem 0">
+  <div class="klytos-container klytos-grid-3">
+    <div class="klytos-card">Feature 1</div>
+    <div class="klytos-card">Feature 2</div>
+    <div class="klytos-card">Feature 3</div>
+  </div>
+</section>
+```
+
+### How to Check the Editor Mode
+
+Before creating content for a Post Type, call `klytos_get_post_type` to check the `editor` field. Default for "page" is `gutenberg`. Custom Post Types may use `tinymce`.
+
+### Design Freedom in Both Modes
+
+Both modes give you **total design freedom**. The difference is only the wrapper syntax:
+- Gutenberg: complex HTML goes inside `<!-- wp:html -->...<!-- /wp:html -->`
+- TinyMCE: complex HTML goes directly in `content_html`
+
+For ready-to-use visual patterns (hero sections, product grids, pricing tables, etc.), read `klytos_get_guide("design-patterns")`.
+
+---
+
+## Gutenberg Block Markup Reference
+
+The rest of this guide covers Gutenberg block syntax. **Only applies when the Post Type uses the Gutenberg editor.**
 
 ## Syntax Rules
 
@@ -782,13 +832,25 @@ unzip latest.zip</code></pre>
 
 ## Important Notes for AI Assistants
 
-1. **Always wrap every piece of content in a block.** Never leave raw HTML outside of block comments.
-2. **Use semantic blocks.** Use `wp:heading` for headings, `wp:paragraph` for paragraphs — not raw `<h2>` or `<p>` tags.
-3. **Nest blocks correctly.** Columns contain Column blocks. Buttons contain Button blocks. Groups contain any blocks.
-4. **Use `class="wp-block-heading"`** on all headings. This is required for the editor to recognize them.
-5. **Use `class="wp-block-list"`** on `<ul>` and `<ol>` elements.
-6. **Images should use `class="wp-block-image"`** on the `<figure>` wrapper.
-7. **Buttons always need a `wp:buttons` parent** wrapping `wp:button` children.
-8. **Self-closing blocks** (separator, spacer, embed) end with `/-->` instead of having a closing comment.
-9. **When setting colors inline**, also add the corresponding utility class (e.g., `has-text-color`, `has-background`).
-10. **For Klytos CMS specifically**, images should reference `/assets/images/` paths (the public assets directory).
+### For Gutenberg Editor Post Types:
+1. **Wrap content in blocks.** Use `wp:heading`, `wp:paragraph`, etc. for standard content.
+2. **Use `<!-- wp:html -->` for complex designs.** Product grids, pricing tables, hero sections, testimonials — anything beyond basic text. You have total HTML/CSS freedom inside these blocks.
+3. **Mix freely.** A page can have `wp:heading` + `wp:paragraph` for text sections and `wp:html` for visually rich sections.
+4. **Nest blocks correctly.** Columns contain Column blocks. Buttons contain Button blocks. Groups contain any blocks.
+5. **Use `class="wp-block-heading"`** on all headings inside Gutenberg blocks.
+6. **Buttons always need a `wp:buttons` parent** wrapping `wp:button` children.
+7. **Self-closing blocks** (separator, spacer, embed) end with `/-->` instead of having a closing comment.
+8. **When setting colors inline**, also add the corresponding utility class (e.g., `has-text-color`, `has-background`).
+9. **For Klytos CMS**, images should reference `/assets/images/` paths (the public assets directory).
+10. **Use page `custom_css` field** for section-specific styles instead of excessive inline styles.
+
+### For TinyMCE Editor Post Types:
+1. **No block markup needed.** Write plain HTML directly.
+2. **Use Klytos utility classes** (`.klytos-container`, `.klytos-grid-3`, `.klytos-card`, etc.) for layout.
+3. **Use CSS variables** (`var(--klytos-primary)`, etc.) for theme-consistent colors.
+4. **Use page `custom_css` field** for page-specific styles.
+
+### For Both Editors:
+- Read `klytos_get_guide("design-patterns")` for ready-to-use visual patterns.
+- Use `klytos_set_custom_template_part` to create custom headers and footers with ANY design.
+- The header and footer are NOT part of `content_html` — they come from template parts and are shared across all pages.

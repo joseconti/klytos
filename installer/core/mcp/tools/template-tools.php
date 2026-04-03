@@ -384,10 +384,10 @@ function registerTemplateTools(ToolRegistry $registry): void
 
     $registry->register(
         'klytos_set_custom_template_part',
-        'Create or update a custom template part in custom-templates/parts/. Overrides the core part with the same name.',
+        'Create or update a custom template part with COMPLETELY FREE HTML/CSS design. This is THE tool for designing headers, footers, and any shared site element with total visual freedom. The HTML you provide here is used as-is across ALL pages that reference this part via {{klytos_part:NAME}} in their template. Use cases: (1) Custom header with ANY layout — centered logo + menu below, logo left + menu right + CTA button, sticky transparent header, mega-menu, hamburger menu, etc. (2) Custom footer with ANY structure — multi-column with links, minimal single-line, newsletter signup, social icons grid, etc. (3) Any other reusable site element — top bar, announcement banner, sidebar, etc. The HTML can include: inline styles, <style> blocks, SVG icons, CSS Grid, Flexbox, gradients, animations, media queries — anything valid HTML/CSS. Use {{variables}} for dynamic content: {{site_name}}, {{menu_html}}, {{base_path}}, {{site_url}}. This overrides the core part with the same name. Changed once, it updates ALL pages on the next build.',
         [
-            'name' => ['type' => 'string', 'description' => 'Part name (e.g. "header", "footer"). Without .html extension.'],
-            'html' => ['type' => 'string', 'description' => 'HTML content of the part. Can include {{variables}}.'],
+            'name' => ['type' => 'string', 'description' => 'Part name (e.g. "header", "footer", "top-bar", "announcement"). Without .html extension. Standard parts: "header" and "footer" are referenced by default templates.'],
+            'html' => ['type' => 'string', 'description' => 'Complete HTML/CSS content with total design freedom. Can include <style> blocks for scoped CSS, inline styles, SVG icons, and {{variables}} like {{site_name}}, {{menu_html}}, {{base_path}}. Example: a centered header would use flexbox with flex-direction:column and align-items:center.'],
         ],
         function (array $params, App $app): array {
             $name = $params['name'] ?? '';
