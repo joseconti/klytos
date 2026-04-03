@@ -78,6 +78,14 @@ Templates use `{{variable}}` syntax for content injection:
 | `{{seo_meta_tags}}` | All SEO meta tags (OG, Twitter, JSON-LD) |
 | `{{google_fonts_html}}` | Google Fonts link tags |
 | `{{css_variables}}` | `:root` CSS variables block |
+| `{{tagline}}` | Site tagline |
+| `{{site_tagline}}` | Alias for `{{tagline}}` |
+
+### Structural Block Deduplication
+
+When a page uses a custom template that includes structural elements (e.g. `default.html` with `{{klytos_part:header}}` + `{{klytos_part:footer}}`), the build engine **automatically excludes** the corresponding blocks (top-bar, header, footer) from `{{page_content}}` to prevent duplication. Templates without structural parts (like `blank.html`) receive all blocks normally.
+
+See the **klytos-custom-templates** skill for full details and hooks.
 
 ---
 

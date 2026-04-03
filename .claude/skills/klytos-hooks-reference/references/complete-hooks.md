@@ -118,6 +118,7 @@
 | `page_template.available_types` | filter | `array $types` | core/page-template-manager.php |
 | `page_template.wrapper_html` | filter | `string $html, string $type` | core/page-template-manager.php |
 | `page_template.structure` | filter | `array $structure, string $type` | core/page-template-manager.php |
+| `page_template.structure_after_dedup` | filter | `array $structure, string $type, array $excludeBlocks` — modify structure after structural block dedup | core/page-template-manager.php |
 | `template_part.{$partName}` | filter | `mixed $value` — dynamic per template part name | core/template-resolver.php |
 
 ## 6. Build & Frontend
@@ -134,6 +135,8 @@
 | `build.body_end_html` | filter | `string $html` — inject before `</body>` | core/build-engine.php |
 | `build.sitemap_urls` | filter | `array $urls` | core/build-engine.php |
 | `build.global_blocks` | filter | `array $cache` | core/build-engine.php |
+| `build.structural_block_mapping` | filter | `array $mapping` — customize structural element → block ID mapping for dedup | core/build-engine.php |
+| `build.exclude_structural_blocks` | filter | `array $exclude, string $rawTemplate` — override final block exclusion list | core/build-engine.php |
 
 ## 7. Options & Metadata
 

@@ -263,21 +263,33 @@ class PageTemplateManager
      * Assembles blocks in order, wraps in the template's wrapper_html,
      * and returns the final HTML.
      *
-     * @param  string $type     Template type.
-     * @param  array  $pageData Page data including 'content' (block data keyed by block_id).
+     * @param  string $type          Template type.
+     * @param  array  $pageData      Page data including 'content' (block data keyed by block_id).
+     * @param  array  $excludeBlocks Block IDs to exclude (already provided by the custom template).
      * @return string Complete rendered HTML for the page content area.
      */
-    public function renderPage(string $type, array $pageData): string
+    public function renderPage( string $type, array $pageData, array $excludeBlocks = [] ): string
     {
-        $template = $this->get($type);
+        $template  = $this->get( $type );
         $structure = $template['structure'] ?? [];
 
         // Allow plugins to modify the template structure before rendering.
-        $structure = klytos_apply_filters('page_template.structure', $structure, $type);
+        $structure = klytos_apply_filters( 'page_template.structure', $structure, $type );
+
+        // Remove structural blocks already provided by the custom template
+        // (e.g. header/footer) to prevent duplication in {{page_content}}.
+        if ( !empty( $excludeBlocks ) ) {
+            $structure = array_filter(
+                $structure,
+                fn( array $ref ): bool => !in_array( $ref['block_id'] ?? '', $excludeBlocks, true )
+            );
+            $structure = array_values( $structure );
+            $structure = klytos_apply_filters( 'page_template.structure_after_dedup', $structure, $type, $excludeBlocks );
+        }
 
         // Sort blocks by order.
-        usort($structure, fn(array $a, array $b): int =>
-            ($a['order'] ?? 0) <=> ($b['order'] ?? 0)
+        usort( $structure, fn( array $a, array $b ): int =>
+            ( $a['order'] ?? 0 ) <=> ( $b['order'] ?? 0 )
         );
 
         // Render each block with its data.
