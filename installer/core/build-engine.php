@@ -94,7 +94,7 @@ class BuildEngine
 
         // 2. Get global data
         $siteConfig = $this->app->getSiteConfig()->get();
-        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getBasePath());
+        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getPublicBasePath());
         $theme      = $this->app->getTheme()->get();
 
         // 3. Build each published page
@@ -152,7 +152,7 @@ class BuildEngine
     {
         $page       = $this->app->getPages()->get($slug);
         $siteConfig = $this->app->getSiteConfig()->get();
-        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getBasePath());
+        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getPublicBasePath());
         $theme      = $this->app->getTheme()->get();
 
         $this->writePageHtml($page, $siteConfig, $menuHtml, $theme);
@@ -170,7 +170,7 @@ class BuildEngine
     {
         $page       = $this->app->getPages()->get($slug);
         $siteConfig = $this->app->getSiteConfig()->get();
-        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getBasePath());
+        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getPublicBasePath());
         $theme      = $this->app->getTheme()->get();
 
         return $this->renderTemplate($page, $siteConfig, $menuHtml, $theme);
@@ -266,7 +266,7 @@ class BuildEngine
     public function buildReplacements( array $page, array $siteConfig, string $menuHtml, array $theme ): array
     {
         $hreflangHtml = $this->buildHreflangTags( $page, $siteConfig );
-        $basePath     = Helpers::getBasePath();
+        $basePath     = Helpers::getPublicBasePath();
         $siteUrl      = Helpers::publicUrl();
         $fontsUrl     = $theme['fonts']['google_fonts_url'] ?? '';
 
@@ -280,7 +280,7 @@ class BuildEngine
         $seoMetaTags    = $this->buildSeoMetaTags( $page, $siteConfig );
         $breadcrumbHtml = $this->app->getPages()->renderBreadcrumbs(
             $page['slug'] ?? 'index',
-            Helpers::getBasePath()
+            Helpers::getPublicBasePath()
         );
 
         $pluginHeadHtml    = klytos_apply_filters( 'build.head_html', '' );
