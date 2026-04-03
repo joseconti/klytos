@@ -1148,6 +1148,132 @@ blockquote {
   .klytos-grid-2, .klytos-grid-3, .klytos-grid-4 { grid-template-columns: 1fr; }
   .klytos-btn-lg { width: 100%; justify-content: center; }
 }
+
+/* ── Extended Grid System ─────────────────────── */
+.klytos-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:1.5rem}
+.klytos-grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:1.5rem}
+.klytos-grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem}
+
+/* ── Section Backgrounds ──────────────────────── */
+.klytos-section-dark{background:var(--klytos-text,#1e293b);color:#f1f5f9}
+.klytos-section-dark h1,.klytos-section-dark h2,.klytos-section-dark h3,.klytos-section-dark h4{color:#fff}
+.klytos-section-dark a{color:var(--klytos-accent,#60a5fa)}
+.klytos-section-light{background:var(--klytos-surface,#f8fafc);color:var(--klytos-text,#1e293b)}
+.klytos-section-primary{background:var(--klytos-primary,#2563eb);color:#fff}
+.klytos-section-primary h1,.klytos-section-primary h2,.klytos-section-primary h3{color:#fff}
+.klytos-section-gradient{background:linear-gradient(135deg,var(--klytos-primary,#2563eb) 0%,var(--klytos-secondary,#7c3aed) 100%);color:#fff}
+.klytos-section-gradient h1,.klytos-section-gradient h2,.klytos-section-gradient h3{color:#fff}
+
+/* ── Shadows ──────────────────────────────────── */
+.klytos-shadow-sm{box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.klytos-shadow{box-shadow:0 1px 3px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.06)}
+.klytos-shadow-md{box-shadow:0 4px 6px -1px rgba(0,0,0,0.1),0 2px 4px -1px rgba(0,0,0,0.06)}
+.klytos-shadow-lg{box-shadow:0 10px 15px -3px rgba(0,0,0,0.1),0 4px 6px -2px rgba(0,0,0,0.05)}
+.klytos-shadow-xl{box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04)}
+
+/* ── Spacing Utilities ────────────────────────── */
+.klytos-py-0{padding-top:0;padding-bottom:0}
+.klytos-py-2{padding-top:2rem;padding-bottom:2rem}
+.klytos-py-3{padding-top:3rem;padding-bottom:3rem}
+.klytos-py-4{padding-top:4rem;padding-bottom:4rem}
+.klytos-py-5{padding-top:5rem;padding-bottom:5rem}
+.klytos-py-6{padding-top:6rem;padding-bottom:6rem}
+.klytos-px-1{padding-left:1rem;padding-right:1rem}
+.klytos-px-2{padding-left:2rem;padding-right:2rem}
+.klytos-mt-0{margin-top:0}.klytos-mt-1{margin-top:1rem}.klytos-mt-2{margin-top:2rem}.klytos-mt-3{margin-top:3rem}
+.klytos-mb-0{margin-bottom:0}.klytos-mb-1{margin-bottom:1rem}.klytos-mb-2{margin-bottom:2rem}.klytos-mb-3{margin-bottom:3rem}
+.klytos-gap-1{gap:1rem}.klytos-gap-2{gap:2rem}.klytos-gap-3{gap:3rem}
+
+/* ── Typography Utilities ─────────────────────── */
+.klytos-text-center{text-align:center}
+.klytos-text-left{text-align:left}
+.klytos-text-right{text-align:right}
+.klytos-text-muted{color:var(--klytos-text-muted,#64748b)}
+.klytos-text-sm{font-size:0.875rem}
+.klytos-text-lg{font-size:1.125rem}
+.klytos-text-xl{font-size:1.25rem}
+.klytos-text-2xl{font-size:1.5rem}
+.klytos-text-3xl{font-size:2rem}
+.klytos-text-4xl{font-size:2.5rem}
+.klytos-font-bold{font-weight:700}
+.klytos-font-semibold{font-weight:600}
+.klytos-font-normal{font-weight:400}
+.klytos-leading-tight{line-height:1.25}
+.klytos-leading-relaxed{line-height:1.75}
+
+/* ── Flexbox Utilities ────────────────────────── */
+.klytos-flex{display:flex}
+.klytos-flex-col{display:flex;flex-direction:column}
+.klytos-flex-wrap{flex-wrap:wrap}
+.klytos-items-center{align-items:center}
+.klytos-items-start{align-items:flex-start}
+.klytos-justify-center{justify-content:center}
+.klytos-justify-between{justify-content:space-between}
+.klytos-justify-around{justify-content:space-around}
+
+/* ── Card Variants ────────────────────────────── */
+.klytos-card-hover{transition:transform 0.2s ease,box-shadow 0.2s ease}
+.klytos-card-hover:hover{transform:translateY(-4px);box-shadow:0 12px 24px rgba(0,0,0,0.12)}
+.klytos-card-bordered{border:1px solid var(--klytos-border,#e2e8f0)}
+.klytos-card-flat{background:var(--klytos-surface,#f8fafc);border:none;border-radius:var(--klytos-radius,8px);padding:1.5rem}
+
+/* ── Border & Radius Utilities ────────────────── */
+.klytos-rounded{border-radius:var(--klytos-radius,8px)}
+.klytos-rounded-lg{border-radius:calc(var(--klytos-radius,8px) * 1.5)}
+.klytos-rounded-xl{border-radius:calc(var(--klytos-radius,8px) * 2)}
+.klytos-rounded-full{border-radius:9999px}
+.klytos-border{border:1px solid var(--klytos-border,#e2e8f0)}
+.klytos-border-t{border-top:1px solid var(--klytos-border,#e2e8f0)}
+.klytos-border-b{border-bottom:1px solid var(--klytos-border,#e2e8f0)}
+
+/* ── Display & Width Utilities ────────────────── */
+.klytos-hidden{display:none}
+.klytos-block{display:block}
+.klytos-inline-block{display:inline-block}
+.klytos-w-full{width:100%}
+.klytos-max-w-sm{max-width:640px;margin-left:auto;margin-right:auto}
+.klytos-max-w-md{max-width:768px;margin-left:auto;margin-right:auto}
+.klytos-max-w-lg{max-width:1024px;margin-left:auto;margin-right:auto}
+.klytos-max-w-xl{max-width:1280px;margin-left:auto;margin-right:auto}
+.klytos-overflow-hidden{overflow:hidden}
+
+/* ── Visual Effects ───────────────────────────── */
+.klytos-opacity-50{opacity:0.5}
+.klytos-opacity-75{opacity:0.75}
+.klytos-opacity-90{opacity:0.9}
+.klytos-transition{transition:all 0.2s ease}
+.klytos-hover-scale:hover{transform:scale(1.02)}
+.klytos-hover-brightness:hover{filter:brightness(1.1)}
+
+/* ── Button Variants ──────────────────────────── */
+.klytos-btn-ghost{background:transparent;color:var(--klytos-primary,#2563eb);border:none;padding:0.6rem 1.2rem}
+.klytos-btn-ghost:hover{background:rgba(0,0,0,0.05)}
+.klytos-btn-rounded{border-radius:9999px}
+.klytos-btn-sm{padding:0.4rem 1rem;font-size:0.875rem}
+.klytos-btn-xl{padding:1rem 2.5rem;font-size:1.125rem}
+
+/* ── Extended Responsive ──────────────────────── */
+@media(max-width:1200px){
+  .klytos-grid-5,.klytos-grid-6{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:1024px){
+  .klytos-grid-5,.klytos-grid-6{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .klytos-grid-5,.klytos-grid-6,.klytos-grid-auto{grid-template-columns:1fr}
+  .klytos-text-4xl{font-size:2rem}
+  .klytos-text-3xl{font-size:1.75rem}
+  .klytos-py-5,.klytos-py-6{padding-top:3rem;padding-bottom:3rem}
+  .klytos-hide-mobile{display:none}
+}
+@media(max-width:576px){
+  .klytos-text-2xl{font-size:1.25rem}
+  .klytos-px-2{padding-left:1rem;padding-right:1rem}
+  .klytos-hide-sm{display:none}
+}
+@media(min-width:769px){
+  .klytos-show-mobile{display:none}
+}
 CSS;
     }
 

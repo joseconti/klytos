@@ -61,7 +61,7 @@ function registerGuideTools( ToolRegistry $registry ): void
 
             return [
                 'guides' => $guides,
-                'hint'   => 'Call klytos_get_guide with a guide id to read the full documentation. You SHOULD read "gutenberg-blocks" before creating pages and "seo-content" before setting SEO fields.',
+                'hint'   => 'Call klytos_get_guide with a guide id to read the full documentation. You SHOULD read "gutenberg-blocks" before creating pages, "seo-content" before setting SEO fields, "design-patterns" when creating visually rich pages or replicating a design reference, and "forms" before creating any contact form or form.',
             ];
         },
         [ 'readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true ],
@@ -71,7 +71,7 @@ function registerGuideTools( ToolRegistry $registry ): void
     // ─── klytos_get_guide ────────────────────────────────────────
     $registry->register(
         'klytos_get_guide',
-        'Get a complete guide for AI assistants. Available guides: "gutenberg-blocks" (REQUIRED before creating page content — teaches all Gutenberg block markup), "seo-content" (REQUIRED before setting title/meta_description — teaches SEO best practices), "post-types-and-fields" (REQUIRED before creating Post Types, Taxonomies, or Custom Fields — teaches all 27 field types, taxonomies, and the complete workflow), "accessibility" (WCAG 2.1 AA compliance), "plugin-development" (how to build Klytos plugins), "seo-and-indexing" (sitemap, llms.txt, robots.txt), "security-architecture" (encryption, auth, CSP), "core-development" (system architecture). Always read "gutenberg-blocks" and "seo-content" before creating pages, and "post-types-and-fields" before creating or configuring Post Types.',
+        'Get a complete guide for AI assistants. Available guides: "gutenberg-blocks" (REQUIRED before creating page content — teaches editor modes, Gutenberg block markup AND free HTML design via wp:html blocks), "design-patterns" (REQUIRED when replicating a website design or creating visually rich pages — ready-to-use patterns for hero sections, product grids, pricing tables, testimonials, footers, etc.), "seo-content" (REQUIRED before setting title/meta_description — teaches SEO best practices), "post-types-and-fields" (REQUIRED before creating Post Types, Taxonomies, or Custom Fields — teaches all 27 field types, taxonomies, and the complete workflow), "forms" (REQUIRED before creating contact forms or any form — teaches klytos-forms plugin activation, all 18 field types, conditional logic, multi-step forms, notifications, anti-spam, and embedding forms in pages via {{form:form-id}} shortcode), "accessibility" (WCAG 2.1 AA compliance), "plugin-development" (how to build Klytos plugins), "seo-and-indexing" (sitemap, llms.txt, robots.txt), "security-architecture" (encryption, auth, CSP), "core-development" (system architecture). Always read "gutenberg-blocks" and "seo-content" before creating pages. Read "design-patterns" when creating visually complex pages or replicating a design reference. Read "post-types-and-fields" before creating or configuring Post Types. Read "forms" before creating any contact form or form.',
         [
             'guide_id' => [
                 'type'        => 'string',

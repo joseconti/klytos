@@ -83,7 +83,7 @@ Consult `klytos_get_guide('site-builder-types')` to recommend structures based o
 
 ## PHASE 2 — Design Reference
 
-**Objective:** Get a concrete visual reference to guide all design decisions.
+**Objective:** Get a concrete visual reference and decompose it into implementable components.
 
 ### Questions to Ask
 
@@ -94,6 +94,8 @@ Consult `klytos_get_guide('site-builder-types')` to recommend structures based o
 
 2. **"Is there anything specific about that design you like? Colors, layout, typography, image style..."**
 
+3. **"Do you want to replicate this design closely, or just use it as general inspiration?"**
+
 ### What to Extract
 
 From the reference(s), determine:
@@ -102,6 +104,18 @@ From the reference(s), determine:
 - Layout density (spacious vs compact)
 - Image style (photos, illustrations, icons)
 - General tone (minimalist, corporate, creative, elegant, youthful)
+
+### Component Decomposition (CRITICAL for design replication)
+
+If the user wants to replicate or closely match a reference design, break it down into implementable components:
+
+1. **Header design:** Logo position (left, center, right), navigation layout (horizontal, hamburger, mega-menu), sticky behavior, top bar (phone, social links), overall header style
+2. **Hero section:** Background type (gradient, image, solid color, video), text alignment, number of CTAs, layout structure
+3. **Content sections:** What sections appear on the page? Product grids, feature lists, testimonials, stats counters, comparison tables, blog post grids, newsletter forms, etc.
+4. **Card designs:** Shadow style, border radius, hover effects, content structure per card
+5. **Footer design:** Number of columns, content per column, social links, newsletter, legal links
+6. **Color usage:** Primary actions, secondary elements, backgrounds, text hierarchy, accent colors
+7. **Spacing and rhythm:** Section padding, element gaps, overall density
 
 ### Output
 
@@ -116,7 +130,16 @@ Typography: [sans-serif, clean, large headings]
 Layout: [spacious, full-width hero, cards for content]
 Images: [professional photography, minimal illustrations]
 Tone: [modern, trustworthy, clean]
+
+=== COMPONENT INVENTORY ===
+Header: [logo left + horizontal menu right + CTA button]
+Hero: [gradient background + large heading + subtitle + 2 CTAs]
+Sections: [3-col feature grid, testimonials carousel, stats counter, blog grid, newsletter form]
+Cards: [rounded corners, shadow on hover, image top + text bottom]
+Footer: [4-column dark footer with links + social + copyright]
 ```
+
+This component inventory will be used in Phase 6 to create the actual template parts and in Phase 7 to build the page content.
 
 If the user has NO reference: skip this phase and use sector-based defaults from the palettes guide.
 
@@ -268,52 +291,95 @@ klytos_set_site_config — set homepage
 
 ---
 
-## PHASE 6 — Templates & Blocks
+## PHASE 6 — Design, Templates & Shared Elements
 
-**Objective:** Create custom templates and reusable blocks.
+**Objective:** Implement the visual design for shared site elements (header, footer, etc.) and prepare templates.
+
+### CRITICAL CONCEPT: Separation of Concerns
+
+Klytos uses a two-layer architecture:
+
+1. **Template chrome (shared):** Header, footer, top bar, navigation — designed ONCE via `klytos_set_custom_template_part`, applied to ALL pages. Change the header once, all 1000 pages update on the next build.
+2. **Page content (free per page):** Each page has its own `content_html` with total design freedom. Use Gutenberg blocks, `wp:html` blocks, or plain HTML depending on the editor mode.
 
 ### Auxiliary guides
 
-- `klytos_get_guide('page-structure')` — template system
-- `klytos_get_guide('gutenberg-blocks')` — block markup
+- `klytos_get_guide('gutenberg-blocks')` — content markup and editor modes
+- `klytos_get_guide('design-patterns')` — ready-to-use visual patterns for headers, footers, and page sections
 
-### Templates
+### Step 1: Design the Header (MOST IMPORTANT)
 
-1. Evaluate if the 4 built-in templates cover all needs: `default`, `landing`, `blog-post`, `blank`
+Use `klytos_set_custom_template_part` with name `"header"` to create a header with ANY design. You have total HTML/CSS freedom. Common patterns:
+
+**Logo left + Menu right (classic):**
+```html
+<header style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0.8rem 0">
+  <div class="klytos-container" style="display:flex;justify-content:space-between;align-items:center">
+    <a href="{{base_path}}/" style="font-size:1.3rem;font-weight:700;color:var(--klytos-primary);text-decoration:none">{{site_name}}</a>
+    {{menu_html}}
+  </div>
+</header>
+```
+
+**Logo centered + Menu below:**
+```html
+<header style="background:#fff;border-bottom:1px solid #e5e7eb;padding:1.2rem 0">
+  <div class="klytos-container" style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
+    <a href="{{base_path}}/" style="font-size:1.5rem;font-weight:700;color:var(--klytos-primary);text-decoration:none">{{site_name}}</a>
+    {{menu_html}}
+  </div>
+</header>
+```
+
+**Logo left + Menu right + CTA button:**
+```html
+<header style="background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:0.8rem 0">
+  <div class="klytos-container" style="display:flex;justify-content:space-between;align-items:center">
+    <a href="{{base_path}}/" style="font-size:1.3rem;font-weight:700;color:var(--klytos-primary);text-decoration:none">{{site_name}}</a>
+    <div style="display:flex;align-items:center;gap:1.5rem">
+      {{menu_html}}
+      <a href="{{base_path}}/contacto/" class="klytos-btn klytos-btn-primary" style="padding:0.5rem 1.2rem;font-size:0.85rem">Contacto</a>
+    </div>
+  </div>
+</header>
+```
+
+You can include: `<style>` blocks for responsive CSS, SVG icons, social links, phone numbers, top bar sections, hamburger menu JS — anything. Use the Design Brief from Phase 2 to match the reference design.
+
+Available variables: `{{site_name}}`, `{{menu_html}}`, `{{base_path}}`, `{{site_url}}`
+
+### Step 2: Design the Footer
+
+Use `klytos_set_custom_template_part` with name `"footer"`. Same freedom as the header. Read `klytos_get_guide("design-patterns")` for footer patterns (multi-column, minimal, with newsletter, etc.).
+
+### Step 3: Optional Top Bar
+
+If the reference design has a top bar (phone, address, social links), create a custom part named `"top-bar"` or include it directly in the header part HTML.
+
+### Step 4: Templates
+
+1. Evaluate if the built-in templates cover all needs: `default`, `landing`, `blog-post`, `blank`
 2. If not, create custom templates via `klytos_set_custom_template`
-3. Configure template parts (header, footer) via `klytos_set_custom_template_part`
-4. Create CPT-specific templates if needed
+3. Create CPT-specific templates if needed (e.g., `single-product` for product post type)
 
-### Reusable Blocks
+### Step 5: Reusable Blocks (Optional)
 
-Identify elements that repeat across pages:
-- CTAs (call-to-action sections)
-- Banners
-- Testimonial sections
-- Service/product cards
-- Contact sections
-- Team sections
+Only create reusable blocks for elements that genuinely repeat with the same structure across multiple pages:
+- Contact form sections
+- Cookie/consent banners
+- Specific CTA sections used on every page
 
-For each: create via `klytos_create_block` with HTML, CSS, JS, and configurable slots.
-
-### Page Templates (block combinations)
-
-Create predefined block arrangements:
-1. `klytos_create_page_template` — create the template
-2. `klytos_add_block_to_template` — add blocks in order
-3. `klytos_reorder_template_blocks` — adjust order if needed
-4. `klytos_approve_page_template` — finalize
+For visually rich but unique sections (hero, product grids, testimonials), use `wp:html` blocks or plain HTML directly in the page `content_html` — this gives more design freedom than predefined blocks.
 
 ### MCP Tools
 
 ```
-klytos_set_custom_template — custom templates
-klytos_set_custom_template_part — header/footer parts
-klytos_create_block — reusable blocks
+klytos_set_custom_template_part — MAIN TOOL: create header/footer/top-bar with ANY design
+klytos_set_custom_template — custom page templates (wrapper HTML)
+klytos_create_block — reusable blocks (only for genuinely repeated elements)
 klytos_set_global_block_data — block global data
-klytos_create_page_template — page templates
+klytos_create_page_template — page templates (block arrangements)
 klytos_add_block_to_template — add blocks to templates
-klytos_reorder_template_blocks — reorder blocks
 klytos_approve_page_template — approve templates
 klytos_rebuild_plugin_assets — rebuild assets
 ```
@@ -327,10 +393,13 @@ klytos_rebuild_plugin_assets — rebuild assets
 ### CRITICAL: Read These Guides First
 
 ```
-klytos_get_guide('gutenberg-blocks')  — ALL content MUST use block markup
+klytos_get_guide('gutenberg-blocks')  — Editor modes (Gutenberg vs TinyMCE) and content markup
+klytos_get_guide('design-patterns')   — Ready-to-use visual patterns for rich page sections
 klytos_get_guide('seo-content')       — SEO structure for every page
 klytos_get_guide('accessibility')     — WCAG 2.1 AA compliance
 ```
+
+**IMPORTANT:** Check each Post Type's editor mode with `klytos_get_post_type` before creating content. Gutenberg Post Types need block markup (`<!-- wp:paragraph -->`, `<!-- wp:html -->`). TinyMCE Post Types use plain HTML directly.
 
 ### Auxiliary guide
 
@@ -339,11 +408,15 @@ Consult `klytos_get_guide('site-builder-content')` for questions by page type an
 ### For Each Page
 
 1. Ask the user which content source they prefer (text files, URLs, dictation, AI generation)
-2. Generate/adapt content using proper Gutenberg block markup
-3. Configure SEO: `title`, `meta_description`, `og_image`
-4. Assign the correct template
-5. Configure hreflang if multilingual
-6. Update the page via `klytos_update_page`
+2. Check the Post Type's editor mode (`klytos_get_post_type`)
+3. Generate/adapt content using the correct format:
+   - **Gutenberg editor:** Use Gutenberg block markup. For text: `wp:paragraph`, `wp:heading`. For complex visual sections (product grids, hero sections, pricing tables): use `<!-- wp:html -->` blocks with free HTML/CSS. Mix both freely. Read `klytos_get_guide('design-patterns')` for ready-to-use patterns.
+   - **TinyMCE editor:** Use plain HTML directly. Use Klytos utility classes and CSS variables for consistent styling.
+4. For visually complex pages, use the page `custom_css` field for section-specific styles
+5. Configure SEO: `title`, `meta_description`, `og_image`
+6. Assign the correct template
+7. Configure hreflang if multilingual
+8. Update the page via `klytos_update_page`
 
 ### Images
 
@@ -391,9 +464,33 @@ klytos_upload_asset — upload images
 
 ### Forms (if needed)
 
-1. Activate klytos-forms: `klytos_activate_plugin` with id `klytos-forms`
-2. Create forms with required fields
-3. Configure email notifications
+**IMPORTANT:** Before creating any form, you MUST read the forms guide:
+```
+klytos_get_guide('forms')
+```
+
+**Complete workflow:**
+
+1. **Activate the plugin:** `klytos_activate_plugin` with id `klytos-forms`
+2. **Read the guide:** `klytos_get_guide('forms')` — this teaches you all 18 field types, conditional logic, multi-step forms, notifications, and anti-spam configuration
+3. **Ask the user what they need:**
+   - What is the form for? (contact, newsletter, support, quote request, feedback, etc.)
+   - What fields do they need? (name, email, phone, message, file upload, etc.)
+   - Do they need conditional logic? (show/hide fields based on answers)
+   - Do they need multi-step? (split long forms into steps)
+   - Where should form submissions go? (email address for notifications)
+4. **Create the form** using MCP tools following the guide instructions
+5. **Configure notifications** with merge tags (e.g., `{{field:name}}`, `{{field:email}}`)
+6. **Embed the form in a page** using the shortcode syntax in content_html:
+   - Gutenberg mode: `<!-- wp:html --><div>{{form:your-form-id}}</div><!-- /wp:html -->`
+   - TinyMCE mode: `<div>{{form:your-form-id}}</div>`
+7. **Test the form** by building the page and verifying it renders correctly
+
+**Common form recipes** (see the guide for complete field configurations):
+- **Contact form:** name + email + subject + message + submit
+- **Newsletter:** email + name (optional) + consent checkbox + submit
+- **Support ticket:** name + email + category (select) + priority (radio) + description + file upload + submit
+- **Quote request:** company + contact info + service selection + budget range + details + submit
 
 ### GDPR / Consent
 

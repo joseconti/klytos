@@ -27,17 +27,17 @@ function registerPageTools(ToolRegistry $registry): void
     // ─── klytos_create_page ────────────────────────────────────
     $registry->register(
         'klytos_create_page',
-        'Create a new HTML page or entry for a custom Post Type. Supports hierarchical URLs: "servicios" creates /servicios/, "servicios/marketing" creates /servicios/marketing/. Parent pages must exist first. Provide slug, title, and content_html at minimum. IMPORTANT: content_html MUST use Gutenberg block markup (<!-- wp:paragraph --> etc.) for visual editor compatibility. meta_description is required for SEO. IMPORTANT FOR CUSTOM POST TYPES: When creating an entry with a custom post_type (not "page"), you MUST first: (1) Call klytos_get_post_type to learn about the Post Type taxonomies. (2) Call klytos_list_custom_fields to discover all Custom Fields and which are required. (3) Inform the administrator which fields are REQUIRED (they cannot be skipped) and which are optional. (4) After creating the entry, use klytos_set_bulk_field_values to set all Custom Field values. List all available taxonomies and their terms so the administrator can classify the entry.',
+        'Create a new HTML page or entry for a custom Post Type. Supports hierarchical URLs: "servicios" creates /servicios/, "servicios/marketing" creates /servicios/marketing/. Parent pages must exist first. Provide slug, title, and content_html at minimum. EDITOR MODES — The Post Type editor setting determines content_html format: (A) GUTENBERG editor (default for "page" post type): Use Gutenberg block markup. For text content: <!-- wp:paragraph -->, <!-- wp:heading -->, etc. For complex visual designs: use <!-- wp:html -->...<!-- /wp:html --> blocks containing ANY free HTML/CSS — hero sections, product grids, pricing tables, multi-column layouts, etc. You can MIX both in the same page. (B) TINYMCE/CLASSIC editor: Use plain HTML directly — NO block markup needed. Write standard HTML/CSS with total design freedom. Both modes support TOTAL design freedom. For complex pages, prefer putting section-specific CSS in the custom_css field. Read klytos_get_guide("design-patterns") for ready-to-use visual patterns. meta_description is required for SEO. IMPORTANT FOR CUSTOM POST TYPES: When creating an entry with a custom post_type (not "page"), you MUST first: (1) Call klytos_get_post_type to learn about the Post Type taxonomies. (2) Call klytos_list_custom_fields to discover all Custom Fields and which are required. (3) Inform the administrator which fields are REQUIRED (they cannot be skipped) and which are optional. (4) After creating the entry, use klytos_set_bulk_field_values to set all Custom Field values. List all available taxonomies and their terms so the administrator can classify the entry.',
         [
             'slug'             => ['type' => 'string', 'description' => 'URL slug with hierarchy support. E.g.: "about" → /about/, "servicios/marketing" → /servicios/marketing/. Use / for nested pages. CRITICAL: The homepage MUST use slug "index" — this is the ONLY slug that maps to /index.html at the site root. Do NOT use "inicio", "home", or any other slug for the homepage.'],
             'title'            => ['type' => 'string', 'description' => 'Page title for <title> and <h1>. Max 60 chars. Primary keyword first. Do NOT include the site name (added automatically).'],
-            'content_html'     => ['type' => 'string', 'description' => 'Full HTML body content. MUST use Gutenberg block comments (<!-- wp:paragraph -->, <!-- wp:heading -->, etc.) so the visual editor can parse it. See the klytos-gutenberg-blocks skill for all block formats.'],
+            'content_html'     => ['type' => 'string', 'description' => 'Full HTML body content. Format depends on the Post Type editor setting: GUTENBERG (default): wrap content in block comments — <!-- wp:paragraph --> for text, <!-- wp:heading --> for headings, <!-- wp:html -->...<!-- /wp:html --> for free HTML sections with complex designs. TINYMCE: use plain HTML directly, no block markup needed. Check the Post Type editor with klytos_get_post_type before creating content. Read klytos_get_guide("gutenberg-blocks") for Gutenberg syntax and klytos_get_guide("design-patterns") for visual patterns.'],
             'meta_description' => ['type' => 'string', 'description' => 'SEO meta description. REQUIRED. 120-155 chars recommended. Include primary keyword and a call-to-action. Max 160 chars.'],
             'og_image'         => ['type' => 'string', 'description' => 'Open Graph image URL (1200x630px recommended). Used for Facebook, LinkedIn, Twitter previews. Strongly recommended.'],
             'template'         => ['type' => 'string', 'description' => 'Template: default, landing, blog-post, blank', 'enum' => ['default', 'landing', 'blog-post', 'blank']],
             'status'           => ['type' => 'string', 'description' => 'Page status', 'enum' => ['draft', 'published']],
             'lang'             => ['type' => 'string', 'description' => 'Language code (es, en, ca...) for hreflang'],
-            'custom_css'       => ['type' => 'string', 'description' => 'Custom CSS for this page'],
+            'custom_css'       => ['type' => 'string', 'description' => 'Custom CSS for this specific page. Use this for section-specific styles instead of inline styles. Define classes here and reference them in content_html. Injected into <head> via {{custom_css}} placeholder. Supports any valid CSS including @media queries, :hover states, animations, gradients, etc.'],
             'custom_js'        => ['type' => 'string', 'description' => 'Custom JS for this page'],
             'hreflang_refs'    => ['type' => 'object', 'description' => 'Map of lang to slug for alternate versions. E.g.: {"en": "en/about", "es": "about"}', 'additionalProperties' => true],
             'content'          => ['type' => 'object', 'description' => 'v2.0 structured block content. Object keyed by block_id with slot data. E.g.: {"hero": {"heading": "Welcome", "cta_url": "/contact/"}, "testimonials": {"heading": "Reviews"}}. When provided with a template, the build engine assembles blocks instead of using content_html.', 'additionalProperties' => true],
@@ -62,8 +62,19 @@ function registerPageTools(ToolRegistry $registry): void
                 $warnings[] = 'title exceeds 60 characters (' . strlen( $params['title'] ) . ' chars). Google will truncate it in search results.';
             }
 
+            // Only warn about missing Gutenberg markup if the post type uses the Gutenberg editor.
             if ( ! empty( $params['content_html'] ) && strpos( $params['content_html'], '<!-- wp:' ) === false ) {
-                $warnings[] = 'content_html does not contain Gutenberg block markup. The visual editor will not be able to parse this content into editable blocks. Use <!-- wp:paragraph -->, <!-- wp:heading -->, etc.';
+                $postType = $params['post_type'] ?? 'page';
+                $editorType = 'gutenberg';
+                try {
+                    $ptData = $app->getPostTypeManager()->get($postType);
+                    $editorType = $ptData['editor'] ?? 'gutenberg';
+                } catch (\Throwable $e) {
+                    // Post type not found, assume gutenberg.
+                }
+                if ($editorType === 'gutenberg') {
+                    $warnings[] = 'content_html does not contain Gutenberg block markup (this Post Type uses the Gutenberg editor). Tip: wrap free HTML sections in <!-- wp:html -->...<!-- /wp:html --> for visual editor compatibility while keeping full design freedom. If this Post Type uses TinyMCE, this warning can be ignored.';
+                }
             }
 
             $page = $app->getPages()->create( $params );
