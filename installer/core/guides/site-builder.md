@@ -234,6 +234,7 @@ Consult `klytos_get_guide('site-builder-page-trees')` for recommended page hiera
 1. Propose a page tree based on site type (from `site-builder-page-trees.md`)
 2. User confirms, adds, or removes pages
 3. Create each page via `klytos_create_page`:
+   - **CRITICAL: The homepage MUST use slug `index`** — NOT `inicio`, `home`, or any other slug. The build engine only maps `index` → `/index.html` at the site root. Any other slug creates a subdirectory (e.g., `/inicio/index.html`) which is NOT the homepage. The page title can be anything (e.g., "Inicio", "Home") but the slug MUST be `index`.
    - All pages start as `draft`
    - Assign correct template
    - Set correct language
