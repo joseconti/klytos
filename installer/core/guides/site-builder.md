@@ -358,9 +358,109 @@ If the reference design has a top bar (phone, address, social links), create a c
 
 ### Step 4: Templates
 
-1. Evaluate if the built-in templates cover all needs: `default`, `landing`, `blog-post`, `blank`
-2. If not, create custom templates via `klytos_set_custom_template`
-3. Create CPT-specific templates if needed (e.g., `single-product` for product post type)
+**Built-in core templates:**
+- `default` — full chrome: header + `{{page_content}}` + footer + sidebar (optional)
+- `landing` — header + full-width `{{page_content}}` + footer, hero-friendly
+- `blog-post` — header + article layout with meta + footer
+- `blank` — minimal: just `{{page_content}}`, no header/footer
+
+**When to create a custom template:**
+- The site needs a layout that none of the 4 core templates provide (e.g., blog listing with sidebar, portfolio grid, docs with left nav)
+- A Custom Post Type needs its own layout (e.g., `single-product` with price bar, gallery, specs table)
+- The user's design reference has a layout that doesn't fit any core template
+
+**How to create a custom template:**
+Call `klytos_set_custom_template` with `name` and `html`. The HTML is a **complete HTML document** that uses `{{variables}}` for dynamic content. It MUST include at minimum `{{page_content}}` where the page's content will be inserted.
+
+**Available variables in templates:**
+`{{site_name}}`, `{{page_title}}`, `{{page_content}}`, `{{menu_html}}`, `{{meta_description}}`, `{{base_path}}`, `{{site_url}}`, `{{page_lang}}`, `{{page_slug}}`, `{{current_year}}`, `{{og_image}}`, `{{favicon_url}}`, `{{logo_url}}`, `{{css_variables}}`, `{{google_fonts_html}}`, `{{seo_meta_tags}}`, `{{hreflang_tags}}`, `{{sitemap_url}}`, `{{breadcrumbs}}`, `{{header_html}}`, `{{footer_html}}`, `{{sidebar_html}}`, `{{custom_css}}`, `{{custom_js}}`, `{{head_scripts}}`, `{{body_scripts}}`, `{{plugin_css_link}}`, `{{blocks_css_link}}`, `{{blocks_js_script}}`, `{{hooks_js_script}}`, `{{consent_manager_script}}`, `{{plugin_head_html}}`, `{{plugin_body_end_html}}`, `{{title_separator}}`, `{{tagline}}`
+
+**Example: blog listing template with sidebar**
+```html
+<!DOCTYPE html>
+<html lang="{{page_lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}{{title_separator}}{{site_name}}</title>
+  <meta name="description" content="{{meta_description}}">
+  {{seo_meta_tags}}
+  {{hreflang_tags}}
+  {{consent_manager_script}}
+  <link rel="stylesheet" href="{{base_path}}assets/css/style.css">
+  {{google_fonts_html}}
+  {{blocks_css_link}}
+  {{plugin_css_link}}
+  {{plugin_head_html}}
+  {{custom_css}}
+  {{head_scripts}}
+  <style>
+    .blog-layout { display: grid; grid-template-columns: 1fr 320px; gap: 2rem; }
+    @media (max-width: 768px) { .blog-layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  {{header_html}}
+  <main class="klytos-main">
+    <div class="klytos-container">
+      <div class="blog-layout">
+        <div class="blog-content">{{page_content}}</div>
+        <aside class="blog-sidebar">{{sidebar_html}}</aside>
+      </div>
+    </div>
+  </main>
+  {{footer_html}}
+  {{blocks_js_script}}
+  {{hooks_js_script}}
+  {{plugin_body_end_html}}
+  {{custom_js}}
+  {{body_scripts}}
+</body>
+</html>
+```
+
+**Example: CPT single template (single-product)**
+```html
+<!DOCTYPE html>
+<html lang="{{page_lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{page_title}}{{title_separator}}{{site_name}}</title>
+  <meta name="description" content="{{meta_description}}">
+  {{seo_meta_tags}}
+  <link rel="stylesheet" href="{{base_path}}assets/css/style.css">
+  {{google_fonts_html}}
+  {{plugin_css_link}}
+  {{plugin_head_html}}
+  {{custom_css}}
+  {{head_scripts}}
+</head>
+<body>
+  {{header_html}}
+  <main class="klytos-main">
+    <div class="klytos-container">
+      {{breadcrumbs}}
+      {{page_content}}
+    </div>
+  </main>
+  {{footer_html}}
+  {{hooks_js_script}}
+  {{plugin_body_end_html}}
+  {{custom_js}}
+  {{body_scripts}}
+</body>
+</html>
+```
+
+**Template resolution hierarchy** (first match wins):
+1. `custom-templates/{name}.html` — created via `klytos_set_custom_template` (highest priority)
+2. Plugin-registered templates
+3. Templates in storage (database)
+4. `templates/{name}.html` — core built-in templates
+5. `templates/default.html` — ultimate fallback
+
+**CPT template naming:** For Custom Post Types, create templates named `single-{post_type}` (e.g., `single-product`, `single-project`). The build engine automatically tries `single-{post_type}-{slug}` → `single-{post_type}` → page's chosen template → `default`.
 
 ### Step 5: Reusable Blocks (Optional)
 

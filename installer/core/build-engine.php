@@ -288,7 +288,19 @@ class BuildEngine
         $pluginBodyEndHtml = klytos_apply_filters( 'build.body_end_html', '' );
 
         if ( PageManager::hasBlockContent( $page ) && !empty( $page['template'] ) ) {
-            $pageContent = $this->renderBlockContent( $page, $excludeBlocks );
+            // Only use PageTemplateManager if the template exists as a v2.0
+            // page-template (in storage). Core templates (default, landing,
+            // blog-post, blank) are HTML files — they use {{page_content}}
+            // and the block content should be rendered inline, not via the
+            // PageTemplateManager.
+            try {
+                $this->app->getPageTemplateManager()->get( $page['template'] );
+                $pageContent = $this->renderBlockContent( $page, $excludeBlocks );
+            } catch ( \RuntimeException $e ) {
+                // Template not in page-templates storage — fall back to
+                // content_html or render blocks inline without the manager.
+                $pageContent = $page['content_html'] ?? '';
+            }
         } else {
             $pageContent = $page['content_html'] ?? '';
         }

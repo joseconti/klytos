@@ -205,10 +205,10 @@ function registerTemplateTools(ToolRegistry $registry): void
 
     $registry->register(
         'klytos_set_custom_template',
-        'Create or update a file-based custom template in custom-templates/. These survive updates and have the highest priority in the resolution hierarchy.',
+        'Create or update a file-based custom page template. Use this when the 4 built-in templates (default, landing, blog-post, blank) do not fit the layout you need. The HTML must be a COMPLETE HTML document with {{variables}} for dynamic content. MUST include {{page_content}} where the page body goes. MUST include <link rel="stylesheet" href="{{base_path}}assets/css/style.css"> for theme CSS. Use {{header_html}} and {{footer_html}} for shared chrome. Use {{seo_meta_tags}}, {{google_fonts_html}}, {{plugin_css_link}}, {{hooks_js_script}} etc. for full functionality. For Custom Post Types, name the template "single-{post_type}" (e.g. "single-product"). Read klytos_get_guide("site-builder") Phase 6 Step 4 for complete variable list and examples. Templates created here have the HIGHEST priority in the resolution hierarchy and survive updates.',
         [
-            'name'        => ['type' => 'string', 'description' => 'Template name (without .html). E.g. "default", "single-product"'],
-            'html'        => ['type' => 'string', 'description' => 'Full HTML template content'],
+            'name'        => ['type' => 'string', 'description' => 'Template name (without .html). E.g. "blog-home", "single-product", "docs-sidebar". For CPTs use "single-{post_type}".'],
+            'html'        => ['type' => 'string', 'description' => 'Full HTML document with {{variables}}. MUST include {{page_content}}. See klytos_get_guide("site-builder") Phase 6 Step 4 for all variables and examples.'],
         ],
         function (array $params, App $app): array {
             $name = $params['name'] ?? '';
