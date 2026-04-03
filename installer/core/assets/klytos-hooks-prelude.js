@@ -9,7 +9,7 @@
 (function() {
     'use strict';
 
-    // ─── Registry ─────────────────────────────────────────────
+    // --- Registry -----------------------------------------------
     var hooks = {};
 
     function registerHook(name, callback, priority) {
@@ -18,11 +18,11 @@
         hooks[name].sort(function(a, b) { return a.priority - b.priority; });
     }
 
-    // ─── Page data (from embedded JSON) ───────────────────────
+    // --- Page data (from embedded JSON) -------------------------
     var pageDataEl = document.getElementById('klytos-page-data');
     var pageData = pageDataEl ? JSON.parse(pageDataEl.textContent) : {};
 
-    // ─── Utilities for plugins ────────────────────────────────
+    // --- Utilities for plugins ----------------------------------
     function esc(str) {
         var div = document.createElement('div');
         div.appendChild(document.createTextNode(str));
@@ -36,6 +36,6 @@
         esc: esc
     };
 
-    // ═══════════════════════════════════════════════════════════
+    // =========================================================
     // PLUGIN HOOK REGISTRATIONS (inserted automatically below)
-    // ═══════════════════════════════════════════════════════════
+    // =========================================================
