@@ -231,7 +231,14 @@
     "developer": "Desarrollador",
     "developer_mode": "Activar modo desarrollador",
     "developer_mode_help": "Activa el registro de logs y las herramientas de depuracion. Solo visible para owners y admins.",
-    "developer_mode_warning": "El modo desarrollador esta activo. Esto anade overhead a cada peticion. Desactivalo en produccion."
+    "developer_mode_warning": "El modo desarrollador esta activo. Esto anade overhead a cada peticion. Desactivalo en produccion.",
+    "notices_title": "Avisos",
+    "notices_show_ads": "Mostrar avisos publicitarios",
+    "notices_show_ads_help": "Cuando esta desactivado, los avisos marcados como publicitarios se ocultaran del panel de administracion.",
+    "notices_active_list": "Avisos persistentes activos",
+    "notices_message": "Mensaje",
+    "notices_ads_badge": "Categoria",
+    "notices_dismiss_all": "Descartar todos"
   },
   "assets": {
     "title": "Archivos",

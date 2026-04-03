@@ -231,7 +231,14 @@
     "developer": "Developer",
     "developer_mode": "Enable Developer Mode",
     "developer_mode_help": "Activates debug logging and profiling tools. Only visible to owners and admins.",
-    "developer_mode_warning": "Developer Mode is active. This adds overhead to every request. Disable it in production."
+    "developer_mode_warning": "Developer Mode is active. This adds overhead to every request. Disable it in production.",
+    "notices_title": "Notices",
+    "notices_show_ads": "Show advertising notices",
+    "notices_show_ads_help": "When disabled, notices marked as advertising will be hidden from the admin panel.",
+    "notices_active_list": "Active persistent notices",
+    "notices_message": "Message",
+    "notices_ads_badge": "Category",
+    "notices_dismiss_all": "Dismiss All"
   },
   "assets": {
     "title": "Files",

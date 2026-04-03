@@ -29,7 +29,7 @@ function registerSiteBuilderTools( ToolRegistry $registry ): void
 {
     $registry->register(
         'klytos_start_site_builder',
-        'Start the guided process to build a complete website from scratch. Call this when the user wants to create, set up, or configure their website after installation. Returns a comprehensive step-by-step conversational guide covering 9 phases: discovery, design reference, global config, theme, content structure, templates, content creation, additional features, and launch. The guide tells you exactly what to ask, what tools to use, and in what order.',
+        'Start the guided process to build a complete website from scratch. Call this when the user wants to create, set up, or configure their website after installation. Returns a comprehensive step-by-step conversational guide covering 9 phases: discovery, design reference, global config, theme, content structure, templates, content creation, additional features, and launch. The guide tells you exactly what to ask, what tools to use, and in what order. CRITICAL: When a user provides a reference website, only replicate the VISUAL DESIGN (layout, colors, typography, spacing). NEVER copy text content, blog posts, articles, or images from reference sites — generate original placeholders or ask the user for their own content.',
         [
             'site_type' => [
                 'type'        => 'string',

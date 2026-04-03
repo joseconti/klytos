@@ -307,6 +307,11 @@ class BuildEngine
 
         $pageContent = klytos_apply_filters( 'page.content', $pageContent, $page );
 
+        // Rewrite internal links in content for subdirectory installations.
+        // Content authored via MCP uses root-relative links like href="/about/"
+        // which must become href="/prueba/about/" when installed in a subdirectory.
+        $pageContent = $this->rewriteInternalLinks( $pageContent, $basePath );
+
         $rawSiteName  = $siteConfig['site_name'] ?? '';
         $rawPageTitle = $page['title'] ?? '';
         $titleSeparator = '';
@@ -799,6 +804,46 @@ class BuildEngine
             . "RewriteRule ^(.+)/$ $1/index.html [L]\n";
 
         file_put_contents( $htaccessPath, $content, LOCK_EX );
+    }
+
+    /**
+     * Rewrite root-relative internal links in page content for subdirectory installs.
+     *
+     * Content authored via MCP uses root-relative links like href="/about/"
+     * which must become href="/prueba/about/" when Klytos is installed in /prueba/.
+     * Only rewrites links that start with "/" and are not already prefixed with basePath.
+     * Skips external links (http://, https://, //, #, mailto:, tel:, javascript:).
+     *
+     * @param  string $html     The page content HTML.
+     * @param  string $basePath The public base path (e.g. "/prueba/" or "/").
+     * @return string Content with rewritten internal links.
+     */
+    private function rewriteInternalLinks( string $html, string $basePath ): string
+    {
+        // Nothing to rewrite if installed at root.
+        if ( $basePath === '/' ) {
+            return $html;
+        }
+
+        // Rewrite href="/..." and src="/..." that are internal root-relative links.
+        // Skip links already prefixed with basePath, and skip absolute URLs.
+        return preg_replace_callback(
+            '#((?:href|src|action)\s*=\s*["\'])(/(?!/)[^"\']*?)(["\'])#i',
+            function ( array $matches ) use ( $basePath ): string {
+                $attr = $matches[1]; // e.g. href="
+                $path = $matches[2]; // e.g. /about/
+                $quote = $matches[3]; // e.g. "
+
+                // Already has the basePath prefix — don't double-prefix.
+                if ( str_starts_with( $path, $basePath ) ) {
+                    return $matches[0];
+                }
+
+                // Rewrite: /about/ → /prueba/about/
+                return $attr . rtrim( $basePath, '/' ) . $path . $quote;
+            },
+            $html
+        );
     }
 
     /**

@@ -754,7 +754,7 @@ function klytos_add_notice( string $message, string $type = 'info', bool $dismis
  * @param  string $message     Plain text message.
  * @param  string $type        Notice type: 'success', 'error', 'warning', 'info'.
  * @param  bool   $dismissible Whether the user can close the notice.
- * @param  array  $options     Optional: 'context' (page filter), 'condition_hook' (conditional display filter).
+ * @param  array  $options     Optional: 'context' (page filter), 'condition_hook' (conditional display filter), 'ads' (bool, default true — set false for non-advertising notices).
  * @return array  The notice record.
  */
 function klytos_add_persistent_notice( string $id, string $message, string $type = 'info', bool $dismissible = true, array $options = [] ): array

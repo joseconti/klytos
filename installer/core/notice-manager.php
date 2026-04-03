@@ -143,6 +143,7 @@ class NoticeManager
             'dismissible'    => (bool) ( $data['dismissible'] ?? true ),
             'context'        => trim( $data['context'] ?? '' ),
             'condition_hook' => trim( $data['condition_hook'] ?? '' ),
+            'ads'            => (bool) ( $data['ads'] ?? true ),
             'persistent'     => true,
             'created_at'     => Helpers::now(),
             'updated_at'     => Helpers::now(),
@@ -178,6 +179,7 @@ class NoticeManager
             $existing['dismissible']    = (bool) ( $data['dismissible'] ?? $existing['dismissible'] );
             $existing['context']        = trim( $data['context'] ?? $existing['context'] ?? '' );
             $existing['condition_hook'] = trim( $data['condition_hook'] ?? $existing['condition_hook'] ?? '' );
+            $existing['ads']            = (bool) ( $data['ads'] ?? $existing['ads'] ?? true );
             $existing['updated_at']     = Helpers::now();
 
             $this->storage->write( self::COLLECTION, $existing['id'], $existing );
@@ -314,6 +316,18 @@ class NoticeManager
             }
 
             $notices[] = $notice;
+        }
+
+        // 4. Filter out advertising notices if disabled in site config.
+        $showAds = App::getInstance()->getSiteConfig()->getValue( 'notices.show_ads', true );
+        if ( ! $showAds ) {
+            $notices = array_values( array_filter( $notices, function ( array $n ): bool {
+                // Transient/flash notices always show regardless of ads toggle.
+                if ( empty( $n['persistent'] ) ) {
+                    return true;
+                }
+                return ! ( $n['ads'] ?? true );
+            } ) );
         }
 
         // Allow plugins to add/remove/reorder notices.
