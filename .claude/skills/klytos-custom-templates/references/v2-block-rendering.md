@@ -61,11 +61,27 @@ Global blocks (header, footer, top-bar) inject HTML comment markers:
 | interaction | cta, faq-accordion, stats-counter, contact-form |
 | social-proof | testimonials, team-grid, logo-bar, map-embed |
 
+## Structural Block Deduplication
+
+The build engine detects when the custom template (HTML shell) already provides structural elements and automatically excludes those blocks from `{{page_content}}` to prevent duplication.
+
+**Detection:** Before rendering blocks, `BuildEngine::detectProvidedStructure()` scans the template for:
+- `{{klytos_part:header}}` / `{{klytos_part:footer}}` (raw template)
+- `{{header_html}}` / `{{footer_html}}` (raw template)
+- `<header` / `<footer` HTML tags (processed template)
+
+**Result:** Matching block IDs are passed to `PageTemplateManager::renderPage()` as `$excludeBlocks` and filtered out before block assembly.
+
+**Example:** `default.html` has `{{klytos_part:header}}` + `{{klytos_part:footer}}` → `top-bar`, `header`, `footer` blocks are excluded from `{{page_content}}`. `blank.html` has none → all blocks render.
+
 ## Additional Hooks (v2.0)
 
 | Hook | Type | Purpose |
 |------|------|---------|
 | `page_template.structure` | filter | Modify template block structure before rendering |
+| `page_template.structure_after_dedup` | filter | Modify structure after structural dedup filtering |
+| `build.structural_block_mapping` | filter | Customize structural element → block ID mapping |
+| `build.exclude_structural_blocks` | filter | Override the final block exclusion list |
 | `block.css` | filter | Modify a block's CSS during aggregation |
 | `build.global_blocks` | filter | Modify cached global block HTML during build |
 

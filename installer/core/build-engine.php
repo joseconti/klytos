@@ -257,13 +257,14 @@ class BuildEngine
      *
      * Public so the Router can use it for dynamic plugin pages.
      *
-     * @param  array  $page       Page data array.
-     * @param  array  $siteConfig Site configuration.
-     * @param  string $menuHtml   Rendered navigation menu HTML.
-     * @param  array  $theme      Theme configuration.
+     * @param  array  $page          Page data array.
+     * @param  array  $siteConfig    Site configuration.
+     * @param  string $menuHtml      Rendered navigation menu HTML.
+     * @param  array  $theme         Theme configuration.
+     * @param  array  $excludeBlocks Block IDs to exclude from page template rendering.
      * @return array  Key => value replacement map.
      */
-    public function buildReplacements( array $page, array $siteConfig, string $menuHtml, array $theme ): array
+    public function buildReplacements( array $page, array $siteConfig, string $menuHtml, array $theme, array $excludeBlocks = [] ): array
     {
         $hreflangHtml = $this->buildHreflangTags( $page, $siteConfig );
         $basePath     = Helpers::getPublicBasePath();
@@ -287,7 +288,7 @@ class BuildEngine
         $pluginBodyEndHtml = klytos_apply_filters( 'build.body_end_html', '' );
 
         if ( PageManager::hasBlockContent( $page ) && !empty( $page['template'] ) ) {
-            $pageContent = $this->renderBlockContent( $page );
+            $pageContent = $this->renderBlockContent( $page, $excludeBlocks );
         } else {
             $pageContent = $page['content_html'] ?? '';
         }
@@ -305,6 +306,7 @@ class BuildEngine
             '{{site_name}}'            => Helpers::escHtml( $rawSiteName ),
             '{{title_separator}}'      => $titleSeparator,
             '{{tagline}}'              => Helpers::escHtml( $siteConfig['tagline'] ?? '' ),
+            '{{site_tagline}}'         => Helpers::escHtml( $siteConfig['tagline'] ?? '' ),
             '{{default_language}}'     => $siteConfig['default_language'] ?? 'es',
             '{{page_title}}'           => Helpers::escHtml( $page['title'] ?? '' ),
             '{{page_content}}'         => $pageContent,
@@ -342,18 +344,22 @@ class BuildEngine
         ];
     }
 
-    private function renderTemplate(array $page, array $siteConfig, string $menuHtml, array $theme): string
+    private function renderTemplate( array $page, array $siteConfig, string $menuHtml, array $theme ): string
     {
-        $templateHtml = $this->resolveTemplateForPage($page);
+        $rawTemplateHtml = $this->resolveTemplateForPage( $page );
 
         // Process template parts ({{klytos_part:X}}) BEFORE variable replacement.
-        $templateHtml = $this->processTemplateParts($templateHtml);
+        $templateHtml = $this->processTemplateParts( $rawTemplateHtml );
 
-        $replacements = $this->buildReplacements( $page, $siteConfig, $menuHtml, $theme );
+        // Detect which structural blocks the custom template already provides
+        // so they are not duplicated inside {{page_content}}.
+        $excludeBlocks = $this->detectProvidedStructure( $rawTemplateHtml, $templateHtml );
+
+        $replacements = $this->buildReplacements( $page, $siteConfig, $menuHtml, $theme, $excludeBlocks );
 
         $html = $templateHtml;
-        foreach ($replacements as $key => $value) {
-            $html = str_replace($key, $value, $html);
+        foreach ( $replacements as $key => $value ) {
+            $html = str_replace( $key, $value, $html );
         }
 
         return $html;
@@ -413,6 +419,61 @@ class BuildEngine
         }
 
         return $resolver->resolve('default');
+    }
+
+    /**
+     * Detect which structural elements the custom template already provides.
+     *
+     * Scans the raw template (before parts are resolved) for {{klytos_part:*}}
+     * references and {{*_html}} variables, and the processed template for
+     * hardcoded HTML tags like <header> or <footer>.
+     *
+     * When a custom template already renders a structural element, the
+     * corresponding blocks are excluded from the page template to prevent
+     * duplication (e.g. double header/footer).
+     *
+     * @param  string $rawTemplate       Template HTML before part processing.
+     * @param  string $processedTemplate Template HTML after part processing.
+     * @return array  Block IDs that should be excluded from page template rendering.
+     */
+    private function detectProvidedStructure( string $rawTemplate, string $processedTemplate ): array
+    {
+        // Default mapping: structural element => block IDs to exclude.
+        // 'header' covers both the top-bar and header blocks because
+        // the header template part serves as the complete top navigation area.
+        $mapping = [
+            'header' => ['top-bar', 'header'],
+            'footer' => ['footer'],
+        ];
+
+        $mapping = klytos_apply_filters( 'build.structural_block_mapping', $mapping );
+
+        $exclude = [];
+
+        foreach ( $mapping as $element => $blockIds ) {
+            $provided = false;
+
+            // Check raw template for part references (e.g. {{klytos_part:header}}).
+            if ( str_contains( $rawTemplate, "{{klytos_part:{$element}}}" ) ) {
+                $provided = true;
+            }
+
+            // Check raw template for variable references (e.g. {{header_html}}, {{footer_html}}).
+            if ( str_contains( $rawTemplate, "{{{$element}_html}}" ) ) {
+                $provided = true;
+            }
+
+            // Check processed template for hardcoded HTML tags (e.g. <header, <footer).
+            if ( str_contains( $processedTemplate, "<{$element}" ) ) {
+                $provided = true;
+            }
+
+            if ( $provided ) {
+                array_push( $exclude, ...$blockIds );
+            }
+        }
+
+        return klytos_apply_filters( 'build.exclude_structural_blocks', array_unique( $exclude ), $rawTemplate );
     }
 
     /**
@@ -829,13 +890,14 @@ class BuildEngine
      * Used for v2.0 pages that have structured block content
      * instead of raw content_html.
      *
-     * @param  array  $page Page data with 'content' and 'template'.
+     * @param  array  $page          Page data with 'content' and 'template'.
+     * @param  array  $excludeBlocks Block IDs to exclude (provided by the custom template).
      * @return string Rendered HTML from assembled blocks.
      */
-    private function renderBlockContent(array $page): string
+    private function renderBlockContent( array $page, array $excludeBlocks = [] ): string
     {
         $templateManager = $this->app->getPageTemplateManager();
-        return $templateManager->renderPage($page['template'], $page);
+        return $templateManager->renderPage( $page['template'], $page, $excludeBlocks );
     }
 
     /**

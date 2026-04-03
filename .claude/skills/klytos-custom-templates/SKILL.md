@@ -111,6 +111,28 @@ Shared HTML fragments included via `{{klytos_part:NAME}}` syntax. Parts are reso
 
 Place a file at `custom-templates/parts/header.html` to completely replace the core header.
 
+### Structural Block Deduplication (Automatic)
+
+**CRITICAL:** The build engine automatically prevents header/footer duplication between custom templates and page templates.
+
+When a custom template includes structural elements (via `{{klytos_part:header}}`, `{{klytos_part:footer}}`, `{{header_html}}`, `{{footer_html}}`, or hardcoded `<header>`/`<footer>` tags), the corresponding blocks are **automatically excluded** from the page template rendering inside `{{page_content}}`.
+
+| Custom Template Provides | Blocks Excluded from Page Template |
+|---|---|
+| `{{klytos_part:header}}` or `<header>` | `top-bar`, `header` |
+| `{{klytos_part:footer}}` or `<footer>` | `footer` |
+
+**Rules for AI assistants:**
+- **DO NOT** manually remove structural blocks from page templates — the engine handles deduplication automatically.
+- Page templates MUST remain self-contained (include all structural blocks) because `blank.html` relies on them.
+- If creating a custom template with `{{klytos_part:header}}` + `{{klytos_part:footer}}`, the page template's header/footer blocks are automatically skipped.
+- If creating a custom template WITHOUT structural parts (like `blank.html`), all blocks from the page template render normally.
+
+**Hooks for plugins:**
+- `build.structural_block_mapping` (filter) — Customize which template indicators map to which block IDs.
+- `build.exclude_structural_blocks` (filter) — Override the final exclusion list.
+- `page_template.structure_after_dedup` (filter) — Modify structure after deduplication filtering.
+
 ---
 
 ## 3. Frontend Hook Points
