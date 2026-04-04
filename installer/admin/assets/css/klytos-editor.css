@@ -156,6 +156,17 @@
     background: #f6f7f7;
 }
 
+/* —— Custom status outline button (uses --btn-accent CSS variable) —— */
+.klytos-editor-header__btn--outline {
+    background: transparent;
+    color: var(--btn-accent, #6b7280);
+    border: 1px solid var(--btn-accent, #ddd);
+}
+
+.klytos-editor-header__btn--outline:hover {
+    background: color-mix(in srgb, var(--btn-accent, #6b7280) 10%, transparent);
+}
+
 .klytos-editor-header__btn--ghost {
     background: transparent;
     color: #3858e9;
@@ -809,6 +820,16 @@ body.klytos-block-tab-active .interface-complementary-area-header {
 
 [data-theme="dark"] .klytos-editor-header__btn--secondary:hover {
     background: var(--klytos-surface-hover, #333333);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--outline {
+    background: transparent;
+    color: var(--btn-accent, #9ca3af);
+    border: 1px solid var(--btn-accent, #555);
+}
+
+[data-theme="dark"] .klytos-editor-header__btn--outline:hover {
+    background: color-mix(in srgb, var(--btn-accent, #9ca3af) 15%, transparent);
 }
 
 [data-theme="dark"] .klytos-editor-header__btn--ghost {

@@ -347,6 +347,9 @@ class App
         $this->postTypeManager     = new PostTypeManager($this->storage);
         $this->commentManager      = new CommentManager($this->storage);
 
+        // Inject PostTypeManager into PageManager for per-post-type status validation.
+        $this->pages->setPostTypeManager( $this->postTypeManager );
+
         // Step 10b: Auto-migrate v1.0 admin user to v2.0 multi-user system.
         // On first boot after upgrade from v1.x, the owner user doesn't exist yet.
         // Create it from the admin credentials stored in config.

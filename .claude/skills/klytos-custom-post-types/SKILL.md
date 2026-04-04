@@ -1,6 +1,6 @@
 ---
 name: klytos-custom-post-types
-description: Guide for creating Custom Post Types, Taxonomies, and Custom Fields in Klytos CMS. Use when adding new content types beyond pages (products, properties, blog posts, events, portfolio items, etc.), adding taxonomies for content organization, or defining structured custom fields with validation. Covers post type structure, MCP tools, plugin API, admin interface, hooks, and complete end-to-end examples.
+description: Guide for creating Custom Post Types, Taxonomies, Custom Fields, and Custom Post Statuses in Klytos CMS. Use when adding new content types beyond pages (products, properties, blog posts, events, portfolio items, etc.), adding taxonomies for content organization, defining structured custom fields with validation, or creating custom workflow statuses per post type. Covers post type structure, MCP tools, plugin API, admin interface, hooks, and complete end-to-end examples.
 ---
 
 # Klytos Custom Post Types, Taxonomies & Custom Fields
@@ -15,6 +15,7 @@ description: Guide for creating Custom Post Types, Taxonomies, and Custom Fields
     'slug_i18n'      => array,      // Localized slugs: {'es': '/productos/', 'en': '/products/'}
     'taxonomies'     => array,      // Taxonomy definitions
     'custom_fields'  => array,      // Field definitions
+    'statuses'       => array,      // Custom workflow statuses (optional)
     'builtin'        => bool,       // true only for 'page'
 ]
 ```
@@ -125,7 +126,67 @@ $pt->list();
 
 ---
 
+## Custom Statuses
+
+Each post type can define custom workflow statuses in addition to the 4 system statuses (`draft`, `published`, `scheduled`, `trashed`).
+
+### Status Definition Structure
+
+```php
+'statuses' => [
+    [
+        'id'        => 'review',        // slug, max 20 chars, cannot collide with system statuses
+        'label'     => 'In Review',     // human-readable
+        'color'     => '#f59e0b',       // hex color for badges
+        'icon'      => 'eye',           // optional icon
+        'is_public' => false,           // if true, pages built to live site like published
+    ],
+]
+```
+
+### MCP Tools
+
+- `klytos_add_post_status` -- Add custom status to a post type (params: `post_type_id`, `id`, `label`, `color`, `icon`, `is_public`)
+- `klytos_update_post_status` -- Update status definition (params: `post_type_id`, `id`, `label`, `color`, `icon`, `is_public`)
+- `klytos_remove_post_status` -- Remove status, reassigns affected pages to draft (params: `post_type_id`, `id`)
+- `klytos_list_post_statuses` -- List system + custom statuses for a post type (params: `post_type_id`)
+
+### PostTypeManager Methods
+
+- `getStatusesForPostType(string $postTypeId): array` -- returns system + custom
+- `isValidStatusForPostType(string $postTypeId, string $status): bool`
+- `addStatus(string $postTypeId, array $statusData): array`
+- `updateStatus(string $postTypeId, string $statusId, array $data): array`
+- `removeStatus(string $postTypeId, string $statusId, PageManager $pageManager): array`
+- `reorderStatuses(string $postTypeId, array $orderedIds): array`
+
+### Hooks
+
+| Hook | Type | Arguments |
+|---|---|---|
+| `status.before_save` | action | `array $status` |
+| `status.after_save` | action | `array $status` |
+| `status.after_delete` | action | `array $status` |
+| `page.status_changed` | action | `array $page, string $oldStatus, string $newStatus` |
+| `build.buildable_statuses` | filter | `array $statuses` (modify which custom statuses are built) |
+
+### Admin UI
+
+- Post type creation modal includes statuses repeater
+- Post type edit page has full status management (add/edit/remove)
+- Pages list shows custom status tabs, badges with custom colors, bulk actions
+- Page editor shows dynamic status buttons per post type
+
+### Workflow in klytos_create_post_type
+
+Step (4) asks: "Would you like to define custom workflow statuses for your [name]?"
+
+---
+
 ## Source Files
 
-- Post type manager: `core/post-type-manager.php`
+- Post type manager: `core/post-type-manager.php` (CRUD, validation, SYSTEM_STATUSES constant)
 - MCP tools: `core/mcp/tools/post-type-tools.php`, `core/mcp/tools/custom-field-tools.php`
+- Post status MCP tools: `core/mcp/tools/post-status-tools.php`
+- Page manager: `core/page-manager.php` (setPostTypeManager(), dynamic status validation)
+- Build engine: `core/build-engine.php` (getBuildablePages() includes is_public statuses)

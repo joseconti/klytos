@@ -24,7 +24,7 @@ Every page in Klytos has the following fields:
 | `content_blocks` | string | Gutenberg block JSON (if using block editor) |
 | `meta_description` | string | SEO meta description (max 160 chars) |
 | `template` | string | Layout template: `'default'`, `'blank'`, `'blog-post'`, `'landing'` |
-| `status` | string | `'published'` or `'draft'` |
+| `status` | string | Page status. System statuses: `'draft'`, `'published'`, `'scheduled'`, `'trashed'`. Custom statuses per post type are also supported (see below). |
 | `custom_css` | string | Page-specific CSS injected inline |
 | `custom_js` | string | Page-specific JavaScript injected inline |
 | `og_image` | string | Open Graph image URL |
@@ -40,6 +40,36 @@ Every page in Klytos has the following fields:
 | `post_type` | string | Content type: `'page'` (default) or custom post type ID |
 | `created_at` | string | ISO 8601 timestamp (auto-generated) |
 | `updated_at` | string | ISO 8601 timestamp (auto-updated) |
+
+---
+
+## Custom Post Statuses
+
+Beyond the 4 system statuses (`draft`, `published`, `scheduled`, `trashed`), each post type can define **custom statuses**. Custom statuses are configured per post type via `PostTypeManager` and can have properties like `is_public` that affect build behavior.
+
+### Key Points
+
+- **System statuses** are always available for every post type. They are defined in `PageManager::SYSTEM_STATUSES` (alias: `PageManager::VALID_STATUSES`).
+- **Custom statuses** are defined per post type. Use `klytos_list_post_statuses` (MCP) or `PostTypeManager::getStatusesForPostType($postTypeId)` (PHP) to see all valid statuses for a given post type.
+- **Validation** — `PageManager` validates the status against the post type's allowed statuses via `PostTypeManager::isValidStatusForPostType()`. If the status is not valid for that post type, it falls back to `'draft'`.
+- **Build engine** — Pages with `'published'` status are built to the live site. Pages with custom statuses that have `is_public: true` are **also** built to the live site.
+- **Before setting a status**, always call `klytos_list_post_statuses` to discover which statuses are valid for the target post type.
+
+### Hook: `page.status_changed`
+
+Fires whenever a page's status changes:
+
+```php
+klytos_add_action( 'page.status_changed', function ( array $page, string $oldStatus, string $newStatus ): void {
+    // React to status transitions
+});
+```
+
+| Argument | Type | Description |
+|---|---|---|
+| `$page` | array | The full page data after the change |
+| `$oldStatus` | string | Previous status value |
+| `$newStatus` | string | New status value |
 
 ---
 
@@ -149,7 +179,21 @@ $html = $pages->renderBreadcrumbs('services/marketing', '/');
 
 ## Via MCP (AI Interface)
 
+### klytos_list_post_statuses
+
+Call this **before** setting a page status to discover valid statuses for the target post type:
+
+```json
+{
+    "post_type": "page"
+}
+```
+
+Returns all system statuses plus any custom statuses defined for that post type.
+
 ### klytos_create_page
+
+The `status` field accepts any valid status ID for the page's post type — not just the 4 system statuses. Use `klytos_list_post_statuses` to discover valid values.
 
 ```json
 {
@@ -164,6 +208,8 @@ $html = $pages->renderBreadcrumbs('services/marketing', '/');
 ```
 
 ### klytos_update_page
+
+The `status` field accepts any valid status ID for the page's post type. Invalid statuses fall back to `'draft'`.
 
 ```json
 {
@@ -190,6 +236,8 @@ $html = $pages->renderBreadcrumbs('services/marketing', '/');
 ```
 
 ### klytos_list_pages
+
+The `status` filter accepts any valid status ID — system or custom. Use `klytos_list_post_statuses` to discover valid values.
 
 ```json
 {
@@ -238,6 +286,7 @@ services/marketing/seo/      → grandchild page
 | `page.after_save` | action | `array $page, string $action` |
 | `page.before_delete` | action | `string $slug` |
 | `page.after_delete` | action | `string $slug` |
+| `page.status_changed` | action | `array $page, string $oldStatus, string $newStatus` |
 | `page.content` | filter | `string $html` — modify content before render |
 
 ### Example: Auto-add reading time to blog posts

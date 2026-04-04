@@ -387,12 +387,28 @@ include __DIR__ . '/templates/sidebar.php';
                             <?php echo __( 'common.preview' ); ?>
                         </a>
                         <?php endif; ?>
-                        <button type="submit" name="status" value="draft" class="klytos-editor-header__btn klytos-editor-header__btn--secondary">
-                            <?php echo __( 'pages.draft' ); ?>
+                        <?php
+                        // Load all valid statuses for this post type (system + custom).
+                        $editorStatuses = $app->getPostTypeManager()->getStatusesForPostType( $pagePostType );
+                        // Filter out trashed and scheduled (they have their own mechanisms).
+                        $editorStatuses = array_filter( $editorStatuses, fn( $s ) => !in_array( $s['id'], ['trashed', 'scheduled'], true ) );
+                        foreach ( $editorStatuses as $stDef ):
+                            if ( $stDef['id'] === 'published' ) {
+                                $btnClass = 'klytos-editor-header__btn--primary';
+                            } elseif ( $stDef['id'] === 'draft' ) {
+                                $btnClass = 'klytos-editor-header__btn--secondary';
+                            } else {
+                                $btnClass = 'klytos-editor-header__btn--outline';
+                            }
+                        ?>
+                        <button type="submit" name="status" value="<?php echo klytos_esc_attr( $stDef['id'] ); ?>"
+                                class="klytos-editor-header__btn <?php echo $btnClass; ?>"
+                                <?php if ( !empty( $stDef['color'] ) && empty( $stDef['system'] ) ): ?>
+                                style="--btn-accent:<?php echo klytos_esc_attr( $stDef['color'] ); ?>"
+                                <?php endif; ?>>
+                            <?php echo klytos_esc_html( $stDef['label'] ); ?>
                         </button>
-                        <button type="submit" name="status" value="published" class="klytos-editor-header__btn klytos-editor-header__btn--primary">
-                            <?php echo __( 'pages.published' ); ?>
-                        </button>
+                        <?php endforeach; ?>
                     </div>
                 </div>
 
