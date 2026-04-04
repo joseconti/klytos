@@ -32,6 +32,48 @@
 }
 
 /* ============================================================
+   COLLAPSIBLE CARDS
+   ============================================================ */
+
+.card-collapsible > .card-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.card-collapsible > .card-header::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--klytos-text-muted);
+    border-bottom: 2px solid var(--klytos-text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.2s ease;
+    margin-left: var(--klytos-space-sm);
+    flex-shrink: 0;
+}
+
+.card-collapsible:not(.collapsed) > .card-header::after {
+    transform: rotate(45deg);
+}
+
+.card-collapsible > .card-body {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    max-height: 2000px;
+    opacity: 1;
+}
+
+.card-collapsible.collapsed > .card-body {
+    max-height: 0;
+    opacity: 0;
+}
+
+.card-collapsible.collapsed > .card-header {
+    margin-bottom: 0;
+}
+
+/* ============================================================
    BUTTONS
    ============================================================ */
 
