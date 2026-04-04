@@ -44,6 +44,9 @@ class App
     /** @var string Absolute path to the Klytos root directory (parent of core/). */
     private string $rootPath;
 
+    /** @var string Absolute path to the web root (parent of the admin directory). */
+    private string $webRootPath;
+
     /** @var string Path to config/ (encryption key, config.json.enc, database.json.enc). */
     private string $configPath;
 
@@ -205,6 +208,7 @@ class App
     private function __construct()
     {
         $this->rootPath      = dirname(__DIR__);
+        $this->webRootPath   = dirname($this->rootPath);
         $this->configPath    = $this->rootPath . '/config';
         $this->dataPath      = $this->rootPath . '/data';
         $this->publicPath    = $this->rootPath . '/public';
@@ -302,7 +306,7 @@ class App
         $this->theme      = new ThemeManager($this->storage);
         $this->menu       = new MenuManager($this->storage);
         $this->siteConfig = new SiteConfig($this->storage);
-        $this->assets     = new AssetManager($this->storage, $this->publicPath);
+        $this->assets     = new AssetManager($this->storage, $this->webRootPath);
         $this->updater    = new Updater( $this->storage, $this->configPath );
 
         // Step 9: Load the Hook engine and global helper functions.
@@ -819,6 +823,12 @@ class App
     public function getDataPath(): string
     {
         return $this->dataPath;
+    }
+
+    /** Get the web root path (parent of admin directory — where public assets live). */
+    public function getWebRootPath(): string
+    {
+        return $this->webRootPath;
     }
 
     /** Get the public/ directory path (static site output). */

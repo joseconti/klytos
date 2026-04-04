@@ -77,7 +77,7 @@ $filename = $safeName . '-' . bin2hex( random_bytes( 4 ) ) . '.' . $extension;
 
 // Use AssetManager to upload — this auto-registers metadata and returns asset_id.
 $assetManager = $app->getAssetManager();
-$publicDir    = dirname( dirname( __DIR__ ) ) . '/public/';
+$webRootDir   = $app->getWebRootPath() . '/';
 
 try {
     $data   = file_get_contents( $file['tmp_name'] );
@@ -94,7 +94,7 @@ $assetUrl = $siteUrl . '/' . $result['path'];
 
 // Get image dimensions if it's an image.
 $sizes = [];
-$targetPath = $publicDir . $result['path'];
+$targetPath = $webRootDir . $result['path'];
 if ( strpos( $mimeType, 'image/' ) === 0 && function_exists( 'getimagesize' ) ) {
     $imageInfo = @getimagesize( $targetPath );
     if ( $imageInfo ) {

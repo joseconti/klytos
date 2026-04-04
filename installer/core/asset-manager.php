@@ -28,13 +28,13 @@ class AssetManager
 
     /**
      * @param StorageInterface $storage     Storage backend for asset metadata.
-     * @param string           $publicDir   Absolute path to public/ directory.
+     * @param string           $webRootDir  Absolute path to the web root (parent of admin dir).
      * @param int              $maxFileSize Maximum upload size in bytes (default 10MB).
      */
-    public function __construct( StorageInterface $storage, string $publicDir, int $maxFileSize = 10485760 )
+    public function __construct( StorageInterface $storage, string $webRootDir, int $maxFileSize = 10485760 )
     {
         $this->storage     = $storage;
-        $this->publicDir   = rtrim( $publicDir, '/' );
+        $this->publicDir   = rtrim( $webRootDir, '/' );
         $this->assetsDir   = $this->publicDir . '/assets';
         $this->maxFileSize = $maxFileSize;
     }
