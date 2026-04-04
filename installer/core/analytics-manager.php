@@ -105,7 +105,7 @@ class AnalyticsManager
             'referrer_domain' => $referrerDomain,
             'device_category' => $deviceCategory,
             'visitor_hash'    => $visitorHash,
-            'date'            => date('Y-m-d'),
+            'date'            => klytos_gmdate( 'Y-m-d' ),
             'timestamp'       => Helpers::now(),
         ];
 
@@ -113,7 +113,7 @@ class AnalyticsManager
         $entry = klytos_apply_filters('analytics.event', $entry);
 
         // Generate a unique ID for this entry.
-        $entryId = date('Ymd') . '-' . Helpers::randomHex(6);
+        $entryId = klytos_gmdate( 'Ymd' ) . '-' . Helpers::randomHex(6);
 
         try {
             $this->storage->write(self::COLLECTION, $entryId, $entry);
@@ -222,7 +222,7 @@ class AnalyticsManager
      */
     public function prune(int $retentionDays = self::DEFAULT_RETENTION_DAYS): int
     {
-        $cutoffDate = date('Y-m-d', strtotime("-{$retentionDays} days"));
+        $cutoffDate = klytos_gmdate( 'Y-m-d', strtotime("-{$retentionDays} days") );
         $entries    = $this->storage->list(self::COLLECTION);
         $pruned     = 0;
 
@@ -269,7 +269,7 @@ class AnalyticsManager
      */
     private function getDailySalt(): string
     {
-        $today = date('Y-m-d');
+        $today = klytos_gmdate( 'Y-m-d' );
 
         try {
             $saltData = $this->storage->read(self::SALT_COLLECTION, $today);

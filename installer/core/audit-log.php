@@ -97,7 +97,7 @@ class AuditLog
         ];
 
         // Generate a unique entry ID (timestamp + random for uniqueness).
-        $entryId = date('Ymd-His') . '-' . Helpers::randomHex(4);
+        $entryId = klytos_gmdate( 'Ymd-His' ) . '-' . Helpers::randomHex(4);
 
         try {
             $this->storage->write(self::COLLECTION, $entryId, $entry);
@@ -151,7 +151,7 @@ class AuditLog
      */
     public function prune(int $retentionDays = self::DEFAULT_RETENTION_DAYS): int
     {
-        $cutoff  = date('c', strtotime("-{$retentionDays} days"));
+        $cutoff  = klytos_gmdate( 'c', strtotime("-{$retentionDays} days") );
         $entries = $this->storage->list(self::COLLECTION);
         $pruned  = 0;
 
@@ -217,7 +217,7 @@ class AuditLog
         }
 
         // Convert ISO timestamp to entry ID format.
-        $date = date('Ymd-His', strtotime($timestamp));
+        $date = klytos_gmdate( 'Ymd-His', klytos_datetime_to_timestamp( $timestamp ) );
 
         // Search for entries matching this timestamp prefix.
         $entries = $this->storage->search(self::COLLECTION, $date, ['timestamp']);

@@ -28,13 +28,13 @@ class AssetManager
 
     /**
      * @param StorageInterface $storage     Storage backend for asset metadata.
-     * @param string           $publicDir   Absolute path to public/ directory.
+     * @param string           $webRootDir  Absolute path to the web root (parent of admin dir).
      * @param int              $maxFileSize Maximum upload size in bytes (default 10MB).
      */
-    public function __construct( StorageInterface $storage, string $publicDir, int $maxFileSize = 10485760 )
+    public function __construct( StorageInterface $storage, string $webRootDir, int $maxFileSize = 10485760 )
     {
         $this->storage     = $storage;
-        $this->publicDir   = rtrim( $publicDir, '/' );
+        $this->publicDir   = rtrim( $webRootDir, '/' );
         $this->assetsDir   = $this->publicDir . '/assets';
         $this->maxFileSize = $maxFileSize;
     }
@@ -66,7 +66,7 @@ class AssetManager
         // Auto-organize images by date: images/2026/04/filename.jpg
         // This keeps the uploads directory clean and browsable over time.
         if ($directory === 'images') {
-            $directory = 'images/' . date('Y') . '/' . date('m');
+            $directory = 'images/' . klytos_gmdate( 'Y' ) . '/' . klytos_gmdate( 'm' );
         }
 
         // Decode base64
@@ -224,7 +224,7 @@ class AssetManager
                     'size'      => $file->getSize(),
                     'size_human' => Helpers::formatBytes($file->getSize()),
                     'mime_type' => $this->getMimeType($file->getPathname()),
-                    'modified'  => date('c', $file->getMTime()),
+                    'modified'  => klytos_timestamp_to_datetime( $file->getMTime() ),
                 ];
             }
         }

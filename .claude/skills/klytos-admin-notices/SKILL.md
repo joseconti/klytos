@@ -103,10 +103,30 @@ klytos_add_persistent_notice(
 
 ### Options Array
 
-| Key              | Type   | Description                                                |
-|-----------------|--------|------------------------------------------------------------|
-| `context`        | string | Only show on this admin page (e.g., `'dashboard'`, `'settings'`). Empty = all pages. |
-| `condition_hook` | string | Filter hook name. Notice only renders when the filter returns `true`. |
+| Key              | Type   | Default | Description                                                |
+|-----------------|--------|---------|-------------------------------------------------------------|
+| `context`        | string | `''`    | Only show on this admin page (e.g., `'dashboard'`, `'settings'`). Empty = all pages. |
+| `condition_hook` | string | `''`    | Filter hook name. Notice only renders when the filter returns `true`. |
+| `ads`            | bool   | `true`  | Whether the notice is advertising. `true` = advertising (default), `false` = system/non-advertising. |
+
+### The `ads` Field (Advertising vs System Notices)
+
+Every persistent notice has an `ads` field that defaults to `true`. This means any notice not explicitly marked as `ads => false` is considered advertising.
+
+- **`ads => true` (default)**: Advertising notice. Can be hidden globally via Settings > Notices.
+- **`ads => false`**: System/non-advertising notice. Always visible regardless of the ads toggle.
+
+Users can disable advertising notices in **Settings > Notices > Show advertising notices**. When disabled, only `ads => false` notices are rendered. Transient/flash notices are always shown regardless of this setting.
+
+```php
+// Plugin advertising notice (default ads=true, can be hidden by user).
+klytos_add_persistent_notice( 'my-promo', 'Try our premium features!', 'info', true );
+
+// System notice (always visible).
+klytos_add_persistent_notice( 'config-warning', 'Missing API key.', 'warning', true, [
+    'ads' => false,
+] );
+```
 
 ### The `condition_hook` Pattern
 
@@ -200,6 +220,7 @@ $manager->create( [
     'dismissible'    => true,
     'context'        => 'dashboard',
     'condition_hook' => 'notice.condition.my_custom',
+    'ads'            => false, // System notice, always visible.
 ] );
 
 // Delete a persistent notice from storage entirely.
@@ -280,12 +301,33 @@ Colors come from `--klytos-{type}-subtle` (background), `--klytos-{type}-text` (
 
 **URL**: `/admin/api/notices.php`
 
-| Method | Action    | Parameters | Description                |
-|--------|-----------|------------|----------------------------|
-| `GET`  | --         | `?page=`   | List renderable notices    |
-| `POST` | `dismiss` | `id`       | Dismiss a persistent notice |
+| Method | Action        | Parameters | Description                      |
+|--------|---------------|------------|----------------------------------|
+| `GET`  | --             | `?page=`   | List renderable notices          |
+| `POST` | `dismiss`     | `id`       | Dismiss a persistent notice      |
+| `POST` | `dismiss-all` | --          | Dismiss all dismissible notices  |
 
 Requires authentication and CSRF token.
+
+---
+
+## 9. Settings > Notices Panel
+
+The admin Settings page includes a **Notices** section where site owners can:
+
+1. **Toggle advertising notices**: Checkbox "Show advertising notices" (stored in `notices.show_ads` site config). When unchecked, all notices with `ads => true` are hidden.
+2. **View all active notices**: Table showing every persistent notice with ID, type, message, and ADS/System badge.
+3. **Dismiss All**: Button to dismiss all dismissible persistent notices at once for the current session.
+
+### Site Config Key
+
+```php
+// Read the ads toggle.
+$showAds = klytos_config( 'notices.show_ads' ); // default: true
+
+// Set programmatically.
+klytos_set_config( 'notices', ['show_ads' => false] );
+```
 
 ---
 
@@ -295,12 +337,18 @@ Requires authentication and CSRF token.
 // Flash notice (shown once).
 klytos_add_notice( 'Settings saved!', 'success' );
 
-// Persistent notice (survives page loads).
+// Persistent notice (survives page loads, advertising by default).
 klytos_add_persistent_notice( 'my-warning', 'Check your config.', 'warning' );
+
+// Non-advertising persistent notice (always visible).
+klytos_add_persistent_notice( 'sys-check', 'System check required.', 'error', true, [
+    'ads' => false,
+] );
 
 // Conditional persistent (auto-hides when condition is false).
 klytos_add_persistent_notice( 'check-ssl', 'HTTPS not enabled.', 'error', false, [
     'condition_hook' => 'notice.condition.no_ssl',
+    'ads'            => false,
 ] );
 klytos_add_filter( 'notice.condition.no_ssl', fn( bool $show ) => ! is_ssl() );
 

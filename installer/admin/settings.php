@@ -122,6 +122,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         );
         $generator->setApiKey(trim($_POST['gemini_api_key'] ?? ''));
         $success = __( 'ai_images.api_key_saved' );
+    } elseif ($section === 'notices') {
+        $app->getSiteConfig()->set([
+            'notices' => [
+                'show_ads' => isset($_POST['show_ads']),
+            ],
+        ]);
+
+        // Handle "dismiss all" action.
+        if (isset($_POST['dismiss_all'])) {
+            $noticeManager = $app->getNoticeManager();
+            $allNotices = $noticeManager->list();
+            foreach ($allNotices as $notice) {
+                if (!empty($notice['dismissible'])) {
+                    $noticeManager->dismiss($notice['id']);
+                }
+            }
+        }
+
+        $success = __( 'common.success' );
     }
 
     klytos_do_action('admin.settings.after_save', $section, $_POST);
@@ -368,6 +387,67 @@ require_once __DIR__ . '/templates/sidebar.php';
     </form>
 </div>
 <?php klytos_do_action('admin.settings.after_section', 'appearance'); ?>
+
+<?php klytos_do_action('admin.settings.before_section', 'notices'); ?>
+<!-- Notices -->
+<div class="card">
+    <div class="card-header"><h3><?php echo __( 'settings.notices_title' ); ?></h3></div>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="section" value="notices">
+        <div class="form-group">
+            <label class="flex flex-center flex-gap-sm" style="cursor:pointer">
+                <input type="checkbox" name="show_ads" value="1" <?php echo ($siteConfig['notices']['show_ads'] ?? true) ? 'checked' : ''; ?>>
+                <?php echo __( 'settings.notices_show_ads' ); ?>
+            </label>
+            <p class="form-help"><?php echo __( 'settings.notices_show_ads_help' ); ?></p>
+        </div>
+
+        <?php
+        $noticeManager = $app->getNoticeManager();
+        $persistentNotices = $noticeManager->list();
+        if (!empty($persistentNotices)):
+        ?>
+        <h4 class="mt-3 mb-1" style="font-size:0.95rem"><?php echo __( 'settings.notices_active_list' ); ?></h4>
+        <div class="table-container mb-2">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th><?php echo __( 'common.type' ); ?></th>
+                        <th><?php echo __( 'settings.notices_message' ); ?></th>
+                        <th><?php echo __( 'settings.notices_ads_badge' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($persistentNotices as $pn): ?>
+                    <tr>
+                        <td><code><?php echo klytos_esc_html( $pn['id'] ?? '' ); ?></code></td>
+                        <td><span class="badge badge-<?php echo klytos_esc_attr( $pn['type'] ?? 'info' ); ?>"><?php echo klytos_esc_html( $pn['type'] ?? 'info' ); ?></span></td>
+                        <td><?php echo klytos_esc_html( $pn['message'] ?? '' ); ?></td>
+                        <td>
+                            <?php if ($pn['ads'] ?? true): ?>
+                                <span class="badge badge-warning">ADS</span>
+                            <?php else: ?>
+                                <span class="badge badge-info">System</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+
+        <div class="flex flex-gap-sm">
+            <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+            <?php if (!empty($persistentNotices)): ?>
+                <button type="submit" name="dismiss_all" value="1" class="btn btn-outline"><?php echo __( 'settings.notices_dismiss_all' ); ?></button>
+            <?php endif; ?>
+        </div>
+    </form>
+</div>
+<?php klytos_do_action('admin.settings.after_section', 'notices'); ?>
 
 <?php klytos_do_action('admin.settings.before_section', 'ai'); ?>
 <!-- AI API Key -->

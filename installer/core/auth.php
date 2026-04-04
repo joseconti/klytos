@@ -402,7 +402,7 @@ class Auth
         $tokensData['tokens'][] = [
             'id'         => $tokenId,
             'hash'       => $tokenHash,
-            'label'      => $label ?: 'Token ' . date('Y-m-d'),
+            'label'      => $label ?: 'Token ' . klytos_gmdate( 'Y-m-d' ),
             'created_at' => Helpers::now(),
             'last_used'  => null,
         ];
@@ -491,7 +491,7 @@ class Auth
         $data['passwords'][] = [
             'id'         => $passwordId,
             'username'   => $username,
-            'label'      => $label ?: 'App Password ' . date('Y-m-d'),
+            'label'      => $label ?: 'App Password ' . klytos_gmdate( 'Y-m-d' ),
             'hash'       => $hash,
             'created_at' => Helpers::now(),
             'last_used'  => null,

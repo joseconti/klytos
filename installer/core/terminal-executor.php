@@ -600,8 +600,8 @@ class TerminalExecutor
                 if ( preg_match( '/^(\d+)d$/', $period, $m ) ) {
                     $days = (int) $m[1];
                 }
-                $dateTo   = date( 'Y-m-d' );
-                $dateFrom = date( 'Y-m-d', strtotime( "-{$days} days" ) );
+                $dateTo   = klytos_gmdate( 'Y-m-d' );
+                $dateFrom = klytos_gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
 
                 $analytics = $this->app->getAnalyticsManager();
                 $data      = $analytics->getSummary( $dateFrom, $dateTo );
@@ -711,7 +711,7 @@ class TerminalExecutor
                 }
                 $output = "Backups (" . count( $backups ) . "):\n\n";
                 foreach ( $backups as $b ) {
-                    $date = date( 'Y-m-d H:i', $b['date'] );
+                    $date = klytos_gmdate( 'Y-m-d H:i', $b['date'] );
                     $type = $b['type'] === 'manual' ? '[MANUAL]' : '[UPDATE]';
                     $output .= "  {$type} {$b['name']}  ({$date})\n";
                 }

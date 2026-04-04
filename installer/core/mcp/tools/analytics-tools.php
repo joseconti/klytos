@@ -30,8 +30,8 @@ function registerAnalyticsTools(ToolRegistry $registry, App $app): void
             'date_to'   => ['type' => 'string', 'description' => 'End date (YYYY-MM-DD). Default: today.'],
         ],
         function (array $params, App $app): array {
-            $dateFrom = $params['date_from'] ?? date('Y-m-d', strtotime('-7 days'));
-            $dateTo   = $params['date_to'] ?? date('Y-m-d');
+            $dateFrom = $params['date_from'] ?? klytos_gmdate( 'Y-m-d', strtotime('-7 days') );
+            $dateTo   = $params['date_to'] ?? klytos_gmdate( 'Y-m-d' );
 
             $analytics = new \Klytos\Core\AnalyticsManager($app->getStorage());
             return $analytics->getSummary($dateFrom, $dateTo);
@@ -48,8 +48,8 @@ function registerAnalyticsTools(ToolRegistry $registry, App $app): void
             'limit'     => ['type' => 'integer', 'description' => 'Max pages to return. Default: 20.'],
         ],
         function (array $params, App $app): array {
-            $dateFrom = $params['date_from'] ?? date('Y-m-d', strtotime('-30 days'));
-            $dateTo   = $params['date_to'] ?? date('Y-m-d');
+            $dateFrom = $params['date_from'] ?? klytos_gmdate( 'Y-m-d', strtotime('-30 days') );
+            $dateTo   = $params['date_to'] ?? klytos_gmdate( 'Y-m-d' );
             $limit    = (int) ($params['limit'] ?? 20);
 
             $analytics = new \Klytos\Core\AnalyticsManager($app->getStorage());

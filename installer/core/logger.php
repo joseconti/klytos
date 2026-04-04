@@ -147,12 +147,12 @@ class Logger
         }
 
         // ── Resolve file path with rotation ──
-        $logFile = $this->resolveLogFile( date( 'Y-m-d' ) );
+        $logFile = $this->resolveLogFile( klytos_gmdate( 'Y-m-d' ) );
 
         // ── Format the line ──
         $line = klytos_apply_filters( 'logger.log_format', sprintf(
             "[%s] [%s] [%s] %s%s\n",
-            date( 'Y-m-d H:i:s' ),
+            klytos_gmdate( 'Y-m-d H:i:s' ),
             strtoupper( $level ),
             $source,
             $message,
@@ -184,11 +184,11 @@ class Logger
             $level = 'critical';
         }
 
-        $logFile = $this->resolveLogFile( date( 'Y-m-d' ) );
+        $logFile = $this->resolveLogFile( klytos_gmdate( 'Y-m-d' ) );
 
         $line = sprintf(
             "[%s] [%s] [%s] %s%s\n",
-            date( 'Y-m-d H:i:s' ),
+            klytos_gmdate( 'Y-m-d H:i:s' ),
             strtoupper( $level ),
             $source,
             $message,

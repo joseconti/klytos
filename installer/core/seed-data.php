@@ -56,7 +56,7 @@ function seedCoreBlocks(BlockManager $blocks): void
                 ['name' => 'tagline', 'type' => 'text', 'label' => 'Footer Tagline'],
                 ['name' => 'year', 'type' => 'text', 'label' => 'Year'],
             ],
-            'sample_data' => ['site_name' => 'My Site', 'tagline' => 'Powered by Klytos', 'year' => date('Y')],
+            'sample_data' => ['site_name' => 'My Site', 'tagline' => 'Powered by Klytos', 'year' => klytos_gmdate( 'Y' )],
         ],
         [
             'id' => 'breadcrumb', 'name' => 'Breadcrumb', 'category' => 'structure', 'scope' => 'page',

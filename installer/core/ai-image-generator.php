@@ -301,6 +301,6 @@ class AiImageGenerator
         if (empty($slug)) {
             $slug = 'ai-image';
         }
-        return $slug . '-' . date('YmdHis') . '.png';
+        return $slug . '-' . klytos_gmdate( 'YmdHis' ) . '.png';
     }
 }

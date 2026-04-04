@@ -164,7 +164,7 @@ class ConsentManager
             'privacy_url' => trim( (string) ( $declaration['privacy_url'] ?? '' ) ),
             'cookies'     => $this->sanitizeCookies( $declaration['cookies'] ?? [] ),
             'scripts'     => array_values( array_filter( array_map( 'trim', (array) ( $declaration['scripts'] ?? [] ) ) ) ),
-            'updated_at'  => date( 'c' ),
+            'updated_at'  => klytos_now_utc(),
         ];
 
         $this->storage->write( self::COLLECTION, $data['plugin_id'], $data );
@@ -224,7 +224,7 @@ class ConsentManager
         }
 
         return klytos_apply_filters( 'consent.audit_export', [
-            'generated_at'   => date( 'c' ),
+            'generated_at'   => klytos_now_utc(),
             'enabled'        => $config['enabled'],
             'total_plugins'  => count( $declarations ),
             'total_cookies'  => $totalCookies,

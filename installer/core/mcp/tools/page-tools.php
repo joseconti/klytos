@@ -35,7 +35,9 @@ function registerPageTools(ToolRegistry $registry): void
             'meta_description' => ['type' => 'string', 'description' => 'SEO meta description. REQUIRED. 120-155 chars recommended. Include primary keyword and a call-to-action. Max 160 chars.'],
             'og_image'         => ['type' => 'string', 'description' => 'Open Graph image URL (1200x630px recommended). Used for Facebook, LinkedIn, Twitter previews. Strongly recommended.'],
             'template'         => ['type' => 'string', 'description' => 'Template: default, landing, blog-post, blank', 'enum' => ['default', 'landing', 'blog-post', 'blank']],
-            'status'           => ['type' => 'string', 'description' => 'Page status', 'enum' => ['draft', 'published']],
+            'status'           => ['type' => 'string', 'description' => 'Page status. Use "scheduled" with publish_at for future publishing.', 'enum' => ['draft', 'published', 'scheduled']],
+            'publish_at'       => ['type' => 'string', 'description' => 'ISO 8601 UTC datetime for scheduled publishing (e.g. "2026-05-01T09:00:00Z"). Required when status is "scheduled".'],
+            'is_sticky'        => ['type' => 'boolean', 'description' => 'Pin this page to the top of listings (default false).'],
             'lang'             => ['type' => 'string', 'description' => 'Language code (es, en, ca...) for hreflang'],
             'custom_css'       => ['type' => 'string', 'description' => 'Custom CSS for this specific page. Use this for section-specific styles instead of inline styles. Define classes here and reference them in content_html. Injected into <head> via {{custom_css}} placeholder. Supports any valid CSS including @media queries, :hover states, animations, gradients, etc.'],
             'custom_js'        => ['type' => 'string', 'description' => 'Custom JS for this page'],
@@ -100,7 +102,9 @@ function registerPageTools(ToolRegistry $registry): void
             'content_html'     => ['type' => 'string', 'description' => 'New HTML content'],
             'meta_description' => ['type' => 'string', 'description' => 'New meta description'],
             'template'         => ['type' => 'string', 'enum' => ['default', 'landing', 'blog-post', 'blank']],
-            'status'           => ['type' => 'string', 'enum' => ['draft', 'published']],
+            'status'           => ['type' => 'string', 'enum' => ['draft', 'published', 'scheduled']],
+            'publish_at'       => ['type' => 'string', 'description' => 'ISO 8601 UTC datetime for scheduled publishing. Required when status is "scheduled".'],
+            'is_sticky'        => ['type' => 'boolean', 'description' => 'Pin this page to the top of listings.'],
             'custom_css'       => ['type' => 'string'],
             'custom_js'        => ['type' => 'string'],
             'og_image'         => ['type' => 'string'],
@@ -123,16 +127,58 @@ function registerPageTools(ToolRegistry $registry): void
     // ─── klytos_delete_page ────────────────────────────────────
     $registry->register(
         'klytos_delete_page',
-        'Delete a page by slug.',
+        'Move a page to trash (soft delete). The page can be restored later with klytos_restore_page. To permanently delete, use klytos_permanent_delete_page.',
         [
-            'slug' => ['type' => 'string', 'description' => 'Slug of the page to delete'],
+            'slug' => ['type' => 'string', 'description' => 'Slug of the page to trash'],
         ],
         function (array $params, App $app): array {
-            $deleted = $app->getPages()->delete($params['slug'] ?? '');
+            $deleted = $app->getPages()->delete( $params['slug'] ?? '' );
+            return ['success' => $deleted, 'slug' => $params['slug'] ?? '', 'info' => 'Page moved to trash. Use klytos_restore_page to undo or klytos_permanent_delete_page to remove permanently.'];
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => true],
+        ['slug']
+    );
+
+    // ─── klytos_restore_page ─────────────────────────────────
+    $registry->register(
+        'klytos_restore_page',
+        'Restore a page from the trash to its previous status (draft or published).',
+        [
+            'slug' => ['type' => 'string', 'description' => 'Slug of the trashed page to restore'],
+        ],
+        function (array $params, App $app): array {
+            $page = $app->getPages()->restore( $params['slug'] ?? '' );
+            return ['success' => true, 'page' => $page];
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true],
+        ['slug']
+    );
+
+    // ─── klytos_permanent_delete_page ────────────────────────
+    $registry->register(
+        'klytos_permanent_delete_page',
+        'Permanently delete a page from storage. This action cannot be undone. The page does NOT need to be in trash first.',
+        [
+            'slug' => ['type' => 'string', 'description' => 'Slug of the page to permanently delete'],
+        ],
+        function (array $params, App $app): array {
+            $deleted = $app->getPages()->permanentDelete( $params['slug'] ?? '' );
             return ['success' => $deleted, 'slug' => $params['slug'] ?? ''];
         },
         ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => true],
         ['slug']
+    );
+
+    // ─── klytos_empty_trash ──────────────────────────────────
+    $registry->register(
+        'klytos_empty_trash',
+        'Permanently delete ALL pages in the trash. This action cannot be undone.',
+        [],
+        function (array $params, App $app): array {
+            $count = $app->getPages()->emptyTrash();
+            return ['success' => true, 'pages_deleted' => $count];
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => true]
     );
 
     // ─── klytos_get_page ───────────────────────────────────────
@@ -154,7 +200,7 @@ function registerPageTools(ToolRegistry $registry): void
         'klytos_list_pages',
         'List all pages with optional filtering by status and language.',
         [
-            'status'    => ['type' => 'string', 'description' => 'Filter: all, published, draft', 'enum' => ['all', 'published', 'draft']],
+            'status'    => ['type' => 'string', 'description' => 'Filter: all (excludes trash), published, draft, scheduled, trashed', 'enum' => ['all', 'published', 'draft', 'scheduled', 'trashed']],
             'lang'      => ['type' => 'string', 'description' => 'Filter by language code (empty = all)'],
             'post_type' => ['type' => 'string', 'description' => 'Filter by post type slug (e.g. "page", "casas"). Empty = all types.'],
             'limit'     => ['type' => 'integer', 'description' => 'Max results (default 50)'],

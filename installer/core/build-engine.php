@@ -123,6 +123,12 @@ class BuildEngine
         // 6. Generate llms.txt and llms-full.txt for AI crawler indexing
         $this->generateLlmsTxt($pages, $siteConfig);
 
+        // 6b. Generate search index JSON for client-side search.
+        $searchEnabled = $siteConfig['search_enabled'] ?? true;
+        if ( $searchEnabled ) {
+            $this->generateSearchIndex( $pages, $siteConfig );
+        }
+
         // 7. Ensure public .htaccess exists with clean URL rewrite rules.
         $this->ensurePublicHtaccess();
 
@@ -307,6 +313,11 @@ class BuildEngine
 
         $pageContent = klytos_apply_filters( 'page.content', $pageContent, $page );
 
+        // Rewrite internal links in content for subdirectory installations.
+        // Content authored via MCP uses root-relative links like href="/about/"
+        // which must become href="/prueba/about/" when installed in a subdirectory.
+        $pageContent = $this->rewriteInternalLinks( $pageContent, $basePath );
+
         $rawSiteName  = $siteConfig['site_name'] ?? '';
         $rawPageTitle = $page['title'] ?? '';
         $titleSeparator = '';
@@ -328,7 +339,7 @@ class BuildEngine
             '{{seo_meta_tags}}'        => $seoMetaTags,
             '{{page_slug}}'            => $page['slug'] ?? '',
             '{{menu_html}}'            => $menuHtml,
-            '{{current_year}}'         => date( 'Y' ),
+            '{{current_year}}'         => klytos_gmdate( 'Y' ),
             '{{og_image}}'             => $page['og_image'] ?? ( $siteConfig['seo']['default_og_image'] ?? '' ),
             '{{custom_css}}'           => !empty( $page['custom_css'] ) ? '<style>' . $page['custom_css'] . '</style>' : '',
             '{{custom_js}}'            => !empty( $page['custom_js'] ) ? '<script>' . $page['custom_js'] . '</script>' : '',
@@ -758,7 +769,7 @@ class BuildEngine
     private function buildFooterHtml(array $siteConfig): string
     {
         $name = Helpers::escHtml($siteConfig['site_name'] ?? 'Klytos Site');
-        $year = date('Y');
+        $year = klytos_gmdate( 'Y' );
         return "<footer class=\"klytos-footer\"><p>&copy; {$year} {$name}</p></footer>";
     }
 
@@ -799,6 +810,46 @@ class BuildEngine
             . "RewriteRule ^(.+)/$ $1/index.html [L]\n";
 
         file_put_contents( $htaccessPath, $content, LOCK_EX );
+    }
+
+    /**
+     * Rewrite root-relative internal links in page content for subdirectory installs.
+     *
+     * Content authored via MCP uses root-relative links like href="/about/"
+     * which must become href="/prueba/about/" when Klytos is installed in /prueba/.
+     * Only rewrites links that start with "/" and are not already prefixed with basePath.
+     * Skips external links (http://, https://, //, #, mailto:, tel:, javascript:).
+     *
+     * @param  string $html     The page content HTML.
+     * @param  string $basePath The public base path (e.g. "/prueba/" or "/").
+     * @return string Content with rewritten internal links.
+     */
+    private function rewriteInternalLinks( string $html, string $basePath ): string
+    {
+        // Nothing to rewrite if installed at root.
+        if ( $basePath === '/' ) {
+            return $html;
+        }
+
+        // Rewrite href="/..." and src="/..." that are internal root-relative links.
+        // Skip links already prefixed with basePath, and skip absolute URLs.
+        return preg_replace_callback(
+            '#((?:href|src|action)\s*=\s*["\'])(/(?!/)[^"\']*?)(["\'])#i',
+            function ( array $matches ) use ( $basePath ): string {
+                $attr = $matches[1]; // e.g. href="
+                $path = $matches[2]; // e.g. /about/
+                $quote = $matches[3]; // e.g. "
+
+                // Already has the basePath prefix — don't double-prefix.
+                if ( str_starts_with( $path, $basePath ) ) {
+                    return $matches[0];
+                }
+
+                // Rewrite: /about/ → /prueba/about/
+                return $attr . rtrim( $basePath, '/' ) . $path . $quote;
+            },
+            $html
+        );
     }
 
     /**
@@ -853,7 +904,7 @@ class BuildEngine
 
             $xml .= "  <url>\n";
             $xml .= "    <loc>" . Helpers::escUrl($loc) . "</loc>\n";
-            $xml .= "    <lastmod>" . ($page['updated_at'] ?? date('c')) . "</lastmod>\n";
+            $xml .= "    <lastmod>" . ($page['updated_at'] ?? klytos_now_utc()) . "</lastmod>\n";
             $xml .= "    <changefreq>{$changefreq}</changefreq>\n";
             $xml .= "    <priority>{$priority}</priority>\n";
 
@@ -1568,5 +1619,190 @@ CSS;
 </body>
 </html>
 HTML;
+    }
+
+    // ─── Search Index ───────────────────────────────────────────
+
+    /**
+     * Generate a search index JSON file for client-side search.
+     *
+     * Outputs /search-index.json at the web root with an array of page entries
+     * containing: slug, title, description, content (plaintext, truncated),
+     * post_type, and lang. Client-side JavaScript (Fuse.js) uses this for
+     * fuzzy full-text search on the static site.
+     *
+     * Also generates a /search/index.html search results page.
+     *
+     * @param array $pages      Published pages (already filtered by buildAll).
+     * @param array $siteConfig Site configuration.
+     */
+    private function generateSearchIndex( array $pages, array $siteConfig ): void
+    {
+        $entries = [];
+
+        foreach ( $pages as $page ) {
+            $slug = $page['slug'] ?? 'index';
+
+            // Strip HTML tags to get plaintext for search indexing.
+            $html      = $page['content_html'] ?? '';
+            $plaintext = strip_tags( preg_replace( '/<!--.*?-->/s', '', $html ) );
+            $plaintext = preg_replace( '/\s+/', ' ', trim( $plaintext ) );
+
+            // Truncate to ~500 chars to keep the index lightweight.
+            if ( mb_strlen( $plaintext ) > 500 ) {
+                $plaintext = mb_substr( $plaintext, 0, 500 );
+            }
+
+            $entry = [
+                'slug'        => $slug,
+                'title'       => $page['title'] ?? '',
+                'description' => $page['meta_description'] ?? '',
+                'content'     => $plaintext,
+                'post_type'   => $page['post_type'] ?? 'page',
+                'lang'        => $page['lang'] ?? '',
+            ];
+
+            $entries[] = $entry;
+        }
+
+        // Allow plugins to modify the search index entries.
+        $entries = klytos_apply_filters( 'build.search_index', $entries );
+
+        // Write the search index JSON.
+        $json = json_encode( $entries, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+        file_put_contents( $this->outputPath . '/search-index.json', $json, LOCK_EX );
+
+        // Generate the search page at /search/index.html.
+        $this->generateSearchPage( $siteConfig );
+    }
+
+    /**
+     * Generate the search results page.
+     *
+     * Creates a lightweight HTML page at /search/index.html that loads
+     * Fuse.js and the search index to provide client-side fuzzy search.
+     *
+     * @param array $siteConfig Site configuration.
+     */
+    private function generateSearchPage( array $siteConfig ): void
+    {
+        $basePath = Helpers::getPublicBasePath();
+        $siteName = Helpers::escHtml( $siteConfig['site_name'] ?? 'Klytos' );
+        $lang     = $siteConfig['default_language'] ?? 'es';
+
+        $searchLabels = [
+            'title'       => $lang === 'es' ? 'Buscar' : 'Search',
+            'placeholder' => $lang === 'es' ? 'Escribe tu búsqueda...' : 'Type your search...',
+            'no_results'  => $lang === 'es' ? 'No se encontraron resultados.' : 'No results found.',
+            'searching'   => $lang === 'es' ? 'Buscando...' : 'Searching...',
+        ];
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="{$lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{$searchLabels['title']} — {$siteName}</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="{$basePath}assets/css/style.css">
+  <style>
+    .search-container { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .search-input { width: 100%; padding: 0.75rem 1rem; font-size: 1.1rem; border: 2px solid var(--klytos-border, #333); border-radius: 8px; background: var(--klytos-surface, #1a1a2e); color: var(--klytos-text, #e0e0e0); outline: none; }
+    .search-input:focus { border-color: var(--klytos-primary, #6366f1); }
+    .search-results { list-style: none; padding: 0; margin-top: 1.5rem; }
+    .search-result { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--klytos-border, #333); }
+    .search-result a { font-size: 1.2rem; font-weight: 600; color: var(--klytos-primary, #6366f1); text-decoration: none; }
+    .search-result a:hover { text-decoration: underline; }
+    .search-result p { margin: 0.5rem 0 0; color: var(--klytos-text-muted, #999); font-size: 0.95rem; }
+    .search-result .search-url { font-size: 0.85rem; color: var(--klytos-text-muted, #777); }
+    .search-no-results { color: var(--klytos-text-muted, #999); font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="search-container">
+    <h1>{$searchLabels['title']}</h1>
+    <input type="search" id="klytos-search" class="search-input" placeholder="{$searchLabels['placeholder']}" autofocus>
+    <div id="klytos-search-status" class="search-no-results" style="display:none;"></div>
+    <ul id="klytos-search-results" class="search-results"></ul>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+  <script>
+  (function() {
+    var input = document.getElementById('klytos-search');
+    var resultsEl = document.getElementById('klytos-search-results');
+    var statusEl = document.getElementById('klytos-search-status');
+    var basePath = '{$basePath}';
+    var noResultsText = '{$searchLabels['no_results']}';
+    var fuse = null;
+    var debounceTimer = null;
+
+    fetch(basePath + 'search-index.json')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        fuse = new Fuse(data, {
+          keys: [
+            { name: 'title', weight: 0.4 },
+            { name: 'description', weight: 0.3 },
+            { name: 'content', weight: 0.3 }
+          ],
+          threshold: 0.3,
+          includeScore: true,
+          minMatchCharLength: 2
+        });
+        // Check URL params for initial query.
+        var params = new URLSearchParams(window.location.search);
+        var q = params.get('q');
+        if (q) {
+          input.value = q;
+          doSearch(q);
+        }
+      });
+
+    input.addEventListener('input', function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function() { doSearch(input.value); }, 200);
+    });
+
+    function doSearch(query) {
+      if (!fuse || query.length < 2) {
+        resultsEl.innerHTML = '';
+        statusEl.style.display = 'none';
+        return;
+      }
+      var results = fuse.search(query, { limit: 20 });
+      if (results.length === 0) {
+        resultsEl.innerHTML = '';
+        statusEl.textContent = noResultsText;
+        statusEl.style.display = 'block';
+        return;
+      }
+      statusEl.style.display = 'none';
+      resultsEl.innerHTML = results.map(function(r) {
+        var item = r.item;
+        var url = item.slug === 'index' ? basePath : basePath + item.slug + '/';
+        var desc = item.description || item.content.substring(0, 150) + '...';
+        return '<li class="search-result">'
+          + '<a href="' + url + '">' + escHtml(item.title) + '</a>'
+          + '<div class="search-url">' + url + '</div>'
+          + '<p>' + escHtml(desc) + '</p>'
+          + '</li>';
+      }).join('');
+    }
+
+    function escHtml(str) {
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+  })();
+  </script>
+</body>
+</html>
+HTML;
+
+        $searchDir = $this->outputPath . '/search';
+        Helpers::ensureWritableDir( $searchDir );
+        file_put_contents( $searchDir . '/index.html', $html, LOCK_EX );
     }
 }

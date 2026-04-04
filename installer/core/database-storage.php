@@ -239,7 +239,7 @@ class DatabaseStorage implements StorageInterface
 
         $table   = $this->tableName($collection);
         $pdo     = $this->getPdo();
-        $now     = date('Y-m-d H:i:s');
+        $now     = klytos_gmdate( 'Y-m-d H:i:s' );
 
         // Only encrypt sensitive data. Plain JSON is stored as-is for recoverability.
         if ($this->isSensitive($collection, $id)) {

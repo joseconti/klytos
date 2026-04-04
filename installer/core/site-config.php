@@ -93,6 +93,11 @@ class SiteConfig
             $current['developer'] = array_merge($current['developer'] ?? [], $data['developer']);
         }
 
+        // Nested: notices
+        if (isset($data['notices']) && is_array($data['notices'])) {
+            $current['notices'] = array_merge($current['notices'] ?? [], $data['notices']);
+        }
+
         // Nested: cache
         if (isset($data['cache']) && is_array($data['cache'])) {
             $current['cache'] = array_merge($current['cache'] ?? [], $data['cache']);
@@ -220,6 +225,9 @@ class SiteConfig
             ],
             'developer'        => [
                 'developer_mode' => false,
+            ],
+            'notices'          => [
+                'show_ads' => true,
             ],
             'languages'        => [],
             'last_build'       => null,

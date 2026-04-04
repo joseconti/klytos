@@ -658,6 +658,6 @@ class PrivacyManager
             return null;
         }
 
-        return date( 'Ymd-His', $time ) . '-0000';
+        return klytos_gmdate( 'Ymd-His', $time ) . '-0000';
     }
 }

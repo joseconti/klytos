@@ -65,6 +65,18 @@ try {
 
             Helpers::jsonResponse( ['success' => true, 'dismissed' => $id] );
 
+        } elseif ( $action === 'dismiss-all' ) {
+            $allNotices = $noticeManager->list();
+            $dismissed  = [];
+            foreach ( $allNotices as $notice ) {
+                if ( ! empty( $notice['dismissible'] ) ) {
+                    $noticeManager->dismiss( $notice['id'] );
+                    $dismissed[] = $notice['id'];
+                }
+            }
+
+            Helpers::jsonResponse( ['success' => true, 'dismissed' => $dismissed] );
+
         } else {
             Helpers::jsonResponse( ['error' => 'Unknown action'], 400 );
         }

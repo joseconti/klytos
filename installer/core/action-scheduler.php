@@ -102,7 +102,7 @@ class ActionScheduler
             'status'       => 'pending',
             'type'         => 'single',
             'interval'     => null,
-            'scheduled_at' => date('c', $timestamp),
+            'scheduled_at' => klytos_timestamp_to_datetime( $timestamp ),
             'started_at'   => null,
             'completed_at' => null,
             'claim_id'     => null,
@@ -150,7 +150,7 @@ class ActionScheduler
             'status'       => 'pending',
             'type'         => 'recurring',
             'interval'     => $intervalSeconds,
-            'scheduled_at' => date('c', $timestamp),
+            'scheduled_at' => klytos_timestamp_to_datetime( $timestamp ),
             'started_at'   => null,
             'completed_at' => null,
             'claim_id'     => null,
@@ -498,7 +498,7 @@ class ActionScheduler
                 $retryTimestamp = time() + ($action['attempts'] * 60);
 
                 $action['status']       = 'pending';
-                $action['scheduled_at'] = date('c', $retryTimestamp);
+                $action['scheduled_at'] = klytos_timestamp_to_datetime( $retryTimestamp );
                 $action['claim_id']     = null;
                 $action['last_error']   = $errorMessage;
                 $action['updated_at']   = Helpers::now();
@@ -529,7 +529,7 @@ class ActionScheduler
      */
     public function pruneCompleted(int $retentionDays = 30): int
     {
-        $cutoff = date('c', time() - ($retentionDays * 86400));
+        $cutoff = klytos_timestamp_to_datetime( time() - ($retentionDays * 86400) );
         $pruned = 0;
 
         foreach (['complete', 'failed', 'canceled'] as $status) {
@@ -574,7 +574,7 @@ class ActionScheduler
                     $action['last_error']   = 'Action timed out after ' . $timeoutSeconds . ' seconds (max attempts reached).';
                 } else {
                     $action['status']       = 'pending';
-                    $action['scheduled_at'] = date('c', $now);
+                    $action['scheduled_at'] = klytos_timestamp_to_datetime( $now );
                     $action['last_error']   = 'Action timed out after ' . $timeoutSeconds . ' seconds — retrying.';
                 }
 
@@ -608,7 +608,7 @@ class ActionScheduler
         }
 
         $action['status']       = 'pending';
-        $action['scheduled_at'] = date('c', time());
+        $action['scheduled_at'] = klytos_now_utc();
         $action['attempts']     = 0;
         $action['claim_id']     = null;
         $action['last_error']   = null;

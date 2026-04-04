@@ -85,7 +85,23 @@
     "custom_css": "CSS personalizado",
     "custom_js": "JS personalizado",
     "hreflang": "Referencias hreflang",
-    "confirm_delete_page": "¿Estás seguro de que quieres eliminar esta página?"
+    "confirm_delete_page": "¿Estás seguro de que quieres mover esta página a la papelera?",
+    "confirm_permanent_delete": "¿Estás seguro de que quieres ELIMINAR PERMANENTEMENTE esta página? Esta acción no se puede deshacer.",
+    "confirm_empty_trash": "¿Estás seguro de que quieres eliminar permanentemente TODAS las páginas de la papelera? Esta acción no se puede deshacer.",
+    "moved_to_trash": "Página movida a la papelera.",
+    "restored": "Página restaurada.",
+    "permanently_deleted": "Página eliminada permanentemente.",
+    "trash_emptied": "Papelera vaciada. {count} páginas eliminadas.",
+    "trash_empty": "La papelera está vacía.",
+    "scheduled": "Programada",
+    "trashed": "En papelera",
+    "sticky": "Fijada",
+    "tab_all": "Todas",
+    "tab_scheduled": "Programadas",
+    "tab_trash": "Papelera",
+    "empty_trash": "Vaciar papelera",
+    "restore": "Restaurar",
+    "permanent_delete": "Eliminar permanentemente"
   },
   "design": {
     "title": "Diseño",
@@ -231,7 +247,14 @@
     "developer": "Desarrollador",
     "developer_mode": "Activar modo desarrollador",
     "developer_mode_help": "Activa el registro de logs y las herramientas de depuracion. Solo visible para owners y admins.",
-    "developer_mode_warning": "El modo desarrollador esta activo. Esto anade overhead a cada peticion. Desactivalo en produccion."
+    "developer_mode_warning": "El modo desarrollador esta activo. Esto anade overhead a cada peticion. Desactivalo en produccion.",
+    "notices_title": "Avisos",
+    "notices_show_ads": "Mostrar avisos publicitarios",
+    "notices_show_ads_help": "Cuando esta desactivado, los avisos marcados como publicitarios se ocultaran del panel de administracion.",
+    "notices_active_list": "Avisos persistentes activos",
+    "notices_message": "Mensaje",
+    "notices_ads_badge": "Categoria",
+    "notices_dismiss_all": "Descartar todos"
   },
   "assets": {
     "title": "Archivos",

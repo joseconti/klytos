@@ -213,6 +213,7 @@ klytos_add_action( 'klytos.init', function ( $app ): void {
         'dismissible'    => false,
         'context'        => 'dashboard',
         'condition_hook' => 'notice.condition.indexing_blocked',
+        'ads'            => false,
     ] );
 } );
 
@@ -229,6 +230,7 @@ klytos_add_action( 'klytos.init', function ( $app ): void {
         'dismissible'    => false,
         'context'        => '',
         'condition_hook' => 'notice.condition.encryption_key_not_backed_up',
+        'ads'            => false,
     ] );
 } );
 
