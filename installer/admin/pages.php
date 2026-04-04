@@ -162,16 +162,16 @@ $tabSep = str_contains( $baseUrl, '?' ) ? '&' : '?';
     </div>
 
     <!-- Status tabs -->
-    <div class="tabs" style="padding: 0 var(--klytos-space-4); border-bottom: 1px solid var(--klytos-border);">
-        <a href="<?php echo klytos_esc_url( $baseUrl ); ?>" class="tab-item<?php echo $statusView === '' ? ' active' : ''; ?>">
+    <div class="tabs">
+        <a href="<?php echo klytos_esc_url( $baseUrl ); ?>" class="tab<?php echo $statusView === '' ? ' active' : ''; ?>">
             <?php echo __( 'pages.tab_all' ); ?> (<?php echo $countAll; ?>)
         </a>
         <?php if ( $countScheduled > 0 ): ?>
-        <a href="<?php echo klytos_esc_url( $baseUrl . $tabSep . 'status=scheduled' ); ?>" class="tab-item<?php echo $statusView === 'scheduled' ? ' active' : ''; ?>">
+        <a href="<?php echo klytos_esc_url( $baseUrl . $tabSep . 'status=scheduled' ); ?>" class="tab<?php echo $statusView === 'scheduled' ? ' active' : ''; ?>">
             <?php echo __( 'pages.tab_scheduled' ); ?> (<?php echo $countScheduled; ?>)
         </a>
         <?php endif; ?>
-        <a href="<?php echo klytos_esc_url( $baseUrl . $tabSep . 'status=trashed' ); ?>" class="tab-item<?php echo $statusView === 'trashed' ? ' active' : ''; ?>">
+        <a href="<?php echo klytos_esc_url( $baseUrl . $tabSep . 'status=trashed' ); ?>" class="tab<?php echo $statusView === 'trashed' ? ' active' : ''; ?>">
             <?php echo __( 'pages.tab_trash' ); ?> (<?php echo $countTrashed; ?>)
         </a>
     </div>
