@@ -384,6 +384,24 @@ tr:hover td {
     color: var(--klytos-text-secondary);
 }
 
+/* —— Scheduled —— */
+.badge-scheduled {
+    background: var(--klytos-info-subtle, #eff6ff);
+    color: var(--klytos-info-text, #1e40af);
+}
+
+/* —— Trashed —— */
+.badge-trashed {
+    background: var(--klytos-error-subtle);
+    color: var(--klytos-error-text);
+}
+
+/* —— Custom status (uses --badge-color CSS variable) —— */
+.badge-custom {
+    background: color-mix(in srgb, var(--badge-color, #6b7280) 15%, transparent);
+    color: var(--badge-color, #6b7280);
+}
+
 /* —— Inactive / Urgent —— */
 .badge-inactive,
 .badge-urgent {

@@ -116,6 +116,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         } elseif ($action === 'remove_custom_field') {
             $postType = $ptManager->removeCustomField($ptId, $_POST['cf_field_id'] ?? '');
             $success  = __('common.success');
+
+        } elseif ($action === 'add_status') {
+            $postType = $ptManager->addStatus($ptId, [
+                'id'        => trim($_POST['st_id'] ?? ''),
+                'label'     => trim($_POST['st_label'] ?? ''),
+                'color'     => trim($_POST['st_color'] ?? '#6b7280'),
+                'icon'      => trim($_POST['st_icon'] ?? ''),
+                'is_public' => isset($_POST['st_is_public']),
+            ]);
+            $success = __('common.success');
+
+        } elseif ($action === 'update_status') {
+            $postType = $ptManager->updateStatus($ptId, $_POST['st_id'] ?? '', [
+                'label'     => trim($_POST['st_label'] ?? ''),
+                'color'     => trim($_POST['st_color'] ?? '#6b7280'),
+                'icon'      => trim($_POST['st_icon'] ?? ''),
+                'is_public' => isset($_POST['st_is_public']),
+            ]);
+            $success = __('common.success');
+
+        } elseif ($action === 'remove_status') {
+            $postType = $ptManager->removeStatus($ptId, $_POST['st_id'] ?? '', $app->getPages());
+            $success  = __('common.success');
         }
     } catch (\Exception $e) {
         $error = $e->getMessage();
@@ -275,6 +298,103 @@ require_once __DIR__ . '/templates/sidebar.php';
     </form>
 </div>
 
+<!-- Custom Statuses -->
+<?php $customStatuses = $postType['statuses'] ?? []; ?>
+<div class="card mt-3">
+    <div class="card-header">
+        <h3>Custom Statuses (<?php echo count( $customStatuses ); ?>)</h3>
+    </div>
+
+    <div class="p-3">
+        <p class="form-help mb-2">System statuses (Draft, Published, Scheduled, Trashed) are always available. Add custom workflow statuses below.</p>
+    </div>
+
+    <?php if ( !empty( $customStatuses ) ): ?>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Label</th>
+                    <th>Color</th>
+                    <th>Public</th>
+                    <th><?php echo __( 'common.actions' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ( $customStatuses as $st ): ?>
+                <tr>
+                    <td class="mono"><?php echo klytos_esc_html( $st['id'] ?? '' ); ?></td>
+                    <td><?php echo klytos_esc_html( $st['label'] ?? '' ); ?></td>
+                    <td>
+                        <span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:<?php echo klytos_esc_attr( $st['color'] ?? '#6b7280' ); ?>;vertical-align:middle"></span>
+                        <span class="mono" style="vertical-align:middle;margin-left:4px"><?php echo klytos_esc_html( $st['color'] ?? '#6b7280' ); ?></span>
+                    </td>
+                    <td>
+                        <span class="badge-status badge-<?php echo ( $st['is_public'] ?? false ) ? 'published' : 'draft'; ?>">
+                            <?php echo ( $st['is_public'] ?? false ) ? 'Yes' : 'No'; ?>
+                        </span>
+                    </td>
+                    <td class="flex-center flex-gap-sm">
+                        <button type="button" class="btn btn-outline btn-sm btn-edit-status"
+                                data-id="<?php echo klytos_esc_attr( $st['id'] ?? '' ); ?>"
+                                data-label="<?php echo klytos_esc_attr( $st['label'] ?? '' ); ?>"
+                                data-color="<?php echo klytos_esc_attr( $st['color'] ?? '#6b7280' ); ?>"
+                                data-icon="<?php echo klytos_esc_attr( $st['icon'] ?? '' ); ?>"
+                                data-public="<?php echo ( $st['is_public'] ?? false ) ? '1' : '0'; ?>">
+                            <?php echo __( 'common.edit' ); ?>
+                        </button>
+                        <form method="post" class="inline-form form-confirm-delete">
+                            <input type="hidden" name="action" value="remove_status">
+                            <input type="hidden" name="st_id" value="<?php echo klytos_esc_attr( $st['id'] ?? '' ); ?>">
+                            <?php echo klytos_csrf_field(); ?>
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php else: ?>
+    <div class="empty-state">
+        <p>No custom statuses defined. Only system statuses (Draft, Published, Scheduled, Trashed) are available.</p>
+    </div>
+    <?php endif; ?>
+
+    <!-- Add Status form -->
+    <form method="post" class="p-3 border-t" id="form-add-status">
+        <h4 class="mb-2" id="status-form-title">Add Status</h4>
+        <input type="hidden" name="action" value="add_status" id="status-form-action">
+        <?php echo klytos_csrf_field(); ?>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>ID</label>
+                <input type="text" name="st_id" id="st_id" class="form-control" required pattern="[a-z0-9_-]+" placeholder="e.g. review" maxlength="20">
+                <p class="form-help">Cannot be: draft, published, scheduled, trashed</p>
+            </div>
+            <div class="form-group">
+                <label>Label</label>
+                <input type="text" name="st_label" id="st_label" class="form-control" required placeholder="e.g. In Review">
+            </div>
+            <div class="form-group">
+                <label>Color</label>
+                <div class="flex-center flex-gap-sm">
+                    <input type="color" name="st_color" id="st_color" value="#6b7280" style="width:40px;height:36px;padding:2px;border:1px solid var(--klytos-border);border-radius:var(--klytos-radius-sm);cursor:pointer">
+                    <input type="text" name="st_icon" id="st_icon" class="form-control" placeholder="Icon (optional)" style="flex:1">
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label><input type="checkbox" name="st_is_public" id="st_is_public" value="1"> Public (pages with this status are built to the live site)</label>
+        </div>
+        <div class="flex-center flex-gap-sm">
+            <button type="submit" class="btn btn-primary" id="btn-status-submit">Add Status</button>
+            <button type="button" class="btn btn-outline" id="btn-status-cancel" style="display:none">Cancel</button>
+        </div>
+    </form>
+</div>
+
 <!-- Custom Fields -->
 <?php
 $customFields = $postType['custom_fields'] ?? [];
@@ -422,6 +542,49 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
 
     typeSelect.addEventListener('change', updateOptionsVisibility);
     updateOptionsVisibility();
+
+    // ─── Status Edit/Add toggle ──────────────────────────
+    var statusForm      = document.getElementById('form-add-status');
+    var statusFormTitle = document.getElementById('status-form-title');
+    var statusFormAction= document.getElementById('status-form-action');
+    var statusSubmitBtn = document.getElementById('btn-status-submit');
+    var statusCancelBtn = document.getElementById('btn-status-cancel');
+    var stIdField       = document.getElementById('st_id');
+    var stLabelField    = document.getElementById('st_label');
+    var stColorField    = document.getElementById('st_color');
+    var stIconField     = document.getElementById('st_icon');
+    var stPublicField   = document.getElementById('st_is_public');
+
+    document.querySelectorAll('.btn-edit-status').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            statusFormTitle.textContent  = 'Edit Status: ' + btn.dataset.id;
+            statusFormAction.value       = 'update_status';
+            statusSubmitBtn.textContent  = 'Update Status';
+            statusCancelBtn.style.display = 'inline-flex';
+            stIdField.value    = btn.dataset.id;
+            stIdField.readOnly = true;
+            stLabelField.value = btn.dataset.label;
+            stColorField.value = btn.dataset.color;
+            stIconField.value  = btn.dataset.icon || '';
+            stPublicField.checked = btn.dataset.public === '1';
+            statusForm.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    if (statusCancelBtn) {
+        statusCancelBtn.addEventListener('click', function() {
+            statusFormTitle.textContent  = 'Add Status';
+            statusFormAction.value       = 'add_status';
+            statusSubmitBtn.textContent  = 'Add Status';
+            statusCancelBtn.style.display = 'none';
+            stIdField.value    = '';
+            stIdField.readOnly = false;
+            stLabelField.value = '';
+            stColorField.value = '#6b7280';
+            stIconField.value  = '';
+            stPublicField.checked = false;
+        });
+    }
 
     /* Add option rows */
     var addOptionBtn = document.getElementById('btn-add-option');

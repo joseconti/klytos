@@ -27,11 +27,17 @@ class PageManager
     /** @var StorageInterface Storage backend (FileStorage or DatabaseStorage). */
     private StorageInterface $storage;
 
+    /** @var PostTypeManager|null Post type manager for per-post-type status validation. */
+    private ?PostTypeManager $postTypeManager = null;
+
     /** @var string Collection name used in the storage layer. */
     private const COLLECTION = 'pages';
 
-    /** @var array Valid page statuses. */
+    /** @var array System page statuses (always available for all post types). */
     public const VALID_STATUSES = ['draft', 'published', 'scheduled', 'trashed'];
+
+    /** @var array Alias for VALID_STATUSES — system statuses are always available. */
+    public const SYSTEM_STATUSES = ['draft', 'published', 'scheduled', 'trashed'];
 
     /** @var int Days to keep trashed pages before auto-purge. */
     public const TRASH_RETENTION_DAYS = 30;
@@ -39,9 +45,19 @@ class PageManager
     /**
      * @param StorageInterface $storage Storage backend instance.
      */
-    public function __construct(StorageInterface $storage)
+    public function __construct( StorageInterface $storage )
     {
         $this->storage = $storage;
+    }
+
+    /**
+     * Inject PostTypeManager for per-post-type status validation.
+     *
+     * @param PostTypeManager $postTypeManager
+     */
+    public function setPostTypeManager( PostTypeManager $postTypeManager ): void
+    {
+        $this->postTypeManager = $postTypeManager;
     }
 
     /**
@@ -92,7 +108,8 @@ class PageManager
             throw new \RuntimeException("Page not found: {$slug}");
         }
 
-        $page = $this->storage->read(self::COLLECTION, $slug);
+        $page      = $this->storage->read(self::COLLECTION, $slug);
+        $oldStatus = $page['status'] ?? 'draft';
 
         // Merge provided fields (partial update).
         $updatable = [
@@ -133,7 +150,13 @@ class PageManager
         $this->storage->write(self::COLLECTION, $slug, $page);
 
         // Hook: notify plugins that a page was updated.
-        klytos_do_action('page.after_save', $page, 'update');
+        klytos_do_action( 'page.after_save', $page, 'update' );
+
+        // Hook: notify plugins when status changes (workflow transitions).
+        $newStatus = $page['status'] ?? 'draft';
+        if ( $oldStatus !== $newStatus ) {
+            klytos_do_action( 'page.status_changed', $page, $oldStatus, $newStatus );
+        }
 
         return $page;
     }
@@ -563,9 +586,17 @@ class PageManager
             $parentSlug = substr($slug, 0, strrpos($slug, '/'));
         }
 
-        $status = $data['status'] ?? 'published';
-        if ( !in_array( $status, self::VALID_STATUSES, true ) ) {
-            $status = 'draft';
+        $status     = $data['status'] ?? 'published';
+        $postTypeId = $data['post_type'] ?? 'page';
+
+        if ( $this->postTypeManager !== null ) {
+            if ( !$this->postTypeManager->isValidStatusForPostType( $postTypeId, $status ) ) {
+                $status = 'draft';
+            }
+        } else {
+            if ( !in_array( $status, self::VALID_STATUSES, true ) ) {
+                $status = 'draft';
+            }
         }
 
         $page = [

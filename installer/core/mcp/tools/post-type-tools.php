@@ -27,7 +27,7 @@ function registerPostTypeTools(ToolRegistry $registry): void
     // ─── klytos_create_post_type ───────────────────────────────
     $registry->register(
         'klytos_create_post_type',
-        'Create a new custom post type. A Post Type defines a type of content on the site (e.g. "Products", "Properties", "Recipes", "Projects"). Provide an id (machine name, lowercase, no spaces, max 20 chars) and a human-readable name. IMPORTANT WORKFLOW: After creating a Post Type, you MUST ask the administrator: (1) "Which editor do you prefer for [name]: Gutenberg (block editor, best for pages with rich visual layouts) or TinyMCE (classic editor, simpler, best for structured content with custom fields)?" (2) "Would you like to classify your [name] by categories or tags? These are called Taxonomies — they let visitors filter and browse content by groups. For example, Products might have Categories (electronics, clothing) and Tags (sale, new-arrival)." If yes, use klytos_add_taxonomy for each. (3) "Would you like to add structured data fields (Custom Fields) to your [name]? These define what information each entry contains — for example, a Product might have price, SKU, weight, color, and photos. I can show you all 27 available field types." If yes, use klytos_get_field_types to show options, then klytos_add_custom_field for each field, asking whether each should be required or optional. Read the "post-types-and-fields" guide (klytos_get_guide) for complete documentation.',
+        'Create a new custom post type. A Post Type defines a type of content on the site (e.g. "Products", "Properties", "Recipes", "Projects"). Provide an id (machine name, lowercase, no spaces, max 20 chars) and a human-readable name. IMPORTANT WORKFLOW: After creating a Post Type, you MUST ask the administrator: (1) "Which editor do you prefer for [name]: Gutenberg (block editor, best for pages with rich visual layouts) or TinyMCE (classic editor, simpler, best for structured content with custom fields)?" (2) "Would you like to classify your [name] by categories or tags? These are called Taxonomies — they let visitors filter and browse content by groups. For example, Products might have Categories (electronics, clothing) and Tags (sale, new-arrival)." If yes, use klytos_add_taxonomy for each. (3) "Would you like to add structured data fields (Custom Fields) to your [name]? These define what information each entry contains — for example, a Product might have price, SKU, weight, color, and photos. I can show you all 27 available field types." If yes, use klytos_get_field_types to show options, then klytos_add_custom_field for each field, asking whether each should be required or optional. (4) "Would you like to define custom workflow statuses for your [name]? By default all content types have: Draft, Published, Scheduled, and Trashed. You can add intermediate workflow statuses like \'In Review\', \'Approved\', \'Archived\', etc. Each custom status has a label, color, and optionally can be marked as public (visible on the built site like Published)." If yes, use klytos_add_post_status for each status. Read the "post-types-and-fields" guide (klytos_get_guide) for complete documentation.',
         [
             'id'         => ['type' => 'string', 'description' => 'Unique machine name for the post type (lowercase, underscores allowed, max 20 chars). E.g.: "portfolio", "testimonial".'],
             'name'       => ['type' => 'string', 'description' => 'Human-readable plural label. E.g.: "Portfolios", "Testimonials".'],
@@ -48,6 +48,20 @@ function registerPostTypeTools(ToolRegistry $registry): void
                     ],
                 ],
             ],
+            'statuses' => [
+                'type'        => 'array',
+                'description' => 'Custom workflow statuses for this post type. System statuses (draft, published, scheduled, trashed) are always available. These define additional workflow states.',
+                'items'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'id'        => ['type' => 'string', 'description' => 'Machine name (lowercase, max 20 chars). Cannot be: draft, published, scheduled, trashed.'],
+                        'label'     => ['type' => 'string', 'description' => 'Human-readable label (e.g. "In Review", "Approved").'],
+                        'color'     => ['type' => 'string', 'description' => 'Hex color for badge display (e.g. "#f59e0b"). Defaults to "#6b7280".'],
+                        'icon'      => ['type' => 'string', 'description' => 'Icon identifier (e.g. "eye", "check", "star").'],
+                        'is_public' => ['type' => 'boolean', 'description' => 'If true, pages with this status are built to the public site. Default: false.'],
+                    ],
+                ],
+            ],
         ],
         function (array $params, App $app): array {
             $postType = $app->getPostTypeManager()->create($params);
@@ -60,7 +74,7 @@ function registerPostTypeTools(ToolRegistry $registry): void
     // ─── klytos_update_post_type ──────────────────────────────
     $registry->register(
         'klytos_update_post_type',
-        'Update an existing custom post type. Only provided fields will be changed. Use this to rename, change the slug, update i18n slugs, or replace the taxonomies list.',
+        'Update an existing custom post type. Only provided fields will be changed. Use this to rename, change the slug, update i18n slugs, replace the taxonomies list, or replace custom statuses.',
         [
             'id'         => ['type' => 'string', 'description' => 'The post type id to update (required).'],
             'name'       => ['type' => 'string', 'description' => 'New human-readable label.'],
@@ -77,6 +91,20 @@ function registerPostTypeTools(ToolRegistry $registry): void
                         'slug'         => ['type' => 'string'],
                         'slug_i18n'    => ['type' => 'object', 'additionalProperties' => true],
                         'hierarchical' => ['type' => 'boolean'],
+                    ],
+                ],
+            ],
+            'statuses' => [
+                'type'        => 'array',
+                'description' => 'Replace the full custom statuses list. System statuses (draft, published, scheduled, trashed) are always available. Use klytos_add_post_status / klytos_remove_post_status for incremental changes.',
+                'items'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'id'        => ['type' => 'string'],
+                        'label'     => ['type' => 'string'],
+                        'color'     => ['type' => 'string'],
+                        'icon'      => ['type' => 'string'],
+                        'is_public' => ['type' => 'boolean'],
                     ],
                 ],
             ],

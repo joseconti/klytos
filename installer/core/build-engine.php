@@ -97,8 +97,8 @@ class BuildEngine
         $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getPublicBasePath());
         $theme      = $this->app->getTheme()->get();
 
-        // 3. Build each published page
-        $pages = $this->app->getPages()->list('published');
+        // 3. Build each buildable page (published + custom statuses with is_public).
+        $pages = $this->getBuildablePages();
 
         foreach ($pages as $page) {
             try {
@@ -149,6 +149,52 @@ class BuildEngine
             'errors'       => $errors,
             'duration_ms'  => $durationMs,
         ];
+    }
+
+    /**
+     * Get all pages that should be built to the public site.
+     *
+     * Includes pages with 'published' status plus pages with custom statuses
+     * that have is_public=true on their post type definition.
+     *
+     * @return array Buildable pages (deduplicated by slug).
+     */
+    private function getBuildablePages(): array
+    {
+        $pages = $this->app->getPages()->list( 'published' );
+
+        // Collect custom statuses marked as public across all post types.
+        $publicCustomStatuses = [];
+        $postTypes = $this->app->getPostTypeManager()->list();
+        foreach ( $postTypes as $pt ) {
+            foreach ( $pt['statuses'] ?? [] as $st ) {
+                if ( !empty( $st['is_public'] ) && !in_array( $st['id'], $publicCustomStatuses, true ) ) {
+                    $publicCustomStatuses[] = $st['id'];
+                }
+            }
+        }
+
+        // Filter: allow plugins to modify which statuses are buildable.
+        $publicCustomStatuses = klytos_apply_filters( 'build.buildable_statuses', $publicCustomStatuses );
+
+        // Fetch pages for each public custom status.
+        foreach ( $publicCustomStatuses as $customStatus ) {
+            $extraPages = $this->app->getPages()->list( $customStatus );
+            $pages = array_merge( $pages, $extraPages );
+        }
+
+        // Deduplicate by slug.
+        $seen   = [];
+        $unique = [];
+        foreach ( $pages as $page ) {
+            $slug = $page['slug'] ?? '';
+            if ( !isset( $seen[$slug] ) ) {
+                $seen[$slug] = true;
+                $unique[]    = $page;
+            }
+        }
+
+        return $unique;
     }
 
     /**

@@ -34,11 +34,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
             if (!in_array($editorValue, ['gutenberg', 'tinymce'], true)) {
                 $editorValue = 'gutenberg';
             }
+
+            // Parse statuses from the repeater fields.
+            $rawStatusIds    = $_POST['status_id'] ?? [];
+            $rawStatusLabels = $_POST['status_label'] ?? [];
+            $rawStatusColors = $_POST['status_color'] ?? [];
+            $rawStatusPublic = $_POST['status_is_public'] ?? [];
+            $statuses        = [];
+            if ( is_array( $rawStatusIds ) ) {
+                foreach ( $rawStatusIds as $idx => $stId ) {
+                    $stId = trim( $stId );
+                    if ( $stId === '' ) {
+                        continue;
+                    }
+                    $statuses[] = [
+                        'id'        => $stId,
+                        'label'     => trim( $rawStatusLabels[$idx] ?? '' ),
+                        'color'     => trim( $rawStatusColors[$idx] ?? '#6b7280' ),
+                        'is_public' => isset( $rawStatusPublic[$idx] ),
+                    ];
+                }
+            }
+
             $ptManager->create([
-                'id'     => $_POST['id'] ?? '',
-                'name'   => $_POST['name'] ?? '',
-                'slug'   => $_POST['slug'] ?? '',
-                'editor' => $editorValue,
+                'id'       => $_POST['id'] ?? '',
+                'name'     => $_POST['name'] ?? '',
+                'slug'     => $_POST['slug'] ?? '',
+                'editor'   => $editorValue,
+                'statuses' => $statuses,
             ]);
             $success = __( 'common.success' );
         } elseif ($action === 'delete') {
@@ -177,6 +200,14 @@ require_once __DIR__ . '/templates/sidebar.php';
                     </label>
                 </div>
             </div>
+            <div class="form-group">
+                <label>Custom Statuses</label>
+                <p class="form-help">Optional. System statuses (Draft, Published, Scheduled, Trashed) are always available. Add custom workflow statuses here.</p>
+                <div id="statuses-repeater">
+                    <!-- Dynamic rows added by JS -->
+                </div>
+                <button type="button" class="btn btn-outline btn-sm mt-1" id="btn-add-status">+ Add Status</button>
+            </div>
             <div class="flex-end flex-gap-sm mt-3">
                 <button type="button" class="btn btn-outline" id="btn-cancel-modal">Cancel</button>
                 <button type="submit" class="btn btn-primary">Create</button>
@@ -209,6 +240,29 @@ require_once __DIR__ . '/templates/sidebar.php';
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.style.display === 'flex') {
             modal.style.display = 'none';
+        }
+    });
+
+    // ─── Statuses Repeater ─────────────────────────────────
+    var repeater = document.getElementById('statuses-repeater');
+    var statusIdx = 0;
+
+    document.getElementById('btn-add-status').addEventListener('click', function() {
+        var row = document.createElement('div');
+        row.className = 'flex-center flex-gap-sm mb-1';
+        row.innerHTML =
+            '<input type="text" name="status_id[' + statusIdx + ']" class="form-control" placeholder="ID (e.g. review)" pattern="[a-z0-9_-]+" style="flex:1">' +
+            '<input type="text" name="status_label[' + statusIdx + ']" class="form-control" placeholder="Label (e.g. In Review)" style="flex:1.5">' +
+            '<input type="color" name="status_color[' + statusIdx + ']" value="#6b7280" title="Badge color" style="width:36px;height:36px;padding:2px;border:1px solid var(--klytos-border);border-radius:var(--klytos-radius-sm);cursor:pointer">' +
+            '<label class="flex-center flex-gap-xs" style="white-space:nowrap"><input type="checkbox" name="status_is_public[' + statusIdx + ']"> Public</label>' +
+            '<button type="button" class="btn btn-danger btn-sm btn-remove-status">&times;</button>';
+        repeater.appendChild(row);
+        statusIdx++;
+    });
+
+    repeater.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-remove-status')) {
+            e.target.closest('.flex-center').remove();
         }
     });
 

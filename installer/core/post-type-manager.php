@@ -56,6 +56,7 @@ class PostTypeManager
             'editor'        => 'gutenberg',
             'taxonomies'    => [],
             'custom_fields' => [],
+            'statuses'      => [],
             'builtin'       => true,
             'created_at'    => Helpers::now(),
             'updated_at'    => Helpers::now(),
@@ -122,10 +123,15 @@ class PostTypeManager
         $postType = $this->storage->read(self::COLLECTION, $id);
 
         // Updatable fields.
-        $updatable = [ 'name', 'slug', 'slug_i18n', 'editor', 'taxonomies', 'custom_fields' ];
+        $updatable = [ 'name', 'slug', 'slug_i18n', 'editor', 'taxonomies', 'custom_fields', 'statuses' ];
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
-                $postType[$field] = $data[$field];
+                // Validate statuses through buildStatusDefinitions.
+                if ($field === 'statuses') {
+                    $postType[$field] = $this->buildStatusDefinitions($data[$field]);
+                } else {
+                    $postType[$field] = $data[$field];
+                }
             }
         }
 
@@ -1165,6 +1171,326 @@ class PostTypeManager
         }
     }
 
+    // ─── Status Management ────────────────────────────────────
+
+    /** @var array System statuses that are always available for every post type. */
+    public const SYSTEM_STATUSES = ['draft', 'published', 'scheduled', 'trashed'];
+
+    /** @var array System status definitions with labels, colors, and icons. */
+    public const SYSTEM_STATUS_DEFS = [
+        ['id' => 'draft',     'label' => 'Draft',     'color' => '#6b7280', 'icon' => 'edit',  'is_public' => false, 'system' => true],
+        ['id' => 'published', 'label' => 'Published', 'color' => '#10b981', 'icon' => 'globe', 'is_public' => true,  'system' => true],
+        ['id' => 'scheduled', 'label' => 'Scheduled', 'color' => '#3b82f6', 'icon' => 'clock', 'is_public' => false, 'system' => true],
+        ['id' => 'trashed',   'label' => 'Trashed',   'color' => '#ef4444', 'icon' => 'trash', 'is_public' => false, 'system' => true],
+    ];
+
+    /**
+     * Get all statuses (system + custom) for a post type.
+     *
+     * @param  string $postTypeId Post type ID.
+     * @return array  Merged array of system statuses followed by custom statuses.
+     */
+    public function getStatusesForPostType( string $postTypeId ): array
+    {
+        $statuses = self::SYSTEM_STATUS_DEFS;
+
+        try {
+            $postType = $this->get( $postTypeId );
+            $custom   = $postType['statuses'] ?? [];
+            foreach ( $custom as $st ) {
+                $st['system'] = false;
+                $statuses[]   = $st;
+            }
+        } catch ( \RuntimeException $e ) {
+            // Post type not found — return only system statuses.
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * Check if a status ID is valid for a given post type.
+     *
+     * @param  string $postTypeId Post type ID.
+     * @param  string $status     Status ID to check.
+     * @return bool
+     */
+    public function isValidStatusForPostType( string $postTypeId, string $status ): bool
+    {
+        if ( in_array( $status, self::SYSTEM_STATUSES, true ) ) {
+            return true;
+        }
+
+        try {
+            $postType = $this->get( $postTypeId );
+            foreach ( $postType['statuses'] ?? [] as $st ) {
+                if ( ( $st['id'] ?? '' ) === $status ) {
+                    return true;
+                }
+            }
+        } catch ( \RuntimeException $e ) {
+            // Post type not found — only system statuses are valid.
+        }
+
+        return false;
+    }
+
+    /**
+     * Add a custom status to a post type.
+     *
+     * @param  string $postTypeId  Post type ID.
+     * @param  array  $statusData  Status data: id, label, color, icon, is_public.
+     * @return array  Updated post type.
+     */
+    public function addStatus( string $postTypeId, array $statusData ): array
+    {
+        $postType = $this->get( $postTypeId );
+
+        $statusId = Helpers::sanitizeSlug( $statusData['id'] ?? '' );
+        if ( empty( $statusId ) ) {
+            throw new \InvalidArgumentException( 'Status ID is required.' );
+        }
+
+        if ( in_array( $statusId, self::SYSTEM_STATUSES, true ) ) {
+            throw new \InvalidArgumentException( "Status ID '{$statusId}' is reserved (system status)." );
+        }
+
+        // Check for duplicate.
+        foreach ( $postType['statuses'] ?? [] as $existing ) {
+            if ( ( $existing['id'] ?? '' ) === $statusId ) {
+                throw new \InvalidArgumentException( "Status already exists: {$statusId}" );
+            }
+        }
+
+        $statusDef = $this->buildSingleStatusDef( $statusId, $statusData );
+
+        klytos_do_action( 'status.before_save', $statusDef, $postTypeId, 'create' );
+
+        $postType['statuses']   = $postType['statuses'] ?? [];
+        $postType['statuses'][] = $statusDef;
+        $postType['updated_at'] = Helpers::now();
+
+        $this->storage->write( self::COLLECTION, $postTypeId, $postType );
+
+        klytos_do_action( 'status.after_save', $statusDef, $postTypeId, 'create' );
+
+        return $postType;
+    }
+
+    /**
+     * Update a custom status definition on a post type.
+     *
+     * @param  string $postTypeId Post type ID.
+     * @param  string $statusId   Status ID to update.
+     * @param  array  $data       Fields to update (label, color, icon, is_public).
+     * @return array  Updated post type.
+     */
+    public function updateStatus( string $postTypeId, string $statusId, array $data ): array
+    {
+        $postType = $this->get( $postTypeId );
+        $found    = false;
+
+        foreach ( $postType['statuses'] ?? [] as $i => $st ) {
+            if ( ( $st['id'] ?? '' ) === $statusId ) {
+                if ( isset( $data['label'] ) ) {
+                    $postType['statuses'][$i]['label'] = trim( $data['label'] );
+                }
+                if ( isset( $data['color'] ) ) {
+                    $postType['statuses'][$i]['color'] = $this->sanitizeHexColor( $data['color'] );
+                }
+                if ( isset( $data['icon'] ) ) {
+                    $postType['statuses'][$i]['icon'] = trim( $data['icon'] );
+                }
+                if ( array_key_exists( 'is_public', $data ) ) {
+                    $postType['statuses'][$i]['is_public'] = (bool) $data['is_public'];
+                }
+                $found = true;
+                break;
+            }
+        }
+
+        if ( !$found ) {
+            throw new \InvalidArgumentException( "Status not found: {$statusId}" );
+        }
+
+        klytos_do_action( 'status.before_save', $postType['statuses'][$i], $postTypeId, 'update' );
+
+        $postType['updated_at'] = Helpers::now();
+        $this->storage->write( self::COLLECTION, $postTypeId, $postType );
+
+        klytos_do_action( 'status.after_save', $postType['statuses'][$i], $postTypeId, 'update' );
+
+        return $postType;
+    }
+
+    /**
+     * Remove a custom status from a post type.
+     *
+     * Pages currently using this status are reassigned to 'draft'.
+     *
+     * @param  string      $postTypeId  Post type ID.
+     * @param  string      $statusId    Status ID to remove.
+     * @param  PageManager $pageManager PageManager instance to reassign affected pages.
+     * @return array       Updated post type.
+     */
+    public function removeStatus( string $postTypeId, string $statusId, PageManager $pageManager ): array
+    {
+        if ( in_array( $statusId, self::SYSTEM_STATUSES, true ) ) {
+            throw new \InvalidArgumentException( "Cannot remove system status: {$statusId}" );
+        }
+
+        $postType = $this->get( $postTypeId );
+        $found    = false;
+        $newStatuses = [];
+
+        foreach ( $postType['statuses'] ?? [] as $st ) {
+            if ( ( $st['id'] ?? '' ) === $statusId ) {
+                $found = true;
+                continue;
+            }
+            $newStatuses[] = $st;
+        }
+
+        if ( !$found ) {
+            throw new \InvalidArgumentException( "Status not found: {$statusId}" );
+        }
+
+        klytos_do_action( 'status.before_delete', $statusId, $postTypeId );
+
+        // Reassign affected pages to 'draft'.
+        $affectedPages = $pageManager->list( $statusId, '', 0, 0, $postTypeId );
+        foreach ( $affectedPages as $page ) {
+            $pageManager->update( $page['slug'], ['status' => 'draft'] );
+        }
+
+        $postType['statuses']   = $newStatuses;
+        $postType['updated_at'] = Helpers::now();
+        $this->storage->write( self::COLLECTION, $postTypeId, $postType );
+
+        klytos_do_action( 'status.after_delete', $statusId, $postTypeId );
+
+        return $postType;
+    }
+
+    /**
+     * Reorder custom statuses on a post type.
+     *
+     * @param  string $postTypeId Post type ID.
+     * @param  array  $orderedIds Ordered array of status IDs.
+     * @return array  Updated post type.
+     */
+    public function reorderStatuses( string $postTypeId, array $orderedIds ): array
+    {
+        $postType = $this->get( $postTypeId );
+        $current  = $postType['statuses'] ?? [];
+        $indexed  = [];
+
+        foreach ( $current as $st ) {
+            $indexed[$st['id']] = $st;
+        }
+
+        $reordered = [];
+        foreach ( $orderedIds as $id ) {
+            if ( isset( $indexed[$id] ) ) {
+                $reordered[] = $indexed[$id];
+                unset( $indexed[$id] );
+            }
+        }
+
+        // Append any statuses not in the ordered list.
+        foreach ( $indexed as $st ) {
+            $reordered[] = $st;
+        }
+
+        $postType['statuses']   = $reordered;
+        $postType['updated_at'] = Helpers::now();
+        $this->storage->write( self::COLLECTION, $postTypeId, $postType );
+
+        return $postType;
+    }
+
+    /**
+     * Build and validate a single status definition.
+     *
+     * @param  string $id   Sanitized status ID.
+     * @param  array  $data Raw status data.
+     * @return array  Validated status definition.
+     */
+    private function buildSingleStatusDef( string $id, array $data ): array
+    {
+        if ( strlen( $id ) > 20 ) {
+            throw new \InvalidArgumentException( "Status ID must be max 20 characters: {$id}" );
+        }
+
+        $label = trim( $data['label'] ?? '' );
+        if ( empty( $label ) ) {
+            throw new \InvalidArgumentException( "Status label is required for: {$id}" );
+        }
+
+        return [
+            'id'        => $id,
+            'label'     => $label,
+            'color'     => $this->sanitizeHexColor( $data['color'] ?? '#6b7280' ),
+            'icon'      => trim( $data['icon'] ?? '' ),
+            'is_public' => (bool) ( $data['is_public'] ?? false ),
+        ];
+    }
+
+    /**
+     * Validate and sanitize status definitions array.
+     *
+     * @param  array $raw Raw statuses array from input.
+     * @return array Validated array of status definitions.
+     */
+    private function buildStatusDefinitions( array $raw ): array
+    {
+        $statuses = [];
+        $seenIds  = [];
+
+        foreach ( $raw as $st ) {
+            if ( !is_array( $st ) ) {
+                continue;
+            }
+
+            $id = Helpers::sanitizeSlug( $st['id'] ?? '' );
+            if ( empty( $id ) ) {
+                continue;
+            }
+
+            // Skip system status IDs.
+            if ( in_array( $id, self::SYSTEM_STATUSES, true ) ) {
+                continue;
+            }
+
+            // Skip duplicates.
+            if ( isset( $seenIds[$id] ) ) {
+                continue;
+            }
+
+            $statuses[]   = $this->buildSingleStatusDef( $id, $st );
+            $seenIds[$id] = true;
+        }
+
+        return $statuses;
+    }
+
+    /**
+     * Sanitize a hex color string.
+     *
+     * @param  string $color Input color.
+     * @return string Valid hex color or default grey.
+     */
+    private function sanitizeHexColor( string $color ): string
+    {
+        $color = trim( $color );
+        if ( preg_match( '/^#[0-9a-fA-F]{3,8}$/', $color ) ) {
+            return $color;
+        }
+        return '#6b7280';
+    }
+
+    // ─── Private Helpers ────────────────────────────────────────
+
     /**
      * Build post type data array with defaults.
      */
@@ -1206,6 +1532,7 @@ class PostTypeManager
             'editor'        => $data['editor'] ?? 'gutenberg',
             'taxonomies'    => $taxonomies,
             'custom_fields' => $customFields,
+            'statuses'      => $this->buildStatusDefinitions( $data['statuses'] ?? [] ),
         ];
     }
 

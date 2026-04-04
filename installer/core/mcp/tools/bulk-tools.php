@@ -24,7 +24,7 @@ function registerBulkTools(
 
     $registry->register(
         'klytos_bulk_update_pages',
-        'Apply a bulk action to multiple pages at once: publish, draft, trash, delete permanently, or restore from trash.',
+        'Apply a bulk action to multiple pages at once: publish, draft, trash, delete permanently, restore from trash, or set a custom status.',
         [
             'slugs' => [
                 'type'        => 'array',
@@ -33,8 +33,12 @@ function registerBulkTools(
             ],
             'action' => [
                 'type'        => 'string',
-                'description' => 'Action to apply to all listed pages.',
-                'enum'        => ['publish', 'draft', 'trash', 'delete', 'restore'],
+                'description' => 'Action to apply. Standard: publish, draft, trash, delete, restore. Use "set_status" to set a custom status (requires status_id parameter).',
+                'enum'        => ['publish', 'draft', 'trash', 'delete', 'restore', 'set_status'],
+            ],
+            'status_id' => [
+                'type'        => 'string',
+                'description' => 'Custom status ID to set when action is "set_status". Must be a valid status for the pages\' post type.',
             ],
         ],
         function ( array $params, \Klytos\Core\App $app ): array {
@@ -71,6 +75,13 @@ function registerBulkTools(
                             break;
                         case 'restore':
                             $pageManager->restore( $slug );
+                            break;
+                        case 'set_status':
+                            $statusId = $params['status_id'] ?? '';
+                            if ( $statusId === '' ) {
+                                throw new \InvalidArgumentException( 'status_id is required for set_status action.' );
+                            }
+                            $pageManager->update( $slug, ['status' => $statusId] );
                             break;
                     }
                     $processed++;
