@@ -49,32 +49,54 @@ if ($scriptName === 'page-editor' && !empty($_GET['post_type'])) {
 // via the 'admin.sidebar_items' filter.
 
 $sidebarItems = [
-    // ── Content section ──
+    // ── Dashboard (standalone — no section header) ──
     [
         'id'         => 'dashboard',
         'title'      => __( 'dashboard.title' ),
         'url'        => $adminPath,
         'icon'       => 'fa-solid fa-gauge-high',
-        'position'   => 10,
-        'section'    => 'content',
+        'position'   => 1,
+        'section'    => 'dashboard',
         'capability' => null, // Visible to all authenticated users.
     ],
+
+    // ── Content ──
     [
         'id'         => 'pages',
         'title'      => __( 'pages.title' ),
         'url'        => $adminPath . 'pages.php',
         'icon'       => 'fa-solid fa-file-lines',
-        'position'   => 20,
+        'position'   => 10,
         'section'    => 'content',
         'capability' => 'pages.view',
     ],
+    [
+        'id'         => 'post-types',
+        'title'      => 'Post Types',
+        'url'        => $adminPath . 'post-types.php',
+        'icon'       => 'fa-solid fa-layer-group',
+        'position'   => 12,
+        'section'    => 'content',
+        'capability' => 'site.configure',
+    ],
+    [
+        'id'         => 'tasks',
+        'title'      => 'Tasks',
+        'url'        => $adminPath . 'tasks.php',
+        'icon'       => 'fa-solid fa-list-check',
+        'position'   => 15,
+        'section'    => 'content',
+        'capability' => 'tasks.create',
+    ],
+
+    // ── Design ──
     [
         'id'         => 'theme',
         'title'      => __( 'design.title' ),
         'url'        => $adminPath . 'theme.php',
         'icon'       => 'fa-solid fa-palette',
-        'position'   => 30,
-        'section'    => 'content',
+        'position'   => 20,
+        'section'    => 'design',
         'capability' => 'theme.manage',
         'children'   => [
             [
@@ -99,8 +121,8 @@ $sidebarItems = [
         'title'      => __( 'assets.title' ),
         'url'        => $adminPath . 'assets.php',
         'icon'       => 'fa-solid fa-folder-open',
-        'position'   => 40,
-        'section'    => 'content',
+        'position'   => 22,
+        'section'    => 'design',
         'capability' => 'assets.manage',
     ],
     [
@@ -108,64 +130,28 @@ $sidebarItems = [
         'title'      => __( 'ai_images.title' ),
         'url'        => $adminPath . 'ai-images.php',
         'icon'       => 'fa-solid fa-wand-magic-sparkles',
-        'position'   => 50,
-        'section'    => 'content',
+        'position'   => 24,
+        'section'    => 'design',
         'capability' => 'assets.manage',
     ],
-    [
-        'id'         => 'post-types',
-        'title'      => 'Post Types',
-        'url'        => $adminPath . 'post-types.php',
-        'icon'       => 'fa-solid fa-layer-group',
-        'position'   => 85,
-        'section'    => 'system',
-        'capability' => 'site.configure',
-    ],
-    [
-        'id'         => 'tasks',
-        'title'      => 'Tasks',
-        'url'        => $adminPath . 'tasks.php',
-        'icon'       => 'fa-solid fa-list-check',
-        'position'   => 55,
-        'section'    => 'content',
-        'capability' => 'tasks.create',
-    ],
-    [
-        'id'         => 'analytics',
-        'title'      => 'Analytics',
-        'url'        => $adminPath . 'analytics.php',
-        'icon'       => 'fa-solid fa-chart-line',
-        'position'   => 60,
-        'section'    => 'content',
-        'capability' => 'analytics.view',
-    ],
 
-    // ── System section ──
+    // ── Users ──
     [
-        'id'         => 'scheduled-actions',
-        'title'      => 'Scheduled Actions',
-        'url'        => $adminPath . 'scheduled-actions.php',
-        'icon'       => 'fa-solid fa-clock',
-        'position'   => 63,
-        'section'    => 'system',
-        'capability' => 'site.configure',
-    ],
-    [
-        'id'         => 'webhooks',
-        'title'      => 'Webhooks',
-        'url'        => $adminPath . 'webhooks.php',
-        'icon'       => 'fa-solid fa-bolt',
-        'position'   => 65,
-        'section'    => 'system',
-        'capability' => 'webhooks.manage',
+        'id'         => 'users',
+        'title'      => 'Users',
+        'url'        => $adminPath . 'users.php',
+        'icon'       => 'fa-solid fa-users',
+        'position'   => 30,
+        'section'    => 'users',
+        'capability' => 'users.manage',
     ],
     [
         'id'         => 'consent',
         'title'      => 'Consent Manager',
         'url'        => $adminPath . 'consent.php',
         'icon'       => 'fa-solid fa-cookie-bite',
-        'position'   => 66,
-        'section'    => 'system',
+        'position'   => 32,
+        'section'    => 'users',
         'capability' => 'site.configure',
     ],
     [
@@ -173,35 +159,66 @@ $sidebarItems = [
         'title'      => __( 'privacy.title' ),
         'url'        => $adminPath . 'privacy.php',
         'icon'       => 'fa-solid fa-user-shield',
-        'position'   => 67,
-        'section'    => 'system',
+        'position'   => 34,
+        'section'    => 'users',
         'capability' => 'users.manage',
     ],
+
+    // ── Tools ──
     [
-        'id'         => 'users',
-        'title'      => 'Users',
-        'url'        => $adminPath . 'users.php',
-        'icon'       => 'fa-solid fa-users',
-        'position'   => 70,
-        'section'    => 'system',
-        'capability' => 'users.manage',
+        'id'         => 'analytics',
+        'title'      => 'Analytics',
+        'url'        => $adminPath . 'analytics.php',
+        'icon'       => 'fa-solid fa-chart-line',
+        'position'   => 40,
+        'section'    => 'tools',
+        'capability' => 'analytics.view',
     ],
     [
         'id'         => 'mcp',
         'title'      => __( 'mcp.title' ),
         'url'        => $adminPath . 'mcp.php',
         'icon'       => 'fa-solid fa-robot',
-        'position'   => 75,
-        'section'    => 'system',
+        'position'   => 42,
+        'section'    => 'tools',
         'capability' => 'mcp.manage',
+    ],
+    [
+        'id'         => 'webhooks',
+        'title'      => 'Webhooks',
+        'url'        => $adminPath . 'webhooks.php',
+        'icon'       => 'fa-solid fa-bolt',
+        'position'   => 44,
+        'section'    => 'tools',
+        'capability' => 'webhooks.manage',
+    ],
+    [
+        'id'         => 'scheduled-actions',
+        'title'      => 'Scheduled Actions',
+        'url'        => $adminPath . 'scheduled-actions.php',
+        'icon'       => 'fa-solid fa-clock',
+        'position'   => 46,
+        'section'    => 'tools',
+        'capability' => 'site.configure',
+    ],
+
+    // ── Settings ──
+    [
+        'id'         => 'settings',
+        'title'      => __( 'settings.title' ),
+        'url'        => $adminPath . 'settings.php',
+        'icon'       => 'fa-solid fa-gear',
+        'position'   => 50,
+        'section'    => 'settings',
+        'capability' => 'site.configure',
     ],
     [
         'id'         => 'security',
         'title'      => __( 'security.title' ),
         'url'        => $adminPath . 'security.php',
         'icon'       => 'fa-solid fa-shield-halved',
-        'position'   => 78,
-        'section'    => 'system',
+        'position'   => 52,
+        'section'    => 'settings',
         'capability' => null, // Visible to all authenticated users (each manages their own 2FA).
     ],
     [
@@ -209,26 +226,8 @@ $sidebarItems = [
         'title'      => 'Integrity',
         'url'        => $adminPath . 'system-integrity.php',
         'icon'       => 'fa-solid fa-file-shield',
-        'position'   => 78.5,
-        'section'    => 'system',
-        'capability' => 'site.configure',
-    ],
-    [
-        'id'         => 'logs',
-        'title'      => __( 'logs.title' ),
-        'url'        => $adminPath . 'logs.php',
-        'icon'       => 'fa-solid fa-scroll',
-        'position'   => 79,
-        'section'    => 'system',
-        'capability' => 'site.configure',
-    ],
-    [
-        'id'         => 'settings',
-        'title'      => __( 'settings.title' ),
-        'url'        => $adminPath . 'settings.php',
-        'icon'       => 'fa-solid fa-gear',
-        'position'   => 80,
-        'section'    => 'system',
+        'position'   => 54,
+        'section'    => 'settings',
         'capability' => 'site.configure',
     ],
     [
@@ -236,8 +235,8 @@ $sidebarItems = [
         'title'      => __( 'options.title' ),
         'url'        => $adminPath . 'system-options.php',
         'icon'       => 'fa-solid fa-sliders',
-        'position'   => 81,
-        'section'    => 'system',
+        'position'   => 56,
+        'section'    => 'settings',
         'capability' => 'site.configure',
     ],
     [
@@ -245,8 +244,17 @@ $sidebarItems = [
         'title'      => __( 'translations.title' ),
         'url'        => $adminPath . 'translations.php',
         'icon'       => 'fa-solid fa-language',
-        'position'   => 82,
-        'section'    => 'system',
+        'position'   => 58,
+        'section'    => 'settings',
+        'capability' => 'site.configure',
+    ],
+    [
+        'id'         => 'logs',
+        'title'      => __( 'logs.title' ),
+        'url'        => $adminPath . 'logs.php',
+        'icon'       => 'fa-solid fa-scroll',
+        'position'   => 60,
+        'section'    => 'settings',
         'capability' => 'site.configure',
     ],
     [
@@ -254,8 +262,8 @@ $sidebarItems = [
         'title'      => 'Plugins',
         'url'        => $adminPath . 'plugins.php',
         'icon'       => 'fa-solid fa-puzzle-piece',
-        'position'   => 90,
-        'section'    => 'system',
+        'position'   => 62,
+        'section'    => 'settings',
         'capability' => 'plugins.manage',
     ],
     [
@@ -263,8 +271,8 @@ $sidebarItems = [
         'title'      => __( 'updates.title' ),
         'url'        => $adminPath . 'updates.php',
         'icon'       => 'fa-solid fa-cloud-arrow-down',
-        'position'   => 98,
-        'section'    => 'system',
+        'position'   => 64,
+        'section'    => 'settings',
         'capability' => 'updates.manage',
     ],
 ];
@@ -275,8 +283,8 @@ $sidebarItems[] = [
     'title'      => 'Terminal',
     'url'        => $adminPath . 'terminal.php',
     'icon'       => 'fa-solid fa-terminal',
-    'position'   => 95,
-    'section'    => 'system',
+    'position'   => 48,
+    'section'    => 'tools',
     'capability' => 'terminal.access',
 ];
 
@@ -472,7 +480,7 @@ if ( ! function_exists( 'klytos_render_sidebar_item' ) ) {
     <nav class="sidebar-nav">
 <?php
 // Determine section rendering order.
-$sectionOrder = $userSectionOrder ?? ['content', 'system'];
+$sectionOrder = $userSectionOrder ?? ['dashboard', 'content', 'design', 'users', 'tools', 'settings'];
 // Append any custom plugin sections not already listed.
 foreach ( array_keys( $sections ) as $sName ) {
     if ( ! in_array( $sName, $sectionOrder, true ) ) {
@@ -482,8 +490,12 @@ foreach ( array_keys( $sections ) as $sName ) {
 $sectionOrder = klytos_apply_filters( 'admin.sidebar_section_order', $sectionOrder );
 
 $sectionLabels = [
-    'content' => __( 'sidebar.section_content' ),
-    'system'  => 'System',
+    'dashboard' => '', // Standalone — no header label.
+    'content'   => __( 'sidebar.section_content' ),
+    'design'    => __( 'sidebar.section_design' ),
+    'users'     => __( 'sidebar.section_users' ),
+    'tools'     => __( 'sidebar.section_tools' ),
+    'settings'  => __( 'sidebar.section_settings' ),
 ];
 ?>
 <?php klytos_do_action( 'admin.sidebar.before_sections' ); ?>
@@ -497,10 +509,12 @@ $sectionLabels = [
 ?>
     <div class="sidebar-section-group" data-section="<?php echo klytos_esc_attr( $sectionName ); ?>">
         <?php klytos_do_action( 'admin.sidebar.before_section', $sectionName ); ?>
+        <?php if ( $sectionLabel !== '' ): ?>
         <div class="sidebar-section">
             <span class="sidebar-section-drag-handle" aria-hidden="true">&#x2807;</span>
             <span class="sidebar-section-label"><?php echo klytos_esc_html( $sectionLabel ); ?></span>
         </div>
+        <?php endif; ?>
         <div class="sidebar-section-items" data-section="<?php echo klytos_esc_attr( $sectionName ); ?>">
             <?php foreach ( $sections[$sectionName] as $item ): ?>
                 <?php klytos_render_sidebar_item( $item, $currentItemId ); ?>

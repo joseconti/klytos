@@ -22,7 +22,7 @@ Use this reference when you need to add your plugin to the admin panel sidebar, 
     'url'        => string,         // Link href (relative to admin/)
     'icon'       => string,         // FontAwesome class: 'fa-solid fa-star'
     'position'   => int,            // Sort order (lower = higher in menu)
-    'section'    => string,         // 'content' or 'system'
+    'section'    => string,         // 'dashboard', 'content', 'design', 'users', 'tools', or 'settings'
     'capability' => string|null,    // Permission required (null = all users)
     'children'   => array|null,     // Submenu items (same structure)
 ]
@@ -30,30 +30,43 @@ Use this reference when you need to add your plugin to the admin panel sidebar, 
 
 ---
 
-## Core Sidebar Positions
+## Core Sidebar Sections & Positions
+
+The sidebar is organized into 6 sections. Dashboard is standalone (no section header).
 
 | Position | Item | Section |
 |---|---|---|
-| 10 | Dashboard | content |
-| 20 | Pages | content |
-| 23+ | Custom Post Types (auto-generated) | content |
-| 30 | Design (Theme) | content |
-| 40 | Assets | content |
-| 50 | AI Images | content |
-| 55 | Tasks | content |
-| 60 | Analytics | system |
-| 63 | Scheduled Actions | system |
-| 65 | Webhooks | system |
-| 70 | Users | system |
-| 75 | MCP | system |
-| 78 | Security | system |
-| 79 | Logs | system |
-| 80 | Settings | system |
-| 85 | Post Types | system |
-| 90 | Plugins | system |
-| 98 | Updates | system |
+| 1 | Dashboard | dashboard (standalone, no header) |
+| **Content** | | |
+| 10 | Pages | content |
+| 11+ | Custom Post Types (auto-generated) | content |
+| 12 | Post Types | content |
+| 15 | Tasks | content |
+| **Design** | | |
+| 20 | Design (Theme) | design |
+| 22 | Assets | design |
+| 24 | AI Images | design |
+| **Users** | | |
+| 30 | Users | users |
+| 32 | Consent Manager | users |
+| 34 | Privacy | users |
+| **Tools** | | |
+| 40 | Analytics | tools |
+| 42 | MCP | tools |
+| 44 | Webhooks | tools |
+| 46 | Scheduled Actions | tools |
+| 48 | Terminal | tools |
+| **Settings** | | |
+| 50 | Settings | settings |
+| 52 | Security | settings |
+| 54 | Integrity | settings |
+| 56 | System Options | settings |
+| 58 | Translations | settings |
+| 60 | Logs | settings |
+| 62 | Plugins | settings |
+| 64 | Updates | settings |
 
-**Choose your position wisely**: Use positions 86-89 (between Post Types and Plugins) for plugin items in the `system` section, or 56-59 for content-related plugins.
+**Plugin position guide**: Use `tools` section (positions 43-49) for tool/integration plugins, or `settings` section (positions 61-63) for admin/config plugins. Content-related plugins should use `content` section (positions 13-19).
 
 ---
 
@@ -67,8 +80,8 @@ klytos_add_filter('admin.sidebar_items', function (array $items): array {
         'title'      => 'My Plugin',
         'url'        => klytos_admin_url('plugins/my-plugin/admin/settings.php'),
         'icon'       => 'fa-solid fa-gear',
-        'position'   => 87,
-        'section'    => 'system',
+        'position'   => 45,
+        'section'    => 'tools',
         'capability' => 'site.configure',
     ];
     return $items;
@@ -84,8 +97,8 @@ klytos_add_filter('admin.sidebar_items', function (array $items): array {
         'title'      => 'My Plugin',
         'url'        => klytos_admin_url('plugins/my-plugin/admin/dashboard.php'),
         'icon'       => 'fa-solid fa-chart-line',
-        'position'   => 87,
-        'section'    => 'system',
+        'position'   => 45,
+        'section'    => 'tools',
         'capability' => 'site.configure',
         'children'   => [
             [
