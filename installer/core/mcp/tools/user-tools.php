@@ -49,6 +49,11 @@ function registerUserTools(ToolRegistry $registry, App $app): void
             'email'        => ['type' => 'string', 'description' => 'Email address.'],
             'role'         => ['type' => 'string', 'description' => 'Role: admin, editor, viewer.', 'enum' => ['admin', 'editor', 'viewer']],
             'display_name' => ['type' => 'string', 'description' => 'Display name (optional).'],
+            'bio'          => ['type' => 'string', 'description' => 'Short biography (max 500 chars).'],
+            'avatar'       => ['type' => 'string', 'description' => 'Avatar image URL.'],
+            'website'      => ['type' => 'string', 'description' => 'Personal website URL.'],
+            'social_links' => ['type' => 'object', 'description' => 'Social profile URLs: {twitter, linkedin, github, mastodon}.', 'additionalProperties' => true],
+            'locale'       => ['type' => 'string', 'description' => 'Preferred locale code (e.g. en, es).'],
         ],
         function (array $params, App $app): array {
             $userManager = new \Klytos\Core\UserManager($app->getStorage());
@@ -70,6 +75,11 @@ function registerUserTools(ToolRegistry $registry, App $app): void
             'role'         => ['type' => 'string', 'description' => 'New role.', 'enum' => ['admin', 'editor', 'viewer']],
             'status'       => ['type' => 'string', 'description' => 'Account status.', 'enum' => ['active', 'suspended']],
             'password'     => ['type' => 'string', 'description' => 'New password (min 12 chars). Omit to keep current.'],
+            'bio'          => ['type' => 'string', 'description' => 'Short biography (max 500 chars).'],
+            'avatar'       => ['type' => 'string', 'description' => 'Avatar image URL.'],
+            'website'      => ['type' => 'string', 'description' => 'Personal website URL.'],
+            'social_links' => ['type' => 'object', 'description' => 'Social profile URLs: {twitter, linkedin, github, mastodon}.', 'additionalProperties' => true],
+            'locale'       => ['type' => 'string', 'description' => 'Preferred locale code (e.g. en, es).'],
         ],
         function (array $params, App $app): array {
             $userId = $params['user_id'] ?? '';

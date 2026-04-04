@@ -257,6 +257,147 @@ class AssetManager
 
     // ──────────────────────────────────────────────────────────
     //  Sync & Rebuild
+    // ─── Image Editing ─────────────────────────────────────────
+
+    /**
+     * Edit an image (crop, rotate, flip, resize) using GD.
+     *
+     * @param  string $path       Asset path relative to web root.
+     * @param  array  $operations Operations to apply:
+     *   - crop:   {x: int, y: int, width: int, height: int}
+     *   - rotate: int (degrees: 90, 180, 270)
+     *   - flip:   'horizontal' | 'vertical'
+     *   - resize: {width: int, height?: int}
+     * @param  string $saveAs     Optional new filename. If empty, overwrites original.
+     * @return array  Updated asset metadata.
+     * @throws \RuntimeException If GD is not available or file not found.
+     */
+    public function editImage( string $path, array $operations, string $saveAs = '' ): array
+    {
+        if ( !extension_loaded( 'gd' ) ) {
+            throw new \RuntimeException( 'GD extension is required for image editing.' );
+        }
+
+        $fullPath = $this->assetsDir . '/' . ltrim( $path, '/' );
+        if ( !str_starts_with( $fullPath, $this->assetsDir ) ) {
+            $fullPath = rtrim( dirname( $this->assetsDir, 2 ), '/' ) . '/' . ltrim( $path, '/' );
+        }
+
+        if ( !file_exists( $fullPath ) ) {
+            throw new \RuntimeException( 'Image file not found: ' . $path );
+        }
+
+        klytos_do_action( 'asset.before_edit', $path, $operations );
+
+        $info = getimagesize( $fullPath );
+        if ( $info === false ) {
+            throw new \RuntimeException( 'Not a valid image file.' );
+        }
+
+        $mime  = $info['mime'] ?? '';
+        $image = match ( $mime ) {
+            'image/jpeg' => imagecreatefromjpeg( $fullPath ),
+            'image/png'  => imagecreatefrompng( $fullPath ),
+            'image/gif'  => imagecreatefromgif( $fullPath ),
+            'image/webp' => function_exists( 'imagecreatefromwebp' ) ? imagecreatefromwebp( $fullPath ) : false,
+            default      => false,
+        };
+
+        if ( $image === false ) {
+            throw new \RuntimeException( 'Unsupported image format: ' . $mime );
+        }
+
+        // Apply operations in order.
+        if ( isset( $operations['crop'] ) ) {
+            $c = $operations['crop'];
+            $cropped = imagecrop( $image, [
+                'x'      => (int) ( $c['x'] ?? 0 ),
+                'y'      => (int) ( $c['y'] ?? 0 ),
+                'width'  => (int) ( $c['width'] ?? imagesx( $image ) ),
+                'height' => (int) ( $c['height'] ?? imagesy( $image ) ),
+            ]);
+            if ( $cropped !== false ) {
+                imagedestroy( $image );
+                $image = $cropped;
+            }
+        }
+
+        if ( isset( $operations['rotate'] ) ) {
+            $degrees = (int) $operations['rotate'];
+            // GD rotates counter-clockwise, so negate for clockwise.
+            $rotated = imagerotate( $image, -$degrees, 0 );
+            if ( $rotated !== false ) {
+                imagedestroy( $image );
+                $image = $rotated;
+            }
+        }
+
+        if ( isset( $operations['flip'] ) ) {
+            $mode = match ( $operations['flip'] ) {
+                'horizontal' => IMG_FLIP_HORIZONTAL,
+                'vertical'   => IMG_FLIP_VERTICAL,
+                default      => IMG_FLIP_HORIZONTAL,
+            };
+            imageflip( $image, $mode );
+        }
+
+        if ( isset( $operations['resize'] ) ) {
+            $newW = (int) ( $operations['resize']['width'] ?? 0 );
+            $newH = (int) ( $operations['resize']['height'] ?? 0 );
+            if ( $newW > 0 ) {
+                if ( $newH <= 0 ) {
+                    // Maintain aspect ratio.
+                    $newH = (int) round( imagesy( $image ) * ( $newW / imagesx( $image ) ) );
+                }
+                $resized = imagescale( $image, $newW, $newH );
+                if ( $resized !== false ) {
+                    imagedestroy( $image );
+                    $image = $resized;
+                }
+            }
+        }
+
+        // Determine output path.
+        $outputPath = $fullPath;
+        if ( $saveAs !== '' ) {
+            $outputPath = dirname( $fullPath ) . '/' . basename( $saveAs );
+        }
+
+        // Save based on mime type.
+        match ( $mime ) {
+            'image/jpeg' => imagejpeg( $image, $outputPath, 90 ),
+            'image/png'  => imagepng( $image, $outputPath, 6 ),
+            'image/gif'  => imagegif( $image, $outputPath ),
+            'image/webp' => imagewebp( $image, $outputPath, 85 ),
+            default      => imagejpeg( $image, $outputPath, 90 ),
+        };
+
+        imagedestroy( $image );
+
+        // Update asset metadata.
+        $relativePath = str_replace( rtrim( dirname( $this->assetsDir, 2 ), '/' ) . '/', '', $outputPath );
+        $result = [
+            'path'      => $relativePath,
+            'filename'  => basename( $outputPath ),
+            'size'      => filesize( $outputPath ),
+            'size_human' => Helpers::humanFileSize( filesize( $outputPath ) ),
+            'mime_type' => $mime,
+            'width'     => imagesx( $image ?? imagecreatefromstring( file_get_contents( $outputPath ) ) ),
+            'height'    => imagesy( $image ?? imagecreatefromstring( file_get_contents( $outputPath ) ) ),
+        ];
+
+        // Re-read dimensions from file since $image is destroyed.
+        $newInfo = getimagesize( $outputPath );
+        if ( $newInfo !== false ) {
+            $result['width']  = $newInfo[0];
+            $result['height'] = $newInfo[1];
+        }
+
+        klytos_do_action( 'asset.after_edit', $path, $relativePath, $operations );
+
+        return $result;
+    }
+
     // ──────────────────────────────────────────────────────────
 
     /**

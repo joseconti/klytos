@@ -273,6 +273,10 @@ class ToolRegistry
             'export-tools.php',
             'comment-tools.php',
             'site-health-tools.php',
+            // v0.26.0 — Phase 2+3 features.
+            'maintenance-tools.php',
+            'bulk-tools.php',
+            'shortcode-tools.php',
         ];
 
         foreach ($toolFiles as $file) {

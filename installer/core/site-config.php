@@ -60,6 +60,8 @@ class SiteConfig
             'site_name', 'tagline', 'default_language',
             'description', 'favicon_url', 'logo_url',
             'indexing_enabled', 'editor', 'admin_theme',
+            'maintenance_mode', 'maintenance_message',
+            'admin_bar_enabled',
         ];
 
         foreach ($topLevel as $field) {
@@ -172,9 +174,12 @@ class SiteConfig
             'description'      => '',
             'favicon_url'      => '',
             'logo_url'         => '',
-            'indexing_enabled' => false,
-            'editor'           => 'gutenberg',
-            'admin_theme'      => 'dark',
+            'indexing_enabled'      => false,
+            'editor'                => 'gutenberg',
+            'admin_theme'           => 'dark',
+            'maintenance_mode'      => false,
+            'maintenance_message'   => '',
+            'admin_bar_enabled'     => true,
             'social'           => [
                 'twitter'   => '',
                 'github'    => '',

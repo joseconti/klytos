@@ -293,4 +293,38 @@ function registerAssetTools(ToolRegistry $registry): void
         ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => false],
         ['confirm']
     );
+
+    // ─── Image Editing ──────────────────────────────────────────
+
+    $registry->register(
+        'klytos_edit_image',
+        'Edit an image: crop, rotate, flip, or resize. Uses GD server-side. Overwrites original unless save_as is provided.',
+        [
+            'path'    => ['type' => 'string', 'description' => 'Asset path relative to web root (e.g. "assets/images/2026/04/photo.jpg").'],
+            'crop'    => ['type' => 'object', 'description' => 'Crop region: {x: int, y: int, width: int, height: int}.', 'additionalProperties' => true],
+            'rotate'  => ['type' => 'integer', 'description' => 'Rotation degrees clockwise: 90, 180, or 270.'],
+            'flip'    => ['type' => 'string', 'description' => 'Flip direction.', 'enum' => ['horizontal', 'vertical']],
+            'resize'  => ['type' => 'object', 'description' => 'Resize: {width: int, height?: int}. Height auto-computed if omitted.', 'additionalProperties' => true],
+            'save_as' => ['type' => 'string', 'description' => 'New filename. If omitted, overwrites original.'],
+        ],
+        function ( array $params, App $app ): array {
+            $path = $params['path'] ?? '';
+            if ( empty( $path ) ) {
+                throw new \InvalidArgumentException( 'path is required.' );
+            }
+
+            $operations = [];
+            if ( isset( $params['crop'] ) )   $operations['crop']   = $params['crop'];
+            if ( isset( $params['rotate'] ) ) $operations['rotate'] = $params['rotate'];
+            if ( isset( $params['flip'] ) )   $operations['flip']   = $params['flip'];
+            if ( isset( $params['resize'] ) ) $operations['resize'] = $params['resize'];
+
+            $saveAs = $params['save_as'] ?? '';
+            $result = $app->getAssets()->editImage( $path, $operations, $saveAs );
+
+            return ['success' => true, 'asset' => $result];
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => false],
+        ['path']
+    );
 }

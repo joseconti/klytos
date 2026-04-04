@@ -63,7 +63,73 @@
     "php_version": "Versión de PHP",
     "klytos_version": "Versión de Klytos",
     "disk_usage": "Uso de disco",
-    "server": "Servidor"
+    "server": "Servidor",
+    "customize_widgets": "Personalizar widgets",
+    "widget_hidden": "Widget oculto",
+    "widget_restored": "Widget restaurado"
+  },
+  "maintenance": {
+    "title": "Modo de mantenimiento",
+    "enabled_label": "Activar modo de mantenimiento",
+    "message_label": "Mensaje de mantenimiento",
+    "default_message": "Sitio en mantenimiento. Vuelva pronto.",
+    "active_notice": "El modo de mantenimiento esta activo. Los visitantes ven una pagina 503."
+  },
+  "profile": {
+    "bio": "Biografia",
+    "bio_placeholder": "Una breve descripcion sobre ti",
+    "avatar": "Avatar",
+    "avatar_placeholder": "URL de avatar personalizado (dejar vacio para Gravatar)",
+    "avatar_gravatar_hint": "Usa tu Gravatar por defecto. Introduce una URL para cambiarlo.",
+    "website": "Sitio web",
+    "social_links": "Enlaces sociales",
+    "locale": "Idioma preferido"
+  },
+  "password_protection": {
+    "label": "Proteccion con contrasena",
+    "heading": "Contenido protegido",
+    "placeholder": "Introduzca la contrasena",
+    "submit": "Desbloquear",
+    "wrong": "Contrasena incorrecta. Intentelo de nuevo.",
+    "hint": "Esta pagina esta protegida con contrasena."
+  },
+  "bulk": {
+    "select_all": "Seleccionar todo",
+    "selected_count": "{count} elementos seleccionados",
+    "action_label": "Acciones masivas",
+    "apply": "Aplicar",
+    "confirm_delete": "Eliminar permanentemente {count} elementos?",
+    "success": "{count} elementos actualizados"
+  },
+  "media_edit": {
+    "title": "Editar imagen",
+    "crop": "Recortar",
+    "rotate": "Rotar",
+    "flip": "Voltear",
+    "resize": "Redimensionar",
+    "save": "Guardar",
+    "save_copy": "Guardar como copia",
+    "processing": "Procesando...",
+    "no_gd": "La biblioteca GD no esta disponible para editar imagenes."
+  },
+  "shortcodes": {
+    "title": "Shortcodes",
+    "no_shortcodes": "No hay shortcodes registrados"
+  },
+  "post_lock": {
+    "locked_by": "Esta pagina esta siendo editada por {name}",
+    "takeover": "Tomar control",
+    "takeover_warning": "El otro usuario puede perder cambios no guardados",
+    "lock_lost": "Otro usuario ha tomado el control de la edicion",
+    "saving_disabled": "No se puede guardar mientras otro usuario edita"
+  },
+  "admin_bar": {
+    "dashboard": "Panel",
+    "edit_page": "Editar pagina",
+    "rebuild": "Reconstruir",
+    "close": "Cerrar",
+    "rebuilding": "Reconstruyendo...",
+    "settings_label": "Mostrar barra de administracion en el sitio publico"
   },
   "pages": {
     "title": "Páginas",

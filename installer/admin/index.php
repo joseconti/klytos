@@ -100,32 +100,73 @@ if ( ! $indexingEnabled ) : ?>
 </div>
 <?php klytos_do_action('admin.dashboard.after_stats'); ?>
 
-<?php klytos_do_action('admin.dashboard.before_widgets'); ?>
-<div class="grid-2">
-    <div class="card">
-        <div class="card-header">
-            <h3><?php echo __( 'dashboard.quick_actions' ); ?></h3>
-        </div>
+<?php
+// ─── Dashboard Widgets ────────────────────────────────────────
+// Fire init action so plugins can register widgets before rendering.
+klytos_do_action( 'admin.dashboard.init' );
+
+// Register core widgets.
+klytos_register_dashboard_widget(
+    'quick_actions',
+    __( 'dashboard.quick_actions' ),
+    function () {
+        ?>
         <div class="flex-col flex-gap-sm">
             <a href="pages.php" class="btn btn-primary"><?php echo __( 'pages.create_page' ); ?></a>
             <a href="theme.php" class="btn btn-outline"><?php echo __( 'theme.title' ); ?></a>
             <a href="mcp.php" class="btn btn-outline"><?php echo __( 'mcp.create_token' ); ?></a>
             <a href="ai-images.php" class="btn btn-outline"><?php echo __( 'ai_images.generate' ); ?></a>
         </div>
-    </div>
+        <?php
+    },
+    10
+);
 
-    <div class="card">
-        <div class="card-header">
-            <h3><?php echo __( 'dashboard.system_info' ); ?></h3>
-        </div>
+klytos_register_dashboard_widget(
+    'system_info',
+    __( 'dashboard.system_info' ),
+    function () use ( $app ) {
+        ?>
         <table>
-            <tr><td class="font-bold"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo klytos_esc_html( $app->getVersion()); ?></td></tr>
+            <tr><td class="font-bold"><?php echo __( 'dashboard.klytos_version' ); ?></td><td><?php echo klytos_esc_html( $app->getVersion() ); ?></td></tr>
             <tr><td class="font-bold"><?php echo __( 'dashboard.php_version' ); ?></td><td><?php echo PHP_VERSION; ?></td></tr>
-            <tr><td class="font-bold"><?php echo __( 'dashboard.server' ); ?></td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown'); ?></td></tr>
+            <tr><td class="font-bold"><?php echo __( 'dashboard.server' ); ?></td><td><?php echo klytos_esc_html( $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown' ); ?></td></tr>
         </table>
+        <?php
+    },
+    20
+);
+
+// Get per-user widget visibility preferences.
+$currentUser     = klytos_current_user();
+$currentUserId   = $currentUser['id'] ?? '';
+$widgetPrefs     = $currentUserId ? ( klytos_get_meta( 'user', $currentUserId, 'dashboard_widgets' ) ?: [] ) : [];
+
+klytos_do_action( 'admin.dashboard.before_widgets' );
+$allWidgets = klytos_get_dashboard_widgets();
+
+if ( !empty( $allWidgets ) ) : ?>
+<div class="grid-2">
+    <?php foreach ( $allWidgets as $widget ) :
+        // Skip if user has explicitly hidden this widget.
+        if ( isset( $widgetPrefs[$widget['id']] ) && $widgetPrefs[$widget['id']] === false ) {
+            continue;
+        }
+        // Skip if capability check fails.
+        if ( $widget['capability'] !== null && !klytos_has_permission( $widget['capability'] ) ) {
+            continue;
+        }
+    ?>
+    <div class="card" data-widget-id="<?php echo klytos_esc_attr( $widget['id'] ); ?>">
+        <div class="card-header">
+            <h3><?php echo klytos_esc_html( $widget['title'] ); ?></h3>
+        </div>
+        <?php call_user_func( $widget['callback'] ); ?>
     </div>
+    <?php endforeach; ?>
 </div>
-<?php klytos_do_action('admin.dashboard.after_widgets'); ?>
+<?php endif; ?>
+<?php klytos_do_action( 'admin.dashboard.after_widgets' ); ?>
 
 <?php klytos_do_action( 'admin.dashboard.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
