@@ -581,6 +581,10 @@
   },
   "sidebar": {
     "section_content": "Contenido",
+    "section_design": "Diseño",
+    "section_users": "Usuarios",
+    "section_tools": "Herramientas",
+    "section_settings": "Ajustes",
     "customize": "Personalizar menú",
     "reset_order": "Restablecer orden"
   },

@@ -149,6 +149,14 @@
     color: rgba(255, 255, 255, 0.4);
 }
 
+/* —— Dashboard standalone (no section header) —— */
+
+.sidebar-section-group[data-section="dashboard"] {
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 1px solid var(--klytos-sidebar-border);
+}
+
 /* —— Badges in sidebar —— */
 
 .sidebar-nav .badge {

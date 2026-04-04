@@ -581,6 +581,10 @@
   },
   "sidebar": {
     "section_content": "Content",
+    "section_design": "Design",
+    "section_users": "Users",
+    "section_tools": "Tools",
+    "section_settings": "Settings",
     "customize": "Customize menu",
     "reset_order": "Reset order"
   },
