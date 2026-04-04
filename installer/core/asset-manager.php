@@ -66,7 +66,7 @@ class AssetManager
         // Auto-organize images by date: images/2026/04/filename.jpg
         // This keeps the uploads directory clean and browsable over time.
         if ($directory === 'images') {
-            $directory = 'images/' . date('Y') . '/' . date('m');
+            $directory = 'images/' . klytos_gmdate( 'Y' ) . '/' . klytos_gmdate( 'm' );
         }
 
         // Decode base64
@@ -224,7 +224,7 @@ class AssetManager
                     'size'      => $file->getSize(),
                     'size_human' => Helpers::formatBytes($file->getSize()),
                     'mime_type' => $this->getMimeType($file->getPathname()),
-                    'modified'  => date('c', $file->getMTime()),
+                    'modified'  => klytos_timestamp_to_datetime( $file->getMTime() ),
                 ];
             }
         }

@@ -381,13 +381,14 @@ class Helpers
     }
 
     /**
-     * Get current ISO 8601 timestamp.
+     * Get current ISO 8601 timestamp in UTC.
      *
      * @return string
+     * @see    klytos_now_utc() Preferred global function.
      */
     public static function now(): string
     {
-        return (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('c');
+        return klytos_now_utc();
     }
 
     /**

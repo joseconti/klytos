@@ -267,6 +267,32 @@ klytos_get_all_meta(string $collection, string $entityId): array
 
 ---
 
+## Time & Timezone API
+
+```php
+klytos_timezone(): \DateTimeZone              // Site's timezone object (cached)
+klytos_timezone_string(): string              // IANA timezone string (e.g. 'Europe/Madrid')
+klytos_timezone_offset(): int                 // UTC offset in seconds (DST-aware)
+klytos_timezone_reset_cache(): void           // Clear timezone cache after config change
+klytos_now_utc(): string                      // Current UTC time as ISO 8601
+klytos_now_local(): string                    // Current local time as ISO 8601
+klytos_time(): int                            // Current Unix timestamp (filterable via 'time.now')
+klytos_gmdate( string $fmt, ?int $ts ): string          // Format in UTC
+klytos_date( string $fmt, ?int $ts ): string             // Format in local timezone
+klytos_format_datetime( string $iso, string $fmt ): string // Format ISO string for display
+klytos_utc_to_local( string $utc, string $fmt ): string  // UTC to local conversion
+klytos_local_to_utc( string $local, string $fmt ): string // Local to UTC conversion
+klytos_datetime_to_timestamp( string $dt ): int           // ISO string to Unix timestamp
+klytos_timestamp_to_datetime( int $ts ): string           // Unix timestamp to ISO 8601 UTC
+klytos_timezone_list(): array                              // Grouped IANA timezones for UI
+```
+
+**Rule: store in UTC (`klytos_now_utc()`), display in local (`klytos_format_datetime()`).** Never use bare `date()`. See `klytos-time` skill for full details.
+
+Source: `core/helpers-time.php`, `core/timezone-cache.php`
+
+---
+
 ## Action Scheduler API
 
 ```php

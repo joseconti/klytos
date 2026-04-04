@@ -389,7 +389,7 @@ class WebhookManager
      */
     private function logDelivery(string $webhookId, bool $success, int $attempts, string $error = ''): void
     {
-        $logId = date('Ymd-His') . '-' . Helpers::randomHex(4);
+        $logId = klytos_gmdate( 'Ymd-His' ) . '-' . Helpers::randomHex(4);
 
         try {
             $this->storage->write(self::LOG_COLLECTION, $logId, [

@@ -550,7 +550,7 @@ class PluginLoader
 
         $manifest  = $this->getManifest($pluginId);
         $version   = $manifest['version'] ?? 'unknown';
-        $timestamp = date('Ymd-His');
+        $timestamp = klytos_gmdate( 'Ymd-His' );
         $backupName = $version . '-' . $timestamp;
         $backupDir  = $backupsRoot . '/' . $backupName;
 
@@ -594,7 +594,7 @@ class PluginLoader
             // Parse name: "version-YYYYMMDD-HHMMSS"
             $parts   = explode('-', $entry, 2);
             $version = $parts[0] ?? 'unknown';
-            $date    = date('Y-m-d H:i:s', filemtime($path));
+            $date    = klytos_gmdate( 'Y-m-d H:i:s', filemtime($path) );
 
             $backups[] = [
                 'name'    => $entry,

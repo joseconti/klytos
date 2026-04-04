@@ -269,6 +269,10 @@ class ToolRegistry
             'translation-tools.php',
             // Site builder.
             'site-builder-tools.php',
+            // v0.18.0 — WordPress parity features.
+            'export-tools.php',
+            'comment-tools.php',
+            'site-health-tools.php',
         ];
 
         foreach ($toolFiles as $file) {

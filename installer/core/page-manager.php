@@ -30,6 +30,12 @@ class PageManager
     /** @var string Collection name used in the storage layer. */
     private const COLLECTION = 'pages';
 
+    /** @var array Valid page statuses. */
+    public const VALID_STATUSES = ['draft', 'published', 'scheduled', 'trashed'];
+
+    /** @var int Days to keep trashed pages before auto-purge. */
+    public const TRASH_RETENTION_DAYS = 30;
+
     /**
      * @param StorageInterface $storage Storage backend instance.
      */
@@ -103,6 +109,8 @@ class PageManager
             'hreflang_refs',
             'order',
             'post_type',
+            'publish_at',
+            'is_sticky',
         ];
 
         foreach ($updatable as $field) {
@@ -130,7 +138,10 @@ class PageManager
     }
 
     /**
-     * Delete a page.
+     * Soft-delete a page (move to trash).
+     *
+     * The page is kept in storage with status 'trashed' and a trashed_at timestamp.
+     * Use permanentDelete() to remove it from storage entirely.
      *
      * @param  string $slug
      * @return bool
@@ -139,17 +150,160 @@ class PageManager
     {
         $slug = Helpers::sanitizeSlug($slug);
 
-        // Hook: notify plugins before page deletion.
-        klytos_do_action('page.before_delete', $slug);
+        if ( !$this->storage->exists( self::COLLECTION, $slug ) ) {
+            return false;
+        }
 
-        $result = $this->storage->delete(self::COLLECTION, $slug);
+        $page = $this->storage->read( self::COLLECTION, $slug );
 
-        if ($result) {
-            // Hook: notify plugins after page deletion.
-            klytos_do_action('page.after_delete', $slug);
+        // Already trashed — nothing to do.
+        if ( ( $page['status'] ?? '' ) === 'trashed' ) {
+            return true;
+        }
+
+        // Hook: notify plugins before page is trashed.
+        klytos_do_action( 'page.before_trash', $slug, $page );
+
+        // Remember the previous status so restore() can return to it.
+        $page['status_before_trash'] = $page['status'] ?? 'draft';
+        $page['status']              = 'trashed';
+        $page['trashed_at']          = Helpers::now();
+        $page['updated_at']          = Helpers::now();
+
+        $this->storage->write( self::COLLECTION, $slug, $page );
+
+        // Hook: notify plugins after page is trashed.
+        klytos_do_action( 'page.after_trash', $slug, $page );
+
+        return true;
+    }
+
+    /**
+     * Restore a page from the trash to its previous status.
+     *
+     * @param  string $slug
+     * @return array  The restored page data.
+     * @throws \RuntimeException If the page doesn't exist or isn't trashed.
+     */
+    public function restore(string $slug): array
+    {
+        $slug = Helpers::sanitizeSlug( $slug );
+        $page = $this->storage->read( self::COLLECTION, $slug );
+
+        if ( ( $page['status'] ?? '' ) !== 'trashed' ) {
+            throw new \RuntimeException( "Page is not in trash: {$slug}" );
+        }
+
+        klytos_do_action( 'page.before_restore', $slug, $page );
+
+        $page['status']     = $page['status_before_trash'] ?? 'draft';
+        $page['updated_at'] = Helpers::now();
+        unset( $page['status_before_trash'], $page['trashed_at'] );
+
+        $this->storage->write( self::COLLECTION, $slug, $page );
+
+        klytos_do_action( 'page.after_restore', $slug, $page );
+
+        return $page;
+    }
+
+    /**
+     * Permanently delete a page from storage.
+     *
+     * @param  string $slug
+     * @return bool
+     */
+    public function permanentDelete(string $slug): bool
+    {
+        $slug = Helpers::sanitizeSlug( $slug );
+
+        // Hook: notify plugins before permanent deletion.
+        klytos_do_action( 'page.before_delete', $slug );
+
+        $result = $this->storage->delete( self::COLLECTION, $slug );
+
+        if ( $result ) {
+            // Hook: notify plugins after permanent deletion.
+            klytos_do_action( 'page.after_delete', $slug );
         }
 
         return $result;
+    }
+
+    /**
+     * Empty the trash: permanently delete all trashed pages.
+     *
+     * @return int Number of pages permanently deleted.
+     */
+    public function emptyTrash(): int
+    {
+        $trashed = $this->list( 'trashed' );
+        $count   = 0;
+
+        foreach ( $trashed as $page ) {
+            if ( $this->permanentDelete( $page['slug'] ) ) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Auto-purge pages trashed longer than TRASH_RETENTION_DAYS.
+     *
+     * Called by the scheduled action 'klytos_purge_trash'.
+     *
+     * @return int Number of pages purged.
+     */
+    public function purgeExpiredTrash(): int
+    {
+        $trashed  = $this->list( 'trashed' );
+        $cutoff   = date( 'Y-m-d\TH:i:s\Z', time() - ( self::TRASH_RETENTION_DAYS * 86400 ) );
+        $count    = 0;
+
+        foreach ( $trashed as $page ) {
+            $trashedAt = $page['trashed_at'] ?? '';
+            if ( $trashedAt !== '' && $trashedAt < $cutoff ) {
+                if ( $this->permanentDelete( $page['slug'] ) ) {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Publish all scheduled pages whose publish_at time has arrived.
+     *
+     * Called by the scheduled action 'klytos_publish_scheduled'.
+     *
+     * @return array Slugs of pages that were published.
+     */
+    public function publishScheduled(): array
+    {
+        $scheduled = $this->list( 'scheduled' );
+        $now       = Helpers::now();
+        $published = [];
+
+        foreach ( $scheduled as $page ) {
+            $publishAt = $page['publish_at'] ?? '';
+            if ( $publishAt !== '' && $publishAt <= $now ) {
+                $page['status']     = 'published';
+                $page['updated_at'] = $now;
+                unset( $page['publish_at'] );
+
+                $this->storage->write( self::COLLECTION, $page['slug'], $page );
+
+                klytos_do_action( 'page.after_save', $page, 'publish_scheduled' );
+                klytos_do_action( 'page.scheduled_published', $page );
+
+                $published[] = $page['slug'];
+            }
+        }
+
+        return $published;
     }
 
     /**
@@ -182,7 +336,10 @@ class PageManager
     /**
      * List all pages with optional filters.
      *
-     * @param  string $status    Filter: 'all', 'published', 'draft'.
+     * When status is 'all', trashed pages are excluded by default.
+     * Use status 'trashed' to list only trashed pages.
+     *
+     * @param  string $status    Filter: 'all', 'published', 'draft', 'scheduled', 'trashed'.
      * @param  string $lang      Filter by language code (empty = all).
      * @param  int    $limit
      * @param  int    $offset
@@ -193,32 +350,44 @@ class PageManager
     {
         // Build filters for the storage layer.
         $filters = [];
-        if ($status !== 'all') {
+        if ( $status !== 'all' ) {
             $filters['status'] = $status;
         }
-        if ($lang !== '') {
+        if ( $lang !== '' ) {
             $filters['lang'] = $lang;
         }
-        if ($post_type !== '') {
+        if ( $post_type !== '' ) {
             $filters['post_type'] = $post_type;
         }
 
         // Delegate filtering and pagination to the storage backend.
         // DatabaseStorage uses SQL indexes; FileStorage filters in memory.
-        $pages = $this->storage->list(self::COLLECTION, $filters);
+        $pages = $this->storage->list( self::COLLECTION, $filters );
 
-        // Sort by order, then by title.
-        usort($pages, function (array $a, array $b): int {
+        // When listing 'all', exclude trashed pages (they have their own view).
+        if ( $status === 'all' ) {
+            $pages = array_values( array_filter( $pages, function ( array $page ): bool {
+                return ( $page['status'] ?? '' ) !== 'trashed';
+            } ) );
+        }
+
+        // Sort: sticky first, then by order, then by title.
+        usort( $pages, function ( array $a, array $b ): int {
+            $stickyA = ( $a['is_sticky'] ?? false ) ? 0 : 1;
+            $stickyB = ( $b['is_sticky'] ?? false ) ? 0 : 1;
+            if ( $stickyA !== $stickyB ) {
+                return $stickyA - $stickyB;
+            }
             $orderA = $a['order'] ?? 0;
             $orderB = $b['order'] ?? 0;
-            if ($orderA !== $orderB) {
+            if ( $orderA !== $orderB ) {
                 return $orderA - $orderB;
             }
-            return strcmp($a['title'] ?? '', $b['title'] ?? '');
-        });
+            return strcmp( $a['title'] ?? '', $b['title'] ?? '' );
+        } );
 
         // Apply pagination after sorting (storage may not sort the same way).
-        return array_slice($pages, $offset, $limit > 0 ? $limit : null);
+        return array_slice( $pages, $offset, $limit > 0 ? $limit : null );
     }
 
     /**
@@ -393,15 +562,20 @@ class PageManager
             $parentSlug = substr($slug, 0, strrpos($slug, '/'));
         }
 
-        return [
+        $status = $data['status'] ?? 'published';
+        if ( !in_array( $status, self::VALID_STATUSES, true ) ) {
+            $status = 'draft';
+        }
+
+        $page = [
             'slug'             => $slug,
             'parent_slug'      => $data['parent_slug'] ?? $parentSlug,
             'title'            => $data['title'] ?? '',
-            'content_html'     => Helpers::sanitizeHtml($data['content_html'] ?? ''),
+            'content_html'     => Helpers::sanitizeHtml( $data['content_html'] ?? '' ),
             'content'          => $data['content'] ?? null,
             'meta_description' => Helpers::smartTruncate( $data['meta_description'] ?? '', 160 ),
             'template'         => $data['template'] ?? 'default',
-            'status'           => $data['status'] ?? 'published',
+            'status'           => $status,
             'custom_css'       => $data['custom_css'] ?? '',
             'custom_js'        => $data['custom_js'] ?? '',
             'og_image'         => $data['og_image'] ?? '',
@@ -409,7 +583,19 @@ class PageManager
             'hreflang_refs'    => $data['hreflang_refs'] ?? [],
             'order'            => (int) ($data['order'] ?? 0),
             'post_type'        => $data['post_type'] ?? 'page',
+            'is_sticky'        => (bool) ($data['is_sticky'] ?? false),
         ];
+
+        // Scheduled pages require a publish_at datetime.
+        if ( $status === 'scheduled' ) {
+            $publishAt = $data['publish_at'] ?? '';
+            if ( empty( $publishAt ) ) {
+                throw new \RuntimeException( 'publish_at is required when status is scheduled.' );
+            }
+            $page['publish_at'] = $publishAt;
+        }
+
+        return $page;
     }
 
     /**

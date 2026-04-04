@@ -441,7 +441,7 @@ class UserManager
 
         $rawToken = Helpers::randomHex(32);
         $user['password_reset_token']   = hash('sha256', $rawToken);
-        $user['password_reset_expires'] = date('c', time() + 3600); // 1 hour.
+        $user['password_reset_expires'] = klytos_timestamp_to_datetime( time() + 3600 ); // 1 hour.
         $user['updated_at']             = Helpers::now();
 
         $this->storage->write(self::COLLECTION, $userId, $user);

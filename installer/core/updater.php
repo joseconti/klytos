@@ -418,7 +418,7 @@ class Updater
         $this->enableMaintenanceMode();
 
         // ── 3. Pre-update backup ──────────────────────────────────
-        $backupDir = $this->rootPath . '/backups/pre-update-' . $fromVersion . '-' . date( 'Ymd-His' );
+        $backupDir = $this->rootPath . '/backups/pre-update-' . $fromVersion . '-' . klytos_gmdate( 'Ymd-His' );
         try {
             $this->createBackup( $backupDir );
             $this->pruneBackups();
@@ -972,7 +972,7 @@ class Updater
         if ( $safeName === '' ) {
             $safeName = 'manual';
         }
-        $dirName = 'manual-' . $safeName . '-' . date( 'Ymd-His' );
+        $dirName = 'manual-' . $safeName . '-' . klytos_gmdate( 'Ymd-His' );
         $path    = $this->rootPath . '/backups/' . $dirName;
 
         klytos_do_action( 'backup.before', 'local' );

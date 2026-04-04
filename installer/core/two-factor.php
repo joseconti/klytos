@@ -209,7 +209,7 @@ class TwoFactor
             'email'      => $email,
             'hash'       => $tokenHash,
             'created_at' => Helpers::now(),
-            'expires_at' => date('c', time() + self::MAGIC_LINK_LIFETIME),
+            'expires_at' => klytos_timestamp_to_datetime( time() + self::MAGIC_LINK_LIFETIME ),
             'used'       => false,
         ];
 
@@ -509,7 +509,7 @@ class TwoFactor
             'credential_id' => $credentialIdB64,
             'public_key'    => $publicKeyB64,
             'aaguid'        => bin2hex($aaguid),
-            'label'         => $label ?: 'Passkey ' . date('Y-m-d'),
+            'label'         => $label ?: 'Passkey ' . klytos_gmdate( 'Y-m-d' ),
             'sign_count'    => unpack('N', substr($authData, 33, 4))[1],
             'created_at'    => Helpers::now(),
             'last_used'     => null,
@@ -932,7 +932,7 @@ class TwoFactor
             'challenge'  => $challenge,
             'type'       => $type,
             'created_at' => Helpers::now(),
-            'expires_at' => date('c', time() + self::WEBAUTHN_CHALLENGE_LIFETIME),
+            'expires_at' => klytos_timestamp_to_datetime( time() + self::WEBAUTHN_CHALLENGE_LIFETIME ),
         ]);
     }
 

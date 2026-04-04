@@ -196,6 +196,12 @@ class App
     /** @var IntegrityChecker|null File integrity verification system (lazy-loaded). */
     private ?IntegrityChecker $integrityChecker = null;
 
+    /** @var CommentManager|null Page comment management system. */
+    private ?CommentManager $commentManager = null;
+
+    /** @var SiteHealthManager|null System diagnostics manager (lazy-loaded). */
+    private ?SiteHealthManager $siteHealthManager = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -315,6 +321,8 @@ class App
         require_once $this->corePath . '/hooks.php';
         require_once $this->corePath . '/helpers-global.php';
         require_once $this->corePath . '/helpers-security.php';
+        require_once $this->corePath . '/timezone-cache.php';
+        require_once $this->corePath . '/helpers-time.php';
         require_once $this->corePath . '/asset-usage-hooks.php';
 
         // Step 10: Initialize v2.0 managers.
@@ -331,6 +339,7 @@ class App
         $this->auditLog            = new AuditLog($this->storage);
         $this->privacyManager      = new PrivacyManager( $this->storage, $this->userManager, $this->auditLog );
         $this->postTypeManager     = new PostTypeManager($this->storage);
+        $this->commentManager      = new CommentManager($this->storage);
 
         // Step 10b: Auto-migrate v1.0 admin user to v2.0 multi-user system.
         // On first boot after upgrade from v1.x, the owner user doesn't exist yet.
@@ -363,6 +372,61 @@ class App
             $buildEngine = new BuildEngine($appRef);
             $buildEngine->buildHooksJs();
             $buildEngine->buildPluginsCss();
+        });
+
+        // Register core scheduled action handlers.
+        // 1. Auto-purge trashed pages older than 30 days.
+        klytos_add_action('klytos_purge_trash', function () use ($appRef): void {
+            $appRef->getPages()->purgeExpiredTrash();
+        });
+
+        // 2. Inject approved comments as static HTML during build.
+        klytos_add_filter('build.page.output', function ( string $html, array $page ) use ($appRef): string {
+            $commentsEnabled = $appRef->getSiteConfig()->getValue( 'comments_enabled', false );
+            if ( !$commentsEnabled ) {
+                return $html;
+            }
+            $slug = $page['slug'] ?? '';
+            if ( empty( $slug ) ) {
+                return $html;
+            }
+            $lang = $page['lang'] ?? ( $appRef->getSiteConfig()->getValue( 'default_language', 'es' ) );
+            $commentsHtml = $appRef->getCommentManager()->renderCommentsHtml( $slug, $lang );
+            if ( !empty( $commentsHtml ) ) {
+                // Insert before </main> or before </body>.
+                if ( str_contains( $html, '</main>' ) ) {
+                    $html = str_replace( '</main>', $commentsHtml . '</main>', $html );
+                } else {
+                    $html = str_replace( '</body>', $commentsHtml . '</body>', $html );
+                }
+            }
+            return $html;
+        }, 30);
+
+        // 3. Resolve oEmbed URLs during build (converts bare YouTube/Twitter/etc URLs to embeds).
+        klytos_add_filter('build.page.output', function ( string $html ) use ($appRef): string {
+            $oembedEnabled = $appRef->getSiteConfig()->getValue( 'oembed_enabled', true );
+            if ( !$oembedEnabled ) {
+                return $html;
+            }
+            $resolver = new OEmbedResolver( $appRef->getCacheManager() );
+            return $resolver->resolve( $html );
+        }, 20);
+
+        // 3. Auto-publish scheduled pages whose publish_at time has arrived.
+        klytos_add_action('klytos_publish_scheduled', function () use ($appRef): void {
+            $published = $appRef->getPages()->publishScheduled();
+            if ( !empty( $published ) ) {
+                // Rebuild the affected pages so the static site is updated.
+                $buildEngine = new BuildEngine( $appRef );
+                foreach ( $published as $slug ) {
+                    try {
+                        $buildEngine->buildPage( $slug );
+                    } catch ( \Throwable $e ) {
+                        // Log but don't halt — other pages may still need building.
+                    }
+                }
+            }
         });
 
         // Step 10e: Initialize persistent cache manager.
@@ -413,7 +477,16 @@ class App
         );
         $this->pluginLoader->loadAll();
 
-        // Step 11: Fire the 'klytos.init' action — signals that all core
+        // Step 11b: Ensure core recurring actions are scheduled.
+        // Only create if not already scheduled (prevents duplicates on each boot).
+        if ( klytos_next_scheduled_action( 'klytos_purge_trash' ) === null ) {
+            klytos_schedule_recurring_action( time(), 86400, 'klytos_purge_trash', [], 'klytos_core' );
+        }
+        if ( klytos_next_scheduled_action( 'klytos_publish_scheduled' ) === null ) {
+            klytos_schedule_recurring_action( time(), 300, 'klytos_publish_scheduled', [], 'klytos_core' );
+        }
+
+        // Step 12: Fire the 'klytos.init' action — signals that all core
         // services are ready. Plugins can use this to run post-load setup.
         klytos_do_action('klytos.init', $this);
     }
@@ -667,6 +740,21 @@ class App
     public function getPostTypeManager(): PostTypeManager
     {
         return $this->postTypeManager;
+    }
+
+    /** Get the comment manager. */
+    public function getCommentManager(): CommentManager
+    {
+        return $this->commentManager;
+    }
+
+    /** Get the site health manager (lazy-loaded). */
+    public function getSiteHealthManager(): SiteHealthManager
+    {
+        if ( $this->siteHealthManager === null ) {
+            $this->siteHealthManager = new SiteHealthManager( $this );
+        }
+        return $this->siteHealthManager;
     }
 
     /** Get the Options API manager. */
