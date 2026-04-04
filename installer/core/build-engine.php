@@ -132,6 +132,9 @@ class BuildEngine
         // 7. Ensure public .htaccess exists with clean URL rewrite rules.
         $this->ensurePublicHtaccess();
 
+        // 7b. Handle maintenance mode files.
+        $this->handleMaintenanceMode( $siteConfig );
+
         // 8. Update build timestamp
         $this->app->getSiteConfig()->updateBuildTimestamp();
 
@@ -239,6 +242,12 @@ class BuildEngine
 
         // Allow plugins to modify the final HTML before writing to disk.
         $html = klytos_apply_filters('build.page.output', $html, $page);
+
+        // Password-protect the page content if a password is set.
+        $password = $page['password'] ?? '';
+        if ( $password !== '' ) {
+            $html = $this->encryptPageContent( $html, $password );
+        }
 
         if ($slug === 'index') {
             // Homepage goes directly to /index.html at the web root.
@@ -791,8 +800,13 @@ class BuildEngine
             . "<FilesMatch \"^\\.(htaccess|htpasswd|install\\.done\\.php)$\">\n"
             . "    Require all denied\n"
             . "</FilesMatch>\n\n"
-            . "# Clean URLs for static pages\n"
-            . "RewriteEngine On\n\n"
+            . "# Maintenance mode — redirect to 503 page when .maintenance marker exists\n"
+            . "RewriteEngine On\n"
+            . "RewriteCond %{DOCUMENT_ROOT}/.maintenance -f\n"
+            . "RewriteCond %{REQUEST_URI} !^/maintenance\\.html$ [NC]\n"
+            . "RewriteCond %{REQUEST_URI} !\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?)$ [NC]\n"
+            . "RewriteRule ^ /maintenance.html [R=503,L]\n\n"
+            . "# Clean URLs for static pages\n\n"
             . "# If the exact file exists, serve it directly\n"
             . "RewriteCond %{REQUEST_FILENAME} -f\n"
             . "RewriteRule ^ - [L]\n\n"
@@ -810,6 +824,167 @@ class BuildEngine
             . "RewriteRule ^(.+)/$ $1/index.html [L]\n";
 
         file_put_contents( $htaccessPath, $content, LOCK_EX );
+    }
+
+    /**
+     * Write or remove maintenance mode files based on site config.
+     *
+     * When maintenance_mode is enabled, writes:
+     *   - .maintenance marker file (checked by .htaccess)
+     *   - maintenance.html (503 page served to visitors)
+     *
+     * When disabled, removes both files.
+     *
+     * @param array $siteConfig Current site configuration.
+     */
+    private function handleMaintenanceMode( array $siteConfig ): void
+    {
+        $markerPath = $this->outputPath . '/.maintenance';
+        $pagePath   = $this->outputPath . '/maintenance.html';
+        $enabled    = (bool) ( $siteConfig['maintenance_mode'] ?? false );
+
+        if ( $enabled ) {
+            // Write .maintenance marker.
+            file_put_contents( $markerPath, time(), LOCK_EX );
+
+            // Build maintenance.html from template.
+            $templatePath = dirname( __DIR__ ) . '/templates/maintenance.html';
+            if ( file_exists( $templatePath ) ) {
+                $html = file_get_contents( $templatePath );
+                $defaultMsg = __( 'maintenance.default_message' );
+                $message    = trim( $siteConfig['maintenance_message'] ?? '' );
+                if ( $message === '' ) {
+                    $message = $defaultMsg;
+                }
+                $html = str_replace(
+                    ['{{site_name}}', '{{maintenance_message}}', '{{language}}'],
+                    [
+                        Helpers::escHtml( $siteConfig['site_name'] ?? 'Site' ),
+                        Helpers::escHtml( $message ),
+                        Helpers::escAttr( $siteConfig['default_language'] ?? 'en' ),
+                    ],
+                    $html
+                );
+                file_put_contents( $pagePath, $html, LOCK_EX );
+            }
+
+            klytos_do_action( 'maintenance.enabled' );
+        } else {
+            // Remove maintenance files if they exist.
+            if ( file_exists( $markerPath ) ) {
+                @unlink( $markerPath );
+            }
+            if ( file_exists( $pagePath ) ) {
+                @unlink( $pagePath );
+            }
+
+            klytos_do_action( 'maintenance.disabled' );
+        }
+    }
+
+    /**
+     * Encrypt the page content area and replace it with a password gate.
+     *
+     * Uses PBKDF2 + AES-256-GCM so the static HTML can be decrypted
+     * entirely client-side via SubtleCrypto — no server round-trip.
+     *
+     * @param  string $html     Full page HTML.
+     * @param  string $password The password used to derive the encryption key.
+     * @return string Modified HTML with encrypted content and password form.
+     */
+    private function encryptPageContent( string $html, string $password ): string
+    {
+        // Extract the <main> content (or fall back to <body> content).
+        $contentToEncrypt = '';
+        $beforeContent    = '';
+        $afterContent     = '';
+
+        if ( preg_match( '#(<main[^>]*>)(.*?)(</main>)#si', $html, $m ) ) {
+            $beforeContent    = $m[1];
+            $contentToEncrypt = $m[2];
+            $afterContent     = $m[3];
+        } elseif ( preg_match( '#(<body[^>]*>)(.*?)(</body>)#si', $html, $m ) ) {
+            $beforeContent    = $m[1];
+            $contentToEncrypt = $m[2];
+            $afterContent     = $m[3];
+        } else {
+            // Cannot find content markers — encrypt whole HTML as fallback.
+            $contentToEncrypt = $html;
+        }
+
+        if ( empty( $contentToEncrypt ) ) {
+            return $html;
+        }
+
+        // Generate random salt (16 bytes) and IV (12 bytes for AES-GCM).
+        $salt = random_bytes( 16 );
+        $iv   = random_bytes( 12 );
+
+        // Derive key via PBKDF2 (must mirror JS: 100k iterations, SHA-256, 256-bit key).
+        $key = hash_pbkdf2( 'sha256', $password, $salt, 100000, 32, true );
+
+        // Encrypt with AES-256-GCM.
+        $tag        = '';
+        $ciphertext = openssl_encrypt( $contentToEncrypt, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
+        if ( $ciphertext === false ) {
+            return $html; // Encryption failed — return unencrypted as safety fallback.
+        }
+
+        // Append GCM auth tag to ciphertext (SubtleCrypto expects them concatenated).
+        $encryptedBlob = $ciphertext . $tag;
+
+        // Encode to base64.
+        $saltB64 = base64_encode( $salt );
+        $ivB64   = base64_encode( $iv );
+        $dataB64 = base64_encode( $encryptedBlob );
+
+        // Load password form template.
+        $templatePath = dirname( __DIR__ ) . '/templates/password-form.html';
+        if ( !file_exists( $templatePath ) ) {
+            return $html;
+        }
+        $formHtml = file_get_contents( $templatePath );
+
+        // Replace template placeholders.
+        $formHtml = str_replace(
+            [
+                '{{password_heading}}',
+                '{{password_hint}}',
+                '{{password_placeholder}}',
+                '{{password_submit}}',
+                '{{password_wrong}}',
+                '{{enc_salt}}',
+                '{{enc_iv}}',
+                '{{enc_data}}',
+            ],
+            [
+                Helpers::escHtml( __( 'password_protection.heading' ) ),
+                Helpers::escHtml( __( 'password_protection.hint' ) ),
+                Helpers::escAttr( __( 'password_protection.placeholder' ) ),
+                Helpers::escHtml( __( 'password_protection.submit' ) ),
+                Helpers::escHtml( __( 'password_protection.wrong' ) ),
+                $saltB64,
+                $ivB64,
+                $dataB64,
+            ],
+            $formHtml
+        );
+
+        // Allow plugins to modify the password form.
+        $formHtml = klytos_apply_filters( 'page.password_form', $formHtml );
+
+        // Replace the content in the full HTML.
+        if ( $beforeContent !== '' ) {
+            $html = str_replace(
+                $beforeContent . $contentToEncrypt . $afterContent,
+                $beforeContent . $formHtml . $afterContent,
+                $html
+            );
+        } else {
+            $html = $formHtml;
+        }
+
+        return $html;
     }
 
     /**

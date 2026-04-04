@@ -77,6 +77,41 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
             $count   = $pages->emptyTrash();
             $success = __( 'pages.trash_emptied', ['count' => $count] );
             break;
+
+        case 'bulk_action':
+            $bulkAction = $_POST['bulk_action'] ?? '';
+            $bulkSlugs  = $_POST['bulk_slugs'] ?? [];
+            if ( !empty( $bulkAction ) && !empty( $bulkSlugs ) && is_array( $bulkSlugs ) ) {
+                $bulkCount = 0;
+                klytos_do_action( 'admin.bulk_action.before', $bulkAction, $bulkSlugs );
+                foreach ( $bulkSlugs as $bSlug ) {
+                    try {
+                        switch ( $bulkAction ) {
+                            case 'publish':
+                                $pages->update( $bSlug, ['status' => 'published'] );
+                                break;
+                            case 'draft':
+                                $pages->update( $bSlug, ['status' => 'draft'] );
+                                break;
+                            case 'trash':
+                                $pages->delete( $bSlug );
+                                break;
+                            case 'restore':
+                                $pages->restore( $bSlug );
+                                break;
+                            case 'permanent_delete':
+                                $pages->permanentDelete( $bSlug );
+                                break;
+                        }
+                        $bulkCount++;
+                    } catch ( \Throwable $e ) {
+                        // Skip individual errors.
+                    }
+                }
+                klytos_do_action( 'admin.bulk_action.after', $bulkAction, $bulkCount, [] );
+                $success = __( 'bulk.success', ['count' => $bulkCount] );
+            }
+            break;
     }
 }
 
@@ -156,10 +191,36 @@ $tabSep = str_contains( $baseUrl, '?' ) ? '&' : '?';
             <h3><?php echo $statusView === 'trashed' ? __( 'pages.trash_empty' ) : __( 'pages.no_pages' ); ?></h3>
         </div>
     <?php else: ?>
+        <!-- Bulk action bar -->
+        <form method="post" id="bulk-action-form" data-confirm-delete="<?php echo klytos_esc_attr( __( 'bulk.confirm_delete' ) ); ?>">
+            <?php echo klytos_csrf_field(); ?>
+            <input type="hidden" name="action" value="bulk_action">
+            <div class="flex flex-gap-sm flex-center" style="padding: var(--klytos-space-2) var(--klytos-space-4);">
+                <select name="bulk_action" id="bulk-action-select" class="form-control" style="width:auto;min-width:160px">
+                    <option value=""><?php echo __( 'bulk.action_label' ); ?></option>
+                    <?php if ( $statusView === 'trashed' ): ?>
+                        <option value="restore"><?php echo __( 'pages.restore' ); ?></option>
+                        <option value="permanent_delete"><?php echo __( 'pages.permanent_delete' ); ?></option>
+                    <?php else: ?>
+                        <?php $bulkActions = klytos_apply_filters( 'pages.bulk_actions', [
+                            'publish' => __( 'pages.published' ),
+                            'draft'   => __( 'pages.draft' ),
+                            'trash'   => __( 'pages.tab_trash' ),
+                        ]); ?>
+                        <?php foreach ( $bulkActions as $bVal => $bLabel ): ?>
+                            <option value="<?php echo klytos_esc_attr( $bVal ); ?>"><?php echo klytos_esc_html( $bLabel ); ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+                <button type="submit" id="bulk-apply-btn" class="btn btn-outline btn-sm" disabled><?php echo __( 'bulk.apply' ); ?></button>
+                <span id="bulk-count" class="badge-status badge-draft" style="display:none"></span>
+            </div>
+
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
+                        <th style="width:30px"><input type="checkbox" id="bulk-select-all"></th>
                         <th><?php echo __( 'pages.slug' ); ?></th>
                         <th><?php echo __( 'pages.page_title' ); ?></th>
                         <th><?php echo __( 'pages.template' ); ?></th>
@@ -189,6 +250,7 @@ $tabSep = str_contains( $baseUrl, '?' ) ? '&' : '?';
                         }
                     ?>
                     <tr>
+                        <td><input type="checkbox" class="bulk-checkbox" name="bulk_slugs[]" value="<?php echo klytos_esc_attr( $page['slug'] ?? '' ); ?>"></td>
                         <td class="mono"><?php echo klytos_esc_html( $page['slug'] ?? '' ); ?></td>
                         <td>
                             <?php if ( $isSticky ): ?><span title="<?php echo __( 'pages.sticky' ); ?>">&#128204; </span><?php endif; ?>
@@ -235,9 +297,11 @@ $tabSep = str_contains( $baseUrl, '?' ) ? '&' : '?';
                 </tbody>
             </table>
         </div>
+        </form><!-- /bulk-action-form -->
     <?php endif; ?>
 </div>
 
+<script nonce="<?php echo $cspNonce; ?>" src="js/bulk-actions.js"></script>
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
     document.querySelectorAll( '.form-confirm-delete' ).forEach( function( form ) {

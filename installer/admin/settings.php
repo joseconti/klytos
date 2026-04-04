@@ -96,7 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         if (!in_array($themeValue, ['light', 'dark'], true)) {
             $themeValue = 'dark';
         }
-        $app->getSiteConfig()->set(['admin_theme' => $themeValue]);
+        $app->getSiteConfig()->set([
+            'admin_theme'       => $themeValue,
+            'admin_bar_enabled' => isset($_POST['admin_bar_enabled']),
+        ]);
         $success = __('common.success');
     } elseif ($section === 'developer') {
         $app->getSiteConfig()->set([
@@ -122,6 +125,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
         );
         $generator->setApiKey(trim($_POST['gemini_api_key'] ?? ''));
         $success = __( 'ai_images.api_key_saved' );
+    } elseif ($section === 'maintenance') {
+        $maintenanceEnabled = isset($_POST['maintenance_mode']);
+        $maintenanceMessage = trim($_POST['maintenance_message'] ?? '');
+        $app->getSiteConfig()->set([
+            'maintenance_mode'    => $maintenanceEnabled,
+            'maintenance_message' => $maintenanceMessage,
+        ]);
+        if ($maintenanceEnabled) {
+            klytos_do_action('maintenance.enabled');
+        } else {
+            klytos_do_action('maintenance.disabled');
+        }
+        $success = __('common.success');
     } elseif ($section === 'notices') {
         $app->getSiteConfig()->set([
             'notices' => [
@@ -383,6 +399,13 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </label>
             </div>
         </div>
+        <div class="form-group">
+            <label class="flex flex-gap-sm" style="cursor:pointer">
+                <input type="checkbox" name="admin_bar_enabled" value="1"
+                    <?php echo ($siteConfig['admin_bar_enabled'] ?? true) ? 'checked' : ''; ?>>
+                <?php echo __( 'admin_bar.settings_label' ); ?>
+            </label>
+        </div>
         <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
     </form>
 </div>
@@ -606,6 +629,31 @@ require_once __DIR__ . '/templates/sidebar.php';
 </script>
 <?php endif; ?>
 <?php klytos_do_action('admin.settings.after_section', 'encryption_key'); ?>
+
+<?php klytos_do_action('admin.settings.before_section', 'maintenance'); ?>
+<!-- Maintenance Mode -->
+<div class="card">
+    <div class="card-header"><h3><?php echo __( 'maintenance.title' ); ?></h3></div>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="section" value="maintenance">
+        <div class="form-group">
+            <label class="flex flex-gap-sm" style="cursor:pointer">
+                <input type="checkbox" name="maintenance_mode" value="1"
+                    <?php echo ($siteConfig['maintenance_mode'] ?? false) ? 'checked' : ''; ?>>
+                <?php echo __( 'maintenance.enabled_label' ); ?>
+            </label>
+        </div>
+        <div class="form-group">
+            <label><?php echo __( 'maintenance.message_label' ); ?></label>
+            <textarea name="maintenance_message" class="form-control" rows="3"
+                placeholder="<?php echo klytos_esc_attr( __( 'maintenance.default_message' ) ); ?>"
+            ><?php echo klytos_esc_html( $siteConfig['maintenance_message'] ?? '' ); ?></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'common.save' ); ?></button>
+    </form>
+</div>
+<?php klytos_do_action('admin.settings.after_section', 'maintenance'); ?>
 
 <?php klytos_do_action('admin.settings.render_custom_sections', $siteConfig); ?>
 

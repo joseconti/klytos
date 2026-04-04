@@ -1154,3 +1154,262 @@ function klytos_is_admin_page(string $page): bool
     }
     return $current === $page;
 }
+
+// ─── Shortcodes API ───────────────────────────────────────────
+
+/**
+ * Register a shortcode.
+ *
+ * @param string   $tag         Shortcode tag.
+ * @param callable $callback    Callback: (array $attrs, string $content, string $tag) → string.
+ * @param string   $description Optional description.
+ * @since 0.26.0
+ */
+function klytos_add_shortcode( string $tag, callable $callback, string $description = '' ): void
+{
+    App::getInstance()->getShortcodeManager()->register( $tag, $callback, [], $description );
+}
+
+/**
+ * Process shortcodes in a string.
+ *
+ * @param  string $content Content containing [shortcodes].
+ * @return string Processed content.
+ * @since  0.26.0
+ */
+function klytos_do_shortcode( string $content ): string
+{
+    return App::getInstance()->getShortcodeManager()->process( $content );
+}
+
+/**
+ * Check if a shortcode is registered.
+ *
+ * @param  string $tag Shortcode tag.
+ * @return bool
+ * @since  0.26.0
+ */
+function klytos_shortcode_exists( string $tag ): bool
+{
+    return App::getInstance()->getShortcodeManager()->exists( $tag );
+}
+
+// ─── HTTP API ─────────────────────────────────────────────────
+// Outbound HTTP request helpers wrapping HttpClient.
+
+/**
+ * Get the HttpClient instance.
+ *
+ * @return \Klytos\Core\HttpClient
+ * @since  0.26.0
+ */
+function klytos_http(): \Klytos\Core\HttpClient
+{
+    return App::getInstance()->getHttpClient();
+}
+
+/**
+ * Perform an HTTP GET request.
+ *
+ * @param  string $url  Request URL.
+ * @param  array  $args Options: headers, timeout, ssl_verify, etc.
+ * @return array  ['status' => int, 'headers' => array, 'body' => string, 'error' => ?string]
+ * @since  0.26.0
+ */
+function klytos_http_get( string $url, array $args = [] ): array
+{
+    $headers = $args['headers'] ?? [];
+    unset( $args['headers'] );
+    return App::getInstance()->getHttpClient()->get( $url, $headers, $args );
+}
+
+/**
+ * Perform an HTTP POST request.
+ *
+ * @param  string $url  Request URL.
+ * @param  mixed  $body Request body (string, array for JSON, or null).
+ * @param  array  $args Options: headers, timeout, ssl_verify, etc.
+ * @return array
+ * @since  0.26.0
+ */
+function klytos_http_post( string $url, mixed $body = null, array $args = [] ): array
+{
+    $headers = $args['headers'] ?? [];
+    unset( $args['headers'] );
+    return App::getInstance()->getHttpClient()->post( $url, $body, $headers, $args );
+}
+
+// ─── Transients API ───────────────────────────────────────────
+// Temporary data storage with automatic expiration.
+// Thin wrappers over CacheManager with a 'transient:' prefix.
+
+/**
+ * Set a transient value with TTL.
+ *
+ * @param string $key   Transient name.
+ * @param mixed  $value Value to store.
+ * @param int    $ttl   Time-to-live in seconds (default 1 hour).
+ * @return bool
+ * @since 0.26.0
+ */
+function klytos_set_transient( string $key, mixed $value, int $ttl = 3600 ): bool
+{
+    $cache = App::getInstance()->getCacheManager();
+    $cache->set( 'transient:' . $key, $value, $ttl );
+    klytos_do_action( 'transient.set_' . $key, $value, $ttl );
+    return true;
+}
+
+/**
+ * Get a transient value.
+ *
+ * @param string $key Transient name.
+ * @return mixed The stored value, or false if expired/missing.
+ * @since 0.26.0
+ */
+function klytos_get_transient( string $key ): mixed
+{
+    // Allow plugins to short-circuit.
+    $pre = klytos_apply_filters( 'transient.pre_get_' . $key, null );
+    if ( $pre !== null ) {
+        return $pre;
+    }
+
+    $cache = App::getInstance()->getCacheManager();
+    $value = $cache->get( 'transient:' . $key );
+    return $value === null ? false : $value;
+}
+
+/**
+ * Delete a transient.
+ *
+ * @param string $key Transient name.
+ * @return bool
+ * @since 0.26.0
+ */
+function klytos_delete_transient( string $key ): bool
+{
+    $cache = App::getInstance()->getCacheManager();
+    $cache->delete( 'transient:' . $key );
+    klytos_do_action( 'transient.delete_' . $key );
+    return true;
+}
+
+// ─── Avatar API ───────────────────────────────────────────────
+
+/**
+ * Get the avatar URL for a user.
+ *
+ * Returns the custom avatar if one is set, otherwise falls back to
+ * Gravatar based on the user's email address.
+ *
+ * @param  array  $user User data array (must contain 'email', may contain 'avatar').
+ * @param  int    $size Avatar size in pixels (default 80).
+ * @return string Avatar URL (Gravatar or custom).
+ * @since  0.26.0
+ */
+function klytos_get_avatar_url( array $user, int $size = 80 ): string
+{
+    // If a custom avatar is uploaded, use it.
+    $customAvatar = trim( $user['avatar'] ?? '' );
+    if ( $customAvatar !== '' ) {
+        return klytos_apply_filters( 'user.avatar_url', $customAvatar, $user, $size );
+    }
+
+    // Fall back to Gravatar.
+    $email = strtolower( trim( $user['email'] ?? '' ) );
+    $hash  = md5( $email );
+    $url   = 'https://www.gravatar.com/avatar/' . $hash . '?s=' . $size . '&d=mp&r=g';
+
+    return klytos_apply_filters( 'user.avatar_url', $url, $user, $size );
+}
+
+/**
+ * Get the Gravatar URL for an email address.
+ *
+ * @param  string $email Email address.
+ * @param  int    $size  Avatar size in pixels.
+ * @return string Gravatar URL.
+ * @since  0.26.0
+ */
+function klytos_gravatar_url( string $email, int $size = 80 ): string
+{
+    $hash = md5( strtolower( trim( $email ) ) );
+    return 'https://www.gravatar.com/avatar/' . $hash . '?s=' . $size . '&d=mp&r=g';
+}
+
+// ─── Maintenance Mode API ─────────────────────────────────────
+
+/**
+ * Check whether maintenance mode is currently enabled.
+ *
+ * @return bool
+ * @since  0.26.0
+ */
+function klytos_is_maintenance_mode(): bool
+{
+    return (bool) App::getInstance()->getSiteConfig()->getValue( 'maintenance_mode', false );
+}
+
+// ─── Dashboard Widgets API ────────────────────────────────────
+// Register, unregister, and retrieve extensible dashboard widgets.
+
+/**
+ * Register a dashboard widget.
+ *
+ * Plugins and core may call this during the `admin.dashboard.init` action
+ * to add cards to the admin dashboard.
+ *
+ * @param string        $id         Unique widget identifier.
+ * @param string        $title      Widget card title.
+ * @param callable      $callback   Renders widget body HTML. Receives no arguments.
+ * @param int           $position   Sort position (lower = higher). Default 50.
+ * @param string|null   $capability Required capability to see the widget, or null for all.
+ * @since 0.26.0
+ */
+function klytos_register_dashboard_widget( string $id, string $title, callable $callback, int $position = 50, ?string $capability = null ): void
+{
+    if ( !isset( $GLOBALS['_klytos_dashboard_widgets'] ) ) {
+        $GLOBALS['_klytos_dashboard_widgets'] = [];
+    }
+
+    $GLOBALS['_klytos_dashboard_widgets'][$id] = [
+        'id'         => $id,
+        'title'      => $title,
+        'callback'   => $callback,
+        'position'   => $position,
+        'capability' => $capability,
+    ];
+}
+
+/**
+ * Unregister a dashboard widget.
+ *
+ * @param string $id Widget identifier.
+ * @since 0.26.0
+ */
+function klytos_unregister_dashboard_widget( string $id ): void
+{
+    unset( $GLOBALS['_klytos_dashboard_widgets'][$id] );
+}
+
+/**
+ * Get all registered dashboard widgets, sorted by position.
+ *
+ * @return array List of widget definitions sorted by position ascending.
+ * @since 0.26.0
+ */
+function klytos_get_dashboard_widgets(): array
+{
+    $widgets = $GLOBALS['_klytos_dashboard_widgets'] ?? [];
+
+    // Allow plugins to add/remove/reorder widgets via filter.
+    $widgets = klytos_apply_filters( 'admin.dashboard.widgets', $widgets );
+
+    // Sort by position, then by registration order.
+    uasort( $widgets, function ( array $a, array $b ): int {
+        return $a['position'] <=> $b['position'];
+    });
+
+    return array_values( $widgets );
+}

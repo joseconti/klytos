@@ -63,7 +63,73 @@
     "php_version": "PHP version",
     "klytos_version": "Klytos version",
     "disk_usage": "Disk usage",
-    "server": "Server"
+    "server": "Server",
+    "customize_widgets": "Customize widgets",
+    "widget_hidden": "Widget hidden",
+    "widget_restored": "Widget restored"
+  },
+  "maintenance": {
+    "title": "Maintenance Mode",
+    "enabled_label": "Enable maintenance mode",
+    "message_label": "Maintenance message",
+    "default_message": "Site under maintenance. Please check back soon.",
+    "active_notice": "Maintenance mode is active. Visitors see a 503 page."
+  },
+  "profile": {
+    "bio": "Bio",
+    "bio_placeholder": "A short bio about yourself",
+    "avatar": "Avatar",
+    "avatar_placeholder": "Custom avatar URL (leave empty for Gravatar)",
+    "avatar_gravatar_hint": "Uses your Gravatar by default. Enter a URL to override.",
+    "website": "Website",
+    "social_links": "Social links",
+    "locale": "Preferred language"
+  },
+  "password_protection": {
+    "label": "Password protection",
+    "heading": "Protected Content",
+    "placeholder": "Enter password",
+    "submit": "Unlock",
+    "wrong": "Incorrect password. Please try again.",
+    "hint": "This page is password protected."
+  },
+  "bulk": {
+    "select_all": "Select all",
+    "selected_count": "{count} items selected",
+    "action_label": "Bulk actions",
+    "apply": "Apply",
+    "confirm_delete": "Permanently delete {count} items?",
+    "success": "{count} items updated"
+  },
+  "media_edit": {
+    "title": "Edit Image",
+    "crop": "Crop",
+    "rotate": "Rotate",
+    "flip": "Flip",
+    "resize": "Resize",
+    "save": "Save",
+    "save_copy": "Save as copy",
+    "processing": "Processing...",
+    "no_gd": "GD library not available for image editing."
+  },
+  "shortcodes": {
+    "title": "Shortcodes",
+    "no_shortcodes": "No shortcodes registered"
+  },
+  "post_lock": {
+    "locked_by": "This page is being edited by {name}",
+    "takeover": "Take over",
+    "takeover_warning": "The other user may lose unsaved changes",
+    "lock_lost": "Your editing lock has been taken by another user",
+    "saving_disabled": "Saving is disabled while another user is editing"
+  },
+  "admin_bar": {
+    "dashboard": "Dashboard",
+    "edit_page": "Edit Page",
+    "rebuild": "Rebuild",
+    "close": "Close",
+    "rebuilding": "Rebuilding...",
+    "settings_label": "Show admin bar on public site"
   },
   "pages": {
     "title": "Pages",

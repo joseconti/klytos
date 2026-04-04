@@ -135,6 +135,26 @@ class Auth
             // Generate CSRF token
             $_SESSION['klytos_csrf'] = Helpers::randomHex(32);
 
+            // Set admin bar cookie for the public site (non-HttpOnly so JS can read it).
+            $adminBarEnabled = true;
+            try {
+                $adminBarEnabled = (bool) ( \Klytos\Core\App::getInstance()->getSiteConfig()->getValue( 'admin_bar_enabled', true ) );
+            } catch ( \Throwable $e ) {
+                // Config may not be loaded yet during first login.
+            }
+            if ( $adminBarEnabled ) {
+                $basePath = Helpers::getBasePath();
+                $adminUrl = $basePath . 'admin/';
+                $cookieValue = json_encode( ['admin_url' => $adminUrl, 'version' => defined( 'KLYTOS_VERSION' ) ? KLYTOS_VERSION : '1.0'] );
+                setcookie( 'klytos_admin_bar', $cookieValue, [
+                    'expires'  => 0,
+                    'path'     => '/',
+                    'secure'   => !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off',
+                    'httponly'  => false,
+                    'samesite' => 'Lax',
+                ]);
+            }
+
             // Post-hook: notify plugins of successful login.
             klytos_do_action('auth.after_login', $username, $userId);
 
@@ -241,6 +261,9 @@ class Auth
         klytos_do_action('user.logout', $_SESSION['klytos_user'] ?? '', $_SESSION['klytos_user_id'] ?? '');
 
         $_SESSION = [];
+
+        // Clear admin bar cookie.
+        setcookie( 'klytos_admin_bar', '', ['expires' => time() - 3600, 'path' => '/', 'samesite' => 'Lax'] );
 
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();

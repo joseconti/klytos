@@ -371,6 +371,58 @@ Helpers::hashToken(string $token): string         // SHA-256 hash
 
 ---
 
+## Shortcodes API (v0.26.0)
+
+```php
+klytos_add_shortcode(string $tag, callable $callback, string $description = ''): void
+```
+Register a shortcode `[tag]`. Callback: `(array $attrs, string $content, string $tag) → string`.
+
+```php
+klytos_do_shortcode(string $content): string
+```
+Process all registered shortcodes in a string.
+
+```php
+klytos_shortcode_exists(string $tag): bool
+```
+Check if a shortcode tag is registered.
+
+## Transients API (v0.26.0)
+
+```php
+klytos_set_transient(string $key, mixed $value, int $ttl = 3600): bool
+klytos_get_transient(string $key): mixed      // returns false on miss
+klytos_delete_transient(string $key): bool
+```
+Temporary data storage with auto-expiration. Wraps CacheManager with `transient:` prefix.
+
+## HTTP API (v0.26.0)
+
+```php
+klytos_http(): \Klytos\Core\HttpClient
+klytos_http_get(string $url, array $args = []): array
+klytos_http_post(string $url, mixed $body = null, array $args = []): array
+```
+Returns: `['status' => int, 'headers' => array, 'body' => string, 'error' => ?string]`.
+
+## Dashboard Widgets API (v0.26.0)
+
+```php
+klytos_register_dashboard_widget(string $id, string $title, callable $callback, int $position = 50, ?string $capability = null): void
+klytos_unregister_dashboard_widget(string $id): void
+klytos_get_dashboard_widgets(): array
+```
+Register widgets in the `admin.dashboard.init` action.
+
+## Maintenance Mode (v0.26.0)
+
+```php
+klytos_is_maintenance_mode(): bool
+```
+
+---
+
 ## Storage Interface
 
 ```php

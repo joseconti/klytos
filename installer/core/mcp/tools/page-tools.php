@@ -38,6 +38,7 @@ function registerPageTools(ToolRegistry $registry): void
             'status'           => ['type' => 'string', 'description' => 'Page status. Use "scheduled" with publish_at for future publishing.', 'enum' => ['draft', 'published', 'scheduled']],
             'publish_at'       => ['type' => 'string', 'description' => 'ISO 8601 UTC datetime for scheduled publishing (e.g. "2026-05-01T09:00:00Z"). Required when status is "scheduled".'],
             'is_sticky'        => ['type' => 'boolean', 'description' => 'Pin this page to the top of listings (default false).'],
+            'password'         => ['type' => 'string', 'description' => 'Password to protect this page. Content is encrypted client-side with AES-256-GCM. Empty string removes protection.'],
             'lang'             => ['type' => 'string', 'description' => 'Language code (es, en, ca...) for hreflang'],
             'custom_css'       => ['type' => 'string', 'description' => 'Custom CSS for this specific page. Use this for section-specific styles instead of inline styles. Define classes here and reference them in content_html. Injected into <head> via {{custom_css}} placeholder. Supports any valid CSS including @media queries, :hover states, animations, gradients, etc.'],
             'custom_js'        => ['type' => 'string', 'description' => 'Custom JS for this page'],
@@ -105,6 +106,7 @@ function registerPageTools(ToolRegistry $registry): void
             'status'           => ['type' => 'string', 'enum' => ['draft', 'published', 'scheduled']],
             'publish_at'       => ['type' => 'string', 'description' => 'ISO 8601 UTC datetime for scheduled publishing. Required when status is "scheduled".'],
             'is_sticky'        => ['type' => 'boolean', 'description' => 'Pin this page to the top of listings.'],
+            'password'         => ['type' => 'string', 'description' => 'Password to protect page content. Empty string removes protection.'],
             'custom_css'       => ['type' => 'string'],
             'custom_js'        => ['type' => 'string'],
             'og_image'         => ['type' => 'string'],
@@ -217,5 +219,64 @@ function registerPageTools(ToolRegistry $registry): void
             return ['pages' => $pages, 'total' => count($pages)];
         },
         ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true]
+    );
+
+    // ─── Post Locking Tools ─────────────────────────────────────
+
+    $registry->register(
+        'klytos_lock_page',
+        'Acquire an editing lock on a page to prevent concurrent edits. Lock expires after 5 minutes without renewal.',
+        [
+            'slug'    => ['type' => 'string', 'description' => 'Page slug to lock.'],
+            'user_id' => ['type' => 'string', 'description' => 'User ID requesting the lock.'],
+        ],
+        function ( array $params, App $app ): array {
+            $slug   = $params['slug'] ?? '';
+            $userId = $params['user_id'] ?? '';
+            if ( empty( $slug ) || empty( $userId ) ) {
+                throw new \InvalidArgumentException( 'slug and user_id are required.' );
+            }
+            return $app->getPages()->acquireLock( $slug, $userId );
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true],
+        ['slug', 'user_id']
+    );
+
+    $registry->register(
+        'klytos_unlock_page',
+        'Release an editing lock on a page.',
+        [
+            'slug'    => ['type' => 'string', 'description' => 'Page slug to unlock.'],
+            'user_id' => ['type' => 'string', 'description' => 'User ID releasing the lock.'],
+        ],
+        function ( array $params, App $app ): array {
+            $slug   = $params['slug'] ?? '';
+            $userId = $params['user_id'] ?? '';
+            if ( empty( $slug ) || empty( $userId ) ) {
+                throw new \InvalidArgumentException( 'slug and user_id are required.' );
+            }
+            $released = $app->getPages()->releaseLock( $slug, $userId );
+            return ['success' => $released];
+        },
+        ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true],
+        ['slug', 'user_id']
+    );
+
+    $registry->register(
+        'klytos_check_page_lock',
+        'Check whether a page is currently locked for editing and by whom.',
+        [
+            'slug' => ['type' => 'string', 'description' => 'Page slug to check.'],
+        ],
+        function ( array $params, App $app ): array {
+            $slug = $params['slug'] ?? '';
+            if ( empty( $slug ) ) {
+                throw new \InvalidArgumentException( 'slug is required.' );
+            }
+            $lock = $app->getPages()->checkLock( $slug );
+            return ['locked' => $lock !== null, 'lock' => $lock];
+        },
+        ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true],
+        ['slug']
     );
 }

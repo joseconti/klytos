@@ -150,6 +150,11 @@ class UserManager
             'password_reset_token'   => null,
             'password_reset_expires' => null,
             'force_logout_at'        => null,
+            'bio'                    => trim( $data['bio'] ?? '' ),
+            'avatar'                 => trim( $data['avatar'] ?? '' ),
+            'website'                => trim( $data['website'] ?? '' ),
+            'social_links'           => $data['social_links'] ?? [],
+            'locale'                 => trim( $data['locale'] ?? '' ),
         ];
 
         // Pre-hook: allow plugins to act before user creation.
@@ -180,7 +185,8 @@ class UserManager
         $oldRole = $user['role'] ?? '';
 
         // Updatable fields (password is handled separately via changePassword).
-        $updatable = ['email', 'display_name', 'first_name', 'last_name', 'role', 'status'];
+        $updatable = ['email', 'display_name', 'first_name', 'last_name', 'role', 'status',
+                       'bio', 'avatar', 'website', 'locale'];
 
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
@@ -210,6 +216,14 @@ class UserManager
                 $user[$field] = $data[$field];
             }
         }
+
+        // Handle social_links as array merge.
+        if ( array_key_exists( 'social_links', $data ) && is_array( $data['social_links'] ) ) {
+            $user['social_links'] = array_merge( $user['social_links'] ?? [], $data['social_links'] );
+        }
+
+        // Allow plugins to add custom profile fields.
+        $user = klytos_apply_filters( 'user.profile_fields', $user, $data, 'update' );
 
         // Recompute display_name when first/last name changes.
         if (array_key_exists('first_name', $data) || array_key_exists('last_name', $data)) {

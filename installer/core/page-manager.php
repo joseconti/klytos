@@ -111,6 +111,7 @@ class PageManager
             'post_type',
             'publish_at',
             'is_sticky',
+            'password',
         ];
 
         foreach ($updatable as $field) {
@@ -584,6 +585,7 @@ class PageManager
             'order'            => (int) ($data['order'] ?? 0),
             'post_type'        => $data['post_type'] ?? 'page',
             'is_sticky'        => (bool) ($data['is_sticky'] ?? false),
+            'password'         => $data['password'] ?? '',
         ];
 
         // Scheduled pages require a publish_at datetime.
@@ -596,6 +598,133 @@ class PageManager
         }
 
         return $page;
+    }
+
+    // ─── Post Locking ─────────────────────────────────────────────
+
+    /** Lock expiry time in seconds (5 minutes). */
+    private const LOCK_TTL = 300;
+
+    /**
+     * Attempt to acquire an editing lock on a page.
+     *
+     * @param  string $slug   Page slug.
+     * @param  string $userId User ID requesting the lock.
+     * @return array  ['locked' => bool, 'lock_owner' => ?string, 'lock_owner_name' => ?string, 'lock_token' => ?string]
+     */
+    public function acquireLock( string $slug, string $userId ): array
+    {
+        $existing = klytos_get_meta( 'page', $slug, '_editing_lock' );
+
+        // Check if there's an existing unexpired lock by another user.
+        if ( $existing && is_array( $existing ) ) {
+            $lockedAt = strtotime( $existing['locked_at'] ?? '' );
+            $isExpired = $lockedAt === false || ( time() - $lockedAt ) > self::LOCK_TTL;
+
+            if ( !$isExpired && ( $existing['user_id'] ?? '' ) !== $userId ) {
+                return [
+                    'locked'          => false,
+                    'lock_owner'      => $existing['user_id'] ?? '',
+                    'lock_owner_name' => $existing['user_name'] ?? '',
+                ];
+            }
+        }
+
+        // Acquire the lock.
+        $token = Helpers::randomHex( 8 );
+        $userName = '';
+        try {
+            $userManager = new UserManager( $this->storage );
+            $user = $userManager->getById( $userId );
+            $userName = $user['display_name'] ?? $user['username'] ?? '';
+        } catch ( \Throwable $e ) {
+            // User not found — proceed with empty name.
+        }
+
+        $lock = [
+            'user_id'   => $userId,
+            'user_name' => $userName,
+            'locked_at' => Helpers::now(),
+            'lock_token' => $token,
+        ];
+        klytos_set_meta( 'page', $slug, '_editing_lock', $lock );
+        klytos_do_action( 'page.lock_acquired', $slug, $userId );
+
+        return [
+            'locked'     => true,
+            'lock_token' => $token,
+        ];
+    }
+
+    /**
+     * Release an editing lock.
+     *
+     * @param  string $slug   Page slug.
+     * @param  string $userId User ID releasing the lock.
+     * @return bool   True if released.
+     */
+    public function releaseLock( string $slug, string $userId ): bool
+    {
+        $existing = klytos_get_meta( 'page', $slug, '_editing_lock' );
+        if ( !$existing || ( $existing['user_id'] ?? '' ) !== $userId ) {
+            return false;
+        }
+        klytos_set_meta( 'page', $slug, '_editing_lock', null );
+        klytos_do_action( 'page.lock_released', $slug, $userId );
+        return true;
+    }
+
+    /**
+     * Renew an existing editing lock (heartbeat).
+     *
+     * @param  string $slug   Page slug.
+     * @param  string $userId User ID renewing the lock.
+     * @return bool   True if renewed.
+     */
+    public function renewLock( string $slug, string $userId ): bool
+    {
+        $existing = klytos_get_meta( 'page', $slug, '_editing_lock' );
+        if ( !$existing || ( $existing['user_id'] ?? '' ) !== $userId ) {
+            return false;
+        }
+        $existing['locked_at'] = Helpers::now();
+        klytos_set_meta( 'page', $slug, '_editing_lock', $existing );
+        return true;
+    }
+
+    /**
+     * Check the current lock status of a page.
+     *
+     * @param  string     $slug Page slug.
+     * @return array|null Lock info or null if unlocked/expired.
+     */
+    public function checkLock( string $slug ): ?array
+    {
+        $existing = klytos_get_meta( 'page', $slug, '_editing_lock' );
+        if ( !$existing || !is_array( $existing ) ) {
+            return null;
+        }
+
+        $lockedAt = strtotime( $existing['locked_at'] ?? '' );
+        if ( $lockedAt === false || ( time() - $lockedAt ) > self::LOCK_TTL ) {
+            // Expired — clean up.
+            klytos_set_meta( 'page', $slug, '_editing_lock', null );
+            klytos_do_action( 'page.lock_expired', $slug, $existing['user_id'] ?? '' );
+            return null;
+        }
+
+        return $existing;
+    }
+
+    /**
+     * Check if a page is password protected.
+     *
+     * @param  array $page Page data.
+     * @return bool  True if the page has a non-empty password.
+     */
+    public function isPasswordProtected( array $page ): bool
+    {
+        return !empty( $page['password'] );
     }
 
     /**

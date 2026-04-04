@@ -202,6 +202,12 @@ class App
     /** @var SiteHealthManager|null System diagnostics manager (lazy-loaded). */
     private ?SiteHealthManager $siteHealthManager = null;
 
+    /** @var HttpClient|null HTTP client for outbound requests (lazy-loaded). */
+    private ?HttpClient $httpClient = null;
+
+    /** @var ShortcodeManager|null Shortcode processing system (lazy-loaded). */
+    private ?ShortcodeManager $shortcodeManager = null;
+
     // ─── Configuration ──────────────────────────────────────────
 
     /** @var array|null Decrypted main configuration (from config/config.json.enc). */
@@ -486,6 +492,54 @@ class App
             klytos_schedule_recurring_action( time(), 300, 'klytos_publish_scheduled', [], 'klytos_core' );
         }
 
+        // Step 11d: Initialize Shortcode Manager and register built-in shortcodes.
+        $this->shortcodeManager = new ShortcodeManager();
+        $this->shortcodeManager->registerBuiltins( $this );
+
+        // Register build filter to process shortcodes in page output.
+        $appRef = $this;
+        klytos_add_filter( 'build.page.output', function ( string $html ) use ( $appRef ): string {
+            return $appRef->getShortcodeManager()->process( $html );
+        }, 15 );
+
+        // Step 11e: Register admin bar injection for built pages.
+        // The admin bar is extensible by plugins via the 'admin_bar.items' filter.
+        $appRef2 = $this;
+        klytos_add_filter( 'build.body_end_html', function ( string $html ) use ( $appRef2 ): string {
+            $enabled = (bool) klytos_apply_filters( 'admin_bar.enabled', $appRef2->getSiteConfig()->getValue( 'admin_bar_enabled', true ) );
+            if ( !$enabled ) {
+                return $html;
+            }
+
+            // Build admin bar items array — plugins can add/remove via filter.
+            $items = [
+                ['id' => 'dashboard', 'label' => 'Dashboard', 'url' => '{{admin_url}}index.php', 'position' => 10],
+                ['id' => 'edit_page', 'label' => 'Edit Page', 'url' => '{{admin_url}}page-editor.php?slug={{page_slug}}', 'position' => 20, 'requires_slug' => true],
+            ];
+            $items = klytos_apply_filters( 'admin_bar.items', $items );
+
+            // Sort by position.
+            usort( $items, function ( $a, $b ) { return ( $a['position'] ?? 50 ) <=> ( $b['position'] ?? 50 ); } );
+
+            // Encode items as JSON for the JS to consume.
+            $itemsJson = json_encode( $items, JSON_UNESCAPED_UNICODE );
+
+            $jsPath = $appRef2->getCorePath() . '/../admin/js/admin-bar.js';
+            if ( !file_exists( $jsPath ) ) {
+                return $html;
+            }
+            $js = file_get_contents( $jsPath );
+
+            // Inject: set items config before the admin bar JS, only when cookie is present.
+            $loader = "if(document.cookie.indexOf('klytos_admin_bar=')!==-1){"
+                . "window.__klytos_admin_bar_items=" . $itemsJson . ";"
+                . $js
+                . "}";
+
+            $output = klytos_apply_filters( 'admin_bar.render', "\n<script>" . $loader . "</script>\n" );
+            return $html . $output;
+        }, 99 );
+
         // Step 12: Fire the 'klytos.init' action — signals that all core
         // services are ready. Plugins can use this to run post-load setup.
         klytos_do_action('klytos.init', $this);
@@ -755,6 +809,35 @@ class App
             $this->siteHealthManager = new SiteHealthManager( $this );
         }
         return $this->siteHealthManager;
+    }
+
+    /**
+     * Get the Shortcode Manager.
+     *
+     * @return ShortcodeManager
+     * @since  0.26.0
+     */
+    public function getShortcodeManager(): ShortcodeManager
+    {
+        if ( $this->shortcodeManager === null ) {
+            $this->shortcodeManager = new ShortcodeManager();
+            $this->shortcodeManager->registerBuiltins( $this );
+        }
+        return $this->shortcodeManager;
+    }
+
+    /**
+     * Get the HTTP client for outbound requests.
+     *
+     * @return HttpClient
+     * @since  0.26.0
+     */
+    public function getHttpClient(): HttpClient
+    {
+        if ( $this->httpClient === null ) {
+            $this->httpClient = new HttpClient( 'Klytos/' . $this->getVersion() );
+        }
+        return $this->httpClient;
     }
 
     /** Get the Options API manager. */
