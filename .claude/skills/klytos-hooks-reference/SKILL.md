@@ -76,6 +76,13 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 - `build.before`, `build.after`, `build.page.before`, `build.page.after` (actions)
 - `build.page.output`, `build.head_html`, `build.body_end_html`, `build.sitemap_urls` (filters)
 
+### LLM Discoverability (Build)
+- `build.llms_generated` (action) — after llms.txt + llms-full.txt + .html.md are generated, receives `$stats` array
+- `build.llms_txt` (filter) — modify llms.txt content before writing
+- `build.llms_full_txt` (filter) — modify llms-full.txt content before writing
+- `build.page_markdown` (filter) — modify per-page Markdown before writing .html.md, receives `($md, $page)`
+- `build.llms_pages` (filter) — modify/reorder/add pages array for LLM file generation
+
 ### MCP Tools
 - `mcp.tools_list` (filter) — register new tools
 - `mcp.handle_tool` (filter) — handle tool calls

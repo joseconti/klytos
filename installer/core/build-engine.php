@@ -120,8 +120,8 @@ class BuildEngine
         // 5. Generate sitemap.xml
         $this->generateSitemap($pages, $siteConfig);
 
-        // 6. Generate llms.txt and llms-full.txt for AI crawler indexing
-        $this->generateLlmsTxt($pages, $siteConfig);
+        // 6. Generate LLM discoverability files (llms.txt, llms-full.txt, .html.md)
+        $llmStats = $this->generateLlmFiles( $pages, $siteConfig );
 
         // 6b. Generate search index JSON for client-side search.
         $searchEnabled = $siteConfig['search_enabled'] ?? true;
@@ -144,10 +144,13 @@ class BuildEngine
         $durationMs = round((microtime(true) - $startTime) * 1000);
 
         return [
-            'success'      => empty($errors),
-            'pages_built'  => $pagesBuilt,
-            'errors'       => $errors,
-            'duration_ms'  => $durationMs,
+            'success'                 => empty($errors),
+            'pages_built'             => $pagesBuilt,
+            'md_files_built'          => $llmStats['md_files_built'] ?? 0,
+            'llms_txt_generated'      => $llmStats['llms_txt_generated'] ?? false,
+            'llms_full_txt_generated' => $llmStats['llms_full_txt_generated'] ?? false,
+            'errors'                  => $errors,
+            'duration_ms'             => $durationMs,
         ];
     }
 
@@ -207,10 +210,45 @@ class BuildEngine
     {
         $page       = $this->app->getPages()->get($slug);
         $siteConfig = $this->app->getSiteConfig()->get();
-        $menuHtml   = $this->app->getMenu()->toHtml(Helpers::getPublicBasePath());
+        $menuHtml   = $this->app->getMenu()->toHtml( Helpers::getPublicBasePath() );
         $theme      = $this->app->getTheme()->get();
 
-        $this->writePageHtml($page, $siteConfig, $menuHtml, $theme);
+        $this->writePageHtml( $page, $siteConfig, $menuHtml, $theme );
+
+        // Also regenerate the .html.md Markdown version if enabled.
+        $mdEnabled  = $siteConfig['seo']['llms_md_pages_enabled'] ?? true;
+        $llmExclude = ! empty( $page['llm_exclude'] );
+
+        if ( $mdEnabled && ! $llmExclude ) {
+            require_once __DIR__ . '/html-to-markdown.php';
+
+            $defaultLang = $siteConfig['default_language'] ?? 'es';
+            $siteUrl     = rtrim( Helpers::publicUrl(), '/' );
+            $content     = $page['content_html'] ?? '';
+
+            $llmPage = [
+                'slug'             => $page['slug'] ?? 'index',
+                'title'            => $page['title'] ?? $slug,
+                'lang'             => $page['lang'] ?? $defaultLang,
+                'meta_description' => $page['meta_description'] ?? '',
+                'markdown_content' => HtmlToMarkdown::convert( $content ),
+                'updated_at'       => $page['updated_at'] ?? date( 'c' ),
+            ];
+
+            $md = $this->buildPageMarkdown( $llmPage, $siteUrl );
+            $md = klytos_apply_filters( 'build.page_markdown', $md, $llmPage );
+
+            $pageSlug = $llmPage['slug'];
+            if ( $pageSlug === 'index' ) {
+                $mdPath = $this->outputPath . '/index.html.md';
+            } else {
+                $mdPath = $this->outputPath . '/' . $pageSlug . '/index.html.md';
+            }
+
+            $dir = dirname( $mdPath );
+            Helpers::ensureWritableDir( $dir );
+            file_put_contents( $mdPath, $md, LOCK_EX );
+        }
 
         return ['success' => true, 'slug' => $slug];
     }
@@ -867,7 +905,18 @@ class BuildEngine
             . "RewriteCond %{REQUEST_FILENAME} !-f\n"
             . "RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_URI}/index.html -f [OR]\n"
             . "RewriteCond %{REQUEST_FILENAME}/index.html -f\n"
-            . "RewriteRule ^(.+)/$ $1/index.html [L]\n";
+            . "RewriteRule ^(.+)/$ $1/index.html [L]\n\n"
+            . "# --- Klytos LLM Discoverability ---\n\n"
+            . "# Serve .md files as text/markdown with noindex for search engines\n"
+            . "<FilesMatch \"\\.md$\">\n"
+            . "    Header set Content-Type \"text/markdown; charset=utf-8\"\n"
+            . "    Header set X-Robots-Tag \"noindex\"\n"
+            . "</FilesMatch>\n\n"
+            . "# Serve llms.txt and llms-full.txt as text/markdown\n"
+            . "<FilesMatch \"^llms(-full)?\\.txt$\">\n"
+            . "    Header set Content-Type \"text/markdown; charset=utf-8\"\n"
+            . "    Header set X-Robots-Tag \"noindex\"\n"
+            . "</FilesMatch>\n";
 
         file_put_contents( $htaccessPath, $content, LOCK_EX );
     }
@@ -1091,6 +1140,9 @@ class BuildEngine
         } else {
             $content .= "Allow: /\n";
             $content .= "Sitemap: {$siteUrl}sitemap.xml\n";
+            // LLM Discoverability — comment hint for AI agents reading robots.txt.
+            $content .= "# AI-friendly content index\n";
+            $content .= "# llms.txt: {$siteUrl}llms.txt\n";
         }
 
         if (!empty($extra)) {
@@ -1624,83 +1676,236 @@ CSS;
     }
 
     /**
-     * Generate llms.txt and llms-full.txt for AI crawler indexing.
+     * Generate LLM discoverability files: llms.txt, llms-full.txt, and per-page .html.md.
      *
      * Follows the llms.txt specification (https://llmstxt.org/).
-     * - llms.txt: Summary with page titles, URLs, and descriptions.
-     * - llms-full.txt: Full text content of every published page.
+     * - llms.txt: Curated index — site map for LLMs with Pages and Optional sections.
+     * - llms-full.txt: Complete site content in a single Markdown file.
+     * - {slug}.html.md: Markdown version of each individual page.
      *
-     * @param array $pages      Published pages.
-     * @param array $siteConfig Site configuration.
+     * Respects page-level llm_exclude/llm_optional flags and site-level seo toggles.
+     *
+     * @param  array $pages      Published pages.
+     * @param  array $siteConfig Site configuration.
+     * @return array LLM build stats (md_files_built, llms_txt_generated, llms_full_txt_generated).
      */
-    private function generateLlmsTxt(array $pages, array $siteConfig): void
+    private function generateLlmFiles( array $pages, array $siteConfig ): array
     {
-        $siteName = $siteConfig['site_name'] ?? 'Klytos Site';
-        $siteDesc = $siteConfig['description'] ?? '';
-        $siteUrl  = rtrim(Helpers::publicUrl(), '/');
+        require_once __DIR__ . '/html-to-markdown.php';
 
-        // ─── llms.txt (summary) ──────────────────────────────
-        $summary  = "# {$siteName}\n\n";
+        $stats = [
+            'md_files_built'        => 0,
+            'llms_txt_generated'    => false,
+            'llms_full_txt_generated' => false,
+        ];
 
-        if (!empty($siteDesc)) {
-            $summary .= "> {$siteDesc}\n\n";
-        }
+        $siteName    = $siteConfig['site_name'] ?? 'Klytos Site';
+        $siteDesc    = $siteConfig['description'] ?? '';
+        $tagline     = $siteConfig['tagline'] ?? '';
+        $siteUrl     = rtrim( Helpers::publicUrl(), '/' );
+        $defaultLang = $siteConfig['default_language'] ?? 'es';
 
-        $summary .= "## Pages\n\n";
-
-        foreach ($pages as $page) {
-            $slug  = $page['slug'] ?? 'index';
-            $title = $page['title'] ?? $slug;
-            $desc  = $page['meta_description'] ?? '';
-            // Clean URLs: 'index' → '/', 'about' → '/about/'
-            $url   = $slug === 'index'
-                ? "{$siteUrl}/"
-                : "{$siteUrl}/{$slug}/";
-
-            $summary .= "- [{$title}]({$url})";
-            if (!empty($desc)) {
-                $summary .= ": {$desc}";
-            }
-            $summary .= "\n";
-        }
-
-        file_put_contents($this->outputPath . '/llms.txt', $summary, LOCK_EX);
-
-        // ─── llms-full.txt (detailed content) ────────────────
-        $full = "# {$siteName}\n\n";
-
-        if (!empty($siteDesc)) {
-            $full .= "> {$siteDesc}\n\n";
-        }
-
-        foreach ($pages as $page) {
+        // ─── Prepare LLM page data ──────────────────────────
+        $llmPages = [];
+        foreach ( $pages as $page ) {
             $slug    = $page['slug'] ?? 'index';
-            $title   = $page['title'] ?? $slug;
             $content = $page['content_html'] ?? '';
 
-            // Strip HTML tags but preserve structure with newlines.
-            $textContent = strip_tags(
-                str_replace(
-                    ['<br>', '<br/>', '<br />', '</p>', '</div>', '</li>', '</h1>', '</h2>', '</h3>', '</h4>'],
-                    ["\n", "\n", "\n", "\n\n", "\n", "\n", "\n\n", "\n\n", "\n\n", "\n\n"],
-                    $content
-                )
-            );
-            $textContent = trim(preg_replace('/\n{3,}/', "\n\n", $textContent));
+            $llmPages[] = [
+                'slug'             => $slug,
+                'title'            => $page['title'] ?? $slug,
+                'lang'             => $page['lang'] ?? $defaultLang,
+                'meta_description' => $page['meta_description'] ?? '',
+                'markdown_content' => HtmlToMarkdown::convert( $content ),
+                'is_index'         => ( $slug === 'index' || str_ends_with( $slug, '/index' ) ),
+                'llm_optional'     => ! empty( $page['llm_optional'] ),
+                'llm_exclude'      => ! empty( $page['llm_exclude'] ),
+                'updated_at'       => $page['updated_at'] ?? date( 'c' ),
+            ];
+        }
 
-            $full .= "---\n\n";
-            $full .= "## {$title}\n\n";
-            $pageUrl = $slug === 'index'
-                ? "{$siteUrl}/"
-                : "{$siteUrl}/{$slug}/";
-            $full .= "URL: {$pageUrl}\n\n";
+        // Filter excluded pages.
+        $llmPages = array_filter( $llmPages, fn( $p ) => ! $p['llm_exclude'] );
 
-            if (!empty($textContent)) {
-                $full .= $textContent . "\n\n";
+        // Allow plugins to modify, reorder, or add entries.
+        $llmPages = klytos_apply_filters( 'build.llms_pages', $llmPages );
+
+        // Sort: index first, then default language, then other languages, then alphabetical.
+        usort( $llmPages, function ( $a, $b ) use ( $defaultLang ) {
+            if ( $a['is_index'] !== $b['is_index'] ) {
+                return $a['is_index'] ? -1 : 1;
+            }
+            $aDefault = ( $a['lang'] === $defaultLang );
+            $bDefault = ( $b['lang'] === $defaultLang );
+            if ( $aDefault !== $bDefault ) {
+                return $aDefault ? -1 : 1;
+            }
+            return strcmp( $a['slug'], $b['slug'] );
+        } );
+
+        $mainPages     = array_values( array_filter( $llmPages, fn( $p ) => ! $p['llm_optional'] ) );
+        $optionalPages = array_values( array_filter( $llmPages, fn( $p ) => $p['llm_optional'] ) );
+
+        // ─── Generate individual .html.md files ─────────────
+        if ( $siteConfig['seo']['llms_md_pages_enabled'] ?? true ) {
+            foreach ( $llmPages as $page ) {
+                $md = $this->buildPageMarkdown( $page, $siteUrl );
+                $md = klytos_apply_filters( 'build.page_markdown', $md, $page );
+
+                $slug = $page['slug'];
+                if ( $slug === 'index' ) {
+                    $mdPath = $this->outputPath . '/index.html.md';
+                } else {
+                    $mdPath = $this->outputPath . '/' . $slug . '/index.html.md';
+                }
+
+                $dir = dirname( $mdPath );
+                Helpers::ensureWritableDir( $dir );
+                file_put_contents( $mdPath, $md, LOCK_EX );
+                $stats['md_files_built']++;
             }
         }
 
-        file_put_contents($this->outputPath . '/llms-full.txt', $full, LOCK_EX);
+        // ─── Generate llms.txt (summary index) ──────────────
+        if ( $siteConfig['seo']['llms_txt_enabled'] ?? true ) {
+            $llmsTxt = $this->buildLlmsTxt( $siteName, $siteDesc, $tagline, $siteUrl, $mainPages, $optionalPages );
+            $llmsTxt = klytos_apply_filters( 'build.llms_txt', $llmsTxt );
+            file_put_contents( $this->outputPath . '/llms.txt', $llmsTxt, LOCK_EX );
+            $stats['llms_txt_generated'] = true;
+        }
+
+        // ─── Generate llms-full.txt (complete content) ──────
+        if ( $siteConfig['seo']['llms_full_txt_enabled'] ?? true ) {
+            $llmsFullTxt = $this->buildLlmsFullTxt( $siteName, $siteDesc, $siteUrl, $llmPages );
+            $llmsFullTxt = klytos_apply_filters( 'build.llms_full_txt', $llmsFullTxt );
+            file_put_contents( $this->outputPath . '/llms-full.txt', $llmsFullTxt, LOCK_EX );
+            $stats['llms_full_txt_generated'] = true;
+        }
+
+        klytos_do_action( 'build.llms_generated', $stats );
+
+        return $stats;
+    }
+
+    /**
+     * Build the Markdown content for a single page (.html.md file).
+     *
+     * @param  array  $page    LLM page data.
+     * @param  string $siteUrl Site base URL.
+     * @return string Markdown content.
+     */
+    private function buildPageMarkdown( array $page, string $siteUrl ): string
+    {
+        $slug = $page['slug'];
+        $url  = $slug === 'index'
+            ? "{$siteUrl}/"
+            : "{$siteUrl}/{$slug}/";
+
+        $md = "# {$page['title']}\n\n";
+
+        if ( ! empty( $page['meta_description'] ) ) {
+            $md .= "> {$page['meta_description']}\n\n";
+        }
+
+        $md .= "URL: {$url}\n";
+        $md .= "Language: {$page['lang']}\n";
+        $md .= "Last modified: {$page['updated_at']}\n\n";
+        $md .= "---\n\n";
+        $md .= $page['markdown_content'];
+
+        return $md;
+    }
+
+    /**
+     * Build the llms.txt content (curated index for LLMs).
+     *
+     * @param  string $siteName      Site name.
+     * @param  string $siteDesc      Site description.
+     * @param  string $tagline       Site tagline.
+     * @param  string $siteUrl       Site base URL.
+     * @param  array  $mainPages     Non-optional pages.
+     * @param  array  $optionalPages Optional pages.
+     * @return string Complete llms.txt content.
+     */
+    private function buildLlmsTxt( string $siteName, string $siteDesc, string $tagline, string $siteUrl, array $mainPages, array $optionalPages ): string
+    {
+        $txt = "# {$siteName}\n\n";
+
+        if ( ! empty( $siteDesc ) ) {
+            $txt .= "> {$siteDesc}\n\n";
+        }
+
+        if ( ! empty( $tagline ) ) {
+            $txt .= "{$tagline}\n\n";
+        }
+
+        $txt .= "## Pages\n\n";
+        foreach ( $mainPages as $page ) {
+            $slug = $page['slug'];
+            $url  = $slug === 'index'
+                ? "{$siteUrl}/"
+                : "{$siteUrl}/{$slug}/";
+
+            $txt .= "- [{$page['title']}]({$url})";
+            if ( ! empty( $page['meta_description'] ) ) {
+                $txt .= ": {$page['meta_description']}";
+            }
+            $txt .= "\n";
+        }
+
+        if ( ! empty( $optionalPages ) ) {
+            $txt .= "\n## Optional\n\n";
+            foreach ( $optionalPages as $page ) {
+                $slug = $page['slug'];
+                $url  = $slug === 'index'
+                    ? "{$siteUrl}/"
+                    : "{$siteUrl}/{$slug}/";
+
+                $txt .= "- [{$page['title']}]({$url})";
+                if ( ! empty( $page['meta_description'] ) ) {
+                    $txt .= ": {$page['meta_description']}";
+                }
+                $txt .= "\n";
+            }
+        }
+
+        return $txt;
+    }
+
+    /**
+     * Build the llms-full.txt content (complete site content in Markdown).
+     *
+     * @param  string $siteName Site name.
+     * @param  string $siteDesc Site description.
+     * @param  string $siteUrl  Site base URL.
+     * @param  array  $pages    All non-excluded LLM pages.
+     * @return string Complete llms-full.txt content.
+     */
+    private function buildLlmsFullTxt( string $siteName, string $siteDesc, string $siteUrl, array $pages ): string
+    {
+        $txt = "# {$siteName}\n\n";
+
+        if ( ! empty( $siteDesc ) ) {
+            $txt .= "> {$siteDesc}\n\n";
+        }
+
+        foreach ( $pages as $page ) {
+            $slug = $page['slug'];
+            $url  = $slug === 'index'
+                ? "{$siteUrl}/"
+                : "{$siteUrl}/{$slug}/";
+
+            $txt .= "---\n\n";
+            $txt .= "## {$page['title']}\n\n";
+            $txt .= "URL: {$url}\n";
+            $txt .= "Language: {$page['lang']}\n\n";
+
+            if ( ! empty( $page['markdown_content'] ) ) {
+                $txt .= $page['markdown_content'] . "\n\n";
+            }
+        }
+
+        return $txt;
     }
 
     /**

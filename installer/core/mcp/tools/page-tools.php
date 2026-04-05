@@ -46,6 +46,8 @@ function registerPageTools(ToolRegistry $registry): void
             'content'          => ['type' => 'object', 'description' => 'v2.0 structured block content. Object keyed by block_id with slot data. E.g.: {"hero": {"heading": "Welcome", "cta_url": "/contact/"}, "testimonials": {"heading": "Reviews"}}. When provided with a template, the build engine assembles blocks instead of using content_html.', 'additionalProperties' => true],
             'order'            => ['type' => 'integer', 'description' => 'Sort order (lower = first)'],
             'post_type'        => ['type' => 'string', 'description' => 'Post type identifier. Default "page". Use the custom post type slug for custom content (e.g. "casas", "productos").'],
+            'llm_optional'     => ['type' => 'boolean', 'description' => 'Move page to "Optional" section of llms.txt (default false). Use for legal/privacy pages.'],
+            'llm_exclude'      => ['type' => 'boolean', 'description' => 'Exclude page from llms.txt, llms-full.txt, and .html.md generation (default false). Use for internal/staging pages.'],
         ],
         function (array $params, App $app): array {
             // Validate SEO fields.
@@ -115,6 +117,8 @@ function registerPageTools(ToolRegistry $registry): void
             'content'          => ['type' => 'object', 'description' => 'v2.0 structured block content keyed by block_id', 'additionalProperties' => true],
             'order'            => ['type' => 'integer'],
             'post_type'        => ['type' => 'string', 'description' => 'Change the post type'],
+            'llm_optional'     => ['type' => 'boolean', 'description' => 'Move page to "Optional" section of llms.txt.'],
+            'llm_exclude'      => ['type' => 'boolean', 'description' => 'Exclude page from all LLM discoverability files.'],
         ],
         function (array $params, App $app): array {
             $slug = $params['slug'] ?? '';
