@@ -488,7 +488,7 @@
     "encryption_description": "Controla cuantos datos se encriptan en reposo. Niveles mas altos protegen mas datos pero hacen la clave de encriptacion mas critica.",
     "encryption_level_label": "Nivel de encriptacion",
     "enc_basic": "Basica",
-    "enc_medium": "Media",
+    "enc_medium": "Media (Recomendado en la UE)",
     "enc_professional": "Profesional",
     "current_password": "Contrasena actual",
     "change_level": "Cambiar nivel",
