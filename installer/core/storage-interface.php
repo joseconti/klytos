@@ -93,6 +93,34 @@ interface StorageInterface
      */
     public function transaction(callable $callback): mixed;
 
+    // ─── Encryption Level Management ────────────────────────────────
+
+    /**
+     * Determine if a collection+id pair requires encryption
+     * based on the current encryption level.
+     *
+     * @param  string $collection Collection name (e.g. 'pages', 'users').
+     * @param  string $id         Record identifier.
+     * @return bool   True if the data should be encrypted.
+     */
+    public function shouldEncrypt( string $collection, string $id = '' ): bool;
+
+    /**
+     * Get the current encryption level.
+     *
+     * @return string One of: 'basic', 'medium', 'professional'.
+     */
+    public function getEncryptionLevel(): string;
+
+    /**
+     * Change the encryption level, encrypting or decrypting
+     * affected collections as needed.
+     *
+     * @param string $newLevel The target level ('basic', 'medium', 'professional').
+     * @throws \InvalidArgumentException If the level is invalid.
+     */
+    public function changeEncryptionLevel( string $newLevel ): void;
+
     // ─── Legacy / Config Helpers ──────────────────────────────────
 
     /**

@@ -252,6 +252,18 @@ klytos_delete_option(string $key): bool
 klytos_option_exists(string $key): bool
 ```
 
+### Option Sensitivity (Encryption Classification)
+
+```php
+klytos_register_option(string $key, bool|string $sensitive = false, array $meta = []): void
+klytos_get_option_sensitivity(string $key): bool|string|null
+```
+
+Declare data sensitivity so Klytos encrypts options appropriately:
+- `true` — Always encrypted (API keys, tokens, secrets)
+- `'user_data'` — Encrypted from medium level (emails, IPs, GDPR data)
+- `false` — Only encrypted at professional level (default)
+
 Convention: `'plugin_id.setting_name'` (e.g. `'my-gallery.columns'`).
 
 ---

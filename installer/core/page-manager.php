@@ -617,6 +617,8 @@ class PageManager
             'post_type'        => $data['post_type'] ?? 'page',
             'is_sticky'        => (bool) ($data['is_sticky'] ?? false),
             'password'         => $data['password'] ?? '',
+            'llm_optional'     => (bool) ($data['llm_optional'] ?? false),
+            'llm_exclude'      => (bool) ($data['llm_exclude'] ?? false),
         ];
 
         // Scheduled pages require a publish_at datetime.

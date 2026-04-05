@@ -69,16 +69,20 @@ function registerBuildTools(ToolRegistry $registry): void
 
     $registry->register(
         'klytos_get_build_status',
-        'Get the status of the last site build.',
+        'Get the status of the last site build. Includes LLM discoverability stats (llms.txt, llms-full.txt, per-page .html.md files).',
         [],
         function (array $params, App $app): array {
             $siteConfig = $app->getSiteConfig()->get();
-            $pageCount  = $app->getPages()->count('published');
+            $pageCount  = $app->getPages()->count( 'published' );
+            $seo        = $siteConfig['seo'] ?? [];
 
             return [
-                'last_build'      => $siteConfig['last_build'] ?? null,
-                'published_pages' => $pageCount,
-                'version'         => $app->getVersion(),
+                'last_build'              => $siteConfig['last_build'] ?? null,
+                'published_pages'         => $pageCount,
+                'version'                 => $app->getVersion(),
+                'llms_txt_enabled'        => $seo['llms_txt_enabled'] ?? true,
+                'llms_full_txt_enabled'   => $seo['llms_full_txt_enabled'] ?? true,
+                'llms_md_pages_enabled'   => $seo['llms_md_pages_enabled'] ?? true,
             ];
         },
         ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true]

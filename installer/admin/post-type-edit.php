@@ -223,10 +223,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 </div>
 
 <!-- Taxonomies -->
-<div class="card mt-3">
+<div class="card mt-3 card-collapsible collapsed">
     <div class="card-header">
         <h3>Taxonomies (<?php echo count($postType['taxonomies'] ?? []); ?>)</h3>
     </div>
+    <div class="card-body">
 
     <?php $taxonomies = $postType['taxonomies'] ?? []; ?>
 
@@ -296,14 +297,17 @@ require_once __DIR__ . '/templates/sidebar.php';
         </div>
         <button type="submit" class="btn btn-primary">Add Taxonomy</button>
     </form>
+
+    </div>
 </div>
 
 <!-- Custom Statuses -->
 <?php $customStatuses = $postType['statuses'] ?? []; ?>
-<div class="card mt-3">
+<div class="card mt-3 card-collapsible collapsed">
     <div class="card-header">
         <h3>Custom Statuses (<?php echo count( $customStatuses ); ?>)</h3>
     </div>
+    <div class="card-body">
 
     <div class="p-3">
         <p class="form-help mb-2">System statuses (Draft, Published, Scheduled, Trashed) are always available. Add custom workflow statuses below.</p>
@@ -393,6 +397,8 @@ require_once __DIR__ . '/templates/sidebar.php';
             <button type="button" class="btn btn-outline" id="btn-status-cancel" style="display:none">Cancel</button>
         </div>
     </form>
+
+    </div>
 </div>
 
 <!-- Custom Fields -->
@@ -412,10 +418,11 @@ $fieldTypeGroups = [
 
 $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
 ?>
-<div class="card mt-3">
+<div class="card mt-3 card-collapsible collapsed">
     <div class="card-header">
         <h3>Custom Fields (<?php echo count($customFields); ?>)</h3>
     </div>
+    <div class="card-body">
 
     <?php if (!empty($customFields)): ?>
     <div class="table-wrap">
@@ -515,10 +522,20 @@ $optionTypes = ['select', 'multiselect', 'radio', 'checkbox_group'];
 
         <button type="submit" class="btn btn-primary mt-2">Add Custom Field</button>
     </form>
+
+    </div>
 </div>
 
 <script nonce="<?php echo $cspNonce; ?>">
 (function() {
+    // ─── Collapsible cards ──────────────────────────────
+    document.querySelectorAll('.card-collapsible > .card-header').forEach(function(header) {
+        header.addEventListener('click', function(e) {
+            if (e.target.closest('a, button, input')) return;
+            header.parentElement.classList.toggle('collapsed');
+        });
+    });
+
     document.querySelectorAll('.form-confirm-delete').forEach(function(form) {
         form.addEventListener('submit', function(e) {
             if (!confirm('Are you sure you want to remove this?')) {

@@ -38,6 +38,8 @@ Every page in Klytos has the following fields:
 | `hreflang_refs` | array | Language alternates: `{"en": "en/about", "es": "about"}` |
 | `order` | int | Sort order (lower = first) |
 | `post_type` | string | Content type: `'page'` (default) or custom post type ID |
+| `llm_optional` | boolean | Move to "Optional" section of llms.txt (default `false`) |
+| `llm_exclude` | boolean | Exclude from all LLM files: llms.txt, llms-full.txt, .html.md (default `false`) |
 | `created_at` | string | ISO 8601 timestamp (auto-generated) |
 | `updated_at` | string | ISO 8601 timestamp (auto-updated) |
 

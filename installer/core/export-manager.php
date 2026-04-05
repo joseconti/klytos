@@ -186,9 +186,31 @@ class ExportManager
     private function gatherData( array $collections ): array
     {
         $all  = empty( $collections );
+
+        // Build backup metadata with encryption/identity info.
+        $mainConfig = [];
+        try {
+            $mainConfig = $this->app->getStorage()->readFrom(
+                $this->app->getConfigPath(),
+                'config.json.enc'
+            );
+        } catch ( \Throwable $e ) {
+            // Config not available — proceed without metadata.
+        }
+
         $data = [
-            'klytos_version' => KLYTOS_VERSION,
-            'exported_at'    => Helpers::now(),
+            'klytos_version'       => KLYTOS_VERSION,
+            'exported_at'          => Helpers::now(),
+            'backup_meta'          => [
+                'klytos_version'       => KLYTOS_VERSION,
+                'backup_date'          => Helpers::now(),
+                'encryption_level'     => $mainConfig['encryption_level'] ?? 'basic',
+                'identity_fingerprint' => $mainConfig['identity_fingerprint'] ?? null,
+                'files_encrypted'      => true,
+                'php_version'          => PHP_VERSION,
+                'site_url'             => $mainConfig['admin_url'] ?? '',
+                'backup_type'          => empty( $collections ) ? 'full' : 'partial',
+            ],
         ];
 
         if ( $all || in_array( 'pages', $collections, true ) ) {

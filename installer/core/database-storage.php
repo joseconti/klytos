@@ -49,6 +49,8 @@ namespace Klytos\Core;
 
 class DatabaseStorage implements StorageInterface
 {
+    use EncryptionLevelTrait;
+
     /** @var \PDO Database connection (lazy-initialized). */
     private ?\PDO $pdo = null;
 
@@ -63,41 +65,6 @@ class DatabaseStorage implements StorageInterface
 
     /** @var array Database connection parameters. */
     private array $dbConfig;
-
-    /**
-     * Collections that contain sensitive data and MUST be encrypted.
-     * Everything else is stored as plain JSON for recoverability.
-     */
-    private const SENSITIVE_COLLECTIONS = [
-        'users',
-        'webhooks',
-        'analytics-salt',
-    ];
-
-    /**
-     * Within the 'config' collection, these IDs contain sensitive data.
-     */
-    private const SENSITIVE_CONFIG_IDS = [
-        'tokens',
-        'app_passwords',
-        'oauth_clients',
-    ];
-
-    /**
-     * Determine if a collection+id pair requires encryption.
-     */
-    private function isSensitive(string $collection, string $id = ''): bool
-    {
-        if (in_array($collection, self::SENSITIVE_COLLECTIONS, true)) {
-            return true;
-        }
-
-        if ($collection === 'config' && in_array($id, self::SENSITIVE_CONFIG_IDS, true)) {
-            return true;
-        }
-
-        return false;
-    }
 
     /**
      * Indexable fields per collection.
@@ -204,7 +171,7 @@ class DatabaseStorage implements StorageInterface
         }
 
         // Only decrypt sensitive data. Plain JSON is stored as-is.
-        if ($this->isSensitive($collection, $id)) {
+        if ($this->shouldEncrypt($collection, $id)) {
             return $this->enc->decrypt($row['data']);
         }
 
@@ -242,7 +209,7 @@ class DatabaseStorage implements StorageInterface
         $now     = klytos_gmdate( 'Y-m-d H:i:s' );
 
         // Only encrypt sensitive data. Plain JSON is stored as-is for recoverability.
-        if ($this->isSensitive($collection, $id)) {
+        if ($this->shouldEncrypt($collection, $id)) {
             $encrypted = $this->enc->encrypt($data);
         } else {
             $encrypted = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -425,7 +392,7 @@ class DatabaseStorage implements StorageInterface
 
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             try {
-                if ($this->isSensitive($collection, $row['id'] ?? '')) {
+                if ($this->shouldEncrypt($collection, $row['id'] ?? '')) {
                     $record = $this->enc->decrypt($row['data']);
                 } else {
                     $record = json_decode($row['data'], true);
@@ -560,7 +527,7 @@ class DatabaseStorage implements StorageInterface
             }
 
             try {
-                if ($this->isSensitive($collection, $row['id'] ?? '')) {
+                if ($this->shouldEncrypt($collection, $row['id'] ?? '')) {
                     $record = $this->enc->decrypt($row['data']);
                 } else {
                     $record = json_decode($row['data'], true);
@@ -931,5 +898,151 @@ class DatabaseStorage implements StorageInterface
         }
 
         return $indexes;
+    }
+
+    // ─── EncryptionLevelTrait Implementation ─────────────────────
+
+    /**
+     * Load the encryption level from config/config.json.enc.
+     * Defaults to 'basic' for backward compatibility with pre-1.1.0 installations.
+     */
+    private function loadEncryptionLevelFromConfig(): string
+    {
+        $configDir  = dirname( $this->dataDir ) . '/config';
+        $configFile = $configDir . '/config.json.enc';
+
+        if ( !file_exists( $configFile ) ) {
+            return 'basic';
+        }
+
+        try {
+            $content = file_get_contents( $configFile );
+            if ( $content === false ) {
+                return 'basic';
+            }
+            $config = $this->enc->decrypt( $content );
+            return $config['encryption_level'] ?? 'basic';
+        } catch ( \Throwable $e ) {
+            return 'basic';
+        }
+    }
+
+    /**
+     * Persist the encryption level to config/config.json.enc.
+     */
+    private function saveEncryptionLevelToConfig( string $level ): void
+    {
+        $configDir  = dirname( $this->dataDir ) . '/config';
+        $configFile = $configDir . '/config.json.enc';
+
+        if ( !file_exists( $configFile ) ) {
+            return;
+        }
+
+        $content = file_get_contents( $configFile );
+        if ( $content === false ) {
+            return;
+        }
+
+        $config = $this->enc->decrypt( $content );
+        $config['encryption_level'] = $level;
+        $encrypted = $this->enc->encrypt( $config );
+        file_put_contents( $configFile, $encrypted, LOCK_EX );
+    }
+
+    /**
+     * Encrypt all records in a collection (or specific IDs) in the database.
+     * Reads plain JSON data, encrypts it with AES-256-GCM, and updates the row.
+     *
+     * @param string|array $entry Collection name or ['collection' => ..., 'ids' => [...]].
+     */
+    private function encryptCollectionData( string|array $entry ): void
+    {
+        if ( is_string( $entry ) ) {
+            $collection = $entry;
+            $ids        = null; // All records
+        } else {
+            $collection = $entry['collection'];
+            $ids        = $entry['ids'];
+        }
+
+        $table = $this->tableName( $collection );
+        $pdo   = $this->getPdo();
+
+        try {
+            if ( $ids !== null ) {
+                $placeholders = implode( ',', array_fill( 0, count( $ids ), '?' ) );
+                $stmt = $pdo->prepare( "SELECT `id`, `data` FROM `{$table}` WHERE `id` IN ({$placeholders})" );
+                $stmt->execute( $ids );
+            } else {
+                $stmt = $pdo->prepare( "SELECT `id`, `data` FROM `{$table}`" );
+                $stmt->execute();
+            }
+        } catch ( \PDOException $e ) {
+            if ( $this->isTableNotFound( $e ) ) {
+                return;
+            }
+            throw $e;
+        }
+
+        $update = $pdo->prepare( "UPDATE `{$table}` SET `data` = :data WHERE `id` = :id" );
+
+        while ( $row = $stmt->fetch( \PDO::FETCH_ASSOC ) ) {
+            // Only encrypt if it's currently plain JSON.
+            $decoded = json_decode( $row['data'], true );
+            if ( !is_array( $decoded ) ) {
+                continue; // Already encrypted or corrupt.
+            }
+            $encrypted = $this->enc->encrypt( $decoded );
+            $update->execute( [':data' => $encrypted, ':id' => $row['id']] );
+        }
+    }
+
+    /**
+     * Decrypt all records in a collection (or specific IDs) in the database.
+     * Reads AES-256-GCM encrypted data, decrypts it, and stores as plain JSON.
+     *
+     * @param string|array $entry Collection name or ['collection' => ..., 'ids' => [...]].
+     */
+    private function decryptCollectionData( string|array $entry ): void
+    {
+        if ( is_string( $entry ) ) {
+            $collection = $entry;
+            $ids        = null;
+        } else {
+            $collection = $entry['collection'];
+            $ids        = $entry['ids'];
+        }
+
+        $table = $this->tableName( $collection );
+        $pdo   = $this->getPdo();
+
+        try {
+            if ( $ids !== null ) {
+                $placeholders = implode( ',', array_fill( 0, count( $ids ), '?' ) );
+                $stmt = $pdo->prepare( "SELECT `id`, `data` FROM `{$table}` WHERE `id` IN ({$placeholders})" );
+                $stmt->execute( $ids );
+            } else {
+                $stmt = $pdo->prepare( "SELECT `id`, `data` FROM `{$table}`" );
+                $stmt->execute();
+            }
+        } catch ( \PDOException $e ) {
+            if ( $this->isTableNotFound( $e ) ) {
+                return;
+            }
+            throw $e;
+        }
+
+        $update = $pdo->prepare( "UPDATE `{$table}` SET `data` = :data WHERE `id` = :id" );
+
+        while ( $row = $stmt->fetch( \PDO::FETCH_ASSOC ) ) {
+            try {
+                $decrypted = $this->enc->decrypt( $row['data'] );
+            } catch ( \RuntimeException $e ) {
+                continue; // Already plain or corrupt.
+            }
+            $json = json_encode( $decrypted, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+            $update->execute( [':data' => $json, ':id' => $row['id']] );
+        }
     }
 }

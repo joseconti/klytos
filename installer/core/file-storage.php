@@ -31,6 +31,8 @@ namespace Klytos\Core;
 
 class FileStorage implements StorageInterface
 {
+    use EncryptionLevelTrait;
+
     /** @var Encryption AES-256-GCM encryption engine. */
     private Encryption $enc;
 
@@ -46,54 +48,15 @@ class FileStorage implements StorageInterface
     private $transactionLock = null;
 
     /**
-     * Collections that contain sensitive data and MUST be encrypted.
-     * Everything else is stored as plain JSON for recoverability.
-     *
-     * If a collection is 'config', encryption is determined per-ID
-     * using SENSITIVE_CONFIG_IDS below.
-     */
-    private const SENSITIVE_COLLECTIONS = [
-        'users',
-        'webhooks',
-        'analytics-salt',
-    ];
-
-    /**
-     * Within the 'config' collection, these IDs contain sensitive data.
-     * Other config IDs (site, theme, menus, templates) are stored in plain JSON.
-     */
-    private const SENSITIVE_CONFIG_IDS = [
-        'tokens',
-        'app_passwords',
-        'oauth_clients',
-    ];
-
-    /**
      * Constructor.
      *
      * @param Encryption $enc     Encryption engine initialized with the master key.
      * @param string     $dataDir Absolute path to the data directory (e.g. /var/www/klytos/data).
      */
-    public function __construct(Encryption $enc, string $dataDir)
+    public function __construct( Encryption $enc, string $dataDir )
     {
         $this->enc     = $enc;
-        $this->dataDir = rtrim($dataDir, '/');
-    }
-
-    /**
-     * Determine if a collection+id pair requires encryption.
-     */
-    private function isSensitive(string $collection, string $id = ''): bool
-    {
-        if (in_array($collection, self::SENSITIVE_COLLECTIONS, true)) {
-            return true;
-        }
-
-        if ($collection === 'config' && in_array($id, self::SENSITIVE_CONFIG_IDS, true)) {
-            return true;
-        }
-
-        return false;
+        $this->dataDir = rtrim( $dataDir, '/' );
     }
 
     // ─── Core CRUD Operations ────────────────────────────────────
@@ -117,33 +80,35 @@ class FileStorage implements StorageInterface
             return $this->readFrom($this->dataDir, $collection);
         }
 
-        $path = $this->resolvePath($collection, $id);
+        // Dual-read: try the expected format first, then fall back to the other.
+        // This handles transitions between encryption levels gracefully.
+        $safeCollection = $this->sanitizeName( $collection );
+        $safeId         = $this->sanitizeId( $id );
+        $basePath       = $this->dataDir . '/' . $safeCollection . '/' . $safeId;
+        $encPath        = $basePath . '.json.enc';
+        $rawPath        = $basePath . '.json';
 
-        if (!file_exists($path)) {
-            throw new \RuntimeException(
-                "Record not found: {$collection}/{$id}"
-            );
+        if ( file_exists( $encPath ) ) {
+            $content = file_get_contents( $encPath );
+            if ( $content === false ) {
+                throw new \RuntimeException( "Cannot read record: {$collection}/{$id}" );
+            }
+            return $this->enc->decrypt( $content );
         }
 
-        $content = file_get_contents($path);
-        if ($content === false) {
-            throw new \RuntimeException(
-                "Cannot read record: {$collection}/{$id}"
-            );
+        if ( file_exists( $rawPath ) ) {
+            $content = file_get_contents( $rawPath );
+            if ( $content === false ) {
+                throw new \RuntimeException( "Cannot read record: {$collection}/{$id}" );
+            }
+            $decoded = json_decode( $content, true );
+            if ( !is_array( $decoded ) ) {
+                throw new \RuntimeException( "Cannot decode JSON: {$collection}/{$id}" );
+            }
+            return $decoded;
         }
 
-        // Only decrypt sensitive data. Plain JSON is stored as-is.
-        if ($this->isSensitive($collection, $id)) {
-            return $this->enc->decrypt($content);
-        }
-
-        $decoded = json_decode($content, true);
-        if (!is_array($decoded)) {
-            throw new \RuntimeException(
-                "Cannot decode JSON: {$collection}/{$id}"
-            );
-        }
-        return $decoded;
+        throw new \RuntimeException( "Record not found: {$collection}/{$id}" );
     }
 
     /**
@@ -176,33 +141,43 @@ class FileStorage implements StorageInterface
             return;
         }
 
-        $path = $this->resolvePath($collection, $id);
-        $dir  = dirname($path);
+        $safeCollection = $this->sanitizeName( $collection );
+        $safeId         = $this->sanitizeId( $id );
+        $basePath       = $this->dataDir . '/' . $safeCollection . '/' . $safeId;
+        $dir            = $this->dataDir . '/' . $safeCollection;
 
         // Create the collection directory if it doesn't exist.
         // Permissions 0700: only the web server user can read/write/list.
-        if (!is_dir($dir)) {
-            if (!mkdir($dir, 0700, true)) {
-                throw new \RuntimeException(
-                    "Cannot create directory: {$dir}"
-                );
+        if ( !is_dir( $dir ) ) {
+            if ( !mkdir( $dir, 0700, true ) ) {
+                throw new \RuntimeException( "Cannot create directory: {$dir}" );
             }
         }
 
-        // Only encrypt sensitive data. Plain JSON is stored as-is for recoverability.
-        if ($this->isSensitive($collection, $id)) {
-            $content = $this->enc->encrypt($data);
+        // Determine format based on encryption level.
+        if ( $this->shouldEncrypt( $collection, $id ) ) {
+            $content = $this->enc->encrypt( $data );
+            $path    = $basePath . '.json.enc';
+            // Clean opposite version if it exists.
+            $opposite = $basePath . '.json';
+            if ( file_exists( $opposite ) ) {
+                unlink( $opposite );
+            }
         } else {
-            $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $content = json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+            $path    = $basePath . '.json';
+            // Clean opposite version if it exists.
+            $opposite = $basePath . '.json.enc';
+            if ( file_exists( $opposite ) ) {
+                unlink( $opposite );
+            }
         }
 
         // LOCK_EX: exclusive lock during write — prevents race conditions.
-        $result = file_put_contents($path, $content, LOCK_EX);
+        $result = file_put_contents( $path, $content, LOCK_EX );
 
-        if ($result === false) {
-            throw new \RuntimeException(
-                "Failed to write record: {$collection}/{$id}"
-            );
+        if ( $result === false ) {
+            throw new \RuntimeException( "Failed to write record: {$collection}/{$id}" );
         }
     }
 
@@ -221,13 +196,20 @@ class FileStorage implements StorageInterface
             return file_exists($path) && unlink($path);
         }
 
-        $path = $this->resolvePath($collection, $id);
+        // Delete both versions if they exist.
+        $safeCollection = $this->sanitizeName( $collection );
+        $safeId         = $this->sanitizeId( $id );
+        $basePath       = $this->dataDir . '/' . $safeCollection . '/' . $safeId;
+        $deleted        = false;
 
-        if (!file_exists($path)) {
-            return false;
+        if ( file_exists( $basePath . '.json.enc' ) ) {
+            $deleted = unlink( $basePath . '.json.enc' ) || $deleted;
+        }
+        if ( file_exists( $basePath . '.json' ) ) {
+            $deleted = unlink( $basePath . '.json' ) || $deleted;
         }
 
-        return unlink($path);
+        return $deleted;
     }
 
     /**
@@ -244,7 +226,11 @@ class FileStorage implements StorageInterface
             return file_exists($this->dataDir . '/' . $collection);
         }
 
-        return file_exists($this->resolvePath($collection, $id));
+        $safeCollection = $this->sanitizeName( $collection );
+        $safeId         = $this->sanitizeId( $id );
+        $basePath       = $this->dataDir . '/' . $safeCollection . '/' . $safeId;
+
+        return file_exists( $basePath . '.json.enc' ) || file_exists( $basePath . '.json' );
     }
 
     // ─── Query Operations ────────────────────────────────────────
@@ -565,12 +551,12 @@ class FileStorage implements StorageInterface
      * @param  string $id         Record identifier.
      * @return string Absolute path to the encrypted file.
      */
-    private function resolvePath(string $collection, string $id): string
+    private function resolvePath( string $collection, string $id ): string
     {
-        $safeCollection = $this->sanitizeName($collection);
-        $safeId         = $this->sanitizeId($id);
+        $safeCollection = $this->sanitizeName( $collection );
+        $safeId         = $this->sanitizeId( $id );
 
-        $ext = $this->isSensitive($collection, $id) ? '.json.enc' : '.json';
+        $ext = $this->shouldEncrypt( $collection, $id ) ? '.json.enc' : '.json';
         return $this->dataDir . '/' . $safeCollection . '/' . $safeId . $ext;
     }
 
@@ -670,5 +656,146 @@ class FileStorage implements StorageInterface
         }
 
         return $value;
+    }
+
+    // ─── EncryptionLevelTrait Implementation ─────────────────────
+
+    /**
+     * Load the encryption level from config/config.json.enc.
+     * Defaults to 'basic' for backward compatibility with pre-1.1.0 installations.
+     */
+    private function loadEncryptionLevelFromConfig(): string
+    {
+        $configDir = dirname( $this->dataDir ) . '/config';
+        $configFile = $configDir . '/config.json.enc';
+
+        if ( !file_exists( $configFile ) ) {
+            return 'basic';
+        }
+
+        try {
+            $content = file_get_contents( $configFile );
+            if ( $content === false ) {
+                return 'basic';
+            }
+            $config = $this->enc->decrypt( $content );
+            return $config['encryption_level'] ?? 'basic';
+        } catch ( \Throwable $e ) {
+            return 'basic';
+        }
+    }
+
+    /**
+     * Persist the encryption level to config/config.json.enc.
+     */
+    private function saveEncryptionLevelToConfig( string $level ): void
+    {
+        $configDir  = dirname( $this->dataDir ) . '/config';
+        $configFile = $configDir . '/config.json.enc';
+
+        if ( !file_exists( $configFile ) ) {
+            return;
+        }
+
+        $content = file_get_contents( $configFile );
+        if ( $content === false ) {
+            return;
+        }
+
+        $config = $this->enc->decrypt( $content );
+        $config['encryption_level'] = $level;
+        $encrypted = $this->enc->encrypt( $config );
+        file_put_contents( $configFile, $encrypted, LOCK_EX );
+    }
+
+    /**
+     * Encrypt all records in a collection (or specific IDs within a collection).
+     * Converts plain .json files to .json.enc.
+     *
+     * @param string|array $entry Collection name or ['collection' => ..., 'ids' => [...]].
+     */
+    private function encryptCollectionData( string|array $entry ): void
+    {
+        if ( is_string( $entry ) ) {
+            // Encrypt all records in the collection.
+            $dir = $this->dataDir . '/' . $this->sanitizeName( $entry );
+            if ( !is_dir( $dir ) ) {
+                return;
+            }
+            $files = glob( $dir . '/*.json' ) ?: [];
+            foreach ( $files as $file ) {
+                // Skip files that are already encrypted (shouldn't happen, but safe).
+                if ( str_ends_with( $file, '.json.enc' ) ) {
+                    continue;
+                }
+                $data = json_decode( file_get_contents( $file ), true );
+                if ( !is_array( $data ) ) {
+                    continue;
+                }
+                file_put_contents( $file . '.enc', $this->enc->encrypt( $data ), LOCK_EX );
+                unlink( $file );
+            }
+        } elseif ( is_array( $entry ) ) {
+            // Encrypt specific IDs within a collection.
+            $collection = $entry['collection'];
+            $dir = $this->dataDir . '/' . $this->sanitizeName( $collection );
+            if ( !is_dir( $dir ) ) {
+                return;
+            }
+            foreach ( $entry['ids'] as $id ) {
+                $safeId  = $this->sanitizeId( $id );
+                $rawFile = $dir . '/' . $safeId . '.json';
+                if ( !file_exists( $rawFile ) ) {
+                    continue;
+                }
+                $data = json_decode( file_get_contents( $rawFile ), true );
+                if ( !is_array( $data ) ) {
+                    continue;
+                }
+                file_put_contents( $rawFile . '.enc', $this->enc->encrypt( $data ), LOCK_EX );
+                unlink( $rawFile );
+            }
+        }
+    }
+
+    /**
+     * Decrypt all records in a collection (or specific IDs within a collection).
+     * Converts .json.enc files to plain .json.
+     *
+     * @param string|array $entry Collection name or ['collection' => ..., 'ids' => [...]].
+     */
+    private function decryptCollectionData( string|array $entry ): void
+    {
+        if ( is_string( $entry ) ) {
+            $dir = $this->dataDir . '/' . $this->sanitizeName( $entry );
+            if ( !is_dir( $dir ) ) {
+                return;
+            }
+            $files = glob( $dir . '/*.json.enc' ) ?: [];
+            foreach ( $files as $file ) {
+                $data = $this->enc->decrypt( file_get_contents( $file ) );
+                $json = json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+                $rawFile = str_replace( '.json.enc', '.json', $file );
+                file_put_contents( $rawFile, $json, LOCK_EX );
+                unlink( $file );
+            }
+        } elseif ( is_array( $entry ) ) {
+            $collection = $entry['collection'];
+            $dir = $this->dataDir . '/' . $this->sanitizeName( $collection );
+            if ( !is_dir( $dir ) ) {
+                return;
+            }
+            foreach ( $entry['ids'] as $id ) {
+                $safeId  = $this->sanitizeId( $id );
+                $encFile = $dir . '/' . $safeId . '.json.enc';
+                if ( !file_exists( $encFile ) ) {
+                    continue;
+                }
+                $data = $this->enc->decrypt( file_get_contents( $encFile ) );
+                $json = json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+                file_put_contents( $dir . '/' . $safeId . '.json', $json, LOCK_EX );
+                unlink( $encFile );
+            }
+        }
     }
 }

@@ -331,6 +331,22 @@ try {
 // Hook: allow plugins to add, remove, or modify sidebar items.
 $sidebarItems = klytos_apply_filters('admin.sidebar_items', $sidebarItems);
 
+// Add red badge to Security if recovery keys are not confirmed.
+try {
+    $securityConfig = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
+    if ( empty( $securityConfig['recovery_keys_confirmed'] ) ) {
+        foreach ( $sidebarItems as &$sidebarItem ) {
+            if ( ( $sidebarItem['id'] ?? '' ) === 'security' ) {
+                $sidebarItem['badge'] = '!';
+                break;
+            }
+        }
+        unset( $sidebarItem );
+    }
+} catch ( \Throwable $e ) {
+    // Config not readable — skip badge.
+}
+
 // Sort items by position (lower = higher in the menu).
 usort($sidebarItems, fn(array $a, array $b): int => ($a['position'] ?? 99) <=> ($b['position'] ?? 99));
 
@@ -741,4 +757,55 @@ $sectionLabels = [
     <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/vendor/sortable/Sortable.min.js' ); ?>"></script>
     <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/js/klytos-sidebar-sort.js' ); ?>"></script>
     <div class="admin-main">
+<?php
+// ─── Recovery Keys Warning Banner ───────────────────────────
+// Shows a persistent banner when recovery keys have not been confirmed.
+// Can be postponed for 24 hours via cookie.
+klytos_do_action( 'admin.banner.recovery_warning' );
+if ( empty( $securityConfig['recovery_keys_confirmed'] ) ) {
+    $bannerDismissed = isset( $_COOKIE['klytos_recovery_banner_dismiss'] )
+        && ( (int) $_COOKIE['klytos_recovery_banner_dismiss'] > time() );
+
+    if ( !$bannerDismissed ) {
+        $securityUrl = $adminPath . 'security.php';
+?>
+<div class="recovery-banner" id="recoveryBanner" style="
+    background: linear-gradient(135deg, #7f1d1d, #991b1b);
+    color: #fecaca;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #dc2626;
+">
+    <span>
+        &#128308; <strong><?php echo __( 'security.banner_warning' ); ?></strong>
+        <?php echo __( 'security.banner_text' ); ?>
+    </span>
+    <span style="display:flex; gap:0.75rem; flex-shrink:0;">
+        <a href="<?php echo klytos_esc_url( $securityUrl ); ?>" style="color:#fff; text-decoration:underline; font-weight:600;"><?php echo __( 'security.banner_go_security' ); ?></a>
+        <button type="button" id="dismissRecoveryBanner" style="
+            background: transparent;
+            border: 1px solid #fecaca;
+            color: #fecaca;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        "><?php echo __( 'security.banner_remind_24h' ); ?></button>
+    </span>
+</div>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+document.getElementById('dismissRecoveryBanner').addEventListener('click', function() {
+    var expires = new Date(Date.now() + 86400000).toUTCString();
+    document.cookie = 'klytos_recovery_banner_dismiss=' + Math.floor(Date.now()/1000 + 86400) + '; expires=' + expires + '; path=/; SameSite=Lax';
+    document.getElementById('recoveryBanner').style.display = 'none';
+});
+</script>
+<?php
+    }
+}
+?>
 <?php klytos_do_action('admin.page.before_content', $currentPage); ?>
