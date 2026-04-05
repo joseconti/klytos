@@ -118,8 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         }
     }
 
-    // ── Change Encryption Level ──
-    if ( $action === 'change_encryption_level' ) {
+    // ── Change Encryption Level (owner/admin only) ──
+    $currentUserRole = ( klytos_current_user() )['role'] ?? '';
+    $isAdminRole     = in_array( $currentUserRole, ['owner', 'admin'], true );
+
+    if ( $action === 'change_encryption_level' && $isAdminRole ) {
         $newLevel = $_POST['new_encryption_level'] ?? '';
         $confirmPass = $_POST['confirm_password'] ?? '';
 
@@ -134,8 +137,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         }
     }
 
-    // ── Confirm Recovery Keys ──
-    if ( $action === 'confirm_recovery_keys' ) {
+    // ── Confirm Recovery Keys (owner/admin only) ──
+    if ( $action === 'confirm_recovery_keys' && $isAdminRole ) {
         $mainConfig = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
         $mainConfig['recovery_keys_confirmed']    = true;
         $mainConfig['recovery_keys_confirmed_at'] = date( 'c' );
@@ -143,15 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         $success = __( 'security.recovery_confirmed' );
     }
 
-    // ── Request Identity Key Download ──
-    if ( $action === 'request_identity_download' ) {
+    // ── Request Identity Key Download (owner/admin only) ──
+    if ( $action === 'request_identity_download' && $isAdminRole ) {
         // Redirect to the download endpoint.
         header( 'Location: ' . Helpers::getBasePath() . 'admin/api/download-identity.php' );
         exit;
     }
 
-    // ── Generate Identity Keys (for pre-1.1.0 installations) ──
-    if ( $action === 'generate_identity_keys' ) {
+    // ── Generate Identity Keys (owner/admin only) ──
+    if ( $action === 'generate_identity_keys' && $isAdminRole ) {
         $rsaKeys     = \Klytos\Core\Encryption::generateRsaKeyPair();
         $enc         = $app->getStorage()->getEncryption();
         $configPath  = $app->getConfigPath();
@@ -434,6 +437,11 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <?php
 // ─── Encryption & Recovery Section ─────────────────────────
+// Only visible to owner and admin roles.
+$currentUser = klytos_current_user();
+$userRole    = $currentUser['role'] ?? '';
+if ( in_array( $userRole, ['owner', 'admin'], true ) ):
+
 // Reload config in case POST handlers modified it.
 $mainConfig       = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
 $encryptionLevel  = $mainConfig['encryption_level'] ?? 'basic';
@@ -534,5 +542,7 @@ $levelLabels = [
 </div>
 
 <?php klytos_do_action( 'admin.security.after_encryption' ); ?>
+
+<?php endif; // owner/admin role check ?>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
