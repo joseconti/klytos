@@ -114,4 +114,19 @@ class ProfilingStorage implements StorageInterface
     {
         return $this->inner->getDataDir();
     }
+
+    public function shouldEncrypt( string $collection, string $id = '' ): bool
+    {
+        return $this->inner->shouldEncrypt( $collection, $id );
+    }
+
+    public function getEncryptionLevel(): string
+    {
+        return $this->inner->getEncryptionLevel();
+    }
+
+    public function changeEncryptionLevel( string $newLevel ): void
+    {
+        $this->inner->changeEncryptionLevel( $newLevel );
+    }
 }
