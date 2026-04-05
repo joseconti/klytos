@@ -141,6 +141,52 @@ $classified = $options->classifyOptions($domains['active'], $domains['inactive']
 $migrated = $options->migrateTextDomains();
 ```
 
+### Data Sensitivity Classification
+
+Plugins can declare whether an option contains sensitive data. This tells Klytos whether to encrypt the option at rest based on the site's encryption level (basic, medium, professional).
+
+```php
+klytos_register_option(string $key, bool|string $sensitive = false, array $meta = []): void
+```
+
+**Sensitivity levels:**
+
+| Value | Behavior | Use for |
+|---|---|---|
+| `true` | **Always encrypted**, regardless of site encryption level | API keys, tokens, passwords, secrets |
+| `'user_data'` | Encrypted from **medium** level onwards | Emails, IPs, personal data (GDPR) |
+| `false` | Only encrypted at **professional** level (default) | Colors, counts, toggles, non-sensitive config |
+
+**Example:**
+
+```php
+// In your plugin's main file or install.php:
+
+// API key — always encrypt, even on basic level
+klytos_register_option('my-plugin.stripe_secret_key', true);
+klytos_register_option('my-plugin.webhook_secret', true);
+
+// User emails — encrypt from medium level (GDPR)
+klytos_register_option('my-plugin.notification_email', 'user_data');
+klytos_register_option('my-plugin.customer_data', 'user_data');
+
+// Normal settings — no special encryption needed
+klytos_register_option('my-plugin.theme_color', false);
+klytos_register_option('my-plugin.items_per_page', false);
+
+// false is the default, so you can omit it:
+klytos_register_option('my-plugin.items_per_page');
+```
+
+**Reading sensitivity:**
+
+```php
+$sensitivity = klytos_get_option_sensitivity('my-plugin.stripe_secret_key');
+// Returns: true, 'user_data', false, or null (not registered)
+```
+
+**Important:** Registration must happen before the option is read/written. Register in your plugin's main file, not lazily. Options that are NOT registered default to `false` (only encrypted at professional level).
+
 ### Hooks
 
 | Hook | Type | Arguments |
@@ -150,6 +196,7 @@ $migrated = $options->migrateTextDomains();
 | `option.before_delete` | action | `string $key` |
 | `option.after_delete` | action | `string $key` |
 | `option.get` | filter | `mixed $value, string $key` |
+| `option.registered` | action | `string $key, bool\|string $sensitive, array $meta` |
 
 ```php
 // Example: Log when options change
@@ -309,16 +356,18 @@ Use your plugin ID as the collection prefix:
 
 ## When to Use Each System
 
-| Scenario | System | Why |
-|---|---|---|
-| Plugin toggle (on/off) | Options API | Simple key-value |
-| Plugin API key | Options API | Single value, namespaced |
-| List of 5 color presets | Options API | Small JSON array |
-| 1000+ product records | Storage API | Complex, queryable data |
-| Site name, language | Site Config | Global, not plugin-specific |
-| Analytics settings | Site Config | Site-wide configuration |
-| Cache of external API data | Storage API | Large, structured data |
-| User preferences per user | Meta API | Per-entity metadata |
+| Scenario | System | Sensitivity | Why |
+|---|---|---|---|
+| Plugin toggle (on/off) | Options API | `false` | Simple key-value |
+| Plugin API key | Options API | `true` | Sensitive secret — always encrypt |
+| Stripe webhook secret | Options API | `true` | Sensitive secret — always encrypt |
+| Notification email | Options API | `'user_data'` | Personal data (GDPR) |
+| List of 5 color presets | Options API | `false` | Small JSON array, non-sensitive |
+| 1000+ product records | Storage API | — | Complex, queryable data |
+| Site name, language | Site Config | — | Global, not plugin-specific |
+| Analytics settings | Site Config | — | Site-wide configuration |
+| Cache of external API data | Storage API | — | Large, structured data |
+| User preferences per user | Meta API | — | Per-entity metadata |
 
 ### Rule of Thumb
 

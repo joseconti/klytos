@@ -56,6 +56,7 @@ require_once $rootPath . '/core/app.php';
 require_once $rootPath . '/core/encryption.php';
 require_once $rootPath . '/core/storage.php';
 require_once $rootPath . '/core/storage-interface.php';
+require_once $rootPath . '/core/encryption-level-trait.php';
 require_once $rootPath . '/core/file-storage.php';
 require_once $rootPath . '/core/database-storage.php';
 require_once $rootPath . '/core/helpers.php';
@@ -129,6 +130,56 @@ if (
     exit;
 }
 
+// ─── AJAX Handler: Download Recovery Files ───────────────────
+// These endpoints are called during the recovery step of installation.
+// They generate and serve the encryption key / identity key files.
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+    && in_array( $_POST['ajax_action'] ?? '', ['download_encryption_key', 'download_identity_key'], true )
+) {
+    session_start();
+    $action = $_POST['ajax_action'];
+
+    // Verify that installation data exists in session.
+    if ( empty( $_SESSION['klytos_install'] ) ) {
+        header( 'Content-Type: application/json; charset=utf-8' );
+        echo json_encode( ['success' => false, 'error' => 'Session expired. Please restart installation.'] );
+        exit;
+    }
+
+    $installData = $_SESSION['klytos_install'];
+
+    if ( $action === 'download_encryption_key' ) {
+        $rawKey  = file_get_contents( $rootPath . '/config/.encryption_key' );
+        $content = Encryption::formatEncryptionKeyFile(
+            $rawKey,
+            $installData['site_url'] ?? '',
+            $installData['encryption_level'] ?? 'basic'
+        );
+        header( 'Content-Type: application/octet-stream' );
+        header( 'Content-Disposition: attachment; filename="klytos-encryption.key"' );
+        header( 'Cache-Control: no-store, no-cache, must-revalidate' );
+        header( 'Pragma: no-cache' );
+        echo $content;
+        exit;
+    }
+
+    if ( $action === 'download_identity_key' ) {
+        $content = Encryption::formatIdentityKeyFile(
+            $installData['private_key'],
+            $installData['site_url'] ?? '',
+            $installData['admin_user'] ?? 'admin',
+            $installData['fingerprint'] ?? ''
+        );
+        header( 'Content-Type: application/octet-stream' );
+        header( 'Content-Disposition: attachment; filename="klytos-identity.pem"' );
+        header( 'Cache-Control: no-store, no-cache, must-revalidate' );
+        header( 'Pragma: no-cache' );
+        echo $content;
+        exit;
+    }
+}
+
 // ─── Installer Translations ─────────────────────────────────
 $installTranslations = [
     'en' => [
@@ -181,6 +232,34 @@ $installTranslations = [
         'cfg_db_testing'     => 'Testing...',
         'cfg_db_net_error'   => 'Network error. Check your connection.',
         'cfg_install'        => 'Install Klytos',
+        // Encryption level step
+        'step_encryption'    => '3. Security',
+        'enc_title'          => 'Encryption Level',
+        'enc_description'    => 'Choose how much data is encrypted at rest. You can change this later.',
+        'enc_basic'          => 'Basic',
+        'enc_basic_desc'     => 'Encrypts system configuration only. Recommended for personal sites and portfolios.',
+        'enc_medium'         => 'Medium',
+        'enc_medium_desc'    => 'Encrypts configuration + user data (GDPR). Recommended for corporate sites.',
+        'enc_professional'   => 'Professional',
+        'enc_professional_desc' => 'Encrypts ALL data. Loss of encryption key = loss of ALL content.',
+        'enc_professional_warn' => 'WARNING: With Professional level, losing the encryption key means losing ALL site content irreversibly.',
+        'enc_continue'       => 'Continue',
+        // Recovery step
+        'step_recovery'      => '4. Recovery',
+        'rec_title'          => 'Recovery Files',
+        'rec_warning_title'  => 'IMPORTANT — READ CAREFULLY',
+        'rec_warning_text'   => 'The two files below are the ONLY way to recover access to your site in an emergency. Without these files, encrypted data is IRRECOVERABLE. There is no backdoor or support process that can restore access.',
+        'rec_warning_now'    => 'THIS IS THE EASIEST TIME TO DOWNLOAD THEM. After installation, although it will be possible to obtain both files, the process will be more complicated.',
+        'rec_enc_key_title'  => 'Encryption Key',
+        'rec_enc_key_download' => 'Download klytos-encryption.key',
+        'rec_enc_key_warn'   => 'After installation, this file CANNOT be downloaded from the panel. Only accessible via FTP/SFTP.',
+        'rec_enc_key_check'  => 'I have downloaded and saved this file.',
+        'rec_id_key_title'   => 'Identity Key',
+        'rec_id_key_download' => 'Download klytos-identity.pem',
+        'rec_id_key_info'    => 'Can be downloaded from the panel (with verification), but if you lose panel access, you won\'t be able to get it.',
+        'rec_id_key_check'   => 'I have downloaded and saved this file.',
+        'rec_storage_tip'    => 'Store them in a password manager, USB drive, or external disk. NEVER on the server itself.',
+        'rec_finish'         => 'Finish Installation',
     ],
     'es' => [
         'page_title'         => 'Klytos — Instalación',
@@ -232,6 +311,34 @@ $installTranslations = [
         'cfg_db_testing'     => 'Probando...',
         'cfg_db_net_error'   => 'Error de red. Comprueba tu conexión.',
         'cfg_install'        => 'Instalar Klytos',
+        // Encryption level step
+        'step_encryption'    => '3. Seguridad',
+        'enc_title'          => 'Nivel de Encriptación',
+        'enc_description'    => 'Elige cuántos datos se encriptan en reposo. Puedes cambiarlo después.',
+        'enc_basic'          => 'Básica',
+        'enc_basic_desc'     => 'Encripta solo la configuración del sistema. Recomendado para sitios personales y portfolios.',
+        'enc_medium'         => 'Media',
+        'enc_medium_desc'    => 'Encripta configuración + datos de usuarios (GDPR). Recomendado para sitios corporativos.',
+        'enc_professional'   => 'Profesional',
+        'enc_professional_desc' => 'Encripta TODOS los datos. Perder la clave = perder TODO el contenido.',
+        'enc_professional_warn' => 'ADVERTENCIA: Con el nivel Profesional, la pérdida de la clave de encriptación significa perder TODO el contenido del sitio de forma irreversible.',
+        'enc_continue'       => 'Continuar',
+        // Recovery step
+        'step_recovery'      => '4. Recuperación',
+        'rec_title'          => 'Archivos de Recuperación',
+        'rec_warning_title'  => 'IMPORTANTE — LEA CON ATENCIÓN',
+        'rec_warning_text'   => 'Los dos archivos siguientes son la ÚNICA forma de recuperar el acceso a su sitio en caso de emergencia. Sin estos archivos, los datos encriptados son IRRECUPERABLES. No existe puerta trasera ni proceso de soporte que pueda restaurar el acceso.',
+        'rec_warning_now'    => 'ESTE ES EL MOMENTO MÁS FÁCIL PARA DESCARGARLOS. Después de la instalación, aunque será posible obtener ambos archivos, el proceso será más complicado.',
+        'rec_enc_key_title'  => 'Clave de encriptación',
+        'rec_enc_key_download' => 'Descargar klytos-encryption.key',
+        'rec_enc_key_warn'   => 'Después de la instalación, este archivo NO podrá descargarse desde el panel. Solo accesible por FTP/SFTP.',
+        'rec_enc_key_check'  => 'He descargado y guardado este archivo.',
+        'rec_id_key_title'   => 'Clave de identidad',
+        'rec_id_key_download' => 'Descargar klytos-identity.pem',
+        'rec_id_key_info'    => 'Podrá descargarse desde el panel (con verificación), pero si pierde el acceso al panel, no podrá obtenerla.',
+        'rec_id_key_check'   => 'He descargado y guardado este archivo.',
+        'rec_storage_tip'    => 'Guárdelos en un gestor de contraseñas, USB o disco externo. NUNCA en el propio servidor.',
+        'rec_finish'         => 'Finalizar Instalación',
     ],
 ];
 
@@ -324,7 +431,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Encryption::generateKey($keyPath);
                 }
 
-                $enc = new Encryption($keyPath);
+                $enc = new Encryption( $keyPath );
+
+                // ── Step A.1: Generate RSA-2048 identity key pair ──
+                $rsaKeys     = Encryption::generateRsaKeyPair();
+                $fingerprint = $rsaKeys['fingerprint'];
+
+                // Store identity keys encrypted with AES in config/.
+                $enc_temp = new Encryption( $keyPath );
+                $identityPubData = [
+                    'public_key'  => $rsaKeys['public_key'],
+                    'fingerprint' => $fingerprint,
+                    'created_at'  => date( 'c' ),
+                    'admin_user'  => $adminUser,
+                ];
+                $identityPrivData = [
+                    'private_key' => $rsaKeys['private_key'],
+                    'fingerprint' => $fingerprint,
+                    'created_at'  => date( 'c' ),
+                    'admin_user'  => $adminUser,
+                ];
+                $pubEncrypted  = $enc_temp->encrypt( $identityPubData );
+                $privEncrypted = $enc_temp->encrypt( $identityPrivData );
+                file_put_contents( $rootPath . '/config/admin-identity.pub.enc', $pubEncrypted, LOCK_EX );
+                file_put_contents( $rootPath . '/config/admin-identity.priv.enc', $privEncrypted, LOCK_EX );
+
+                // Get the encryption level from POST (set in encryption step) or default.
+                $encryptionLevel = $_POST['encryption_level'] ?? 'medium';
+                if ( !in_array( $encryptionLevel, ['basic', 'medium', 'professional'], true ) ) {
+                    $encryptionLevel = 'medium';
+                }
 
                 // ── Step B: Create the storage backend ──
                 if ($storageDriver === 'database') {
@@ -361,20 +497,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // ── Step C: Create main configuration ──
                 $mcpSecret = Helpers::randomHex(64);
                 $config = [
-                    'site_name'      => $siteName,
-                    'admin_language'  => $adminLang,
-                    'admin_user'     => $adminUser,
-                    'admin_pass_hash' => password_hash($adminPass, PASSWORD_BCRYPT, ['cost' => 12]),
-                    'admin_email'    => $adminEmail,
-                    'mcp_secret'     => $mcpSecret,
-                    'storage_driver' => $storageDriver,
-                    'admin_dir'      => $adminDirName,
-                    'installed_at'       => Helpers::now(),
-                    'version'            => KLYTOS_VERSION,
-                    'update_channel'     => 'stable',
-                    'timezone'           => 'Europe/Madrid',
-                    'design_preference'  => $designPreference,
-                    'setup_completed'    => false,
+                    'site_name'                  => $siteName,
+                    'admin_language'             => $adminLang,
+                    'admin_user'                 => $adminUser,
+                    'admin_pass_hash'            => password_hash( $adminPass, PASSWORD_BCRYPT, ['cost' => 12] ),
+                    'admin_email'                => $adminEmail,
+                    'mcp_secret'                 => $mcpSecret,
+                    'storage_driver'             => $storageDriver,
+                    'admin_dir'                  => $adminDirName,
+                    'installed_at'               => Helpers::now(),
+                    'version'                    => KLYTOS_VERSION,
+                    'update_channel'             => 'stable',
+                    'timezone'                   => 'Europe/Madrid',
+                    'design_preference'          => $designPreference,
+                    'setup_completed'            => false,
+                    'encryption_level'           => $encryptionLevel,
+                    'identity_fingerprint'       => $fingerprint,
+                    'recovery_keys_confirmed'    => false,
+                    'recovery_keys_confirmed_at' => null,
+                    'identity_last_downloaded_at' => null,
+                    'identity_download_count'    => 0,
                 ];
                 $storage->writeTo($rootPath . '/config', 'config.json.enc', $config);
 
@@ -725,10 +867,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $storage->writeTo($adminFinalPath . '/config', 'config.json.enc', $config);
                 }
 
-                // ── Done! Redirect to admin login ──
-                // Must redirect BEFORE any HTML output.
-                header('Location: ' . $adminUrl . 'login.php');
-                exit;
+                // ── Store session data for recovery step ──
+                // Instead of redirecting immediately, we save data needed
+                // for the encryption level + recovery file download steps.
+                session_start();
+                $_SESSION['klytos_install'] = [
+                    'admin_url'        => $adminUrl,
+                    'mcp_endpoint'     => $mcpEndpoint,
+                    'app_password'     => $appPassword,
+                    'admin_user'       => $adminUser,
+                    'site_url'         => $protocol . '://' . $host . $basePath,
+                    'encryption_level' => $encryptionLevel,
+                    'fingerprint'      => $fingerprint,
+                    'private_key'      => $rsaKeys['private_key'],
+                ];
+
+                // Mark the step as recovery to show the download UI.
+                $step    = 'recovery';
+                $success = 'installed';
 
             } catch (\Exception $e) {
                 // Show a sanitized error — do NOT expose internal paths or stack traces.
@@ -959,10 +1115,16 @@ function getColorPreset(string $name): array
         <p><?php echo klytos_esc_html( $t['subtitle'] ); ?></p>
     </div>
 
-    <!-- Step indicators (2 steps: Requirements → Setup) -->
+    <!-- Step indicators (4 steps: Requirements → Setup → Security → Recovery) -->
+    <?php
+    $stepOrder = ['requirements' => 0, 'config' => 1, 'install' => 1, 'encryption' => 2, 'recovery' => 3];
+    $currentStepNum = $stepOrder[$step] ?? 0;
+    ?>
     <div class="steps">
-        <div class="step <?php echo $step === 'requirements' ? 'active' : ($step !== 'requirements' ? 'done' : ''); ?>"><?php echo $t['step_requirements']; ?></div>
-        <div class="step <?php echo $step === 'config' || $step === 'install' ? 'active' : ''; ?>"><?php echo $t['step_setup']; ?></div>
+        <div class="step <?php echo $currentStepNum === 0 ? 'active' : ($currentStepNum > 0 ? 'done' : ''); ?>"><?php echo $t['step_requirements']; ?></div>
+        <div class="step <?php echo $currentStepNum === 1 ? 'active' : ($currentStepNum > 1 ? 'done' : ''); ?>"><?php echo $t['step_setup']; ?></div>
+        <div class="step <?php echo $currentStepNum === 2 ? 'active' : ($currentStepNum > 2 ? 'done' : ''); ?>"><?php echo $t['step_encryption'] ?? '3. Security'; ?></div>
+        <div class="step <?php echo $currentStepNum === 3 ? 'active' : ''; ?>"><?php echo $t['step_recovery'] ?? '4. Recovery'; ?></div>
     </div>
 
     <?php if (!empty($error)): ?>
@@ -1254,6 +1416,110 @@ function getColorPreset(string $name): array
     });
     </script>
 
+    <?php endif; ?>
+
+    <!-- ─── Step 4: Recovery Files ─── -->
+    <?php if ($step === 'recovery'): ?>
+    <?php
+    $installData = $_SESSION['klytos_install'] ?? [];
+    $adminUrl = $installData['admin_url'] ?? '';
+    ?>
+    <div class="card">
+        <h2><?php echo $t['rec_title'] ?? 'Recovery Files'; ?></h2>
+
+        <div class="alert alert-warning" style="margin-bottom:1.5rem; text-align:left;">
+            <strong><?php echo $t['rec_warning_title'] ?? 'IMPORTANT'; ?></strong><br><br>
+            <?php echo $t['rec_warning_text'] ?? ''; ?><br><br>
+            <strong><?php echo $t['rec_warning_now'] ?? ''; ?></strong>
+        </div>
+
+        <!-- 1. Encryption Key -->
+        <div style="text-align:left; margin-bottom:1.5rem; padding:1rem; border:1px solid var(--border, #334155); border-radius:0.5rem;">
+            <h3 style="margin-bottom:0.5rem;">1. <?php echo $t['rec_enc_key_title'] ?? 'Encryption Key'; ?></h3>
+            <button type="button" class="btn btn-block" id="downloadEncKey" style="margin-bottom:0.75rem;">
+                &#128229; <?php echo $t['rec_enc_key_download'] ?? 'Download klytos-encryption.key'; ?>
+            </button>
+            <p style="font-size:0.85rem; color:var(--muted, #94a3b8); margin-bottom:0.5rem;">
+                &#9888;&#65039; <?php echo $t['rec_enc_key_warn'] ?? ''; ?>
+            </p>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="checkEncKey" style="width:18px; height:18px;">
+                <?php echo $t['rec_enc_key_check'] ?? 'I have downloaded and saved this file.'; ?>
+            </label>
+        </div>
+
+        <!-- 2. Identity Key -->
+        <div style="text-align:left; margin-bottom:1.5rem; padding:1rem; border:1px solid var(--border, #334155); border-radius:0.5rem;">
+            <h3 style="margin-bottom:0.5rem;">2. <?php echo $t['rec_id_key_title'] ?? 'Identity Key'; ?></h3>
+            <button type="button" class="btn btn-block" id="downloadIdKey" style="margin-bottom:0.75rem;">
+                &#128229; <?php echo $t['rec_id_key_download'] ?? 'Download klytos-identity.pem'; ?>
+            </button>
+            <p style="font-size:0.85rem; color:var(--muted, #94a3b8); margin-bottom:0.5rem;">
+                <?php echo $t['rec_id_key_info'] ?? ''; ?>
+            </p>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                <input type="checkbox" id="checkIdKey" style="width:18px; height:18px;">
+                <?php echo $t['rec_id_key_check'] ?? 'I have downloaded and saved this file.'; ?>
+            </label>
+        </div>
+
+        <p style="font-size:0.85rem; color:var(--muted, #94a3b8); margin-bottom:1.5rem;">
+            &#128161; <?php echo $t['rec_storage_tip'] ?? ''; ?>
+        </p>
+
+        <button type="button" class="btn btn-block" id="finishBtn" disabled>
+            <?php echo $t['rec_finish'] ?? 'Finish Installation'; ?>
+        </button>
+    </div>
+
+    <script>
+    (function() {
+        var checkEnc   = document.getElementById('checkEncKey');
+        var checkId    = document.getElementById('checkIdKey');
+        var finishBtn  = document.getElementById('finishBtn');
+        var adminUrl   = <?php echo json_encode( $adminUrl . 'login.php' ); ?>;
+
+        function updateFinishBtn() {
+            finishBtn.disabled = !(checkEnc.checked && checkId.checked);
+        }
+
+        checkEnc.addEventListener('change', updateFinishBtn);
+        checkId.addEventListener('change', updateFinishBtn);
+
+        // Download encryption key via POST.
+        document.getElementById('downloadEncKey').addEventListener('click', function() {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            var input = document.createElement('input');
+            input.name = 'ajax_action';
+            input.value = 'download_encryption_key';
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
+
+        // Download identity key via POST.
+        document.getElementById('downloadIdKey').addEventListener('click', function() {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            var input = document.createElement('input');
+            input.name = 'ajax_action';
+            input.value = 'download_identity_key';
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
+
+        // Finish installation → redirect to admin.
+        finishBtn.addEventListener('click', function() {
+            window.location.href = adminUrl;
+        });
+    })();
+    </script>
     <?php endif; ?>
 
 </div>

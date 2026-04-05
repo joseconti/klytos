@@ -167,16 +167,195 @@ class Encryption
      * @param  string $path Where to save the key.
      * @return void
      */
-    public static function generateKey(string $path): void
+    public static function generateKey( string $path ): void
     {
-        $key = random_bytes(32);
-        $dir = dirname($path);
+        $key = random_bytes( 32 );
+        $dir = dirname( $path );
 
-        if (!is_dir($dir)) {
-            mkdir($dir, 0700, true);
+        if ( !is_dir( $dir ) ) {
+            mkdir( $dir, 0700, true );
         }
 
-        file_put_contents($path, $key, LOCK_EX);
-        chmod($path, 0600);
+        file_put_contents( $path, $key, LOCK_EX );
+        chmod( $path, 0600 );
+    }
+
+    // ─── RSA Identity Keys ──────────────────────────────────────
+
+    /**
+     * Generate an RSA-2048 key pair for admin identity verification.
+     *
+     * @return array{private_key: string, public_key: string, fingerprint: string}
+     * @throws \RuntimeException If key generation fails.
+     */
+    public static function generateRsaKeyPair(): array
+    {
+        $keyPair = openssl_pkey_new( [
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ] );
+
+        if ( $keyPair === false ) {
+            throw new \RuntimeException( 'RSA key pair generation failed: ' . openssl_error_string() );
+        }
+
+        $privateKeyPem = '';
+        if ( !openssl_pkey_export( $keyPair, $privateKeyPem ) ) {
+            throw new \RuntimeException( 'RSA private key export failed: ' . openssl_error_string() );
+        }
+
+        $details      = openssl_pkey_get_details( $keyPair );
+        $publicKeyPem = $details['key'];
+        $fingerprint  = 'sha256:' . hash( 'sha256', $publicKeyPem );
+
+        return [
+            'private_key' => $privateKeyPem,
+            'public_key'  => $publicKeyPem,
+            'fingerprint' => $fingerprint,
+        ];
+    }
+
+    /**
+     * Format the AES encryption key as a downloadable file with metadata.
+     *
+     * @param string $rawKey  Raw 32-byte encryption key.
+     * @param string $siteUrl The site URL.
+     * @param string $level   Encryption level (basic, medium, professional).
+     * @return string Formatted key file content.
+     */
+    public static function formatEncryptionKeyFile( string $rawKey, string $siteUrl, string $level ): string
+    {
+        $now = gmdate( 'c' );
+
+        return "-----BEGIN KLYTOS ENCRYPTION KEY-----\n"
+            . "Generado: {$now}\n"
+            . "Sitio: {$siteUrl}\n"
+            . "Nivel: {$level}\n"
+            . "---\n"
+            . base64_encode( $rawKey ) . "\n"
+            . "-----END KLYTOS ENCRYPTION KEY-----\n";
+    }
+
+    /**
+     * Format the RSA identity private key as a downloadable file with metadata.
+     *
+     * @param string $privateKeyPem RSA private key in PEM format.
+     * @param string $siteUrl       The site URL.
+     * @param string $username      Admin username.
+     * @param string $fingerprint   Public key fingerprint (sha256:...).
+     * @return string Formatted identity file content.
+     */
+    public static function formatIdentityKeyFile(
+        string $privateKeyPem,
+        string $siteUrl,
+        string $username,
+        string $fingerprint
+    ): string {
+        $now = gmdate( 'c' );
+
+        return "-----BEGIN KLYTOS IDENTITY KEY-----\n"
+            . "Generado: {$now}\n"
+            . "Sitio: {$siteUrl}\n"
+            . "Usuario: {$username}\n"
+            . "Fingerprint: {$fingerprint}\n"
+            . "---\n"
+            . $privateKeyPem
+            . "-----END KLYTOS IDENTITY KEY-----\n";
+    }
+
+    /**
+     * Parse a formatted encryption key file and extract the raw AES key.
+     *
+     * @param string $content File content from klytos-encryption.key.
+     * @return string Raw 32-byte encryption key.
+     * @throws \RuntimeException If the file format is invalid.
+     */
+    public static function parseEncryptionKeyFile( string $content ): string
+    {
+        if ( !str_contains( $content, '-----BEGIN KLYTOS ENCRYPTION KEY-----' ) ) {
+            throw new \RuntimeException( 'Invalid encryption key file format.' );
+        }
+
+        // Extract the base64-encoded key between "---" and the END marker.
+        $parts = explode( "---\n", $content );
+        if ( count( $parts ) < 2 ) {
+            throw new \RuntimeException( 'Cannot parse encryption key file.' );
+        }
+
+        // The key is in the last section, before the END marker.
+        $keySection = $parts[ count( $parts ) - 1 ];
+        $keySection = str_replace( "-----END KLYTOS ENCRYPTION KEY-----\n", '', $keySection );
+        $keySection = trim( $keySection );
+
+        $rawKey = base64_decode( $keySection, true );
+        if ( $rawKey === false || strlen( $rawKey ) < 32 ) {
+            throw new \RuntimeException( 'Invalid encryption key: must be at least 32 bytes.' );
+        }
+
+        return $rawKey;
+    }
+
+    /**
+     * Parse a formatted identity key file and extract the RSA private key PEM.
+     *
+     * @param string $content File content from klytos-identity.pem.
+     * @return string RSA private key in PEM format.
+     * @throws \RuntimeException If the file format is invalid.
+     */
+    public static function parseIdentityKeyFile( string $content ): string
+    {
+        if ( !str_contains( $content, '-----BEGIN KLYTOS IDENTITY KEY-----' ) ) {
+            throw new \RuntimeException( 'Invalid identity key file format.' );
+        }
+
+        // Extract the RSA private key PEM block.
+        $beginMarker = '-----BEGIN RSA PRIVATE KEY-----';
+        $endMarker   = '-----END RSA PRIVATE KEY-----';
+
+        // Also support PKCS#8 format.
+        if ( !str_contains( $content, $beginMarker ) ) {
+            $beginMarker = '-----BEGIN PRIVATE KEY-----';
+            $endMarker   = '-----END PRIVATE KEY-----';
+        }
+
+        $start = strpos( $content, $beginMarker );
+        $end   = strpos( $content, $endMarker );
+
+        if ( $start === false || $end === false ) {
+            throw new \RuntimeException( 'Cannot find RSA private key in identity file.' );
+        }
+
+        return substr( $content, $start, $end - $start + strlen( $endMarker ) ) . "\n";
+    }
+
+    /**
+     * Verify that an RSA private key matches a public key using challenge-response.
+     *
+     * Signs 32 random bytes with the private key and verifies with the public key.
+     *
+     * @param string $publicKeyPem  RSA public key in PEM format.
+     * @param string $privateKeyPem RSA private key in PEM format.
+     * @return bool True if the keys match.
+     */
+    public static function verifyIdentityChallenge( string $publicKeyPem, string $privateKeyPem ): bool
+    {
+        $privateKey = openssl_pkey_get_private( $privateKeyPem );
+        if ( $privateKey === false ) {
+            return false;
+        }
+
+        $challenge = random_bytes( 32 );
+        $signature = '';
+
+        if ( !openssl_sign( $challenge, $signature, $privateKey, OPENSSL_ALGO_SHA256 ) ) {
+            return false;
+        }
+
+        $publicKey = openssl_pkey_get_public( $publicKeyPem );
+        if ( $publicKey === false ) {
+            return false;
+        }
+
+        return openssl_verify( $challenge, $signature, $publicKey, OPENSSL_ALGO_SHA256 ) === 1;
     }
 }

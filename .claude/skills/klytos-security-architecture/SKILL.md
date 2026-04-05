@@ -64,6 +64,42 @@ description: Security architecture and best practices for Klytos CMS. Use when d
 - **Key storage**: `config/.encryption_key` with chmod 0600.
 - **Key rotation**: Supported via `Encryption::rotateKey()`.
 
+### Encryption Levels
+
+The site admin chooses an encryption level during installation. It determines which data is encrypted at rest:
+
+| Level | What is encrypted |
+|---|---|
+| **Basic** | System config only (config.json.enc, license, AI keys, MCP tokens) |
+| **Medium** | + Users, audit logs, sessions, chats, 2FA (GDPR-relevant data) |
+| **Professional** | + ALL data (pages, blocks, templates, theme, menus, forms, logs, etc.) |
+
+The level can be changed bidirectionally from Settings > Security (requires re-auth).
+
+### Option-Level Sensitivity
+
+Plugins declare the sensitivity of their options via `klytos_register_option()`. This provides per-option encryption control independent of the site-wide encryption level:
+
+| Sensitivity | Encrypted at | Example |
+|---|---|---|
+| `true` | **Always** (all levels) | API keys, tokens, webhook secrets |
+| `'user_data'` | Medium + Professional | Emails, IPs, personal data (GDPR) |
+| `false` (default) | Professional only | Colors, toggles, non-sensitive settings |
+
+```php
+klytos_register_option('my-plugin.stripe_key', true);       // Always encrypted
+klytos_register_option('my-plugin.user_email', 'user_data'); // Encrypted from medium
+klytos_register_option('my-plugin.color', false);            // Only at professional
+```
+
+### Identity Keys (RSA-2048)
+
+- Admin identity is proven via an RSA-2048 key pair generated during installation.
+- **Public key**: stored in `config/admin-identity.pub.enc` (encrypted with AES).
+- **Private key**: stored in `config/admin-identity.priv.enc` (encrypted with AES).
+- **Recovery file**: `klytos-identity.pem` — downloaded during installation, used with `klytos-encryption.key` for emergency access recovery via the unified installer.
+- **Challenge-response**: The installer verifies identity by signing 32 random bytes with the private key and verifying with the public key.
+
 ## Authentication Methods (MCP)
 
 Order of authentication in `token-auth.php`:

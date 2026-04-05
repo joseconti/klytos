@@ -49,7 +49,19 @@ class OptionsManager
     /** @var string|null Text domain of the currently executing plugin. */
     private ?string $activeTextDomain = null;
 
-    public function __construct(StorageInterface $storage)
+    /**
+     * Registry of declared option sensitivity levels.
+     *
+     * Keys are option keys, values are sensitivity levels:
+     * - true:        Always encrypted, regardless of encryption level. For API keys, tokens, secrets.
+     * - 'user_data': Encrypted from 'medium' level onwards. For emails, IPs, personal data (GDPR).
+     * - false:       Only encrypted at 'professional' level. Normal non-sensitive data.
+     *
+     * @var array<string, bool|string>
+     */
+    private static array $sensitivityRegistry = [];
+
+    public function __construct( StorageInterface $storage )
     {
         $this->storage = $storage;
     }
@@ -80,6 +92,79 @@ class OptionsManager
     {
         return $this->activeTextDomain;
     }
+
+    // ─── Option Sensitivity Registration ────────────────────────
+
+    /**
+     * Register an option with its sensitivity classification.
+     *
+     * Call this during plugin activation or in your plugin's main file
+     * to declare how Klytos should handle encryption for this option.
+     *
+     * @param string            $key         Option key (e.g. 'my-plugin.api_key').
+     * @param bool|string       $sensitive   Sensitivity level:
+     *                                       - true:        Always encrypted (API keys, tokens, secrets).
+     *                                       - 'user_data': Encrypted from 'medium' level (emails, IPs, GDPR).
+     *                                       - false:       Only encrypted at 'professional' level (default).
+     * @param array             $meta        Optional metadata: ['type' => string, 'default' => mixed].
+     */
+    public static function registerOption( string $key, bool|string $sensitive = false, array $meta = [] ): void
+    {
+        self::$sensitivityRegistry[$key] = $sensitive;
+
+        klytos_do_action( 'option.registered', $key, $sensitive, $meta );
+    }
+
+    /**
+     * Get the declared sensitivity level for an option.
+     *
+     * @param  string $key Option key.
+     * @return bool|string|null Sensitivity level, or null if not registered.
+     */
+    public static function getSensitivity( string $key ): bool|string|null
+    {
+        return self::$sensitivityRegistry[$key] ?? null;
+    }
+
+    /**
+     * Check if an option should be encrypted based on its declared
+     * sensitivity and the current encryption level.
+     *
+     * @param string $key      Option key.
+     * @param int    $levelNum Current encryption level number (0=basic, 1=medium, 2=professional).
+     * @return bool  True if this option should be stored encrypted.
+     */
+    public static function shouldEncryptOption( string $key, int $levelNum ): bool
+    {
+        $sensitivity = self::$sensitivityRegistry[$key] ?? false;
+
+        // true = always encrypted, regardless of level.
+        if ( $sensitivity === true ) {
+            return true;
+        }
+
+        // 'user_data' = encrypted from medium (level 1) onwards.
+        if ( $sensitivity === 'user_data' && $levelNum >= 1 ) {
+            return true;
+        }
+
+        // false (default) = only encrypted at professional (level 2).
+        // This is handled by the encryption level trait's ENCRYPTED_PATHS,
+        // so we return false here — the trait decides.
+        return false;
+    }
+
+    /**
+     * Get all registered option sensitivities.
+     *
+     * @return array<string, bool|string>
+     */
+    public static function getSensitivityRegistry(): array
+    {
+        return self::$sensitivityRegistry;
+    }
+
+    // ─── Core CRUD Operations ────────────────────────────────────
 
     /**
      * Get an option value.

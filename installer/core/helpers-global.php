@@ -669,6 +669,36 @@ function klytos_delete_options_by_domain(string $textDomain): int
     return App::getInstance()->getOptionsManager()->deleteByTextDomain($textDomain);
 }
 
+/**
+ * Register an option with its data sensitivity classification.
+ *
+ * Call this during plugin activation or in your main plugin file to tell
+ * Klytos how to handle encryption for this option. This determines whether
+ * the option is encrypted at rest based on the site's encryption level.
+ *
+ * @param string      $key       Option key (e.g. 'my-plugin.api_key').
+ * @param bool|string $sensitive Sensitivity level:
+ *                               - true:        Always encrypted (API keys, tokens, secrets).
+ *                               - 'user_data': Encrypted from 'medium' level (emails, IPs, GDPR data).
+ *                               - false:       Only encrypted at 'professional' level (default).
+ * @param array       $meta      Optional metadata: ['type' => 'string', 'default' => ''].
+ */
+function klytos_register_option( string $key, bool|string $sensitive = false, array $meta = [] ): void
+{
+    \Klytos\Core\OptionsManager::registerOption( $key, $sensitive, $meta );
+}
+
+/**
+ * Get the declared sensitivity level for an option.
+ *
+ * @param  string $key Option key.
+ * @return bool|string|null Sensitivity level, or null if not registered.
+ */
+function klytos_get_option_sensitivity( string $key ): bool|string|null
+{
+    return \Klytos\Core\OptionsManager::getSensitivity( $key );
+}
+
 // ─── Meta API ────────────────────────────────────────────────
 // Attach arbitrary metadata to any entity (pages, users, post types, etc.).
 // Meta is stored as a '_meta' field inside the entity document itself.

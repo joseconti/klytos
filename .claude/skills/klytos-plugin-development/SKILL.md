@@ -325,8 +325,34 @@ $data = $storage->read('my-plugin-data', 'settings');
 2. **Always sanitize HTML output** — use `htmlspecialchars()` or `Helpers::sanitizeHtml()`
 3. **Always validate input** — check types, lengths, and formats
 4. **Use capabilities for access control** — register via `auth.capabilities` filter
-5. **Never store secrets in cleartext** — use the encrypted storage
+5. **Never store secrets in cleartext** — declare sensitivity with `klytos_register_option()`
 6. **Include the ELv2 license header** in all PHP files if distributing
+
+### Declaring Option Sensitivity
+
+When your plugin stores options, classify them by sensitivity so Klytos encrypts them appropriately based on the site's encryption level:
+
+```php
+// In your plugin's main file ({plugin-id}.php):
+
+// API keys and secrets — ALWAYS encrypted
+klytos_register_option('my-plugin.api_key', true);
+klytos_register_option('my-plugin.webhook_secret', true);
+
+// Personal/GDPR data — encrypted from 'medium' level
+klytos_register_option('my-plugin.user_email', 'user_data');
+
+// Non-sensitive settings — only encrypted at 'professional' level
+klytos_register_option('my-plugin.theme_color');  // false is the default
+```
+
+| Sensitivity | Encrypted at | Use for |
+|---|---|---|
+| `true` | Always (all levels) | API keys, tokens, passwords, secrets |
+| `'user_data'` | Medium + Professional | Emails, IPs, personal data (GDPR) |
+| `false` (default) | Professional only | Colors, toggles, non-sensitive config |
+
+See the **klytos-options-storage** skill for full documentation.
 
 ---
 

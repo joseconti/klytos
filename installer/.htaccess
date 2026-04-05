@@ -13,6 +13,8 @@ RewriteRule ^config/ - [F,L]
 RewriteRule ^core/ - [F,L]
 RewriteRule ^backups/ - [F,L]
 RewriteRule ^plugins/.*\.php$ - [F,L]
+RewriteRule admin-identity\. - [F,L]
+RewriteRule \.pem$ - [F,L]
 RewriteRule ^\.  - [F,L]
 
 # ─── Pass PHP_AUTH to environment (some hosts strip it) ──────

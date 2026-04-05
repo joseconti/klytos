@@ -42,6 +42,9 @@ if (!$userId) {
 
 $tfConfig = $userId ? $twoFactor->getUserConfig($userId) : [];
 
+// Load main config for encryption/recovery features.
+$mainConfig = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
+
 // ─── Handle POST actions ────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
     $action = $_POST['action'] ?? '';
@@ -113,6 +116,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
             $twoFactor->removePasskey($userId, $credId);
             $success = __('security.passkey_removed');
         }
+    }
+
+    // ── Change Encryption Level ──
+    if ( $action === 'change_encryption_level' ) {
+        $newLevel = $_POST['new_encryption_level'] ?? '';
+        $confirmPass = $_POST['confirm_password'] ?? '';
+
+        if ( !in_array( $newLevel, ['basic', 'medium', 'professional'], true ) ) {
+            $error = __( 'security.invalid_level' );
+        } elseif ( !password_verify( $confirmPass, $mainConfig['admin_pass_hash'] ?? '' ) ) {
+            $error = __( 'security.wrong_password' );
+        } else {
+            $storage = $app->getStorage();
+            $storage->changeEncryptionLevel( $newLevel );
+            $success = __( 'security.level_changed' );
+        }
+    }
+
+    // ── Confirm Recovery Keys ──
+    if ( $action === 'confirm_recovery_keys' ) {
+        $mainConfig = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
+        $mainConfig['recovery_keys_confirmed']    = true;
+        $mainConfig['recovery_keys_confirmed_at'] = date( 'c' );
+        $app->getStorage()->writeTo( $app->getConfigPath(), 'config.json.enc', $mainConfig );
+        $success = __( 'security.recovery_confirmed' );
+    }
+
+    // ── Request Identity Key Download ──
+    if ( $action === 'request_identity_download' ) {
+        // Redirect to the download endpoint.
+        header( 'Location: ' . Helpers::getBasePath() . 'admin/api/download-identity.php' );
+        exit;
+    }
+
+    // ── Generate Identity Keys (for pre-1.1.0 installations) ──
+    if ( $action === 'generate_identity_keys' ) {
+        $rsaKeys     = \Klytos\Core\Encryption::generateRsaKeyPair();
+        $enc         = $app->getStorage()->getEncryption();
+        $configPath  = $app->getConfigPath();
+
+        $identityPubData = [
+            'public_key'  => $rsaKeys['public_key'],
+            'fingerprint' => $rsaKeys['fingerprint'],
+            'created_at'  => date( 'c' ),
+            'admin_user'  => $username,
+        ];
+        $identityPrivData = [
+            'private_key' => $rsaKeys['private_key'],
+            'fingerprint' => $rsaKeys['fingerprint'],
+            'created_at'  => date( 'c' ),
+            'admin_user'  => $username,
+        ];
+
+        file_put_contents( $configPath . '/admin-identity.pub.enc', $enc->encrypt( $identityPubData ), LOCK_EX );
+        file_put_contents( $configPath . '/admin-identity.priv.enc', $enc->encrypt( $identityPrivData ), LOCK_EX );
+
+        // Update config with fingerprint.
+        $mainConfig = $app->getStorage()->readFrom( $configPath, 'config.json.enc' );
+        $mainConfig['identity_fingerprint'] = $rsaKeys['fingerprint'];
+        $app->getStorage()->writeTo( $configPath, 'config.json.enc', $mainConfig );
+
+        $success = __( 'security.identity_generated' );
     }
 
     // Refresh config after changes.
@@ -366,5 +431,108 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php endif; ?>
 
 <?php klytos_do_action( 'admin.security.after_2fa' ); ?>
+
+<?php
+// ─── Encryption & Recovery Section ─────────────────────────
+// Reload config in case POST handlers modified it.
+$mainConfig       = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
+$encryptionLevel  = $mainConfig['encryption_level'] ?? 'basic';
+$recoveryConfirmed = $mainConfig['recovery_keys_confirmed'] ?? false;
+$identityFingerprint = $mainConfig['identity_fingerprint'] ?? null;
+$hasIdentityKeys  = file_exists( $app->getConfigPath() . '/admin-identity.pub.enc' );
+
+$levelLabels = [
+    'basic'        => __( 'security.enc_basic' ),
+    'medium'       => __( 'security.enc_medium' ),
+    'professional' => __( 'security.enc_professional' ),
+];
+?>
+
+<?php klytos_do_action( 'admin.security.before_encryption' ); ?>
+
+<!-- ─── Encryption Level ─── -->
+<div class="card">
+    <div class="card-header">
+        <h3><?php echo __( 'security.encryption_title' ); ?></h3>
+        <span class="badge-status badge-active text-xs font-bold" style="padding:0.25rem 0.75rem;border-radius:20px;">
+            <?php echo klytos_esc_html( $levelLabels[$encryptionLevel] ?? $encryptionLevel ); ?>
+        </span>
+    </div>
+    <p class="text-muted mb-3"><?php echo __( 'security.encryption_description' ); ?></p>
+
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="action" value="change_encryption_level">
+        <div class="form-group">
+            <label><?php echo __( 'security.encryption_level_label' ); ?></label>
+            <select name="new_encryption_level" class="form-control" style="max-width:300px;">
+                <option value="basic" <?php echo $encryptionLevel === 'basic' ? 'selected' : ''; ?>><?php echo __( 'security.enc_basic' ); ?></option>
+                <option value="medium" <?php echo $encryptionLevel === 'medium' ? 'selected' : ''; ?>><?php echo __( 'security.enc_medium' ); ?></option>
+                <option value="professional" <?php echo $encryptionLevel === 'professional' ? 'selected' : ''; ?>><?php echo __( 'security.enc_professional' ); ?></option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label><?php echo __( 'security.current_password' ); ?></label>
+            <input type="password" name="confirm_password" class="form-control" style="max-width:300px;" required>
+        </div>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'security.change_level' ); ?></button>
+    </form>
+</div>
+
+<!-- ─── Recovery Keys Status ─── -->
+<div class="card" <?php if ( !$recoveryConfirmed ): ?>style="border: 2px solid var(--klytos-error);"<?php endif; ?>>
+    <div class="card-header">
+        <h3><?php echo __( 'security.recovery_keys_title' ); ?></h3>
+        <?php if ( $recoveryConfirmed ): ?>
+            <span class="badge-status badge-active text-xs font-bold" style="padding:0.25rem 0.75rem;border-radius:20px;"><?php echo __( 'security.confirmed' ); ?></span>
+        <?php else: ?>
+            <span class="badge-status badge-inactive text-xs font-bold" style="padding:0.25rem 0.75rem;border-radius:20px;background:#fef2f2;color:#dc2626;"><?php echo __( 'security.not_confirmed' ); ?></span>
+        <?php endif; ?>
+    </div>
+
+    <div style="display:grid; gap:1rem; grid-template-columns: 1fr 1fr; margin-bottom:1rem;">
+        <!-- Encryption Key -->
+        <div style="padding:1rem; border:1px solid var(--klytos-border); border-radius:8px;">
+            <h4 style="margin-bottom:0.5rem;"><?php echo __( 'security.enc_key_title' ); ?></h4>
+            <p class="text-muted text-sm"><?php echo __( 'security.enc_key_location' ); ?></p>
+            <code class="text-sm" style="word-break:break-all;">config/.encryption_key</code>
+        </div>
+
+        <!-- Identity Key -->
+        <div style="padding:1rem; border:1px solid var(--klytos-border); border-radius:8px;">
+            <h4 style="margin-bottom:0.5rem;"><?php echo __( 'security.id_key_title' ); ?></h4>
+            <?php if ( $identityFingerprint ): ?>
+                <p class="text-muted text-sm"><?php echo __( 'security.fingerprint' ); ?>:</p>
+                <code class="text-sm" style="word-break:break-all;"><?php echo klytos_esc_html( substr( $identityFingerprint, 0, 24 ) . '...' ); ?></code>
+                <form method="post" style="margin-top:0.75rem;">
+                    <?php echo klytos_csrf_field(); ?>
+                    <input type="hidden" name="action" value="request_identity_download">
+                    <button type="submit" class="btn btn-sm btn-outline"><?php echo __( 'security.download_identity' ); ?></button>
+                </form>
+            <?php else: ?>
+                <p class="text-muted text-sm"><?php echo __( 'security.no_identity_keys' ); ?></p>
+                <form method="post" style="margin-top:0.75rem;">
+                    <?php echo klytos_csrf_field(); ?>
+                    <input type="hidden" name="action" value="generate_identity_keys">
+                    <button type="submit" class="btn btn-sm btn-primary"><?php echo __( 'security.generate_identity' ); ?></button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php if ( !$recoveryConfirmed ): ?>
+    <form method="post">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="action" value="confirm_recovery_keys">
+        <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; margin-bottom:1rem;">
+            <input type="checkbox" name="confirm_checkbox" required style="width:18px; height:18px;">
+            <?php echo __( 'security.confirm_recovery_checkbox' ); ?>
+        </label>
+        <button type="submit" class="btn btn-primary"><?php echo __( 'security.confirm_recovery_btn' ); ?></button>
+    </form>
+    <?php endif; ?>
+</div>
+
+<?php klytos_do_action( 'admin.security.after_encryption' ); ?>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
