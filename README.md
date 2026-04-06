@@ -593,15 +593,27 @@ klytos/
 
 ## License
 
-Klytos is released under the [GNU General Public License v3 or later](LICENSE).
+### Klytos Core — GPL v3
 
-**You CAN:**
-- Use, study, modify, and distribute Klytos freely.
-- Use Klytos for any purpose (personal, commercial, enterprise).
-- Build and sell plugins/templates under any license you choose.
+Klytos CMS is free software released under the [GNU General Public License v3 or later (GPL-3.0-or-later)](LICENSE).
 
-**Plugin Exception:**
-Plugins and templates that communicate with Klytos through its public API (hooks, filters, MCP tools, REST endpoints) are **NOT** derivative works and may use any license. See the LICENSE file for details.
+You are free to use, study, modify, and distribute Klytos for any purpose — personal, commercial, or enterprise. If you modify the core and distribute it, your modifications must also be GPL v3.
+
+### Plugins and Templates — Any License
+
+**Plugins and templates are NOT derivative works of Klytos.** Developers can license their plugins and templates under any terms they choose — open source, proprietary, commercial, or free.
+
+This is possible because Klytos includes a **Plugin and Template Exception** (see the [LICENSE](LICENSE) file) that explicitly states:
+
+> Plugins and templates that communicate with Klytos through its public API — hooks, filters, actions, MCP tools, REST endpoints, and template engine interfaces — are not considered derivative works and may use any license.
+
+This means:
+- You can build **commercial plugins** with a proprietary license.
+- You can build **free plugins** with MIT, Apache, or any other license.
+- You can build **GPL plugins** if you prefer.
+- The same applies to **templates** — any license is valid.
+
+The only requirement is that the plugin/template interacts with Klytos through its public API, not by modifying core files.
 
 ## Author
 
