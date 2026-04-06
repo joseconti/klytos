@@ -89,6 +89,9 @@ class BuildEngine
         // 1f. Generate consent manager JS (consent-manager.js)
         $this->buildConsentManagerJs();
 
+        // 1g-bis. Copy icon library (Font Awesome) to public assets.
+        $this->copyIconLibrary();
+
         // 1g. Pre-render global blocks (scope=global) and cache in memory.
         $this->globalBlocksCache = $this->cacheGlobalBlocks();
 
@@ -453,6 +456,7 @@ class BuildEngine
             '{{plugin_head_html}}'     => $pluginHeadHtml,
             '{{plugin_body_end_html}}' => $pluginBodyEndHtml,
             '{{plugin_css_link}}'      => $this->buildPluginCssLink( $basePath ),
+            '{{icons_css_link}}'       => $this->buildIconsCssLink( $basePath ),
             '{{blocks_css_link}}'      => $this->buildBlocksCssLink( $basePath ),
             '{{blocks_js_script}}'     => $this->buildBlocksJsTag( $basePath ),
             '{{hooks_js_script}}'      => $this->buildHooksJsTag( $basePath ),
@@ -1435,6 +1439,64 @@ class BuildEngine
             }
             klytos_set_option('klytos_blocks_js_version', '');
         }
+    }
+
+    /**
+     * Copy the icon library (Font Awesome) from admin assets to the public
+     * output directory so it is available on the frontend.
+     *
+     * The CSS and webfonts are always copied (idempotent) so plugins and
+     * the admin bar can reference icons.  Whether the CSS is loaded in the
+     * page `<head>` for all visitors is controlled by the `icons_enabled`
+     * site config flag — see buildIconsCssLink().
+     */
+    private function copyIconLibrary(): void
+    {
+        $source = $this->app->getRootPath() . '/admin/assets/vendor/fontawesome';
+        $dest   = $this->outputPath . '/assets/vendor/fontawesome';
+
+        if ( !is_dir( $source ) ) {
+            return;
+        }
+
+        // Copy CSS.
+        $srcCss  = $source . '/css/all.min.css';
+        $destCss = $dest . '/css';
+        if ( file_exists( $srcCss ) ) {
+            Helpers::ensureWritableDir( $destCss );
+            copy( $srcCss, $destCss . '/all.min.css' );
+        }
+
+        // Copy webfonts.
+        $srcFonts  = $source . '/webfonts';
+        $destFonts = $dest . '/webfonts';
+        if ( is_dir( $srcFonts ) ) {
+            Helpers::ensureWritableDir( $destFonts );
+            $files = glob( $srcFonts . '/*.woff2' );
+            foreach ( $files as $file ) {
+                copy( $file, $destFonts . '/' . basename( $file ) );
+            }
+        }
+    }
+
+    /**
+     * Build the <link> tag for the icon library (Font Awesome) when
+     * icons_enabled is true in site config.
+     *
+     * @param  string $basePath Site base path.
+     * @return string HTML link tag or empty string.
+     */
+    private function buildIconsCssLink( string $basePath ): string
+    {
+        $enabled = (bool) $this->app->getSiteConfig()->getValue( 'icons_enabled', false );
+        $enabled = (bool) klytos_apply_filters( 'build.icons_enabled', $enabled );
+
+        if ( !$enabled ) {
+            return '';
+        }
+
+        $href = $basePath . 'assets/vendor/fontawesome/css/all.min.css';
+        return '<link rel="stylesheet" href="' . Helpers::escUrl( $href ) . '">';
     }
 
     /**

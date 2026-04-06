@@ -138,6 +138,10 @@
 | `build.structural_block_mapping` | filter | `array $mapping` — customize structural element → block ID mapping for dedup | core/build-engine.php |
 | `build.exclude_structural_blocks` | filter | `array $exclude, string $rawTemplate` — override final block exclusion list | core/build-engine.php |
 | `build.inject_top_bar` | filter | `string $html` — modify or suppress auto-injected top-bar HTML (return empty to disable) | core/build-engine.php |
+| `build.icons_enabled` | filter | `bool $enabled` — override whether Font Awesome icon library is loaded on the frontend | core/build-engine.php |
+| `admin_bar.enabled` | filter | `bool $enabled` — enable/disable the admin bar on the public site | core/app.php |
+| `admin_bar.items` | filter | `array $items` — add/remove/modify admin bar items (supports icon, children, align) | core/app.php |
+| `admin_bar.render` | filter | `string $html` — modify the final admin bar script tag | core/app.php |
 
 ## 7. Options & Metadata
 

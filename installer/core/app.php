@@ -512,6 +512,8 @@ class App
 
         // Step 11e: Register admin bar injection for built pages.
         // The admin bar is extensible by plugins via the 'admin_bar.items' filter.
+        // Supports dropdown menus (children), left/right alignment, icons, and
+        // automatic CPT discovery for the "+ Add" menu.
         $appRef2 = $this;
         klytos_add_filter( 'build.body_end_html', function ( string $html ) use ( $appRef2 ): string {
             $enabled = (bool) klytos_apply_filters( 'admin_bar.enabled', $appRef2->getSiteConfig()->getValue( 'admin_bar_enabled', true ) );
@@ -519,17 +521,119 @@ class App
                 return $html;
             }
 
-            // Build admin bar items array — plugins can add/remove via filter.
-            $items = [
-                ['id' => 'dashboard', 'label' => 'Dashboard', 'url' => '{{admin_url}}index.php', 'position' => 10],
-                ['id' => 'edit_page', 'label' => 'Edit Page', 'url' => '{{admin_url}}page-editor.php?slug={{page_slug}}', 'position' => 20, 'requires_slug' => true],
+            // Discover custom post types for the "+ Add" dropdown.
+            $addChildren = [
+                [
+                    'id'       => 'add_page',
+                    'label'    => 'Page',
+                    'icon'     => 'fa-solid fa-file',
+                    'url'      => '{{admin_url}}page-editor.php',
+                    'position' => 10,
+                ],
             ];
+
+            try {
+                $postTypes = $appRef2->getPostTypeManager()->list();
+                foreach ( $postTypes as $pt ) {
+                    $ptId   = $pt['id'] ?? '';
+                    $ptName = $pt['name'] ?? $ptId;
+                    $ptIcon = $pt['icon'] ?? 'fa-solid fa-cube';
+                    if ( empty( $ptId ) ) {
+                        continue;
+                    }
+                    $addChildren[] = [
+                        'id'       => 'add_' . $ptId,
+                        'label'    => $ptName,
+                        'icon'     => $ptIcon,
+                        'url'      => '{{admin_url}}page-editor.php?post_type=' . rawurlencode( $ptId ),
+                        'position' => 20,
+                    ];
+                }
+            } catch ( \Throwable $e ) {
+                // Post type manager may not be ready.
+            }
+
+            $addChildren[] = [
+                'id'       => 'add_user',
+                'label'    => 'User',
+                'icon'     => 'fa-solid fa-user-plus',
+                'url'      => '{{admin_url}}users.php?action=new',
+                'position' => 90,
+            ];
+
+            // Build admin bar items array — plugins can add/remove via filter.
+            // Each item supports: id, label, url, position, icon (FA class),
+            // align ('left'|'right'), children (array), requires_slug (bool).
+            $items = [
+                // ── Left side ──
+                [
+                    'id'       => 'dashboard',
+                    'label'    => 'Dashboard',
+                    'icon'     => 'fa-solid fa-gauge-high',
+                    'url'      => '{{admin_url}}index.php',
+                    'position' => 10,
+                ],
+                [
+                    'id'       => 'edit_page',
+                    'label'    => 'Edit Page',
+                    'icon'     => 'fa-solid fa-pen-to-square',
+                    'url'      => '{{admin_url}}page-editor.php?slug={{page_slug}}',
+                    'position' => 20,
+                    'requires_slug' => true,
+                ],
+                [
+                    'id'       => 'pages',
+                    'label'    => 'Pages',
+                    'icon'     => 'fa-solid fa-file-lines',
+                    'url'      => '{{admin_url}}pages.php',
+                    'position' => 30,
+                ],
+                [
+                    'id'       => 'add_new',
+                    'label'    => 'Add',
+                    'icon'     => 'fa-solid fa-plus',
+                    'url'      => '#',
+                    'position' => 40,
+                    'children' => $addChildren,
+                ],
+                [
+                    'id'       => 'build',
+                    'label'    => 'Build',
+                    'icon'     => 'fa-solid fa-hammer',
+                    'url'      => '{{admin_url}}build.php',
+                    'position' => 50,
+                ],
+
+                // ── Right side ──
+                [
+                    'id'       => 'user_menu',
+                    'label'    => '{{user_name}}',
+                    'icon'     => 'fa-solid fa-circle-user',
+                    'url'      => '#',
+                    'position' => 100,
+                    'align'    => 'right',
+                    'children' => [
+                        ['id' => 'profile',  'label' => 'Profile',  'icon' => 'fa-solid fa-user',         'url' => '{{admin_url}}profile.php',        'position' => 10],
+                        ['id' => 'security', 'label' => 'Security', 'icon' => 'fa-solid fa-shield-halved', 'url' => '{{admin_url}}security.php',       'position' => 20],
+                        ['id' => 'settings', 'label' => 'Settings', 'icon' => 'fa-solid fa-gear',         'url' => '{{admin_url}}settings.php',       'position' => 30],
+                        ['id' => 'logout',   'label' => 'Log out',  'icon' => 'fa-solid fa-right-from-bracket', 'url' => '{{admin_url}}login.php?logout=1', 'position' => 90],
+                    ],
+                ],
+            ];
+
             $items = klytos_apply_filters( 'admin_bar.items', $items );
 
-            // Sort by position.
-            usort( $items, function ( $a, $b ) { return ( $a['position'] ?? 50 ) <=> ( $b['position'] ?? 50 ); } );
+            // Sort top-level items; sort children of each item.
+            $sortFn = function ( $a, $b ) { return ( $a['position'] ?? 50 ) <=> ( $b['position'] ?? 50 ); };
+            usort( $items, $sortFn );
+            foreach ( $items as &$item ) {
+                if ( !empty( $item['children'] ) ) {
+                    usort( $item['children'], $sortFn );
+                }
+            }
+            unset( $item );
 
-            // Encode items as JSON for the JS to consume.
+            // Inject user name from the cookie at runtime ({{user_name}} placeholder).
             $itemsJson = json_encode( $items, JSON_UNESCAPED_UNICODE );
 
             $jsPath = $appRef2->getCorePath() . '/../admin/js/admin-bar.js';

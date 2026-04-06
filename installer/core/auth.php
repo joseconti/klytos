@@ -334,6 +334,7 @@ class Auth
         $adminUrl    = $basePath . 'admin/';
         $cookieValue = json_encode( [
             'admin_url' => $adminUrl,
+            'user_name' => $this->getDisplayName(),
             'version'   => defined( 'KLYTOS_VERSION' ) ? KLYTOS_VERSION : '1.0',
         ] );
 
@@ -390,6 +391,26 @@ class Auth
     public function getUserId(): ?string
     {
         return $_SESSION['klytos_user_id'] ?? null;
+    }
+
+    /**
+     * Get a human-readable display name for the current user.
+     * Tries display_name from storage, falls back to session username.
+     */
+    public function getDisplayName(): string
+    {
+        $userId = $this->getUserId();
+        if ( $userId ) {
+            try {
+                $user = $this->storage->read( 'users', $userId );
+                if ( !empty( $user['display_name'] ) ) {
+                    return $user['display_name'];
+                }
+            } catch ( \RuntimeException $e ) {
+                // User not found — fall through.
+            }
+        }
+        return $_SESSION['klytos_user'] ?? 'Admin';
     }
 
     // ─── MCP Bearer Token Auth ─────────────────────────────────

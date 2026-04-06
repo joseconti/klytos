@@ -338,6 +338,8 @@ The following variables are available in HTML templates:
 {{plugin_head_html}}     <!-- Plugin <head> injections -->
 {{plugin_body_end_html}} <!-- Plugin </body> injections -->
 {{plugin_css_link}}      <!-- Plugin CSS stylesheet link -->
+{{icons_css_link}}       <!-- Font Awesome icon library (when icons_enabled=true) -->
+{{blocks_css_link}}      <!-- Block CSS stylesheet link -->
 {{hooks_js_script}}      <!-- Frontend hooks JS script tag -->
 {{klytos_part:NAME}}     <!-- Template part inclusion -->
 ```
