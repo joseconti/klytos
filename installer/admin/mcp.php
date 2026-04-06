@@ -569,12 +569,14 @@ require_once __DIR__ . '/templates/sidebar.php';
         'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
         'gemini'     => [ 'color' => 'gemini-color.webp' ],
         'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
+        'ollama'     => [ 'light' => 'ollama-black.webp', 'dark' => 'ollama-white.webp' ],
     ];
     $providerKeyUrls = [
         'anthropic'  => 'https://console.anthropic.com',
         'openai'     => 'https://platform.openai.com',
         'gemini'     => 'https://aistudio.google.com',
         'openrouter' => 'https://openrouter.ai',
+        'ollama'     => 'https://ollama.com/settings/keys',
     ];
     $imgBase = \Klytos\Core\Helpers::getBasePath() . 'admin/assets/images/';
     ?>

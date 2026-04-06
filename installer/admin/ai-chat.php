@@ -64,6 +64,7 @@ require_once __DIR__ . '/templates/sidebar.php';
         'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
         'gemini'     => [ 'color' => 'gemini-color.webp' ],
         'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
+        'ollama'     => [ 'light' => 'ollama-black.webp', 'dark' => 'ollama-white.webp' ],
     ];
     $imgBase = $basePath . 'admin/assets/images/';
     ?>

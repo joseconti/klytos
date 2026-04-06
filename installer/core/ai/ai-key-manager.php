@@ -74,6 +74,16 @@ class AiKeyManager
             ],
             'default_model' => 'anthropic/claude-sonnet-4',
         ],
+        'ollama' => [
+            'name'          => 'Ollama Cloud',
+            'models'        => [
+                ['id' => 'qwen3.5:32b',          'name' => 'Qwen 3.5 32B',          'tier' => 'standard'],
+                ['id' => 'gemma4:27b',            'name' => 'Gemma 4 27B',           'tier' => 'standard'],
+                ['id' => 'devstral-small:24b',    'name' => 'Devstral Small 24B',    'tier' => 'economy'],
+                ['id' => 'nemotron-3-super:120b', 'name' => 'Nemotron 3 Super 120B', 'tier' => 'premium'],
+            ],
+            'default_model' => 'qwen3.5:32b',
+        ],
     ];
 
     public function __construct(StorageInterface $storage, string $configPath)

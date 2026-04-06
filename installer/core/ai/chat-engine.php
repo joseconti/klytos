@@ -243,6 +243,7 @@ class ChatEngine
             'openai'     => new OpenAIClient($apiKey, ''),
             'gemini'     => new GeminiClient($apiKey),
             'openrouter' => new OpenAICompatibleClient($apiKey, 'https://openrouter.ai/api/v1'),
+            'ollama'     => new OpenAICompatibleClient($apiKey, 'https://ollama.com/v1'),
             default      => throw new \InvalidArgumentException("Unknown AI provider: {$providerId}"),
         };
     }
