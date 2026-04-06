@@ -146,6 +146,41 @@ All tokens use the `--klytos-` prefix. Defined in `installer/admin/assets/css/kl
 
 ---
 
+## Icon Library (Font Awesome 7.2.0 Free)
+
+Klytos uses **Font Awesome 7.2.0 Free** as the icon library, available in both the admin panel and the frontend.
+
+### Usage
+
+```html
+<i class="fa-solid fa-gauge-high"></i>    <!-- Solid icon -->
+<i class="fa-regular fa-bell"></i>        <!-- Regular (outline) icon -->
+<i class="fa-brands fa-github"></i>       <!-- Brand icon -->
+```
+
+### Availability
+
+| Context | How it loads |
+|---|---|
+| **Admin panel** | Always loaded via `<link>` in header.php |
+| **Admin bar** (public site) | Loaded dynamically by JS when the admin cookie is present (only for logged-in admins) |
+| **Frontend** (all visitors) | Opt-in via `icons_enabled: true` in site config — adds `{{icons_css_link}}` to `<head>` |
+| **Plugins** | Can force-load via filter: `klytos_add_filter('build.icons_enabled', fn() => true)` |
+
+### Site Config Setting
+
+```
+icons_enabled: true   → Font Awesome CSS is loaded for ALL visitors
+icons_enabled: false  → Font Awesome is only loaded for admins (default)
+```
+
+### Assets Location
+
+- **Admin:** `admin/assets/vendor/fontawesome/`
+- **Public:** `assets/vendor/fontawesome/` (copied during build automatically)
+
+---
+
 ## Source Files
 
 | File | Purpose |
