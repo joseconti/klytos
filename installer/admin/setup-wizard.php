@@ -234,6 +234,7 @@ $providerLogos = [
     'openai'     => '<img src="assets/images/openai-white.webp" width="32" height="32" alt="OpenAI" style="border-radius:6px">',
     'gemini'     => '<img src="assets/images/gemini-color.webp" width="32" height="32" alt="Google Gemini" style="border-radius:6px">',
     'openrouter' => '<img src="assets/images/openrouter-white.webp" width="32" height="32" alt="OpenRouter" style="border-radius:6px">',
+    'ollama'     => '<img src="assets/images/ollama-white.webp" width="32" height="32" alt="Ollama Cloud" style="border-radius:6px">',
 ];
 
 ?>
