@@ -14,7 +14,7 @@
  * - Active admin session (session cookie).
  * - CSRF token available via meta tag.
  *
- * @license    Elastic License 2.0 (ELv2)
+ * @license    GPL-3.0-or-later
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 (function () {

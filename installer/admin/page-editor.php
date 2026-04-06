@@ -8,7 +8,7 @@
  * - TinyMCE: classic WYSIWYG editor (self-hosted or CDN).
  *
  * @copyright 2024-2026 José Conti. All rights reserved.
- * @license   Elastic License 2.0 (ELv2)
+ * @license   GPL-3.0-or-later
  */
 
 $currentPage = 'pages';

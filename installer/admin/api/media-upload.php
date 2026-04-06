@@ -7,7 +7,7 @@
  * Returns media object in the format Gutenberg expects.
  *
  * @copyright 2024-2026 José Conti. All rights reserved.
- * @license   Elastic License 2.0 (ELv2)
+ * @license   GPL-3.0-or-later
  */
 
 require dirname( __DIR__ ) . '/bootstrap.php';

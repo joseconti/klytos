@@ -5,7 +5,7 @@
  * Based on the QR Code specification (ISO/IEC 18004).
  * Supports byte-mode encoding for otpauth:// URIs.
  *
- * @license    Elastic License 2.0 (ELv2)
+ * @license    GPL-3.0-or-later
  * @copyright  Copyright (c) 2026 José Conti
  */
 (function(global) {

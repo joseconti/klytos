@@ -63,7 +63,7 @@ The main PHP file MUST contain a docblock with at least `Plugin Name:`. All othe
  * Author: Author Name
  * Requires Klytos: 0.15.0
  * Requires PHP: 8.1
- * License: ELv2
+ * License: GPL-3.0-or-later
  * Text Domain: my-plugin
  * Premium: false
  * Logs: true
@@ -326,7 +326,7 @@ $data = $storage->read('my-plugin-data', 'settings');
 3. **Always validate input** — check types, lengths, and formats
 4. **Use capabilities for access control** — register via `auth.capabilities` filter
 5. **Never store secrets in cleartext** — declare sensitivity with `klytos_register_option()`
-6. **Include the ELv2 license header** in all PHP files if distributing
+6. **Include the GPL-3.0-or-later license header** in all PHP files if distributing
 
 ### Declaring Option Sensitivity
 

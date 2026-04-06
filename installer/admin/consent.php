@@ -7,11 +7,11 @@
  * @package Klytos
  * @since   0.17.0
  *
- * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
- *             You may use this software under the Elastic License 2.0.
- *             You may NOT provide it as a hosted/managed service.
- *             You may NOT remove or circumvent plugin license key functionality.
+ *             This program is free software: you can redistribute it and/or modify
+ *             it under the terms of the GNU General Public License v3 or later.
+ *             Plugins and templates are NOT derivative works — see LICENSE.
  *             See the LICENSE file at the project root for the full license text.
  */
 

@@ -89,7 +89,7 @@ installer/
 2. Define a `registerXxxTools(ToolRegistry $registry, App $app)` function.
 3. Use `$registry->register(name, description, schema, handler, annotations)`.
 4. Include the file in the MCP server's tool registration section.
-5. Add the ELv2 license header.
+5. Add the GPL-3.0-or-later license header.
 
 ## Adding a New Manager
 
@@ -99,7 +99,7 @@ installer/
 4. Fire hooks at key points: `{feature}.before_save`, `{feature}.after_save`, etc.
 5. Add it to `App::boot()` as a property with a getter.
 6. Create corresponding MCP tools.
-7. Add the ELv2 license header.
+7. Add the GPL-3.0-or-later license header.
 
 ## Storage Interface
 
@@ -127,7 +127,7 @@ $this->storage->transaction(function($storage) { ... });   // Transaction
 - [ ] File permissions 0700 for directories, 0600 for keys
 - [ ] CSRF tokens validated on all POST forms
 - [ ] Rate limiting on public-facing endpoints
-- [ ] ELv2 license header included
+- [ ] GPL-3.0-or-later license header included
 
 ## Coding Standards
 
@@ -136,7 +136,7 @@ $this->storage->transaction(function($storage) { ... });   // Transaction
 - Descriptive class/method/variable names.
 - PHPDoc on every public method.
 - Namespace: `Klytos\Core` (autoloaded via kebab-case filenames).
-- License: Elastic License 2.0 (ELv2) header on every file.
+- License: GPL-3.0-or-later header on every file.
 - Copyright: José Conti (https://plugins.joseconti.com — https://klytos.io).
 
 ## SEO Requirements for Built Pages

@@ -14,14 +14,14 @@ Los SKILLs son la documentación principal para que IAs y desarrolladores sepan 
 
 ## Qué es Klytos
 
-CMS AI-First controlado por MCP (Model Context Protocol). El core es gratuito bajo licencia **Elastic License 2.0 (ELv2)**. El modelo de negocio se basa en **plugins premium** (marketplace), no en licencias del CMS.
+CMS AI-First controlado por MCP (Model Context Protocol). El core es gratuito bajo licencia **GPL-3.0-or-later**. Los plugins y plantillas NO son obras derivadas y pueden usar cualquier licencia. El modelo de negocio se basa en **plugins premium** (marketplace), no en licencias del CMS.
 
 ## Estructura del Proyecto
 
 ```
 klytos/
 ├── .htaccess                          ← Root: sirve web estática pública
-├── LICENSE                            ← Elastic License 2.0
+├── LICENSE                            ← GPL-3.0-or-later + Plugin Exception
 ├── installer/                  ← Directorio admin (nombre configurable)
 │   ├── .htaccess                      ← Enruta /mcp, /oauth/*, protege /data, /config, /core
 │   ├── index.php                      ← Front controller (router)
@@ -134,22 +134,21 @@ POST (con auth): JSON-RPC 2.0
 
 ## Modelo de Negocio
 
-- **Core CMS**: Gratuito (Elastic License 2.0)
+- **Core CMS**: Gratuito (GPL-3.0-or-later)
+- **Plugins/Plantillas**: NO son obras derivadas — pueden usar cualquier licencia
 - **Plugins**: Marketplace con plugins free y premium
-- **NO hay licencia del CMS** — eliminada toda referencia a licencia del core
 - La sección "Licencia" del admin es para **licencias de plugins premium**
-- Los plugins premium tienen copyright propietario
 
-## Licencia (ELv2)
+## Licencia (GPL-3.0-or-later)
 
 Todos los archivos PHP llevan cabecera:
 ```php
 /**
- * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
- *             You may use this software under the Elastic License 2.0.
- *             You may NOT provide it as a hosted/managed service.
- *             You may NOT remove or circumvent plugin license key functionality.
+ *             This program is free software: you can redistribute it and/or modify
+ *             it under the terms of the GNU General Public License v3 or later.
+ *             Plugins and templates are NOT derivative works — see LICENSE.
  *             See the LICENSE file at the project root for the full license text.
  */
 ```
@@ -239,7 +238,7 @@ Todos los issues encontrados han sido corregidos:
 - [ ] Probar creación de páginas vía MCP
 - [ ] Integrar seedDefaultData() en install.php
 - [ ] Probar build engine (generación de sitio estático)
-- [ ] Añadir cabeceras ELv2 a archivos nuevos que falten
+- [ ] Añadir cabeceras GPL-3.0-or-later a archivos nuevos que falten
 - [ ] Revisión completa de seguridad del proyecto
 - [ ] Implementar marketplace de plugins (futuro)
 - [ ] Diseño moderno del admin (CSS mejorable)

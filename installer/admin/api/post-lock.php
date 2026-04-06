@@ -7,7 +7,7 @@
  * @package Klytos
  * @since   0.26.0
  *
- * @license    Elastic License 2.0 (ELv2)
+ * @license    GPL-3.0-or-later
  * @copyright  Copyright (c) 2026 Jose Conti
  */
 

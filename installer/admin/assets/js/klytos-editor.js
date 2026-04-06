@@ -5,7 +5,7 @@
  * See: https://github.com/Automattic/isolated-block-editor
  *
  * @copyright 2024-2026 José Conti — https://plugins.joseconti.com — https://klytos.io
- * @license   Elastic License 2.0 (ELv2)
+ * @license   GPL-3.0-or-later
  * @version   2.0.0
  */
 
