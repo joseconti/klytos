@@ -1,12 +1,14 @@
 <?php
 
 /**
- * Klytos x402 — Admin Transactions
- *
+ * Klytos Admin — x402 Transactions
  * Paginated list of payment transactions with filters.
  *
- * @package KlytosX402
- * @since   1.0.0
+ * @package Klytos
+ * @since   2.0.0
+ *
+ * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 
 declare( strict_types=1 );
@@ -14,8 +16,8 @@ declare( strict_types=1 );
 require_once __DIR__ . '/bootstrap.php';
 
 $pageTitle = __( 'klytos-x402.transactions' );
-
-$log = klytos_x402_log();
+$auth      = $app->getAuth();
+$log       = klytos_x402_log();
 
 // ─── Filters ───────────────────────────────────────────────────
 $from     = $_GET['from'] ?? gmdate( 'Y-m-d', strtotime( '-30 days' ) );
@@ -27,12 +29,8 @@ $perPage  = 25;
 $offset   = ( $page - 1 ) * $perPage;
 
 $filters = ['from' => $from, 'to' => $to];
-if ( !empty( $slug ) ) {
-    $filters['slug'] = $slug;
-}
-if ( !empty( $bot ) ) {
-    $filters['bot_user_agent'] = $bot;
-}
+if ( !empty( $slug ) ) $filters['slug'] = $slug;
+if ( !empty( $bot ) )  $filters['bot_user_agent'] = $bot;
 
 $result       = $log->list( $filters, $perPage, $offset );
 $transactions = $result['transactions'];
@@ -40,52 +38,46 @@ $total        = $result['total'];
 $totalPages   = (int) ceil( $total / $perPage );
 
 require_once __DIR__ . '/templates/header.php';
-
-$baseUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/x402-transactions.php';
-
+require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<div class="klytos-page-header">
-    <h1><?php echo klytos_esc_html( __( 'klytos-x402.transactions' ) ); ?></h1>
-</div>
-
 <!-- Filters -->
-<div class="klytos-card" style="margin-bottom: var(--klytos-space-4);">
-    <div class="klytos-card__body">
-        <form method="get" class="klytos-form klytos-form--inline">
-            <input type="hidden" name="plugin" value="klytos-x402" />
-            <input type="hidden" name="page" value="transactions" />
-
-            <div class="klytos-field">
-                <label class="klytos-field__label">From</label>
-                <input type="date" name="from" value="<?php echo klytos_esc_attr( $from ); ?>" class="klytos-field__input" />
+<div class="card">
+    <div class="card-body">
+        <form method="get" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">From</label>
+                <input type="date" name="from" value="<?php echo klytos_esc_attr( $from ); ?>" class="form-control">
             </div>
-            <div class="klytos-field">
-                <label class="klytos-field__label">To</label>
-                <input type="date" name="to" value="<?php echo klytos_esc_attr( $to ); ?>" class="klytos-field__input" />
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">To</label>
+                <input type="date" name="to" value="<?php echo klytos_esc_attr( $to ); ?>" class="form-control">
             </div>
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.tx_page' ) ); ?></label>
-                <input type="text" name="slug" value="<?php echo klytos_esc_attr( $slug ); ?>" class="klytos-field__input" placeholder="slug" />
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.tx_page' ) ); ?></label>
+                <input type="text" name="slug" value="<?php echo klytos_esc_attr( $slug ); ?>" class="form-control" placeholder="slug">
             </div>
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.tx_bot' ) ); ?></label>
-                <input type="text" name="bot" value="<?php echo klytos_esc_attr( $bot ); ?>" class="klytos-field__input" placeholder="GPTBot" />
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.tx_bot' ) ); ?></label>
+                <input type="text" name="bot" value="<?php echo klytos_esc_attr( $bot ); ?>" class="form-control" placeholder="GPTBot">
             </div>
-            <div class="klytos-field" style="align-self: flex-end;">
-                <button type="submit" class="klytos-btn klytos-btn--secondary">Filter</button>
+            <div>
+                <button type="submit" class="btn btn-primary">Filter</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Transactions Table -->
-<div class="klytos-card">
-    <div class="klytos-card__body">
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+        <h2><?php echo klytos_esc_html( __( 'klytos-x402.transactions' ) ); ?> (<?php echo $total; ?>)</h2>
+    </div>
+    <div class="card-body">
         <?php if ( empty( $transactions ) ): ?>
-            <p class="klytos-text--muted"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></p>
+            <p class="text-muted"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></p>
         <?php else: ?>
-            <table class="klytos-table">
+            <table class="table">
                 <thead>
                     <tr>
                         <th><?php echo klytos_esc_html( __( 'klytos-x402.tx_id' ) ); ?></th>
@@ -114,16 +106,15 @@ $baseUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/x402-transactions.php';
 
             <!-- Pagination -->
             <?php if ( $totalPages > 1 ): ?>
-            <div class="klytos-pagination" style="margin-top: var(--klytos-space-4); display: flex; gap: var(--klytos-space-2); justify-content: center;">
-                <?php for ( $i = 1; $i <= $totalPages; $i++ ): ?>
-                    <?php
-                    $queryParams = ['p' => $i, 'from' => $from, 'to' => $to];
-                    if ( $slug ) $queryParams['slug'] = $slug;
-                    if ( $bot ) $queryParams['bot'] = $bot;
-                    $url = \Klytos\Core\Helpers::getBasePath() . 'admin/x402-transactions.php?' . http_build_query( $queryParams );
-                    ?>
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
+                <?php for ( $i = 1; $i <= $totalPages; $i++ ):
+                    $qp = ['from' => $from, 'to' => $to, 'p' => $i];
+                    if ( $slug ) $qp['slug'] = $slug;
+                    if ( $bot ) $qp['bot'] = $bot;
+                    $url = 'x402-transactions.php?' . http_build_query( $qp );
+                ?>
                     <a href="<?php echo klytos_esc_url( $url ); ?>"
-                       class="klytos-btn <?php echo $i === $page ? 'klytos-btn--primary' : 'klytos-btn--secondary'; ?>">
+                       class="btn <?php echo $i === $page ? 'btn-primary' : 'btn-sm'; ?>">
                         <?php echo $i; ?>
                     </a>
                 <?php endfor; ?>
@@ -132,10 +123,6 @@ $baseUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/x402-transactions.php';
 
         <?php endif; ?>
     </div>
-</div>
-
-<div style="margin-top: var(--klytos-space-2);">
-    <span class="klytos-text--muted"><?php echo $total; ?> total transactions</span>
 </div>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
