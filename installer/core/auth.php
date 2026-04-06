@@ -136,24 +136,7 @@ class Auth
             $_SESSION['klytos_csrf'] = Helpers::randomHex(32);
 
             // Set admin bar cookie for the public site (non-HttpOnly so JS can read it).
-            $adminBarEnabled = true;
-            try {
-                $adminBarEnabled = (bool) ( \Klytos\Core\App::getInstance()->getSiteConfig()->getValue( 'admin_bar_enabled', true ) );
-            } catch ( \Throwable $e ) {
-                // Config may not be loaded yet during first login.
-            }
-            if ( $adminBarEnabled ) {
-                $basePath = Helpers::getBasePath();
-                $adminUrl = $basePath . 'admin/';
-                $cookieValue = json_encode( ['admin_url' => $adminUrl, 'version' => defined( 'KLYTOS_VERSION' ) ? KLYTOS_VERSION : '1.0'] );
-                setcookie( 'klytos_admin_bar', $cookieValue, [
-                    'expires'  => 0,
-                    'path'     => '/',
-                    'secure'   => !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off',
-                    'httponly'  => false,
-                    'samesite' => 'Lax',
-                ]);
-            }
+            $this->setAdminBarCookie();
 
             // Post-hook: notify plugins of successful login.
             klytos_do_action('auth.after_login', $username, $userId);
@@ -320,7 +303,47 @@ class Auth
         // Update last activity
         $_SESSION['klytos_last_active'] = time();
 
+        // Ensure admin bar cookie exists for the public-site toolbar.
+        // The cookie is set at login but may be missing if the feature was
+        // deployed after the session started, or if the browser discarded it.
+        if ( !isset( $_COOKIE['klytos_admin_bar'] ) ) {
+            $this->setAdminBarCookie();
+        }
+
         return true;
+    }
+
+    /**
+     * Set the admin bar cookie so the public-site toolbar can detect
+     * authenticated admins.  Called on login and refreshed on demand.
+     */
+    private function setAdminBarCookie(): void
+    {
+        $enabled = true;
+        try {
+            $enabled = (bool) ( App::getInstance()->getSiteConfig()->getValue( 'admin_bar_enabled', true ) );
+        } catch ( \Throwable $e ) {
+            // Config may not be loaded yet.
+        }
+
+        if ( !$enabled ) {
+            return;
+        }
+
+        $basePath    = Helpers::getBasePath();
+        $adminUrl    = $basePath . 'admin/';
+        $cookieValue = json_encode( [
+            'admin_url' => $adminUrl,
+            'version'   => defined( 'KLYTOS_VERSION' ) ? KLYTOS_VERSION : '1.0',
+        ] );
+
+        setcookie( 'klytos_admin_bar', $cookieValue, [
+            'expires'  => 0,
+            'path'     => '/',
+            'secure'   => !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off',
+            'httponly'  => false,
+            'samesite' => 'Lax',
+        ] );
     }
 
     /**
