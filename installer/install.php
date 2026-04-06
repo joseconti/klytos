@@ -59,6 +59,7 @@ require_once $rootPath . '/core/storage-interface.php';
 require_once $rootPath . '/core/encryption-level-trait.php';
 require_once $rootPath . '/core/file-storage.php';
 require_once $rootPath . '/core/database-storage.php';
+require_once $rootPath . '/core/helpers-time.php';
 require_once $rootPath . '/core/helpers.php';
 require_once $rootPath . '/core/helpers-security.php';
 require_once $rootPath . '/core/i18n.php';
