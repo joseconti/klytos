@@ -11,6 +11,8 @@
 
 declare( strict_types=1 );
 
+require_once __DIR__ . '/bootstrap.php';
+
 $log = klytos_x402_log();
 
 // ─── Filters ───────────────────────────────────────────────────
