@@ -43,28 +43,100 @@ Build, manage and publish websites entirely through conversation with any AI ass
 - **Multi-Language** — Hierarchical URLs (`/en/`, `/es/`, `/ca/`), hreflang tags, per-page language settings, AI-powered translation.
 - **HTML to Markdown** — Per-page `.html.md` files for LLM discoverability and AI crawler consumption.
 
-### Multi-User & Security
+### Multi-User & Access Control
 - **4 Roles** — Owner, Admin, Editor, Viewer with granular capability-based permissions.
-- **Three 2FA Methods** — TOTP (Google Authenticator), Magic Link (email), Passkeys (WebAuthn/FIDO2).
-- **Recovery Codes** — 8 single-use bcrypt-hashed backup codes per user.
-- **Emergency Email Recovery** — Fallback link when authenticator app is unavailable.
-- **AES-256-GCM Encryption** — All sensitive data encrypted at rest.
-- **Three Encryption Levels** — Basic (system config only), Medium (recommended — adds users, audit, sessions, 2FA), Professional (all data including pages, blocks, templates).
+- **Session Security** — HTTP-only cookies, SameSite=Strict, Secure flag on HTTPS, 30-minute lifetime.
+- **Session Regeneration** — Session ID regenerated on login and 2FA completion (prevents session fixation).
 - **Brute-Force Protection** — Account lockout after 5 failed attempts (15-minute cooldown).
-- **CSRF Protection** — Token validation on all forms.
-- **CSP Headers** — Nonce-based Content Security Policy for inline scripts.
-- **Security Headers** — X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security.
-- **Audit Logging** — Full security event tracking with 90-day retention.
-- **File Integrity Checker** — SHA-256 hash verification to detect unauthorized file modifications.
-- **Site Health Manager** — System health checks with 0-100 scoring and remediation advice.
+- **Password Requirements** — Minimum 12 characters, bcrypt hashing (cost 12).
 - **Secret Admin URL** — Admin directory uses a random, non-discoverable path (not `/admin/` or `/wp-admin/`).
+- **Audit Logging** — Full security event tracking with 90-day retention.
+- **Site Health Manager** — System health checks with 0-100 scoring and remediation advice.
+
+### Encryption & Cryptography
+
+#### AES-256-GCM (Data at Rest)
+- **Cipher** — `aes-256-gcm` via OpenSSL (authenticated encryption with integrity verification).
+- **Key** — 256-bit (32 bytes) generated via `random_bytes(32)` CSPRNG.
+- **IV** — 96-bit (12 bytes) randomly generated per encryption operation.
+- **Auth Tag** — 128-bit (16 bytes) provides tamper detection on every read.
+- **Format** — `Base64(IV[12] + TAG[16] + CIPHERTEXT[n])` — each encryption is atomic with unique IV.
+- **Key Storage** — `config/.encryption_key` with 0600 file permissions (owner-only).
+- **Key Rotation** — `rotateKey()` re-encrypts all data and config files with a new key atomically.
+
+#### Three Encryption Levels
+
+| Level | Name | What is encrypted |
+|-------|------|-------------------|
+| 0 | **Basic** | System config only: tokens, app passwords, OAuth clients |
+| 1 | **Medium** (recommended) | + Users, audit log, sessions, AI chats, 2FA secrets |
+| 2 | **Professional** | + Pages, blocks, templates, forms, analytics, assets, options, webhooks, logs — everything |
+
+- Levels can be changed at any time from the admin panel; data is automatically encrypted/decrypted during transition.
+- **Warning:** At Professional level, loss of encryption key = irreversible loss of ALL content.
+
+#### Password Hashing
+- **Algorithm** — bcrypt via `password_hash()` with cost factor 12.
+- **Verification** — Constant-time comparison via `password_verify()` (prevents timing attacks).
+- **Used for** — Admin passwords, user passwords, Application Passwords, 2FA recovery codes.
+
+#### RSA Identity Keys (2048-bit)
+- **Purpose** — Admin identity verification and signed integrity manifests.
+- **Generation** — `openssl_pkey_new()` with 2048-bit RSA.
+- **Storage** — Public and private keys stored as AES-256-GCM encrypted files (`admin-identity.pub.enc`, `admin-identity.priv.enc`).
+- **Challenge-Response** — 32-byte random challenge signed with SHA-256 for identity verification.
+- **Download Protection** — Rate-limited (1/24h), owner-only, audit-logged, email notification.
+
+#### Webhook Signatures (HMAC-SHA256)
+- **Secret** — 64 hex characters per webhook subscription.
+- **Header** — `X-Klytos-Signature: sha256={hmac_hex}` on every delivery.
+
+#### CSPRNG (Cryptographically Secure Random)
+- All random values use PHP `random_bytes()` — encryption keys, IVs, CSRF tokens, user IDs, TOTP secrets, webhook secrets, recovery codes, challenges.
+
+### Two-Factor Authentication (3 Methods)
+
+| Method | Details |
+|--------|---------|
+| **TOTP** (RFC 6238) | 160-bit secret (Base32), 6-digit codes, 30s period, ±1 window for clock drift. Compatible with Google Authenticator, 1Password, Authy. |
+| **Magic Link** (email) | 64-hex token, 10-minute expiry, single-use, delivered via email. |
+| **Passkeys** (WebAuthn/FIDO2) | 256-bit challenge, 5-minute expiry. Supports biometrics, security keys, platform authenticators. Passwordless. |
+| **Recovery Codes** | 8 single-use codes, bcrypt-hashed before storage. Auto-generated when first 2FA method enabled. |
+| **Emergency Recovery** | Email fallback link when authenticator app is unavailable. |
+
+### Network & Application Security
+- **CSRF Protection** — 256-bit random token (64 hex chars), constant-time verification via `hash_equals()`.
+- **CSP Headers** — Nonce-based Content Security Policy for inline scripts. No inline event handlers (`onclick`, etc.).
+- **Security Headers** — X-Frame-Options (clickjacking), X-Content-Type-Options (MIME sniffing), Strict-Transport-Security (HSTS).
+- **Input Sanitization** — `kses_post()` whitelist-based HTML, `sanitizeSlug()` with transliteration, type-checked query parameters.
+- **SQL Injection Prevention** — PDO prepared statements with `ATTR_EMULATE_PREPARES = false` and `ERRMODE_EXCEPTION`.
+- **Path Traversal Prevention** — Collection/ID names sanitized, no `.` or `/` allowed.
+- **File Integrity Checker** — SHA-256 hash verification with RSA-signed manifests, 100 files per cron cycle, 24h cache.
+- **Atomic File Writes** — `LOCK_EX` file locking prevents race conditions and partial writes.
+
+### Cryptographic Summary
+
+| Component | Algorithm | Key/Size |
+|-----------|-----------|----------|
+| Data encryption | AES-256-GCM | 256-bit key, 96-bit IV, 128-bit tag |
+| Password hashing | bcrypt | cost 12 |
+| Identity keys | RSA | 2048-bit |
+| TOTP secrets | HMAC-SHA1 | 160-bit (RFC 6238) |
+| Webhook signatures | HMAC-SHA256 | 256-bit secret |
+| File integrity | SHA-256 | 256-bit digest |
+| Manifest signing | RSA-SHA256 | 2048-bit |
+| CSRF tokens | CSPRNG | 256-bit (64 hex) |
+| Analytics IP hash | SHA-256 + daily salt | 256-bit rotating |
+| Session IDs | PHP native | ~128-bit |
 
 ### Privacy & GDPR Compliance
-- **Privacy Manager** — GDPR data export (Article 15) and erasure (Article 17) tools.
-- **Consent Manager** — Cookie banner generation, consent declarations with vendor info, opt-in/opt-out tracking, consent audit trail.
-- **Privacy-First Analytics** — Built-in analytics without cookies or fingerprinting.
-- **Daily Hashed IPs** — SHA-256 with rotating daily salt. Impossible to track visitors across days.
+- **Privacy Manager** — GDPR data export (Article 15) and erasure (Article 17) tools with plugin hooks for custom data.
+- **Consent Manager** — Cookie banner generation, consent declarations with vendor info, opt-in/opt-out tracking per category (Necessary, Functional, Analytics, Marketing + custom), and full consent audit trail.
+- **Privacy-First Analytics** — Built-in analytics without cookies or fingerprinting. Tracks only page path, referrer domain, device category, and anonymized visitor hash.
+- **Daily Hashed IPs** — SHA-256 with rotating daily salt generated via `random_bytes(32)`. Hash changes every 24 hours — impossible to track visitors across days. Raw IPs never stored.
 - **Configurable Retention** — Analytics data auto-deleted after configurable period (default 90 days).
+- **Data Portability** — Machine-readable export format (GDPR Article 20).
+- **Audit Log Anonymization** — On user erasure, audit logs are anonymized (not deleted) to preserve compliance records.
 - **Dashboard** — Visual analytics directly in the admin panel.
 
 ### x402 Micropayment Protocol
@@ -469,6 +541,12 @@ klytos/
         tools/             # 33 tool modules (160+ tools)
       x402/                # x402 micropayment protocol
     config/                # Encrypted configuration (.htaccess protected)
+      .encryption_key    # AES-256 master key (32 bytes, 0600 perms)
+      config.json.enc    # Main site config (AES-256-GCM)
+      database.json.enc  # DB credentials (AES-256-GCM, if MySQL)
+      admin-identity.pub.enc   # RSA-2048 public key (encrypted)
+      admin-identity.priv.enc  # RSA-2048 private key (encrypted)
+      .install.lock      # Prevents re-installation
     data/                  # Flat-file storage (JSON, 25+ collections)
     backups/               # Automatic backup archives
     plugins/               # Plugin directory
