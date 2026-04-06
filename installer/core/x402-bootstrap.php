@@ -215,7 +215,7 @@ klytos_add_action( 'build.after', function () use ( $x402Writer, $x402Config ): 
     }
 
     $config         = $x402Config->getAll();
-    $allPages       = klytos_storage()->getAll( 'pages' );
+    $allPages       = klytos_storage()->list( 'pages' );
     $protectedCount = 0;
 
     $ptManager = klytos_app()->getPostTypeManager();
@@ -271,7 +271,7 @@ klytos_add_action( 'build.after', function () use ( $x402Writer, $x402Config ): 
 
 klytos_add_filter( 'build.llms_txt', function ( string $content ) use ( $x402Config ): string {
     $config = $x402Config->getAll();
-    $pages  = klytos_storage()->getAll( 'pages' );
+    $pages  = klytos_storage()->list( 'pages' );
 
     $protected = [];
     $ptManager = klytos_app()->getPostTypeManager();
