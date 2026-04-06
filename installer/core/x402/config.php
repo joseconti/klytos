@@ -19,7 +19,6 @@ class Config
     private const OPTIONS_KEY = 'klytos-x402.settings';
 
     private const DEFAULTS = [
-        'x402_default_enabled'   => false,
         'provider_id'            => '',
         'wallet_address'         => '',
         'default_price_usd'      => '0.01',
@@ -82,7 +81,8 @@ class Config
     }
 
     /**
-     * Get effective x402 config for a specific page (cascade resolution).
+     * Get effective x402 config for a specific page.
+     * Cascade: page override → Post Type default.
      */
     public function getEffective( string $slug ): array
     {
@@ -97,8 +97,16 @@ class Config
         }
 
         $enabled = $page['x402_enabled'] ?? null;
+
+        // If page doesn't override, use Post Type default.
         if ( $enabled === null ) {
-            $enabled = $global['x402_default_enabled'];
+            $postType = $page['post_type'] ?? 'page';
+            try {
+                $ptData  = klytos_app()->getPostTypeManager()->get( $postType );
+                $enabled = $ptData['x402_default_enabled'] ?? false;
+            } catch ( \Throwable ) {
+                $enabled = false;
+            }
         }
 
         return [
