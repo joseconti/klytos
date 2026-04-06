@@ -114,7 +114,10 @@ klytos_add_filter( 'admin.sidebar_items', function ( array $items ): array {
 
 // ─── Page editor integration ───────────────────────────────────
 
-klytos_add_action( 'editor.sidebar.after_seo', function ( array $page, bool $isEditing ) use ( $x402Config ): void {
+klytos_add_action( 'editor.sidebar.after_seo', function ( ?array $page, bool $isEditing ) use ( $x402Config ): void {
+    if ( $page === null ) {
+        return;
+    }
     // Resolve Post Type default for the inherit label.
     $postType = $page['post_type'] ?? 'page';
     $ptDefault = false;
