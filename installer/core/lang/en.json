@@ -488,7 +488,7 @@
     "encryption_description": "Controls how much data is encrypted at rest. Higher levels protect more data but make the encryption key more critical.",
     "encryption_level_label": "Encryption level",
     "enc_basic": "Basic",
-    "enc_medium": "Medium",
+    "enc_medium": "Medium (Recommended in EU)",
     "enc_professional": "Professional",
     "current_password": "Current password",
     "change_level": "Change level",
