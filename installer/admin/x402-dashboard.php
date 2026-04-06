@@ -13,6 +13,8 @@ declare( strict_types=1 );
 
 require_once __DIR__ . '/bootstrap.php';
 
+$pageTitle = __( 'klytos-x402.sidebar_title' );
+
 $config   = klytos_x402_config();
 $stats    = klytos_x402_stats();
 $registry = klytos_x402_providers();
@@ -27,6 +29,7 @@ $activeProvider   = $registry->has( $activeProviderId ) ? $registry->get( $activ
 
 $cspNonce = $GLOBALS['cspNonce'] ?? '';
 
+require_once __DIR__ . '/templates/header.php';
 ?>
 
 <div class="klytos-page-header">
@@ -170,3 +173,5 @@ $cspNonce = $GLOBALS['cspNonce'] ?? '';
         </div>
     </div>
 </div>
+
+<?php require_once __DIR__ . '/templates/footer.php'; ?>
