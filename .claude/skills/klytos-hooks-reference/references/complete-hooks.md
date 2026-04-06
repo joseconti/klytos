@@ -137,6 +137,7 @@
 | `build.global_blocks` | filter | `array $cache` | core/build-engine.php |
 | `build.structural_block_mapping` | filter | `array $mapping` — customize structural element → block ID mapping for dedup | core/build-engine.php |
 | `build.exclude_structural_blocks` | filter | `array $exclude, string $rawTemplate` — override final block exclusion list | core/build-engine.php |
+| `build.inject_top_bar` | filter | `string $html` — modify or suppress auto-injected top-bar HTML (return empty to disable) | core/build-engine.php |
 
 ## 7. Options & Metadata
 

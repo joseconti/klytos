@@ -122,15 +122,35 @@ When a custom template includes structural elements (via `{{klytos_part:header}}
 | `{{klytos_part:header}}` or `<header>` | `top-bar`, `header` |
 | `{{klytos_part:footer}}` or `<footer>` | `footer` |
 
+### Top-Bar Auto-Injection (Automatic)
+
+**IMPORTANT:** The build engine automatically injects the global `top-bar` block before the first `<header>` tag in custom templates.
+
+When a custom template provides its own `<header>` element, the build engine:
+1. Excludes both `top-bar` and `header` blocks from `{{page_content}}` (deduplication).
+2. Detects that the template does NOT contain `.klytos-top-bar` markup.
+3. Automatically injects the rendered `top-bar` global block HTML before the `<header>` tag.
+
+This means:
+- **DO NOT hardcode** the top-bar HTML in custom templates — the engine renders it dynamically from the `top-bar` block's `global_data`.
+- If you edit the top-bar block data (phone, address, social links), the changes apply site-wide on the next build.
+- If a custom template already contains a `.klytos-top-bar` element, auto-injection is skipped (no duplication).
+- Templates without a `<header>` tag are not affected.
+
+**Hook:** `build.inject_top_bar` (filter) — Modify or suppress the injected top-bar HTML. Return empty string to disable injection.
+
 **Rules for AI assistants:**
 - **DO NOT** manually remove structural blocks from page templates — the engine handles deduplication automatically.
+- **DO NOT** hardcode top-bar HTML in custom templates — it is injected automatically from the global block.
 - Page templates MUST remain self-contained (include all structural blocks) because `blank.html` relies on them.
 - If creating a custom template with `{{klytos_part:header}}` + `{{klytos_part:footer}}`, the page template's header/footer blocks are automatically skipped.
 - If creating a custom template WITHOUT structural parts (like `blank.html`), all blocks from the page template render normally.
+- To change top-bar content, use `klytos_set_global_block_data` with `block_id: "top-bar"`.
 
 **Hooks for plugins:**
 - `build.structural_block_mapping` (filter) — Customize which template indicators map to which block IDs.
 - `build.exclude_structural_blocks` (filter) — Override the final exclusion list.
+- `build.inject_top_bar` (filter) — Modify or suppress auto-injected top-bar HTML.
 - `page_template.structure_after_dedup` (filter) — Modify structure after deduplication filtering.
 
 ---

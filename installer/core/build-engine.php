@@ -471,6 +471,12 @@ class BuildEngine
         // so they are not duplicated inside {{page_content}}.
         $excludeBlocks = $this->detectProvidedStructure( $rawTemplateHtml, $templateHtml );
 
+        // Auto-inject top-bar before <header> in custom templates that provide
+        // their own header but don't include the top-bar markup.  This ensures
+        // the global top-bar block is always rendered without requiring every
+        // custom template to hardcode it.
+        $templateHtml = $this->injectTopBar( $templateHtml, $excludeBlocks );
+
         $replacements = $this->buildReplacements( $page, $siteConfig, $menuHtml, $theme, $excludeBlocks );
 
         $html = $templateHtml;
@@ -590,6 +596,43 @@ class BuildEngine
         }
 
         return klytos_apply_filters( 'build.exclude_structural_blocks', array_unique( $exclude ), $rawTemplate );
+    }
+
+    /**
+     * Auto-inject the global top-bar block before the first <header> tag when
+     * the custom template provides its own header but does not already include
+     * the top-bar markup.
+     *
+     * This guarantees the top-bar appears on every page without requiring each
+     * custom template to hardcode it.  Templates that already contain a
+     * `.klytos-top-bar` element are left untouched to prevent duplication.
+     *
+     * @param  string $templateHtml  Processed template HTML (after parts).
+     * @param  array  $excludeBlocks Structural blocks excluded by detectProvidedStructure().
+     * @return string Template HTML with the top-bar injected (or unchanged).
+     */
+    private function injectTopBar( string $templateHtml, array $excludeBlocks ): string
+    {
+        // Only inject when the template already provides a header (so top-bar
+        // was excluded from page_content) but does NOT include the top-bar markup.
+        if (
+            !in_array( 'top-bar', $excludeBlocks, true )
+            || str_contains( $templateHtml, 'klytos-top-bar' )
+            || !isset( $this->globalBlocksCache['top-bar'] )
+            || !str_contains( $templateHtml, '<header' )
+        ) {
+            return $templateHtml;
+        }
+
+        $topBarHtml = klytos_apply_filters( 'build.inject_top_bar', $this->globalBlocksCache['top-bar'] );
+
+        // Insert the rendered top-bar immediately before the first <header> tag.
+        return preg_replace(
+            '/(<header\b)/i',
+            $topBarHtml . "\n  $1",
+            $templateHtml,
+            1
+        );
     }
 
     /**
