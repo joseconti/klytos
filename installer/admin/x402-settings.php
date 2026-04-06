@@ -1,12 +1,14 @@
 <?php
 
 /**
- * Klytos x402 — Admin Settings
- *
+ * Klytos Admin — x402 Settings
  * Global configuration: provider, wallet, network, pricing, bots, license.
  *
- * @package KlytosX402
- * @since   1.0.0
+ * @package Klytos
+ * @since   2.0.0
+ *
+ * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 
 declare( strict_types=1 );
@@ -14,12 +16,13 @@ declare( strict_types=1 );
 require_once __DIR__ . '/bootstrap.php';
 
 $pageTitle = __( 'klytos-x402.settings' );
-
-$config   = klytos_x402_config();
-$registry = klytos_x402_providers();
-$cfg      = $config->getAll();
-$success  = '';
-$error    = '';
+$auth      = $app->getAuth();
+$config    = klytos_x402_config();
+$registry  = klytos_x402_providers();
+$cfg       = $config->getAll();
+$success   = '';
+$error     = '';
+$csrf      = $auth->getCsrfToken();
 
 // ─── Handle POST ───────────────────────────────────────────────
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
@@ -59,7 +62,6 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
     if ( empty( $error ) ) {
         $updates['provider_settings'] = $providerSettings;
 
-        // Custom bot user-agents.
         $customAgents = trim( $_POST['custom_bot_user_agents'] ?? '' );
         $updates['custom_bot_user_agents'] = array_filter(
             array_map( 'trim', explode( "\n", $customAgents ) )
@@ -72,46 +74,43 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
 
         klytos_do_action( 'x402.config.updated', $updates );
     }
+
+    $csrf = $auth->getCsrfToken();
 }
 
-$allProviders    = $registry->getAll();
-$activeProvider  = $registry->has( $cfg['provider_id'] ) ? $registry->get( $cfg['provider_id'] ) : null;
-
-$cspNonce = $GLOBALS['cspNonce'] ?? '';
+$allProviders   = $registry->getAll();
+$activeProvider = $registry->has( $cfg['provider_id'] ) ? $registry->get( $cfg['provider_id'] ) : null;
 
 require_once __DIR__ . '/templates/header.php';
+require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<div class="klytos-page-header">
-    <h1><?php echo klytos_esc_html( __( 'klytos-x402.settings' ) ); ?></h1>
-</div>
-
 <?php if ( !empty( $success ) ): ?>
-    <div class="klytos-notice klytos-notice--success"><?php echo klytos_esc_html( $success ); ?></div>
+    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
 <?php endif; ?>
 
 <?php if ( !empty( $error ) ): ?>
-    <div class="klytos-notice klytos-notice--error"><?php echo klytos_esc_html( $error ); ?></div>
+    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
 <?php endif; ?>
 
 <?php if ( empty( $allProviders ) ): ?>
-    <div class="klytos-notice klytos-notice--warning">
+    <div class="alert alert-warning">
         <?php echo klytos_esc_html( __( 'klytos-x402.no_provider' ) ); ?>
     </div>
 <?php endif; ?>
 
-<form method="post" class="klytos-form">
-    <?php klytos_csrf_field(); ?>
+<form method="post">
+    <input type="hidden" name="csrf_token" value="<?php echo klytos_esc_attr( $csrf ); ?>">
 
     <!-- Provider Selection -->
-    <div class="klytos-card">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></span>
+    <div class="card">
+        <div class="card-header">
+            <h2><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></h2>
         </div>
-        <div class="klytos-card__body">
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></label>
-                <select name="provider_id" class="klytos-field__select" id="x402-provider-select">
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></label>
+                <select name="provider_id" class="form-control">
                     <?php foreach ( $allProviders as $prov ): ?>
                     <option value="<?php echo klytos_esc_attr( $prov->getId() ); ?>"
                         <?php echo $prov->getId() === $cfg['provider_id'] ? 'selected' : ''; ?>>
@@ -125,18 +124,18 @@ require_once __DIR__ . '/templates/header.php';
             <!-- Provider-specific settings -->
             <?php if ( $activeProvider ): ?>
                 <?php foreach ( $activeProvider->getSettingsFields() as $field ): ?>
-                <div class="klytos-field">
-                    <label class="klytos-field__label"><?php echo klytos_esc_html( $field['label'] ); ?></label>
+                <div class="form-group">
+                    <label class="form-label"><?php echo klytos_esc_html( $field['label'] ); ?></label>
                     <input
                         type="<?php echo klytos_esc_attr( $field['type'] === 'password' ? 'password' : 'text' ); ?>"
                         name="provider_<?php echo klytos_esc_attr( $field['key'] ); ?>"
                         value="<?php echo klytos_esc_attr( $cfg['provider_settings'][$field['key']] ?? $field['default'] ?? '' ); ?>"
-                        class="klytos-field__input"
+                        class="form-control"
                         placeholder="<?php echo klytos_esc_attr( $field['default'] ?? '' ); ?>"
                         <?php echo !empty( $field['required'] ) ? 'required' : ''; ?>
-                    />
+                    >
                     <?php if ( !empty( $field['description'] ) ): ?>
-                        <span class="klytos-field__hint"><?php echo klytos_esc_html( $field['description'] ); ?></span>
+                        <small class="text-muted"><?php echo klytos_esc_html( $field['description'] ); ?></small>
                     <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
@@ -145,21 +144,21 @@ require_once __DIR__ . '/templates/header.php';
     </div>
 
     <!-- Wallet & Pricing -->
-    <div class="klytos-card" style="margin-top: var(--klytos-space-4);">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.wallet_address' ) ); ?> &amp; <?php echo klytos_esc_html( __( 'klytos-x402.default_price' ) ); ?></span>
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h2><?php echo klytos_esc_html( __( 'klytos-x402.wallet_address' ) ); ?></h2>
         </div>
-        <div class="klytos-card__body">
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.wallet_address' ) ); ?></label>
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.wallet_address' ) ); ?></label>
                 <input type="text" name="wallet_address" value="<?php echo klytos_esc_attr( $cfg['wallet_address'] ); ?>"
-                    class="klytos-field__input" placeholder="0x..." />
-                <span class="klytos-field__hint"><?php echo klytos_esc_html( __( 'klytos-x402.wallet_address_desc' ) ); ?></span>
+                    class="form-control" placeholder="0x...">
+                <small class="text-muted"><?php echo klytos_esc_html( __( 'klytos-x402.wallet_address_desc' ) ); ?></small>
             </div>
 
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.network' ) ); ?></label>
-                <select name="network" class="klytos-field__select">
+            <div class="form-group">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.network' ) ); ?></label>
+                <select name="network" class="form-control">
                     <?php
                     $networks = $activeProvider ? $activeProvider->getSupportedNetworks() : ['base', 'base-sepolia', 'polygon', 'solana'];
                     foreach ( $networks as $net ):
@@ -172,31 +171,31 @@ require_once __DIR__ . '/templates/header.php';
                 </select>
             </div>
 
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.default_price' ) ); ?></label>
+            <div class="form-group">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.default_price' ) ); ?></label>
                 <input type="text" name="default_price_usd" value="<?php echo klytos_esc_attr( $cfg['default_price_usd'] ); ?>"
-                    class="klytos-field__input" placeholder="0.01" />
+                    class="form-control" placeholder="0.01">
             </div>
 
-            <div class="klytos-field">
-                <label class="klytos-toggle">
+            <div class="form-group">
+                <label>
                     <input type="checkbox" name="x402_default_enabled" value="1"
-                        <?php echo !empty( $cfg['x402_default_enabled'] ) ? 'checked' : ''; ?> />
-                    <span class="klytos-toggle__label"><?php echo klytos_esc_html( __( 'klytos-x402.enabled' ) ); ?> (<?php echo klytos_esc_html( __( 'klytos-x402.inherit_on' ) ); ?>)</span>
+                        <?php echo !empty( $cfg['x402_default_enabled'] ) ? 'checked' : ''; ?>>
+                    <?php echo klytos_esc_html( __( 'klytos-x402.enabled' ) ); ?> — <?php echo klytos_esc_html( __( 'klytos-x402.inherit_on' ) ); ?>
                 </label>
             </div>
         </div>
     </div>
 
     <!-- License -->
-    <div class="klytos-card" style="margin-top: var(--klytos-space-4);">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.license_type' ) ); ?></span>
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h2><?php echo klytos_esc_html( __( 'klytos-x402.license_type' ) ); ?></h2>
         </div>
-        <div class="klytos-card__body">
-            <div class="klytos-field">
-                <label class="klytos-field__label"><?php echo klytos_esc_html( __( 'klytos-x402.license_type' ) ); ?></label>
-                <select name="license_type" class="klytos-field__select">
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label"><?php echo klytos_esc_html( __( 'klytos-x402.license_type' ) ); ?></label>
+                <select name="license_type" class="form-control">
                     <?php
                     $licenseTypes = ['inference' => 'Inference', 'inference-only' => 'Inference Only', 'training' => 'Training', 'full' => 'Full'];
                     foreach ( $licenseTypes as $val => $label ):
@@ -208,52 +207,52 @@ require_once __DIR__ . '/templates/header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="klytos-field">
-                <label class="klytos-field__label">License Text</label>
-                <textarea name="license_text" class="klytos-field__textarea" rows="2"><?php echo klytos_esc_html( $cfg['license']['default_text'] ?? '' ); ?></textarea>
+            <div class="form-group">
+                <label class="form-label">License Text</label>
+                <textarea name="license_text" class="form-control" rows="2"><?php echo klytos_esc_html( $cfg['license']['default_text'] ?? '' ); ?></textarea>
             </div>
         </div>
     </div>
 
     <!-- Bot User-Agents -->
-    <div class="klytos-card" style="margin-top: var(--klytos-space-4);">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.bot_user_agents' ) ); ?></span>
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+            <h2><?php echo klytos_esc_html( __( 'klytos-x402.bot_user_agents' ) ); ?></h2>
         </div>
-        <div class="klytos-card__body">
-            <div class="klytos-field">
-                <label class="klytos-field__label">Known bots (built-in, not editable)</label>
-                <textarea class="klytos-field__textarea" rows="4" disabled><?php echo klytos_esc_html( implode( "\n", $cfg['known_bot_user_agents'] ) ); ?></textarea>
+        <div class="card-body">
+            <div class="form-group">
+                <label class="form-label">Known bots (built-in)</label>
+                <textarea class="form-control" rows="4" disabled><?php echo klytos_esc_html( implode( "\n", $cfg['known_bot_user_agents'] ) ); ?></textarea>
             </div>
-            <div class="klytos-field">
-                <label class="klytos-field__label">Custom bots (one per line)</label>
-                <textarea name="custom_bot_user_agents" class="klytos-field__textarea" rows="3"><?php echo klytos_esc_html( implode( "\n", $cfg['custom_bot_user_agents'] ) ); ?></textarea>
+            <div class="form-group">
+                <label class="form-label">Custom bots (one per line)</label>
+                <textarea name="custom_bot_user_agents" class="form-control" rows="3"><?php echo klytos_esc_html( implode( "\n", $cfg['custom_bot_user_agents'] ) ); ?></textarea>
             </div>
         </div>
     </div>
 
     <!-- Logging -->
-    <div class="klytos-card" style="margin-top: var(--klytos-space-4);">
-        <div class="klytos-card__body">
-            <div class="klytos-field">
-                <label class="klytos-toggle">
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-body">
+            <div class="form-group">
+                <label>
                     <input type="checkbox" name="logging_enabled" value="1"
-                        <?php echo !empty( $cfg['logging_enabled'] ) ? 'checked' : ''; ?> />
-                    <span class="klytos-toggle__label"><?php echo klytos_esc_html( __( 'klytos-x402.logging' ) ); ?></span>
+                        <?php echo !empty( $cfg['logging_enabled'] ) ? 'checked' : ''; ?>>
+                    <?php echo klytos_esc_html( __( 'klytos-x402.logging' ) ); ?>
                 </label>
             </div>
-            <div class="klytos-field">
-                <label class="klytos-toggle">
+            <div class="form-group">
+                <label>
                     <input type="checkbox" name="stats_enabled" value="1"
-                        <?php echo !empty( $cfg['stats_enabled'] ) ? 'checked' : ''; ?> />
-                    <span class="klytos-toggle__label"><?php echo klytos_esc_html( __( 'klytos-x402.stats_toggle' ) ); ?></span>
+                        <?php echo !empty( $cfg['stats_enabled'] ) ? 'checked' : ''; ?>>
+                    <?php echo klytos_esc_html( __( 'klytos-x402.stats_toggle' ) ); ?>
                 </label>
             </div>
         </div>
     </div>
 
-    <div style="margin-top: var(--klytos-space-4);">
-        <button type="submit" class="klytos-btn klytos-btn--primary">
+    <div style="margin-top: 1.5rem;">
+        <button type="submit" class="btn btn-primary">
             <?php echo klytos_esc_html( __( 'klytos-x402.save_settings' ) ); ?>
         </button>
     </div>

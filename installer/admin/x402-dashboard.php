@@ -1,12 +1,14 @@
 <?php
 
 /**
- * Klytos x402 — Admin Dashboard
- *
+ * Klytos Admin — x402 Dashboard
  * Revenue stats, transaction chart, top pages, top bots.
  *
- * @package KlytosX402
- * @since   1.0.0
+ * @package Klytos
+ * @since   2.0.0
+ *
+ * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 
 declare( strict_types=1 );
@@ -14,6 +16,7 @@ declare( strict_types=1 );
 require_once __DIR__ . '/bootstrap.php';
 
 $pageTitle = __( 'klytos-x402.sidebar_title' );
+$auth      = $app->getAuth();
 
 $config   = klytos_x402_config();
 $stats    = klytos_x402_stats();
@@ -27,23 +30,18 @@ $dailyRevenue = $stats->getDailyRevenue( 30 );
 $activeProviderId = $config->get( 'provider_id', '' );
 $activeProvider   = $registry->has( $activeProviderId ) ? $registry->get( $activeProviderId ) : null;
 
-$cspNonce = $GLOBALS['cspNonce'] ?? '';
-
 require_once __DIR__ . '/templates/header.php';
+require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<div class="klytos-page-header">
-    <h1><?php echo klytos_esc_html( __( 'klytos-x402.sidebar_title' ) ); ?></h1>
-</div>
-
-<?php if ( !$activeProvider ): ?>
-    <div class="klytos-notice klytos-notice--warning">
+<?php if ( $registry->isEmpty() ): ?>
+    <div class="alert alert-warning">
         <?php echo klytos_esc_html( __( 'klytos-x402.no_provider' ) ); ?>
     </div>
 <?php endif; ?>
 
 <!-- Revenue Cards -->
-<div class="klytos-grid klytos-grid--4">
+<div class="stats-grid">
     <?php
     $periods = [
         'today' => __( 'klytos-x402.revenue_today' ),
@@ -54,57 +52,51 @@ require_once __DIR__ . '/templates/header.php';
     foreach ( $periods as $key => $label ):
         $rev = $summary[$key] ?? ['total_usd' => '0.0000', 'transaction_count' => 0];
     ?>
-    <div class="klytos-card">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( $label ); ?></span>
-        </div>
-        <div class="klytos-card__body">
-            <span class="klytos-card__value">$<?php echo klytos_esc_html( $rev['total_usd'] ); ?></span>
-            <span class="klytos-card__meta"><?php echo (int) $rev['transaction_count']; ?> txns</span>
-        </div>
+    <div class="stat-card">
+        <div class="stat-card__label"><?php echo klytos_esc_html( $label ); ?></div>
+        <div class="stat-card__value">$<?php echo klytos_esc_html( $rev['total_usd'] ); ?></div>
+        <div class="stat-card__meta"><?php echo (int) $rev['transaction_count']; ?> txns</div>
     </div>
     <?php endforeach; ?>
 </div>
 
 <!-- Active Provider Info -->
 <?php if ( $activeProvider ): ?>
-<div class="klytos-card" style="margin-top: var(--klytos-space-4);">
-    <div class="klytos-card__header">
-        <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></span>
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+        <h2><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></h2>
     </div>
-    <div class="klytos-card__body">
-        <strong><?php echo klytos_esc_html( $activeProvider->getLabel() ); ?></strong>
-        <br>
-        <?php echo klytos_esc_html( __( 'klytos-x402.network' ) ); ?>: <?php echo klytos_esc_html( $config->get( 'network', 'base' ) ); ?>
-        <br>
-        <?php echo klytos_esc_html( __( 'klytos-x402.wallet_address' ) ); ?>: <code><?php echo klytos_esc_html( substr( $config->get( 'wallet_address', '' ), 0, 10 ) . '...' ); ?></code>
+    <div class="card-body">
+        <p>
+            <strong><?php echo klytos_esc_html( $activeProvider->getLabel() ); ?></strong><br>
+            <?php echo klytos_esc_html( __( 'klytos-x402.network' ) ); ?>: <?php echo klytos_esc_html( $config->get( 'network', 'base' ) ); ?><br>
+            <?php echo klytos_esc_html( __( 'klytos-x402.wallet_address' ) ); ?>: <code><?php echo klytos_esc_html( substr( $config->get( 'wallet_address', '' ), 0, 10 ) . '...' ); ?></code>
+        </p>
     </div>
 </div>
 <?php endif; ?>
 
 <!-- Daily Revenue Chart -->
-<div class="klytos-card" style="margin-top: var(--klytos-space-4);">
-    <div class="klytos-card__header">
-        <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.daily_revenue' ) ); ?></span>
+<div class="card" style="margin-top: 1.5rem;">
+    <div class="card-header">
+        <h2><?php echo klytos_esc_html( __( 'klytos-x402.daily_revenue' ) ); ?></h2>
     </div>
-    <div class="klytos-card__body">
-        <div id="x402-chart" style="display: flex; align-items: flex-end; gap: 2px; height: 120px; padding: var(--klytos-space-2) 0;">
+    <div class="card-body">
+        <div style="display: flex; align-items: flex-end; gap: 2px; height: 120px;">
             <?php
-            $maxRevenue = 0.0001; // Avoid division by zero.
+            $maxRevenue = 0.0001;
             foreach ( $dailyRevenue as $day ) {
                 $val = (float) $day['total_usd'];
-                if ( $val > $maxRevenue ) {
-                    $maxRevenue = $val;
-                }
+                if ( $val > $maxRevenue ) $maxRevenue = $val;
             }
             foreach ( $dailyRevenue as $day ):
-                $val     = (float) $day['total_usd'];
-                $height  = $maxRevenue > 0 ? round( ( $val / $maxRevenue ) * 100 ) : 0;
-                $height  = max( $height, 2 ); // Minimum bar height.
+                $val    = (float) $day['total_usd'];
+                $height = $maxRevenue > 0 ? round( ( $val / $maxRevenue ) * 100 ) : 0;
+                $height = max( $height, 2 );
             ?>
             <div
                 title="<?php echo klytos_esc_attr( $day['date'] . ': $' . $day['total_usd'] . ' (' . $day['count'] . ' txns)' ); ?>"
-                style="flex: 1; height: <?php echo $height; ?>%; background: var(--klytos-primary); border-radius: 2px 2px 0 0; min-width: 4px;"
+                style="flex: 1; height: <?php echo $height; ?>%; background: var(--accent); border-radius: 2px 2px 0 0; min-width: 4px;"
             ></div>
             <?php endforeach; ?>
         </div>
@@ -112,16 +104,16 @@ require_once __DIR__ . '/templates/header.php';
 </div>
 
 <!-- Top Pages & Top Bots -->
-<div class="klytos-grid klytos-grid--2" style="margin-top: var(--klytos-space-4);">
-    <div class="klytos-card">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.top_pages' ) ); ?></span>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+    <div class="card">
+        <div class="card-header">
+            <h2><?php echo klytos_esc_html( __( 'klytos-x402.top_pages' ) ); ?></h2>
         </div>
-        <div class="klytos-card__body">
+        <div class="card-body">
             <?php if ( empty( $topPages ) ): ?>
-                <p class="klytos-text--muted"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></p>
+                <p class="text-muted"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></p>
             <?php else: ?>
-                <table class="klytos-table klytos-table--compact">
+                <table class="table">
                     <thead>
                         <tr>
                             <th><?php echo klytos_esc_html( __( 'klytos-x402.tx_page' ) ); ?></th>
@@ -143,15 +135,15 @@ require_once __DIR__ . '/templates/header.php';
         </div>
     </div>
 
-    <div class="klytos-card">
-        <div class="klytos-card__header">
-            <span class="klytos-card__label"><?php echo klytos_esc_html( __( 'klytos-x402.top_bots' ) ); ?></span>
+    <div class="card">
+        <div class="card-header">
+            <h2><?php echo klytos_esc_html( __( 'klytos-x402.top_bots' ) ); ?></h2>
         </div>
-        <div class="klytos-card__body">
+        <div class="card-body">
             <?php if ( empty( $topBots ) ): ?>
-                <p class="klytos-text--muted"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></p>
+                <p class="text-muted"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></p>
             <?php else: ?>
-                <table class="klytos-table klytos-table--compact">
+                <table class="table">
                     <thead>
                         <tr>
                             <th><?php echo klytos_esc_html( __( 'klytos-x402.tx_bot' ) ); ?></th>
