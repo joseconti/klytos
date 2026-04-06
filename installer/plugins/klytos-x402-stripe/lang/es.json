@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "es",
+        "name": "Español",
+        "flag": "ES",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Clave Secreta de Stripe",
+        "secret_key_desc": "Tu clave secreta de Stripe (empieza por sk_). Requiere tener los pagos crypto activados en tu panel de Stripe."
+    }
+}

@@ -475,6 +475,11 @@ class App
             });
         }
 
+        // Step 10g: Initialize x402 micropayments core module.
+        // Must load BEFORE plugins so provider plugins can register via
+        // the x402.payment_providers filter hook.
+        require_once $this->corePath . '/x402-bootstrap.php';
+
         // Step 11: Discover and load active plugins.
         // Plugins register their hooks/filters in their init.php files.
         require_once $this->corePath . '/plugin-loader.php';
