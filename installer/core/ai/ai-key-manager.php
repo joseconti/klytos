@@ -77,12 +77,17 @@ class AiKeyManager
         'ollama' => [
             'name'          => 'Ollama Cloud',
             'models'        => [
-                ['id' => 'qwen3.5:32b',          'name' => 'Qwen 3.5 32B',          'tier' => 'standard'],
-                ['id' => 'gemma4:27b',            'name' => 'Gemma 4 27B',           'tier' => 'standard'],
-                ['id' => 'devstral-small:24b',    'name' => 'Devstral Small 24B',    'tier' => 'economy'],
-                ['id' => 'nemotron-3-super:120b', 'name' => 'Nemotron 3 Super 120B', 'tier' => 'premium'],
+                ['id' => 'ministral-3:3b',        'name' => 'Ministral 3 3B — Free, smaller model',   'tier' => 'economy'],
+                ['id' => 'qwen3.5:4b',            'name' => 'Qwen 3.5 4B — Free, smaller model',    'tier' => 'economy'],
+                ['id' => 'nemotron-3-nano:4b',     'name' => 'Nemotron 3 Nano 4B — Free, smaller model', 'tier' => 'economy'],
+                ['id' => 'ministral-3:8b',         'name' => 'Ministral 3 8B — Free, smaller model', 'tier' => 'economy'],
+                ['id' => 'qwen3.5:9b',             'name' => 'Qwen 3.5 9B — Free, smaller model',   'tier' => 'economy'],
+                ['id' => 'devstral-small:24b',     'name' => 'Devstral Small 24B',     'tier' => 'standard'],
+                ['id' => 'gemma4:27b',             'name' => 'Gemma 4 27B',            'tier' => 'standard'],
+                ['id' => 'qwen3.5:32b',            'name' => 'Qwen 3.5 32B',           'tier' => 'standard'],
+                ['id' => 'nemotron-3-super:120b',  'name' => 'Nemotron 3 Super 120B',  'tier' => 'premium'],
             ],
-            'default_model' => 'qwen3.5:32b',
+            'default_model' => 'qwen3.5:4b',
         ],
     ];
 
