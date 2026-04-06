@@ -70,6 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
             }
             $updateData['slug_i18n'] = $slugI18n;
 
+            $updateData = klytos_apply_filters( 'admin.post_type_edit.update_data', $updateData, $ptId, $_POST );
+
             $postType = $ptManager->update($ptId, $updateData);
             $success  = __('common.success');
 
@@ -217,6 +219,8 @@ require_once __DIR__ . '/templates/sidebar.php';
                 </label>
             </div>
         </div>
+
+        <?php klytos_do_action( 'admin.post_type_edit.after_settings', $postType, $ptId ); ?>
 
         <button type="submit" class="btn btn-primary"><?php echo __('common.save'); ?></button>
     </form>

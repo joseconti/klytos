@@ -28,7 +28,6 @@ $csrf      = $auth->getCsrfToken();
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
 
     $updates = [
-        'x402_default_enabled' => !empty( $_POST['x402_default_enabled'] ),
         'provider_id'          => $_POST['provider_id'] ?? $cfg['provider_id'],
         'wallet_address'       => trim( $_POST['wallet_address'] ?? '' ),
         'default_price_usd'    => trim( $_POST['default_price_usd'] ?? '0.01' ),
@@ -177,13 +176,6 @@ require_once __DIR__ . '/templates/sidebar.php';
                     class="form-control" placeholder="0.01">
             </div>
 
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" name="x402_default_enabled" value="1"
-                        <?php echo !empty( $cfg['x402_default_enabled'] ) ? 'checked' : ''; ?>>
-                    <?php echo klytos_esc_html( __( 'klytos-x402.enabled' ) ); ?> — <?php echo klytos_esc_html( __( 'klytos-x402.inherit_on' ) ); ?>
-                </label>
-            </div>
         </div>
     </div>
 

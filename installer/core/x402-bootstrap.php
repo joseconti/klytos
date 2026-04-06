@@ -115,13 +115,18 @@ klytos_add_filter( 'admin.sidebar_items', function ( array $items ): array {
 // ─── Page editor integration ───────────────────────────────────
 
 klytos_add_action( 'editor.sidebar.after_seo', function ( array $page, bool $isEditing ) use ( $x402Config ): void {
-    $globalDefault = $x402Config->get( 'x402_default_enabled', false );
-    $pageEnabled   = $page['x402_enabled'] ?? null;
-    $pagePrice     = $page['x402_price_usd'] ?? '';
-    $defaultPrice  = $x402Config->get( 'default_price_usd', '0.01' );
+    // Resolve Post Type default for the inherit label.
+    $postType = $page['post_type'] ?? 'page';
+    $ptDefault = false;
+    try {
+        $ptData    = klytos_app()->getPostTypeManager()->get( $postType );
+        $ptDefault = $ptData['x402_default_enabled'] ?? false;
+    } catch ( \Throwable ) {}
 
-    $effectiveEnabled = $pageEnabled !== null ? (bool) $pageEnabled : $globalDefault;
-    $inheritLabel     = $globalDefault ? __( 'klytos-x402.inherit_on' ) : __( 'klytos-x402.inherit_off' );
+    $pageEnabled  = $page['x402_enabled'] ?? null;
+    $pagePrice    = $page['x402_price_usd'] ?? '';
+    $defaultPrice = $x402Config->get( 'default_price_usd', '0.01' );
+    $inheritLabel = $ptDefault ? __( 'klytos-x402.inherit_on' ) : __( 'klytos-x402.inherit_off' );
 
     echo '<div class="klytos-sidebar__section">';
     echo '<h3 class="klytos-sidebar__heading">' . klytos_esc_html( __( 'klytos-x402.x402_protection' ) ) . '</h3>';
@@ -145,13 +150,55 @@ klytos_add_action( 'editor.sidebar.after_seo', function ( array $page, bool $isE
     echo '</div>';
 } );
 
-// ─── Page before_save — inject x402 defaults ───────────────────
+// ─── Post Type edit integration ────────────────────────────────
 
-klytos_add_action( 'page.before_save', function ( array &$data, string $action ) use ( $x402Config ): void {
+klytos_add_action( 'admin.post_type_edit.after_settings', function ( array $postType, string $ptId ) use ( $x402Config ): void {
+    $ptEnabled = $postType['x402_default_enabled'] ?? false;
+    $ptPrice   = $postType['x402_price_usd'] ?? '';
+    $defaultPrice = $x402Config->get( 'default_price_usd', '0.01' );
+
+    echo '<h4 class="mt-3 mb-1">' . klytos_esc_html( __( 'klytos-x402.x402_protection' ) ) . '</h4>';
+
+    echo '<div class="form-group">';
+    echo '<label>';
+    echo '<input type="checkbox" name="x402_default_enabled" value="1"' . ( $ptEnabled ? ' checked' : '' ) . '> ';
+    echo klytos_esc_html( __( 'klytos-x402.enabled' ) );
+    echo '</label>';
+    echo '<p class="form-help">' . klytos_esc_html( 'New entries of this post type will have x402 enabled by default. Can be changed per entry.' ) . '</p>';
+    echo '</div>';
+
+    echo '<div class="form-group">';
+    echo '<label class="form-label">' . klytos_esc_html( __( 'klytos-x402.price_usd' ) ) . '</label>';
+    echo '<input type="text" name="x402_price_usd" class="form-control" value="' . klytos_esc_attr( $ptPrice ) . '" placeholder="' . klytos_esc_attr( $defaultPrice ) . '">';
+    echo '<p class="form-help">' . klytos_esc_html( __( 'klytos-x402.price_hint' ) ) . '</p>';
+    echo '</div>';
+} );
+
+// ─── Post Type update — save x402 fields ───────────────────────
+
+klytos_add_filter( 'admin.post_type_edit.update_data', function ( array $data, string $ptId, array $post ): array {
+    // Checkbox: sent as "1" when checked, absent when unchecked.
+    $data['x402_default_enabled'] = !empty( $post['x402_default_enabled'] );
+
+    $price = trim( $post['x402_price_usd'] ?? '' );
+    $data['x402_price_usd'] = $price !== '' ? $price : null;
+
+    return $data;
+} );
+
+// ─── Page before_save — inject x402 defaults from Post Type ────
+
+klytos_add_action( 'page.before_save', function ( array &$data, string $action ): void {
     if ( $action !== 'create' ) return;
 
     if ( !array_key_exists( 'x402_enabled', $data ) || $data['x402_enabled'] === null ) {
-        $data['x402_enabled'] = $x402Config->get( 'x402_default_enabled', false );
+        $postType = $data['post_type'] ?? 'page';
+        try {
+            $ptData = klytos_app()->getPostTypeManager()->get( $postType );
+            $data['x402_enabled'] = $ptData['x402_default_enabled'] ?? false;
+        } catch ( \Throwable ) {
+            $data['x402_enabled'] = false;
+        }
     }
 } );
 
@@ -171,9 +218,14 @@ klytos_add_action( 'build.after', function () use ( $x402Writer, $x402Config ): 
     $allPages       = klytos_storage()->getAll( 'pages' );
     $protectedCount = 0;
 
+    $ptManager = klytos_app()->getPostTypeManager();
     foreach ( $allPages as $page ) {
         $enabled = $page['x402_enabled'] ?? null;
-        if ( $enabled === null ) $enabled = $config['x402_default_enabled'];
+        if ( $enabled === null ) {
+            $pt = $page['post_type'] ?? 'page';
+            try { $ptData = $ptManager->get( $pt ); $enabled = $ptData['x402_default_enabled'] ?? false; }
+            catch ( \Throwable ) { $enabled = false; }
+        }
         if ( $enabled ) $protectedCount++;
     }
 
@@ -222,9 +274,14 @@ klytos_add_filter( 'build.llms_txt', function ( string $content ) use ( $x402Con
     $pages  = klytos_storage()->getAll( 'pages' );
 
     $protected = [];
+    $ptManager = klytos_app()->getPostTypeManager();
     foreach ( $pages as $page ) {
         $enabled = $page['x402_enabled'] ?? null;
-        if ( $enabled === null ) $enabled = $config['x402_default_enabled'];
+        if ( $enabled === null ) {
+            $pt = $page['post_type'] ?? 'page';
+            try { $ptData = $ptManager->get( $pt ); $enabled = $ptData['x402_default_enabled'] ?? false; }
+            catch ( \Throwable ) { $enabled = false; }
+        }
         if ( !$enabled ) continue;
         $protected[] = [
             'title' => $page['title'] ?? $page['slug'] ?? '',
