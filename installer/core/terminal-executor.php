@@ -46,8 +46,11 @@ class TerminalExecutor
     /** @var int Maximum number of history entries to persist. */
     private const MAX_HISTORY = 100;
 
-    /** @var string Storage key for persistent history. */
-    private const HISTORY_KEY = 'terminal-history';
+    /** @var string Storage collection for terminal data. */
+    private const STORAGE_COLLECTION = 'terminal';
+
+    /** @var string Storage record ID for persistent history. */
+    private const HISTORY_ID = 'history';
 
     public function __construct( App $app )
     {
@@ -68,7 +71,7 @@ class TerminalExecutor
     private function loadHistory(): void
     {
         try {
-            $data = $this->app->getStorage()->read( self::HISTORY_KEY );
+            $data = $this->app->getStorage()->read( self::STORAGE_COLLECTION, self::HISTORY_ID );
             $this->sessionHistory = $data['entries'] ?? [];
         } catch ( \RuntimeException $e ) {
             $this->sessionHistory = [];
@@ -85,7 +88,7 @@ class TerminalExecutor
             $this->sessionHistory = array_slice( $this->sessionHistory, -self::MAX_HISTORY );
         }
 
-        $this->app->getStorage()->write( self::HISTORY_KEY, [
+        $this->app->getStorage()->write( self::STORAGE_COLLECTION, self::HISTORY_ID, [
             'entries'    => $this->sessionHistory,
             'updated_at' => Helpers::now(),
         ] );
