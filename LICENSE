@@ -675,18 +675,39 @@ Public License instead of this License.  But first, please read
 
 ===============================================================================
 
+KLYTOS — LICENSE SUMMARY
+
+Klytos CMS is licensed under the GNU General Public License version 3
+or any later version (GPL-3.0-or-later). The full text of the GPL v3 is
+included above.
+
+PLUGINS AND TEMPLATES ARE NOT DERIVATIVE WORKS.
+
+Developers may license their plugins and templates under ANY terms they
+choose — proprietary, commercial, open source, or free. There is no
+obligation to use the GPL for plugins or templates.
+
+===============================================================================
+
 KLYTOS PLUGIN AND TEMPLATE EXCEPTION
 
 As a special exception under section 7 of the GNU General Public License
 version 3 ("GPLv3"), the copyright holder of Klytos grants you additional
 permission to use, convey, and distribute plugins and templates that
-communicate with Klytos solely through its documented Plugin API — including
-hooks, filters, actions, MCP tools, REST endpoints, and template engine
-interfaces — under any license terms you choose, without those plugins or
-templates being considered derivative works of Klytos.
+communicate with Klytos solely through its documented Plugin API under
+any license terms you choose, without those plugins or templates being
+considered derivative works of Klytos.
 
-This exception applies only to code that interacts with Klytos through its
-public API boundaries. It does NOT apply to:
+The "Plugin API" includes, but is not limited to:
+
+  - Hooks (actions and filters registered via the Klytos hook system)
+  - MCP tools (Model Context Protocol tool definitions)
+  - REST API endpoints
+  - Template engine interfaces
+  - Any other public API documented by Klytos
+
+This exception applies only to code that interacts with Klytos through
+its public API boundaries. It does NOT apply to:
 
   - Modifications of Klytos core files.
   - Code that copies substantial portions of Klytos core source code.
@@ -697,5 +718,6 @@ to the terms of the GNU General Public License version 3 or later.
 
 This exception is granted by:
   José Conti — https://klytos.io — j.conti@joseconti.com
+  Copyright (c) 2026 José Conti. All rights reserved.
 
 ===============================================================================
