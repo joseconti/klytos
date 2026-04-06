@@ -11,6 +11,8 @@
 
 declare( strict_types=1 );
 
+require_once __DIR__ . '/bootstrap.php';
+
 $config   = klytos_x402_config();
 $stats    = klytos_x402_stats();
 $registry = klytos_x402_providers();
