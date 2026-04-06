@@ -13,6 +13,8 @@ declare( strict_types=1 );
 
 require_once __DIR__ . '/bootstrap.php';
 
+$pageTitle = __( 'klytos-x402.transactions' );
+
 $log = klytos_x402_log();
 
 // ─── Filters ───────────────────────────────────────────────────
@@ -36,6 +38,8 @@ $result       = $log->list( $filters, $perPage, $offset );
 $transactions = $result['transactions'];
 $total        = $result['total'];
 $totalPages   = (int) ceil( $total / $perPage );
+
+require_once __DIR__ . '/templates/header.php';
 
 $baseUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/x402-transactions.php';
 
@@ -133,3 +137,5 @@ $baseUrl = \Klytos\Core\Helpers::getBasePath() . 'admin/x402-transactions.php';
 <div style="margin-top: var(--klytos-space-2);">
     <span class="klytos-text--muted"><?php echo $total; ?> total transactions</span>
 </div>
+
+<?php require_once __DIR__ . '/templates/footer.php'; ?>
