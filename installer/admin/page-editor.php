@@ -311,7 +311,7 @@ if ( $editorType === 'gutenberg' ) {
     ] );
 
     // $customCsp tells header.php to use this policy instead of the default one.
-    $customCsp = "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src {$imgSrc}; script-src 'self' 'unsafe-inline'; frame-src {$frameSrc}";
+    $customCsp = "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src {$imgSrc}; script-src 'self' 'unsafe-inline'; frame-src {$frameSrc}";
 }
 
 $pageTitle_header = $adminPageTitle;

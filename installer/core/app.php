@@ -575,7 +575,7 @@ class App
                 ],
                 [
                     'id'       => 'edit_page',
-                    'label'    => 'Edit Page',
+                    'label'    => 'Edit',
                     'icon'     => 'fa-solid fa-pen-to-square',
                     'url'      => '{{admin_url}}page-editor.php?slug={{page_slug}}',
                     'position' => 20,
@@ -597,11 +597,18 @@ class App
                     'children' => $addChildren,
                 ],
                 [
-                    'id'       => 'build',
-                    'label'    => 'Build',
-                    'icon'     => 'fa-solid fa-hammer',
-                    'url'      => '{{admin_url}}build.php',
+                    'id'       => 'theme',
+                    'label'    => 'Theme',
+                    'icon'     => 'fa-solid fa-palette',
+                    'url'      => '{{admin_url}}theme.php',
                     'position' => 50,
+                ],
+                [
+                    'id'       => 'plugins',
+                    'label'    => 'Plugins',
+                    'icon'     => 'fa-solid fa-plug',
+                    'url'      => '{{admin_url}}plugins.php',
+                    'position' => 60,
                 ],
 
                 // ── Right side ──
