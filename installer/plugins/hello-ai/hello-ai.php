@@ -9,8 +9,8 @@
  * Author URI: https://joseconti.com
  * Requires Klytos: 0.14.0
  * Requires PHP: 8.1
- * License: ELv2
- * License URI: https://www.elastic.co/licensing/elastic-license
+ * License: GPL-3.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: hello-ai
  * Domain Path: /lang
  */

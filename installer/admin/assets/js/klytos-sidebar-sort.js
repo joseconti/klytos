@@ -3,7 +3,7 @@
  * Enables drag-and-drop reordering of sidebar menu items and sections.
  * Requires SortableJS to be loaded before this script.
  *
- * @license    Elastic License 2.0 (ELv2)
+ * @license    GPL-3.0-or-later
  * @copyright  Copyright (c) 2026 Jose Conti
  */
 (function () {

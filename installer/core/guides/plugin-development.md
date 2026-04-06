@@ -280,7 +280,7 @@ License data is stored in: `config/plugin_licenses/{plugin-id}.json.enc`
 3. **Always validate input** — check types, lengths, and formats.
 4. **Use capabilities for access control** — register via `auth.capabilities` filter.
 5. **Never store secrets in cleartext** — use the encrypted storage.
-6. **Include the ELv2 license header** in all PHP files if distributing.
+6. **Include the GPL-3.0-or-later license header** in all PHP files if distributing.
 
 ## File Locations
 

@@ -4,7 +4,7 @@ Klytos is a content management system designed from the ground up to be controll
 
 Build, manage and publish websites entirely through conversation with any AI assistant that supports MCP — Claude, GPT, Gemini, or any other.
 
-**Current version:** 0.28.5 | **License:** [Elastic License 2.0 (ELv2)](LICENSE)
+**Current version:** 0.28.5 | **License:** [GPL-3.0-or-later](LICENSE)
 
 ## Key Features
 
@@ -593,17 +593,15 @@ klytos/
 
 ## License
 
-Klytos is released under the [Elastic License 2.0 (ELv2)](LICENSE).
+Klytos is released under the [GNU General Public License v3 or later](LICENSE).
 
 **You CAN:**
-- Use Klytos for free, for any purpose (personal, commercial, enterprise).
-- View, study and modify the source code.
-- Share the original, unmodified code.
+- Use, study, modify, and distribute Klytos freely.
+- Use Klytos for any purpose (personal, commercial, enterprise).
+- Build and sell plugins/templates under any license you choose.
 
-**You CANNOT:**
-- Provide Klytos as a hosted or managed service (SaaS).
-- Remove or circumvent plugin license key functionality.
-- Sell modified versions of Klytos as your own product.
+**Plugin Exception:**
+Plugins and templates that communicate with Klytos through its public API (hooks, filters, MCP tools, REST endpoints) are **NOT** derivative works and may use any license. See the LICENSE file for details.
 
 ## Author
 

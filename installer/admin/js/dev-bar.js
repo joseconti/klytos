@@ -1,7 +1,7 @@
 /**
  * Klytos DevBar — Debug Bar JavaScript
  *
- * @license    Elastic License 2.0 (ELv2) — https://www.elastic.co/licensing/elastic-license
+ * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 
