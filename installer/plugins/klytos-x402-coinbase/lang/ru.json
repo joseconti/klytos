@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "ru",
+        "name": "Русский",
+        "flag": "RU",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-coinbase": {
+        "facilitator_url": "URL фасилитатора",
+        "facilitator_url_desc": "URL сервиса фасилитатора x402 (Coinbase CDP). По умолчанию: https://x402.org/facilitator"
+    }
+}

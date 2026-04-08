@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Lomakkeet",
+    "klytos_forms.all_forms": "Kaikki lomakkeet",
+    "klytos_forms.entries": "Merkinnät",
+    "klytos_forms.new_form": "Uusi lomake",
+    "klytos_forms.edit_form": "Muokkaa lomaketta",
+    "klytos_forms.save": "Tallenna lomake",
+    "klytos_forms.delete": "Poista",
+    "klytos_forms.duplicate": "Kopioi",
+    "klytos_forms.shortcode": "Lyhytkoodi",
+    "klytos_forms.fields": "Kentät",
+    "klytos_forms.settings": "Asetukset",
+    "klytos_forms.notifications": "Ilmoitukset",
+    "klytos_forms.antispam": "Roskapostisuoja",
+    "klytos_forms.insert": "Lisää",
+    "klytos_forms.no_forms": "Ei lomakkeita vielä.",
+    "klytos_forms.no_entries": "Ei merkintöjä vielä.",
+    "klytos_forms.created": "Lomake luotu onnistuneesti.",
+    "klytos_forms.updated": "Lomake päivitetty onnistuneesti.",
+    "klytos_forms.deleted": "Lomake poistettu onnistuneesti."
+}

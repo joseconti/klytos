@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "ca",
+        "name": "Catal\u00e0",
+        "flag": "ES",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Clau secreta de Stripe",
+        "secret_key_desc": "La vostra clau secreta de Stripe (comen\u00e7a amb sk_). Cal tenir els pagaments amb criptomonedes activats al vostre panell de Stripe."
+    }
+}

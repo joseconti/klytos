@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formlar",
+    "klytos_forms.all_forms": "T\u00fcm formlar",
+    "klytos_forms.entries": "Kay\u0131tlar",
+    "klytos_forms.new_form": "Yeni form",
+    "klytos_forms.edit_form": "Formu d\u00fczenle",
+    "klytos_forms.save": "Formu kaydet",
+    "klytos_forms.delete": "Sil",
+    "klytos_forms.duplicate": "\u00c7o\u011falt",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Alanlar",
+    "klytos_forms.settings": "Ayarlar",
+    "klytos_forms.notifications": "Bildirimler",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Ekle",
+    "klytos_forms.no_forms": "Hen\u00fcz form yok.",
+    "klytos_forms.no_entries": "Hen\u00fcz kay\u0131t yok.",
+    "klytos_forms.created": "Form ba\u015far\u0131yla olu\u015fturuldu.",
+    "klytos_forms.updated": "Form ba\u015far\u0131yla g\u00fcncellendi.",
+    "klytos_forms.deleted": "Form ba\u015far\u0131yla silindi."
+}

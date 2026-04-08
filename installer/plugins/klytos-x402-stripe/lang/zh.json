@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "zh",
+        "name": "\u4e2d\u6587",
+        "flag": "CN",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Stripe\u5bc6\u94a5",
+        "secret_key_desc": "\u60a8\u7684Stripe\u5bc6\u94a5\uff08\u4ee5sk_\u5f00\u5934\uff09\u3002\u9700\u8981\u5728Stripe\u63a7\u5236\u9762\u677f\u4e2d\u542f\u7528\u52a0\u5bc6\u8d27\u5e01\u652f\u4ed8\u3002"
+    }
+}

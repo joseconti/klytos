@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "sv",
+        "name": "Svenska",
+        "flag": "SE",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Stripe hemlig nyckel",
+        "secret_key_desc": "Din hemliga Stripe-nyckel (börjar med sk_). Kräver att kryptobetalningar är aktiverade i din Stripe-instrumentpanel."
+    }
+}

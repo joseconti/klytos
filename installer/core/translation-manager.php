@@ -50,6 +50,7 @@ class TranslationManager
         'ca' => ['name' => 'Català',     'flag' => 'ES'],
         'eu' => ['name' => 'Euskara',    'flag' => 'ES'],
         'gl' => ['name' => 'Galego',     'flag' => 'ES'],
+        'el' => ['name' => 'Ελληνικά',  'flag' => 'GR'],
     ];
 
     public function __construct( App $app )

@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "pl",
+        "name": "Polski",
+        "flag": "PL",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Klucz tajny Stripe",
+        "secret_key_desc": "Tw\u00f3j tajny klucz Stripe (zaczyna si\u0119 od sk_). Wymaga w\u0142\u0105czonych p\u0142atno\u015bci krypto w panelu Stripe."
+    }
+}

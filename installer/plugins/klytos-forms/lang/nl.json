@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formulieren",
+    "klytos_forms.all_forms": "Alle formulieren",
+    "klytos_forms.entries": "Inzendingen",
+    "klytos_forms.new_form": "Nieuw formulier",
+    "klytos_forms.edit_form": "Formulier bewerken",
+    "klytos_forms.save": "Formulier opslaan",
+    "klytos_forms.delete": "Verwijderen",
+    "klytos_forms.duplicate": "Dupliceren",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Velden",
+    "klytos_forms.settings": "Instellingen",
+    "klytos_forms.notifications": "Meldingen",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Invoegen",
+    "klytos_forms.no_forms": "Nog geen formulieren.",
+    "klytos_forms.no_entries": "Nog geen inzendingen.",
+    "klytos_forms.created": "Formulier succesvol aangemaakt.",
+    "klytos_forms.updated": "Formulier succesvol bijgewerkt.",
+    "klytos_forms.deleted": "Formulier succesvol verwijderd."
+}

@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "de",
+        "name": "Deutsch",
+        "flag": "DE",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Geheimer Stripe-Schl\u00fcssel",
+        "secret_key_desc": "Ihr geheimer Stripe-Schl\u00fcssel (beginnt mit sk_). Erfordert aktivierte Krypto-Zahlungen in Ihrem Stripe-Dashboard."
+    }
+}

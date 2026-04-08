@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "nb",
+        "name": "Norsk",
+        "flag": "NO",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Stripe hemmelig nøkkel",
+        "secret_key_desc": "Din hemmelige Stripe-nøkkel (starter med sk_). Krever at kryptobetalinger er aktivert i Stripe-dashbordet ditt."
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Moduli",
+    "klytos_forms.all_forms": "Tutti i moduli",
+    "klytos_forms.entries": "Voci",
+    "klytos_forms.new_form": "Nuovo modulo",
+    "klytos_forms.edit_form": "Modifica modulo",
+    "klytos_forms.save": "Salva modulo",
+    "klytos_forms.delete": "Elimina",
+    "klytos_forms.duplicate": "Duplica",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Campi",
+    "klytos_forms.settings": "Impostazioni",
+    "klytos_forms.notifications": "Notifiche",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Inserisci",
+    "klytos_forms.no_forms": "Nessun modulo ancora.",
+    "klytos_forms.no_entries": "Nessuna voce ancora.",
+    "klytos_forms.created": "Modulo creato con successo.",
+    "klytos_forms.updated": "Modulo aggiornato con successo.",
+    "klytos_forms.deleted": "Modulo eliminato con successo."
+}

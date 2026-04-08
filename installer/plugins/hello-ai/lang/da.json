@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hello AI",
+    "hello_ai.modal_title": "Hello AI",
+    "hello_ai.welcome_message": "Hej! Jeg er <strong>Hello AI</strong>, et demoplugin til Klytos. Skriv hvad som helst, og jeg svarer. Prøv at sige <em>hej</em>!",
+    "hello_ai.input_placeholder": "Skriv en besked...",
+    "hello_ai.response_1": "Hej! Dejligt at se dig her. Klytos er et fantastisk CMS!",
+    "hello_ai.response_2": "Hej! Vidste du, at dette plugin opdages af sin PHP-header? Ingen JSON nødvendig!",
+    "hello_ai.response_3": "Hej! Jeg er et demoplugin, der kører på den uforanderlige pluginkontrakt.",
+    "hello_ai.response_4": "Hilsner! Pluginsystemet i Klytos er inspireret af WordPress, men bygget til AI-æraen.",
+    "hello_ai.response_5": "Hej, menneske! Jeg bor i plugins/hello-ai/hello-ai.php, og det er alt, Klytos behøver for at finde mig.",
+    "hello_ai.response_6": "Hej! Sjov fakta: hele min identifikation er bare \"Plugin Name: Hello AI\" i en PHP-kommentar.",
+    "hello_ai.response_7": "Hej! Jeg er beviset på, at Klytos-plugins kan være så simple eller komplekse, som du ønsker.",
+    "hello_ai.response_8": "Hej! Dette plugin understøtter flere sprog. Prøv at skifte til spansk!",
+    "hello_ai.smart_hello": "Hej! Rart at møde dig. Jeg er et Klytos-plugindemo.",
+    "hello_ai.smart_hi": "Hej! Velkommen til Hello AI.",
+    "hello_ai.smart_klytos": "Klytos er et AI-First CMS styret via MCP. Ret sejt, ikke?",
+    "hello_ai.smart_plugin": "Plugins i Klytos behøver kun en PHP-fil med en \"Plugin Name:\"-header. Simpelt!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) er, hvordan AI-assistenter taler med Klytos. Det er fremtiden!",
+    "hello_ai.smart_help": "Jeg er bare en demo, men den rigtige AI-chat er i AI-Mode. Prøv det!",
+    "hello_ai.smart_bye": "Farvel! Tak fordi du prøvede Hello AI. Vi ses næste gang!",
+    "hello_ai.smart_translate": "Dette plugin bruger klytos_register_translations() og funktionen __() til i18n. Tjek mappen lang/!"
+}

@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Γεια σου ΤΝ",
+    "hello_ai.modal_title": "Γεια σου ΤΝ",
+    "hello_ai.welcome_message": "Γεια! Είμαι το <strong>Γεια σου ΤΝ</strong>, ένα demo plugin για το Klytos. Γράψε οτιδήποτε και θα απαντήσω. Δοκίμασε να πεις <em>γεια</em>!",
+    "hello_ai.input_placeholder": "Γράψε ένα μήνυμα...",
+    "hello_ai.response_1": "Γεια! Χαίρομαι που σε βλέπω εδώ. Το Klytos είναι ένα εκπληκτικό CMS!",
+    "hello_ai.response_2": "Γεια σου! Ήξερες ότι αυτό το plugin ανακαλύφθηκε από την PHP κεφαλίδα του; Δεν χρειάζεται JSON!",
+    "hello_ai.response_3": "Ε! Είμαι ένα demo plugin που τρέχει στο αμετάβλητο συμβόλαιο plugins.",
+    "hello_ai.response_4": "Χαιρετισμούς! Το σύστημα plugins του Klytos είναι εμπνευσμένο από το WordPress αλλά χτισμένο για την εποχή της ΤΝ.",
+    "hello_ai.response_5": "Γεια σου, άνθρωπε! Ζω στο plugins/hello-ai/hello-ai.php και αυτό είναι το μόνο που χρειάζεται το Klytos για να με βρει.",
+    "hello_ai.response_6": "Γεια! Διασκεδαστικό γεγονός: ολόκληρη η ταυτοποίησή μου είναι απλά \"Plugin Name: Hello AI\" σε ένα σχόλιο PHP.",
+    "hello_ai.response_7": "Γεια σου! Είμαι η απόδειξη ότι τα plugins του Klytos μπορούν να είναι τόσο απλά ή τόσο σύνθετα όσο θέλεις.",
+    "hello_ai.response_8": "Γεια! Αυτό το plugin υποστηρίζει πολλές γλώσσες. Δοκίμασε να αλλάξεις στα ισπανικά!",
+    "hello_ai.smart_hello": "Γεια! Χαίρομαι που σε γνωρίζω. Είμαι ένα demo plugin του Klytos.",
+    "hello_ai.smart_hi": "Γεια σου! Καλώς ήρθες στο Γεια σου ΤΝ.",
+    "hello_ai.smart_klytos": "Το Klytos είναι ένα AI-First CMS που ελέγχεται μέσω MCP. Πολύ ωραίο, σωστά;",
+    "hello_ai.smart_plugin": "Τα plugins του Klytos χρειάζονται μόνο ένα αρχείο PHP με κεφαλίδα \"Plugin Name:\". Απλό!",
+    "hello_ai.smart_mcp": "Το MCP (Model Context Protocol) είναι ο τρόπος που οι βοηθοί ΤΝ επικοινωνούν με το Klytos. Είναι το μέλλον!",
+    "hello_ai.smart_help": "Είμαι μόνο ένα demo, αλλά η πραγματική συνομιλία ΤΝ είναι στη Λειτουργία ΤΝ. Δοκίμασέ το!",
+    "hello_ai.smart_bye": "Αντίο! Ευχαριστώ που δοκίμασες το Γεια σου ΤΝ. Τα λέμε!",
+    "hello_ai.smart_translate": "Αυτό το plugin χρησιμοποιεί klytos_register_translations() και τη συνάρτηση __() για i18n. Δες τον φάκελο lang!"
+}

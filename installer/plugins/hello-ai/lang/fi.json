@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hello AI",
+    "hello_ai.modal_title": "Hello AI",
+    "hello_ai.welcome_message": "Hei! Olen <strong>Hello AI</strong>, Klytosin demolisäosa. Kirjoita mitä tahansa ja vastaan. Kokeile sanoa <em>hei</em>!",
+    "hello_ai.input_placeholder": "Kirjoita viesti...",
+    "hello_ai.response_1": "Hei! Mukava nähdä sinut täällä. Klytos on mahtava sisällönhallintajärjestelmä!",
+    "hello_ai.response_2": "Hei! Tiesitkö, että tämä lisäosa löydetään PHP-otsikon perusteella? JSON-tiedostoa ei tarvita!",
+    "hello_ai.response_3": "Hei! Olen demolisäosa, joka toimii muuttumattomalla lisäosasopimuksella.",
+    "hello_ai.response_4": "Tervehdys! Klytosin lisäosajärjestelmä on saanut inspiraationsa WordPressistä, mutta se on rakennettu tekoälyaikakaudelle.",
+    "hello_ai.response_5": "Hei, ihminen! Asun tiedostossa plugins/hello-ai/hello-ai.php, ja se on kaikki mitä Klytos tarvitsee löytääkseen minut.",
+    "hello_ai.response_6": "Hei! Hauska fakta: koko tunnistamiseni on vain \"Plugin Name: Hello AI\" PHP-kommentissa.",
+    "hello_ai.response_7": "Hei! Olen todiste siitä, että Klytos-lisäosat voivat olla niin yksinkertaisia tai monimutkaisia kuin haluat.",
+    "hello_ai.response_8": "Hei! Tämä lisäosa tukee useita kieliä. Kokeile vaihtaa espanjaksi!",
+    "hello_ai.smart_hello": "Hei! Mukava tavata. Olen Klytos-lisäosademo.",
+    "hello_ai.smart_hi": "Hei! Tervetuloa Hello AI:hin.",
+    "hello_ai.smart_klytos": "Klytos on tekoälypainotteinen sisällönhallintajärjestelmä, jota ohjataan MCP:n kautta. Aika siistiä, eikö?",
+    "hello_ai.smart_plugin": "Klytosin lisäosat tarvitsevat vain PHP-tiedoston, jossa on \"Plugin Name:\"-otsikko. Helppoa!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) on tapa, jolla tekoälyavustajat keskustelevat Klytosin kanssa. Se on tulevaisuutta!",
+    "hello_ai.smart_help": "Olen vain demo, mutta oikea tekoälykeskustelu on AI-Modessa. Kokeile!",
+    "hello_ai.smart_bye": "Näkemiin! Kiitos kun kokeilit Hello AI:ta. Nähdään ensi kerralla!",
+    "hello_ai.smart_translate": "Tämä lisäosa käyttää klytos_register_translations()-funktiota ja __()-funktiota i18n:ää varten. Tarkista lang/-kansio!"
+}

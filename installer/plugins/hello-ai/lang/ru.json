@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hello AI",
+    "hello_ai.modal_title": "Hello AI",
+    "hello_ai.welcome_message": "Привет! Я — <strong>Hello AI</strong>, демо-плагин для Klytos. Напишите что-нибудь, и я отвечу. Попробуйте сказать <em>привет</em>!",
+    "hello_ai.input_placeholder": "Введите сообщение...",
+    "hello_ai.response_1": "Привет! Рад вас видеть. Klytos — потрясающая CMS!",
+    "hello_ai.response_2": "Привет! А вы знали, что этот плагин обнаруживается по его PHP-заголовку? Никакой JSON не нужен!",
+    "hello_ai.response_3": "Привет! Я демо-плагин, работающий на неизменяемом контракте плагинов.",
+    "hello_ai.response_4": "Приветствую! Система плагинов Klytos вдохновлена WordPress, но создана для эпохи ИИ.",
+    "hello_ai.response_5": "Привет, человек! Я живу в plugins/hello-ai/hello-ai.php, и это всё, что нужно Klytos, чтобы меня найти.",
+    "hello_ai.response_6": "Привет! Интересный факт: вся моя идентификация — это просто \"Plugin Name: Hello AI\" в PHP-комментарии.",
+    "hello_ai.response_7": "Привет! Я доказательство того, что плагины Klytos могут быть сколь угодно простыми или сложными.",
+    "hello_ai.response_8": "Привет! Этот плагин поддерживает несколько языков. Попробуйте переключиться на испанский!",
+    "hello_ai.smart_hello": "Привет! Рад познакомиться. Я демо-плагин Klytos.",
+    "hello_ai.smart_hi": "Привет! Добро пожаловать в Hello AI.",
+    "hello_ai.smart_klytos": "Klytos — это CMS с приоритетом ИИ, управляемая через MCP. Круто, правда?",
+    "hello_ai.smart_plugin": "Плагинам в Klytos нужен только PHP-файл с заголовком \"Plugin Name:\". Просто!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) — это способ общения ИИ-ассистентов с Klytos. Это будущее!",
+    "hello_ai.smart_help": "Я всего лишь демо, но настоящий ИИ-чат находится в AI-Mode. Попробуйте!",
+    "hello_ai.smart_bye": "До свидания! Спасибо, что попробовали Hello AI. До встречи!",
+    "hello_ai.smart_translate": "Этот плагин использует klytos_register_translations() и функцию __() для i18n. Загляните в папку lang/!"
+}

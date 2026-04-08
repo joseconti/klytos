@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Merhaba YZ",
+    "hello_ai.modal_title": "Merhaba YZ",
+    "hello_ai.welcome_message": "Merhaba! Ben <strong>Merhaba YZ</strong>, Klytos için bir demo eklenti. Herhangi bir şey yaz, sana cevap vereceğim. <em>Merhaba</em> demeyi dene!",
+    "hello_ai.input_placeholder": "Bir mesaj yaz...",
+    "hello_ai.response_1": "Merhaba! Seni burada görmek harika. Klytos müthiş bir CMS!",
+    "hello_ai.response_2": "Selam! Bu eklentinin PHP başlığı sayesinde keşfedildiğini biliyor muydun? JSON'a gerek yok!",
+    "hello_ai.response_3": "Hey! Değiştirilemez eklenti sözleşmesi üzerinde çalışan bir demo eklentiyim.",
+    "hello_ai.response_4": "Selamlar! Klytos'un eklenti sistemi WordPress'ten ilham almış ama YZ çağı için inşa edilmiş.",
+    "hello_ai.response_5": "Merhaba, insan! plugins/hello-ai/hello-ai.php'de yaşıyorum ve Klytos'un beni bulması için gereken tek şey bu.",
+    "hello_ai.response_6": "Selam! İlginç bilgi: tüm kimliğim sadece bir PHP yorumundaki \"Plugin Name: Hello AI\" ifadesi.",
+    "hello_ai.response_7": "Merhaba! Klytos eklentilerinin istediğin kadar basit veya karmaşık olabileceğinin kanıtıyım.",
+    "hello_ai.response_8": "Merhaba! Bu eklenti birden fazla dili destekliyor. İspanyolcaya geçmeyi dene!",
+    "hello_ai.smart_hello": "Merhaba! Tanıştığıma memnun oldum. Klytos demo eklentisiyim.",
+    "hello_ai.smart_hi": "Selam! Merhaba YZ'ye hoş geldin.",
+    "hello_ai.smart_klytos": "Klytos, MCP ile kontrol edilen bir AI-First CMS. Oldukça havalı, değil mi?",
+    "hello_ai.smart_plugin": "Klytos eklentileri sadece \"Plugin Name:\" başlığına sahip bir PHP dosyasına ihtiyaç duyar. Basit!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol), YZ asistanlarının Klytos ile iletişim kurma yöntemidir. Bu gelecek!",
+    "hello_ai.smart_help": "Ben sadece bir demoyum, ama gerçek YZ sohbeti YZ Modunda. Dene!",
+    "hello_ai.smart_bye": "Hoşça kal! Merhaba YZ'yi denediğin için teşekkürler. Bir dahaki sefere görüşürüz!",
+    "hello_ai.smart_translate": "Bu eklenti i18n için klytos_register_translations() ve __() fonksiyonunu kullanır. lang/ klasörüne bak!"
+}

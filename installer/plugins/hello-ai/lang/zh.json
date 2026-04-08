@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "你好 AI",
+    "hello_ai.modal_title": "你好 AI",
+    "hello_ai.welcome_message": "你好！我是<strong>你好 AI</strong>，一个Klytos的演示插件。输入任何内容，我会回复你。试试说<em>你好</em>！",
+    "hello_ai.input_placeholder": "输入消息...",
+    "hello_ai.response_1": "你好！很高兴在这里见到你。Klytos是一个令人惊叹的CMS！",
+    "hello_ai.response_2": "嗨！你知道这个插件是通过PHP头部发现的吗？不需要JSON！",
+    "hello_ai.response_3": "嘿！我是一个运行在不可变插件契约上的演示插件。",
+    "hello_ai.response_4": "问候！Klytos的插件系统受WordPress启发，但为AI时代而构建。",
+    "hello_ai.response_5": "你好，人类！我住在plugins/hello-ai/hello-ai.php里，这就是Klytos找到我所需的全部。",
+    "hello_ai.response_6": "嗨！趣味小知识：我的全部标识只是PHP注释中的\"Plugin Name: Hello AI\"。",
+    "hello_ai.response_7": "你好！我证明了Klytos插件可以像你想要的那样简单或复杂。",
+    "hello_ai.response_8": "你好！这个插件支持多种语言。试试切换到西班牙语！",
+    "hello_ai.smart_hello": "你好！很高兴认识你。我是Klytos的演示插件。",
+    "hello_ai.smart_hi": "嗨！欢迎来到你好 AI。",
+    "hello_ai.smart_klytos": "Klytos是一个通过MCP控制的AI优先CMS。很酷，对吧？",
+    "hello_ai.smart_plugin": "Klytos插件只需要一个带有\"Plugin Name:\"头部的PHP文件。简单！",
+    "hello_ai.smart_mcp": "MCP（Model Context Protocol）是AI助手与Klytos通信的方式。这就是未来！",
+    "hello_ai.smart_help": "我只是一个演示，但真正的AI聊天在AI模式中。试试吧！",
+    "hello_ai.smart_bye": "再见！感谢你试用你好 AI。下次见！",
+    "hello_ai.smart_translate": "这个插件使用klytos_register_translations()和__()函数进行i18n。查看lang/文件夹！"
+}

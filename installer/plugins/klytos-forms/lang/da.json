@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formularer",
+    "klytos_forms.all_forms": "Alle formularer",
+    "klytos_forms.entries": "Indtastninger",
+    "klytos_forms.new_form": "Ny formular",
+    "klytos_forms.edit_form": "Rediger formular",
+    "klytos_forms.save": "Gem formular",
+    "klytos_forms.delete": "Slet",
+    "klytos_forms.duplicate": "Dupliker",
+    "klytos_forms.shortcode": "Kortkode",
+    "klytos_forms.fields": "Felter",
+    "klytos_forms.settings": "Indstillinger",
+    "klytos_forms.notifications": "Notifikationer",
+    "klytos_forms.antispam": "Antispam",
+    "klytos_forms.insert": "Indsæt",
+    "klytos_forms.no_forms": "Ingen formularer endnu.",
+    "klytos_forms.no_entries": "Ingen indtastninger endnu.",
+    "klytos_forms.created": "Formularen blev oprettet.",
+    "klytos_forms.updated": "Formularen blev opdateret.",
+    "klytos_forms.deleted": "Formularen blev slettet."
+}

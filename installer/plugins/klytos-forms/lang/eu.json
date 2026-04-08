@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formularioak",
+    "klytos_forms.all_forms": "Formulario guztiak",
+    "klytos_forms.entries": "Sarrerak",
+    "klytos_forms.new_form": "Formulario berria",
+    "klytos_forms.edit_form": "Formularioa editatu",
+    "klytos_forms.save": "Formularioa gorde",
+    "klytos_forms.delete": "Ezabatu",
+    "klytos_forms.duplicate": "Bikoiztu",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Eremuak",
+    "klytos_forms.settings": "Ezarpenak",
+    "klytos_forms.notifications": "Jakinarazpenak",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Txertatu",
+    "klytos_forms.no_forms": "Oraindik ez dago formulariorik.",
+    "klytos_forms.no_entries": "Oraindik ez dago sarrerarik.",
+    "klytos_forms.created": "Formularioa ondo sortu da.",
+    "klytos_forms.updated": "Formularioa ondo eguneratu da.",
+    "klytos_forms.deleted": "Formularioa ondo ezabatu da."
+}

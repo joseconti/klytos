@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "fr",
+        "name": "Fran\u00e7ais",
+        "flag": "FR",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-coinbase": {
+        "facilitator_url": "URL du facilitateur",
+        "facilitator_url_desc": "URL du service facilitateur x402 (Coinbase CDP). Par d\u00e9faut : https://x402.org/facilitator"
+    }
+}

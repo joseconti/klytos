@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Witaj AI",
+    "hello_ai.modal_title": "Witaj AI",
+    "hello_ai.welcome_message": "Cześć! Jestem <strong>Witaj AI</strong>, wtyczka demonstracyjna dla Klytos. Wpisz cokolwiek, a odpowiem. Spróbuj powiedzieć <em>cześć</em>!",
+    "hello_ai.input_placeholder": "Wpisz wiadomość...",
+    "hello_ai.response_1": "Cześć! Miło cię tu widzieć. Klytos to niesamowity CMS!",
+    "hello_ai.response_2": "Hej! Czy wiesz, że ta wtyczka została odkryta dzięki nagłówkowi PHP? JSON nie jest potrzebny!",
+    "hello_ai.response_3": "Hej! Jestem wtyczką demonstracyjną działającą na niezmiennym kontrakcie wtyczek.",
+    "hello_ai.response_4": "Pozdrowienia! System wtyczek Klytos jest inspirowany WordPressem, ale zbudowany na erę AI.",
+    "hello_ai.response_5": "Cześć, człowieku! Mieszkam w plugins/hello-ai/hello-ai.php i to jest wszystko, czego Klytos potrzebuje, żeby mnie znaleźć.",
+    "hello_ai.response_6": "Hej! Ciekawostka: cała moja identyfikacja to po prostu \"Plugin Name: Hello AI\" w komentarzu PHP.",
+    "hello_ai.response_7": "Cześć! Jestem dowodem, że wtyczki Klytos mogą być tak proste lub złożone, jak chcesz.",
+    "hello_ai.response_8": "Cześć! Ta wtyczka obsługuje wiele języków. Spróbuj przełączyć na hiszpański!",
+    "hello_ai.smart_hello": "Cześć! Miło cię poznać. Jestem wtyczką demonstracyjną Klytos.",
+    "hello_ai.smart_hi": "Hej! Witaj w Witaj AI.",
+    "hello_ai.smart_klytos": "Klytos to CMS AI-First sterowany przez MCP. Całkiem fajne, prawda?",
+    "hello_ai.smart_plugin": "Wtyczki Klytos potrzebują tylko pliku PHP z nagłówkiem \"Plugin Name:\". Proste!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) to sposób, w jaki asystenci AI komunikują się z Klytos. To przyszłość!",
+    "hello_ai.smart_help": "Jestem tylko demo, ale prawdziwy czat AI jest w Trybie AI. Wypróbuj go!",
+    "hello_ai.smart_bye": "Do widzenia! Dziękuję za wypróbowanie Witaj AI. Do następnego razu!",
+    "hello_ai.smart_translate": "Ta wtyczka używa klytos_register_translations() i funkcji __() do i18n. Sprawdź folder lang!"
+}

@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "tr",
+        "name": "T\u00fcrk\u00e7e",
+        "flag": "TR",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Stripe gizli anahtar\u0131",
+        "secret_key_desc": "Stripe gizli anahtar\u0131n\u0131z (sk_ ile ba\u015flar). Stripe panelinizde kripto \u00f6demelerinin etkinle\u015ftirilmesi gerekir."
+    }
+}

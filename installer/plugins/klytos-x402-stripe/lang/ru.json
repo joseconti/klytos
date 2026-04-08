@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "ru",
+        "name": "Русский",
+        "flag": "RU",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Секретный ключ Stripe",
+        "secret_key_desc": "Ваш секретный ключ Stripe (начинается с sk_). Требуется включение криптоплатежей в панели управления Stripe."
+    }
+}

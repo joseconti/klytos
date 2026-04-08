@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hola IA",
+    "hello_ai.modal_title": "Hola IA",
+    "hello_ai.welcome_message": "Hola! Soc <strong>Hola IA</strong>, un connector de demostració per a Klytos. Escriu qualsevol cosa i et respondré. Prova a dir <em>hola</em>!",
+    "hello_ai.input_placeholder": "Escriu un missatge...",
+    "hello_ai.response_1": "Hola! Quina alegria veure't aquí. Klytos és un CMS increïble!",
+    "hello_ai.response_2": "Ei! Sabies que aquest connector es va descobrir pel seu encapçalament PHP? No cal cap JSON!",
+    "hello_ai.response_3": "Ep! Soc un connector de demostració que funciona amb el contracte immutable de connectors.",
+    "hello_ai.response_4": "Salutacions! El sistema de connectors de Klytos està inspirat en WordPress però construït per a l'era de la IA.",
+    "hello_ai.response_5": "Hola, humà! Visc a plugins/hello-ai/hello-ai.php i això és tot el que Klytos necessita per trobar-me.",
+    "hello_ai.response_6": "Ei! Fet curiós: tota la meva identificació és simplement \"Plugin Name: Hello AI\" en un comentari PHP.",
+    "hello_ai.response_7": "Hola! Soc la prova que els connectors de Klytos poden ser tan simples o complexos com vulguis.",
+    "hello_ai.response_8": "Hola! Aquest connector admet múltiples idiomes. Prova a canviar a espanyol!",
+    "hello_ai.smart_hello": "Hola! Encantat de conèixer-te. Soc un connector de demostració de Klytos.",
+    "hello_ai.smart_hi": "Ei! Benvingut a Hola IA.",
+    "hello_ai.smart_klytos": "Klytos és un CMS AI-First controlat via MCP. Genial, oi?",
+    "hello_ai.smart_plugin": "Els connectors de Klytos només necessiten un fitxer PHP amb un encapçalament \"Plugin Name:\". Senzill!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) és com els assistents d'IA parlen amb Klytos. És el futur!",
+    "hello_ai.smart_help": "Soc només una demostració, però el xat real d'IA és al Mode IA. Prova'l!",
+    "hello_ai.smart_bye": "Adéu! Gràcies per provar Hola IA. Fins la propera!",
+    "hello_ai.smart_translate": "Aquest connector utilitza klytos_register_translations() i la funció __() per a la i18n. Mira la carpeta lang!"
+}

@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "fi",
+        "name": "Suomi",
+        "flag": "FI",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Stripen salainen avain",
+        "secret_key_desc": "Stripen salainen avaimesi (alkaa sk_). Vaatii kryptomaksujen olevan käytössä Stripe-hallintapaneelissasi."
+    }
+}

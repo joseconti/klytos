@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formularios",
+    "klytos_forms.all_forms": "Todos os formularios",
+    "klytos_forms.entries": "Entradas",
+    "klytos_forms.new_form": "Novo formulario",
+    "klytos_forms.edit_form": "Editar formulario",
+    "klytos_forms.save": "Gardar formulario",
+    "klytos_forms.delete": "Eliminar",
+    "klytos_forms.duplicate": "Duplicar",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Campos",
+    "klytos_forms.settings": "Configuraci\u00f3n",
+    "klytos_forms.notifications": "Notificaci\u00f3ns",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Inserir",
+    "klytos_forms.no_forms": "A\u00ednda non hai formularios.",
+    "klytos_forms.no_entries": "A\u00ednda non hai entradas.",
+    "klytos_forms.created": "Formulario creado correctamente.",
+    "klytos_forms.updated": "Formulario actualizado correctamente.",
+    "klytos_forms.deleted": "Formulario eliminado correctamente."
+}

@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Bonjour IA",
+    "hello_ai.modal_title": "Bonjour IA",
+    "hello_ai.welcome_message": "Bonjour ! Je suis <strong>Bonjour IA</strong>, un plugin de démonstration pour Klytos. Tapez n'importe quoi et je vous répondrai. Essayez de dire <em>bonjour</em> !",
+    "hello_ai.input_placeholder": "Tapez un message...",
+    "hello_ai.response_1": "Bonjour ! Ravi de vous voir ici. Klytos est un CMS incroyable !",
+    "hello_ai.response_2": "Salut ! Saviez-vous que ce plugin a été découvert grâce à son en-tête PHP ? Aucun JSON nécessaire !",
+    "hello_ai.response_3": "Hé ! Je suis un plugin de démonstration fonctionnant sur le contrat immuable des plugins.",
+    "hello_ai.response_4": "Salutations ! Le système de plugins de Klytos est inspiré de WordPress mais conçu pour l'ère de l'IA.",
+    "hello_ai.response_5": "Bonjour, humain ! Je vis dans plugins/hello-ai/hello-ai.php et c'est tout ce dont Klytos a besoin pour me trouver.",
+    "hello_ai.response_6": "Salut ! Fait amusant : toute mon identification est simplement \"Plugin Name: Hello AI\" dans un commentaire PHP.",
+    "hello_ai.response_7": "Coucou ! Je suis la preuve que les plugins Klytos peuvent être aussi simples ou complexes que vous le souhaitez.",
+    "hello_ai.response_8": "Bonjour ! Ce plugin prend en charge plusieurs langues. Essayez de passer en espagnol !",
+    "hello_ai.smart_hello": "Bonjour ! Enchanté de vous rencontrer. Je suis un plugin de démonstration Klytos.",
+    "hello_ai.smart_hi": "Salut ! Bienvenue dans Bonjour IA.",
+    "hello_ai.smart_klytos": "Klytos est un CMS AI-First contrôlé via MCP. Plutôt cool, non ?",
+    "hello_ai.smart_plugin": "Les plugins Klytos n'ont besoin que d'un fichier PHP avec un en-tête \"Plugin Name:\". Simple !",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) est la façon dont les assistants IA communiquent avec Klytos. C'est l'avenir !",
+    "hello_ai.smart_help": "Je ne suis qu'une démo, mais le vrai chat IA est dans le Mode IA. Essayez-le !",
+    "hello_ai.smart_bye": "Au revoir ! Merci d'avoir essayé Bonjour IA. À la prochaine !",
+    "hello_ai.smart_translate": "Ce plugin utilise klytos_register_translations() et la fonction __() pour l'i18n. Consultez le dossier lang !"
+}

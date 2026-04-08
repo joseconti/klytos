@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "nl",
+        "name": "Nederlands",
+        "flag": "NL",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Geheime Stripe-sleutel",
+        "secret_key_desc": "Uw geheime Stripe-sleutel (begint met sk_). Vereist dat cryptobetalingen zijn ingeschakeld in uw Stripe-dashboard."
+    }
+}

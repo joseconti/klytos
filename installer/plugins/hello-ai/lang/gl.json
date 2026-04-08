@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Ola IA",
+    "hello_ai.modal_title": "Ola IA",
+    "hello_ai.welcome_message": "Ola! Son <strong>Ola IA</strong>, un complemento de demostración para Klytos. Escribe calquera cousa e respondereiche. Proba a dicir <em>ola</em>!",
+    "hello_ai.input_placeholder": "Escribe unha mensaxe...",
+    "hello_ai.response_1": "Ola! Que alegría verte aquí. Klytos é un CMS incrible!",
+    "hello_ai.response_2": "Ei! Sabías que este complemento foi descuberto pola súa cabeceira PHP? Non se precisa ningún JSON!",
+    "hello_ai.response_3": "Ep! Son un complemento de demostración que funciona co contrato inmutable de complementos.",
+    "hello_ai.response_4": "Saúdos! O sistema de complementos de Klytos está inspirado en WordPress pero construído para a era da IA.",
+    "hello_ai.response_5": "Ola, humano! Vivo en plugins/hello-ai/hello-ai.php e iso é todo o que Klytos precisa para atoparme.",
+    "hello_ai.response_6": "Ei! Dato curioso: toda a miña identificación é simplemente \"Plugin Name: Hello AI\" nun comentario PHP.",
+    "hello_ai.response_7": "Ola! Son a proba de que os complementos de Klytos poden ser tan simples ou complexos como queiras.",
+    "hello_ai.response_8": "Ola! Este complemento admite múltiples idiomas. Proba a cambiar a español!",
+    "hello_ai.smart_hello": "Ola! Encantado de coñecerte. Son un complemento de demostración de Klytos.",
+    "hello_ai.smart_hi": "Ei! Benvido a Ola IA.",
+    "hello_ai.smart_klytos": "Klytos é un CMS AI-First controlado vía MCP. Xenial, non si?",
+    "hello_ai.smart_plugin": "Os complementos de Klytos só precisan un ficheiro PHP cunha cabeceira \"Plugin Name:\". Sinxelo!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) é como os asistentes de IA falan con Klytos. É o futuro!",
+    "hello_ai.smart_help": "Son só unha demostración, pero o chat real de IA está no Modo IA. Próbao!",
+    "hello_ai.smart_bye": "Adeus! Grazas por probar Ola IA. Ata a próxima!",
+    "hello_ai.smart_translate": "Este complemento usa klytos_register_translations() e a función __() para a i18n. Mira o cartafol lang!"
+}

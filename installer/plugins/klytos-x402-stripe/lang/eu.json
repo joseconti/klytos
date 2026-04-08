@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "eu",
+        "name": "Euskara",
+        "flag": "ES",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Stripe-ren gako sekretua",
+        "secret_key_desc": "Zure Stripe gako sekretua (sk_-rekin hasten da). Kriptomoneta-ordainketak gaituta izan behar dira zure Stripe panelean."
+    }
+}

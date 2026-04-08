@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formularze",
+    "klytos_forms.all_forms": "Wszystkie formularze",
+    "klytos_forms.entries": "Wpisy",
+    "klytos_forms.new_form": "Nowy formularz",
+    "klytos_forms.edit_form": "Edytuj formularz",
+    "klytos_forms.save": "Zapisz formularz",
+    "klytos_forms.delete": "Usu\u0144",
+    "klytos_forms.duplicate": "Duplikuj",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Pola",
+    "klytos_forms.settings": "Ustawienia",
+    "klytos_forms.notifications": "Powiadomienia",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Wstaw",
+    "klytos_forms.no_forms": "Brak formularzy.",
+    "klytos_forms.no_entries": "Brak wpis\u00f3w.",
+    "klytos_forms.created": "Formularz utworzony pomy\u015blnie.",
+    "klytos_forms.updated": "Formularz zaktualizowany pomy\u015blnie.",
+    "klytos_forms.deleted": "Formularz usuni\u0119ty pomy\u015blnie."
+}

@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "fr",
+        "name": "Fran\u00e7ais",
+        "flag": "FR",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-stripe": {
+        "secret_key": "Cl\u00e9 secr\u00e8te Stripe",
+        "secret_key_desc": "Votre cl\u00e9 secr\u00e8te Stripe (commence par sk_). N\u00e9cessite l\u2019activation des paiements crypto dans votre tableau de bord Stripe."
+    }
+}

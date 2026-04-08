@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Skjemaer",
+    "klytos_forms.all_forms": "Alle skjemaer",
+    "klytos_forms.entries": "Oppføringer",
+    "klytos_forms.new_form": "Nytt skjema",
+    "klytos_forms.edit_form": "Rediger skjema",
+    "klytos_forms.save": "Lagre skjema",
+    "klytos_forms.delete": "Slett",
+    "klytos_forms.duplicate": "Dupliser",
+    "klytos_forms.shortcode": "Kortkode",
+    "klytos_forms.fields": "Felter",
+    "klytos_forms.settings": "Innstillinger",
+    "klytos_forms.notifications": "Varsler",
+    "klytos_forms.antispam": "Antispam",
+    "klytos_forms.insert": "Sett inn",
+    "klytos_forms.no_forms": "Ingen skjemaer ennå.",
+    "klytos_forms.no_entries": "Ingen oppføringer ennå.",
+    "klytos_forms.created": "Skjemaet ble opprettet.",
+    "klytos_forms.updated": "Skjemaet ble oppdatert.",
+    "klytos_forms.deleted": "Skjemaet ble slettet."
+}

@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Hallo AI",
+    "hello_ai.modal_title": "Hallo AI",
+    "hello_ai.welcome_message": "Hallo! Ik ben <strong>Hallo AI</strong>, een demoplugin voor Klytos. Typ iets en ik zal antwoorden. Probeer <em>hallo</em> te zeggen!",
+    "hello_ai.input_placeholder": "Typ een bericht...",
+    "hello_ai.response_1": "Hallo! Leuk je hier te zien. Klytos is een geweldig CMS!",
+    "hello_ai.response_2": "Hoi! Wist je dat deze plugin werd ontdekt via zijn PHP-header? Geen JSON nodig!",
+    "hello_ai.response_3": "Hey! Ik ben een demoplugin die draait op het onveranderlijke plugincontract.",
+    "hello_ai.response_4": "Groeten! Het pluginsysteem van Klytos is geïnspireerd door WordPress maar gebouwd voor het AI-tijdperk.",
+    "hello_ai.response_5": "Hallo, mens! Ik woon in plugins/hello-ai/hello-ai.php en dat is alles wat Klytos nodig heeft om mij te vinden.",
+    "hello_ai.response_6": "Hoi! Leuk feitje: mijn hele identificatie is simpelweg \"Plugin Name: Hello AI\" in een PHP-commentaar.",
+    "hello_ai.response_7": "Hallo! Ik ben het bewijs dat Klytos-plugins zo eenvoudig of complex kunnen zijn als je wilt.",
+    "hello_ai.response_8": "Hallo! Deze plugin ondersteunt meerdere talen. Probeer eens te wisselen naar Spaans!",
+    "hello_ai.smart_hello": "Hallo! Leuk je te ontmoeten. Ik ben een Klytos-demoplugin.",
+    "hello_ai.smart_hi": "Hoi! Welkom bij Hallo AI.",
+    "hello_ai.smart_klytos": "Klytos is een AI-First CMS dat wordt bestuurd via MCP. Best cool, toch?",
+    "hello_ai.smart_plugin": "Klytos-plugins hebben alleen een PHP-bestand nodig met een \"Plugin Name:\"-header. Simpel!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) is hoe AI-assistenten met Klytos communiceren. Het is de toekomst!",
+    "hello_ai.smart_help": "Ik ben slechts een demo, maar de echte AI-chat zit in de AI-Modus. Probeer het!",
+    "hello_ai.smart_bye": "Tot ziens! Bedankt voor het uitproberen van Hallo AI. Tot de volgende keer!",
+    "hello_ai.smart_translate": "Deze plugin gebruikt klytos_register_translations() en de __()-functie voor i18n. Bekijk de map lang!"
+}

@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "\u8868\u5355",
+    "klytos_forms.all_forms": "\u6240\u6709\u8868\u5355",
+    "klytos_forms.entries": "\u6761\u76ee",
+    "klytos_forms.new_form": "\u65b0\u5efa\u8868\u5355",
+    "klytos_forms.edit_form": "\u7f16\u8f91\u8868\u5355",
+    "klytos_forms.save": "\u4fdd\u5b58\u8868\u5355",
+    "klytos_forms.delete": "\u5220\u9664",
+    "klytos_forms.duplicate": "\u590d\u5236",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "\u5b57\u6bb5",
+    "klytos_forms.settings": "\u8bbe\u7f6e",
+    "klytos_forms.notifications": "\u901a\u77e5",
+    "klytos_forms.antispam": "\u53cd\u5783\u573e\u90ae\u4ef6",
+    "klytos_forms.insert": "\u63d2\u5165",
+    "klytos_forms.no_forms": "\u6682\u65e0\u8868\u5355\u3002",
+    "klytos_forms.no_entries": "\u6682\u65e0\u6761\u76ee\u3002",
+    "klytos_forms.created": "\u8868\u5355\u521b\u5efa\u6210\u529f\u3002",
+    "klytos_forms.updated": "\u8868\u5355\u66f4\u65b0\u6210\u529f\u3002",
+    "klytos_forms.deleted": "\u8868\u5355\u5220\u9664\u6210\u529f\u3002"
+}

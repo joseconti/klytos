@@ -1,0 +1,22 @@
+{
+    "hello_ai.button_label": "Ciao IA",
+    "hello_ai.modal_title": "Ciao IA",
+    "hello_ai.welcome_message": "Ciao! Sono <strong>Ciao IA</strong>, un plugin dimostrativo per Klytos. Scrivi qualsiasi cosa e ti risponderò. Prova a dire <em>ciao</em>!",
+    "hello_ai.input_placeholder": "Scrivi un messaggio...",
+    "hello_ai.response_1": "Ciao! Che bello vederti qui. Klytos è un CMS incredibile!",
+    "hello_ai.response_2": "Ehi! Sapevi che questo plugin è stato scoperto tramite il suo header PHP? Nessun JSON necessario!",
+    "hello_ai.response_3": "Hey! Sono un plugin dimostrativo che funziona con il contratto immutabile dei plugin.",
+    "hello_ai.response_4": "Saluti! Il sistema di plugin di Klytos è ispirato a WordPress ma costruito per l'era dell'IA.",
+    "hello_ai.response_5": "Ciao, umano! Vivo in plugins/hello-ai/hello-ai.php e questo è tutto ciò che Klytos ha bisogno per trovarmi.",
+    "hello_ai.response_6": "Ehi! Curiosità: tutta la mia identificazione è semplicemente \"Plugin Name: Hello AI\" in un commento PHP.",
+    "hello_ai.response_7": "Ciao! Sono la prova che i plugin di Klytos possono essere semplici o complessi quanto vuoi.",
+    "hello_ai.response_8": "Ciao! Questo plugin supporta più lingue. Prova a passare allo spagnolo!",
+    "hello_ai.smart_hello": "Ciao! Piacere di conoscerti. Sono un plugin dimostrativo di Klytos.",
+    "hello_ai.smart_hi": "Ehi! Benvenuto in Ciao IA.",
+    "hello_ai.smart_klytos": "Klytos è un CMS AI-First controllato via MCP. Fantastico, vero?",
+    "hello_ai.smart_plugin": "I plugin di Klytos hanno bisogno solo di un file PHP con un header \"Plugin Name:\". Semplice!",
+    "hello_ai.smart_mcp": "MCP (Model Context Protocol) è il modo in cui gli assistenti IA comunicano con Klytos. È il futuro!",
+    "hello_ai.smart_help": "Sono solo una demo, ma la vera chat IA è nella Modalità IA. Provalo!",
+    "hello_ai.smart_bye": "Arrivederci! Grazie per aver provato Ciao IA. Alla prossima!",
+    "hello_ai.smart_translate": "Questo plugin usa klytos_register_translations() e la funzione __() per l'i18n. Controlla la cartella lang!"
+}

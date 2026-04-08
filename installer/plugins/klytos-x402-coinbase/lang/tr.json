@@ -1,0 +1,13 @@
+{
+    "_meta": {
+        "locale": "tr",
+        "name": "T\u00fcrk\u00e7e",
+        "flag": "TR",
+        "author": "Jose Conti",
+        "version": "1.0.0"
+    },
+    "klytos-x402-coinbase": {
+        "facilitator_url": "Kolayla\u015ft\u0131r\u0131c\u0131 URL'si",
+        "facilitator_url_desc": "x402 kolayla\u015ft\u0131r\u0131c\u0131 hizmetinin URL'si (Coinbase CDP). Varsay\u0131lan: https://x402.org/facilitator"
+    }
+}

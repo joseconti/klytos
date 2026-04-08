@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formularis",
+    "klytos_forms.all_forms": "Tots els formularis",
+    "klytos_forms.entries": "Entrades",
+    "klytos_forms.new_form": "Nou formulari",
+    "klytos_forms.edit_form": "Editar formulari",
+    "klytos_forms.save": "Desar formulari",
+    "klytos_forms.delete": "Eliminar",
+    "klytos_forms.duplicate": "Duplicar",
+    "klytos_forms.shortcode": "Shortcode",
+    "klytos_forms.fields": "Camps",
+    "klytos_forms.settings": "Configuraci\u00f3",
+    "klytos_forms.notifications": "Notificacions",
+    "klytos_forms.antispam": "Anti-spam",
+    "klytos_forms.insert": "Inserir",
+    "klytos_forms.no_forms": "Encara no hi ha formularis.",
+    "klytos_forms.no_entries": "Encara no hi ha entrades.",
+    "klytos_forms.created": "Formulari creat correctament.",
+    "klytos_forms.updated": "Formulari actualitzat correctament.",
+    "klytos_forms.deleted": "Formulari eliminat correctament."
+}

@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Formulär",
+    "klytos_forms.all_forms": "Alla formulär",
+    "klytos_forms.entries": "Inlägg",
+    "klytos_forms.new_form": "Nytt formulär",
+    "klytos_forms.edit_form": "Redigera formulär",
+    "klytos_forms.save": "Spara formulär",
+    "klytos_forms.delete": "Radera",
+    "klytos_forms.duplicate": "Duplicera",
+    "klytos_forms.shortcode": "Kortkod",
+    "klytos_forms.fields": "Fält",
+    "klytos_forms.settings": "Inställningar",
+    "klytos_forms.notifications": "Aviseringar",
+    "klytos_forms.antispam": "Antispam",
+    "klytos_forms.insert": "Infoga",
+    "klytos_forms.no_forms": "Inga formulär ännu.",
+    "klytos_forms.no_entries": "Inga inlägg ännu.",
+    "klytos_forms.created": "Formuläret har skapats.",
+    "klytos_forms.updated": "Formuläret har uppdaterats.",
+    "klytos_forms.deleted": "Formuläret har raderats."
+}

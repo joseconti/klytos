@@ -1,0 +1,21 @@
+{
+    "klytos_forms.menu_title": "Формы",
+    "klytos_forms.all_forms": "Все формы",
+    "klytos_forms.entries": "Записи",
+    "klytos_forms.new_form": "Новая форма",
+    "klytos_forms.edit_form": "Редактировать форму",
+    "klytos_forms.save": "Сохранить форму",
+    "klytos_forms.delete": "Удалить",
+    "klytos_forms.duplicate": "Дублировать",
+    "klytos_forms.shortcode": "Шорткод",
+    "klytos_forms.fields": "Поля",
+    "klytos_forms.settings": "Настройки",
+    "klytos_forms.notifications": "Уведомления",
+    "klytos_forms.antispam": "Антиспам",
+    "klytos_forms.insert": "Вставить",
+    "klytos_forms.no_forms": "Форм пока нет.",
+    "klytos_forms.no_entries": "Записей пока нет.",
+    "klytos_forms.created": "Форма успешно создана.",
+    "klytos_forms.updated": "Форма успешно обновлена.",
+    "klytos_forms.deleted": "Форма успешно удалена."
+}

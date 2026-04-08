@@ -1424,6 +1424,28 @@ function getColorPreset(string $name): array
     <?php
     $installData = $_SESSION['klytos_install'] ?? [];
     $adminUrl = $installData['admin_url'] ?? '';
+
+    // Pre-generate key file contents for client-side download (Blob).
+    // This avoids a POST back to install.php, which would 404 because the
+    // directory and file have already been renamed during installation.
+    $encKeyPath = ( $dirRenamed ?? false )
+        ? ( $newDirPath ?? $rootPath ) . '/config/.encryption_key'
+        : $rootPath . '/config/.encryption_key';
+    $encKeyContent = '';
+    if ( file_exists( $encKeyPath ) ) {
+        $rawKey = file_get_contents( $encKeyPath );
+        $encKeyContent = Encryption::formatEncryptionKeyFile(
+            $rawKey,
+            $installData['site_url'] ?? '',
+            $installData['encryption_level'] ?? 'basic'
+        );
+    }
+    $idKeyContent = Encryption::formatIdentityKeyFile(
+        $installData['private_key'] ?? '',
+        $installData['site_url'] ?? '',
+        $installData['admin_user'] ?? 'admin',
+        $installData['fingerprint'] ?? ''
+    );
     ?>
     <div class="card">
         <h2><?php echo $t['rec_title'] ?? 'Recovery Files'; ?></h2>
@@ -1487,32 +1509,35 @@ function getColorPreset(string $name): array
         checkEnc.addEventListener('change', updateFinishBtn);
         checkId.addEventListener('change', updateFinishBtn);
 
-        // Download encryption key via POST.
+        // Client-side Blob download — avoids POST back to install.php which
+        // would 404 because the directory/file are already renamed.
+        function downloadBlob(content, filename) {
+            var blob = new Blob([content], {type: 'application/octet-stream'});
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href     = url;
+            a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // Pre-generated key contents embedded during the same request.
+        var encKeyData = atob(<?php echo json_encode( base64_encode( $encKeyContent ) ); ?>);
+        var idKeyData  = atob(<?php echo json_encode( base64_encode( $idKeyContent ) ); ?>);
+
+        // Download encryption key via Blob.
         document.getElementById('downloadEncKey').addEventListener('click', function() {
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-            var input = document.createElement('input');
-            input.name = 'ajax_action';
-            input.value = 'download_encryption_key';
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
+            downloadBlob(encKeyData, 'klytos-encryption.key');
         });
 
-        // Download identity key via POST.
+        // Download identity key via Blob.
         document.getElementById('downloadIdKey').addEventListener('click', function() {
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.style.display = 'none';
-            var input = document.createElement('input');
-            input.name = 'ajax_action';
-            input.value = 'download_identity_key';
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
+            downloadBlob(idKeyData, 'klytos-identity.pem');
         });
 
         // Finish installation → redirect to admin.
