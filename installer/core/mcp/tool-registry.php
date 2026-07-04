@@ -247,6 +247,7 @@ class ToolRegistry
             'site-tools.php',
             'asset-tools.php',
             'template-tools.php',
+            'part-tools.php',
             'build-tools.php',
             'ai-image-tools.php',
             // v2.0 tools

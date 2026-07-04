@@ -619,9 +619,12 @@ class BuildEngine
     {
         // Only inject when the template already provides a header (so top-bar
         // was excluded from page_content) but does NOT include the top-bar markup.
+        // Never inject when the template renders the top-bar PART explicitly
+        // (its <!--klytos:part:top-bar--> marker is present after processing).
         if (
             !in_array( 'top-bar', $excludeBlocks, true )
             || str_contains( $templateHtml, 'klytos-top-bar' )
+            || str_contains( $templateHtml, 'klytos:part:top-bar' )
             || !isset( $this->globalBlocksCache['top-bar'] )
             || !str_contains( $templateHtml, '<header' )
         ) {
@@ -640,8 +643,9 @@ class BuildEngine
     }
 
     /**
-     * Process template parts: replace {{klytos_part:NAME}} with resolved content.
-     * Parts are resolved via the TemplateResolver hierarchy (custom > plugin > core).
+     * Process template parts: replace {{klytos_part:NAME}} with rendered content.
+     * Parts are rendered via PartManager (hierarchy: custom > plugin > storage
+     * > core), which also applies the part's stored slot data and CSS/JS.
      * Must be called BEFORE variable replacement so parts can contain {{variables}}.
      *
      * @param  string $templateHtml Raw template HTML.
@@ -649,12 +653,12 @@ class BuildEngine
      */
     public function processTemplateParts(string $templateHtml): string
     {
-        $resolver     = $this->app->getTemplateResolver();
+        $partManager   = $this->app->getPartManager();
         $resolvedParts = [];
 
         return preg_replace_callback(
             '/\{\{klytos_part:([a-zA-Z0-9_\-]+)\}\}/',
-            function (array $matches) use ($resolver, &$resolvedParts): string {
+            function (array $matches) use ($partManager, &$resolvedParts): string {
                 $partName = $matches[1];
 
                 // Prevent infinite recursion.
@@ -663,7 +667,7 @@ class BuildEngine
                 }
                 $resolvedParts[$partName] = true;
 
-                $partHtml = $resolver->resolvePart($partName);
+                $partHtml = $partManager->render($partName);
 
                 return $partHtml ?? '';
             },

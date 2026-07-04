@@ -221,6 +221,13 @@ klytos_register_translations($pluginId, $langDir) → Register i18n
 - `page_template.wrapper_html` (filter) — modify template wrapper
 - `page_template.approved` (action) — template approved
 
+### Parts (unified site-wide fragments)
+- `template_part.{id}` (filter) — provide a part's HTML from a plugin (e.g. `template_part.header`); takes precedence over storage and core parts
+- `part.rendered_html` (filter) — modify a rendered part (receives html, part id, record)
+- `part.before_save` / `part.after_save` (action) — part created or updated
+- `part.data_changed` (action) — part slot data updated
+- `part.deleted` (action) — part deleted from storage
+
 ## Storage Pattern for Plugin Data
 
 ```php

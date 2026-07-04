@@ -318,7 +318,7 @@ klytos_set_site_config — set homepage
 
 Klytos uses a two-layer architecture:
 
-1. **Template chrome (shared):** Header, footer, top bar, navigation — designed ONCE via `klytos_set_custom_template_part`, applied to ALL pages. Change the header once, all 1000 pages update on the next build.
+1. **Template chrome (shared):** Header, footer, top bar, navigation — these are PARTS, the single source of truth for shared elements. Designed ONCE via `klytos_set_part`, applied to ALL pages. Change the part once (or just its data with `klytos_set_part_data`), and all 1000 pages update on the next build.
 2. **Page content (free per page):** Each page has its own `content_html` with total design freedom. Use Gutenberg blocks, `wp:html` blocks, or plain HTML depending on the editor mode.
 
 ### Auxiliary guides
@@ -328,7 +328,7 @@ Klytos uses a two-layer architecture:
 
 ### Step 1: Design the Header (MOST IMPORTANT)
 
-Use `klytos_set_custom_template_part` with name `"header"` to create a header with ANY design. You have total HTML/CSS freedom. Common patterns:
+Use `klytos_set_part` with id `"header"` to create a header with ANY design. You have total HTML/CSS freedom. The part is stored once and rendered on every page that references `{{klytos_part:header}}` (all core templates do). Optionally declare typed slots (e.g. `{{cta_text}}`) plus `data`, so the content can be changed later with `klytos_set_part_data` without touching the HTML. Common patterns:
 
 **Logo left + Menu right (classic):**
 ```html
@@ -369,11 +369,11 @@ Available variables: `{{site_name}}`, `{{menu_html}}`, `{{base_path}}`, `{{site_
 
 ### Step 2: Design the Footer
 
-Use `klytos_set_custom_template_part` with name `"footer"`. Same freedom as the header. Read `klytos_get_guide("design-patterns")` for footer patterns (multi-column, minimal, with newsletter, etc.).
+Use `klytos_set_part` with id `"footer"`. Same freedom as the header. Read `klytos_get_guide("design-patterns")` for footer patterns (multi-column, minimal, with newsletter, etc.).
 
 ### Step 3: Optional Top Bar
 
-If the reference design has a top bar (phone, address, social links), create a custom part named `"top-bar"` or include it directly in the header part HTML.
+If the reference design has a top bar (phone, address, social links), create a part with id `"top-bar"` via `klytos_set_part`. All core templates render `{{klytos_part:top-bar}}` before the header, so it appears automatically; if no top-bar part exists, nothing is rendered. Declare slots like phone/email and set their values in `data`, so later changes are a one-line `klytos_set_part_data` call. Alternatively include it directly in the header part HTML.
 
 ### Step 4: Templates
 
@@ -493,10 +493,12 @@ For visually rich but unique sections (hero, product grids, testimonials), use `
 ### MCP Tools
 
 ```
-klytos_set_custom_template_part — MAIN TOOL: create header/footer/top-bar with ANY design
+klytos_set_part — MAIN TOOL: create header/footer/top-bar/any shared part with ANY design
+klytos_set_part_data — change ONLY the data of a part (cheap edit-once path)
+klytos_list_parts / klytos_get_part — inspect existing parts and their effective source
 klytos_set_custom_template — custom page templates (wrapper HTML)
+klytos_set_custom_template_part — FILE override in custom-templates/parts/ (shadows stored parts; only when the user explicitly wants a file that survives everything)
 klytos_create_block — reusable blocks (only for genuinely repeated elements)
-klytos_set_global_block_data — block global data
 klytos_create_page_template — page templates (block arrangements)
 klytos_add_block_to_template — add blocks to templates
 klytos_approve_page_template — approve templates

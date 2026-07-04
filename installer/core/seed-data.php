@@ -5,7 +5,12 @@
  * Creates the default blocks and page templates during installation.
  *
  * Called once during install.php after storage is initialized.
- * Seeds ~20 core blocks and 9 page templates with HTML/CSS/slot definitions.
+ * Seeds the core content blocks and 9 page templates with HTML/CSS/slot definitions.
+ *
+ * NOTE (0.32.0): structural site-wide elements (header, footer, top-bar, menu)
+ * are NO longer seeded as global blocks. They are "parts" now: core defaults
+ * live in templates/parts/ and the AI customizes them via klytos_set_part
+ * (storage collection 'parts'). One part, edited once, rendered on all pages.
  *
  * @package Klytos
  * @since   1.0.0
@@ -35,29 +40,15 @@ function seedDefaultData(BlockManager $blocks, PageTemplateManager $templates): 
 }
 
 /**
- * Seed the ~20 core HTML blocks.
+ * Seed the core content blocks (structural elements are parts, not blocks).
  * Each block has: id, name, category, scope, HTML template, slots, and sample data.
  */
 function seedCoreBlocks(BlockManager $blocks): void
 {
     $coreBlocks = [
         // ── Structure blocks ─────────────────────────────────
-        [
-            'id' => 'header', 'name' => 'Header', 'category' => 'structure', 'scope' => 'global',
-            'html' => '<header class="klytos-header"><div class="klytos-container"><a href="/" class="site-logo">{{site_name}}</a>{{menu_html}}</div></header>',
-            'slots' => [['name' => 'site_name', 'type' => 'text', 'label' => 'Site Name', 'required' => true]],
-            'sample_data' => ['site_name' => 'My Site'],
-        ],
-        [
-            'id' => 'footer', 'name' => 'Footer', 'category' => 'structure', 'scope' => 'global',
-            'html' => '<footer class="klytos-footer"><div class="klytos-container"><p>&copy; {{year}} {{site_name}}</p><p>{{tagline}}</p></div></footer>',
-            'slots' => [
-                ['name' => 'site_name', 'type' => 'text', 'label' => 'Site Name'],
-                ['name' => 'tagline', 'type' => 'text', 'label' => 'Footer Tagline'],
-                ['name' => 'year', 'type' => 'text', 'label' => 'Year'],
-            ],
-            'sample_data' => ['site_name' => 'My Site', 'tagline' => 'Powered by Klytos', 'year' => klytos_gmdate( 'Y' )],
-        ],
+        // Header, footer, top-bar and menu are NOT blocks anymore: they are
+        // parts (templates/parts/ + storage 'parts'). See part-manager.php.
         [
             'id' => 'breadcrumb', 'name' => 'Breadcrumb', 'category' => 'structure', 'scope' => 'page',
             'html' => '{{breadcrumbs}}',
@@ -175,24 +166,6 @@ function seedCoreBlocks(BlockManager $blocks): void
 
         // ── Additional structure blocks ──────────────────────────
         [
-            'id' => 'top-bar', 'name' => 'Top Bar', 'category' => 'structure', 'scope' => 'global',
-            'html' => '<div class="klytos-top-bar" style="background:var(--klytos-text);color:#fff;font-size:0.85rem;padding:0.4rem 0"><div class="klytos-container" style="display:flex;justify-content:space-between;align-items:center"><span>{{phone}}</span><span>{{email}}</span><span>{{social_html}}</span></div></div>',
-            'slots' => [
-                ['name' => 'phone', 'type' => 'phone', 'label' => 'Phone Number'],
-                ['name' => 'email', 'type' => 'email', 'label' => 'Email Address'],
-                ['name' => 'social_html', 'type' => 'html', 'label' => 'Social Links HTML'],
-            ],
-            'sample_data' => ['phone' => '+1 234 567 890', 'email' => 'info@example.com', 'social_html' => ''],
-        ],
-        [
-            'id' => 'menu', 'name' => 'Navigation Menu', 'category' => 'structure', 'scope' => 'global',
-            'html' => '<nav class="klytos-nav" aria-label="Main navigation">{{menu_html}}</nav>',
-            'slots' => [
-                ['name' => 'menu_html', 'type' => 'html', 'label' => 'Menu HTML (auto-populated from menu manager)'],
-            ],
-            'sample_data' => ['menu_html' => '<ul class="klytos-menu"><li><a href="/">Home</a></li><li><a href="/about/">About</a></li><li><a href="/contact/">Contact</a></li></ul>'],
-        ],
-        [
             'id' => 'sidebar', 'name' => 'Sidebar', 'category' => 'structure', 'scope' => 'template',
             'html' => '<aside class="klytos-sidebar" style="padding:1.5rem;background:var(--klytos-surface);border-radius:var(--klytos-radius)">{{sidebar_html}}</aside>',
             'slots' => [
@@ -254,14 +227,11 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'home', 'name' => 'Homepage',
             'description' => 'Landing page with hero, features, testimonials, and CTA.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'hero', 'order' => 2],
-                ['block_id' => 'text-block', 'order' => 3],
-                ['block_id' => 'stats-counter', 'order' => 4],
-                ['block_id' => 'testimonials', 'order' => 5],
-                ['block_id' => 'cta', 'order' => 6],
-                ['block_id' => 'footer', 'order' => 7],
+                ['block_id' => 'hero', 'order' => 0],
+                ['block_id' => 'text-block', 'order' => 1],
+                ['block_id' => 'stats-counter', 'order' => 2],
+                ['block_id' => 'testimonials', 'order' => 3],
+                ['block_id' => 'cta', 'order' => 4],
             ],
             'status' => 'active',
         ],
@@ -269,11 +239,8 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'page', 'name' => 'Standard Page',
             'description' => 'Simple page with header, content, and footer.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'breadcrumb', 'order' => 2],
-                ['block_id' => 'text-block', 'order' => 3],
-                ['block_id' => 'footer', 'order' => 4],
+                ['block_id' => 'breadcrumb', 'order' => 0],
+                ['block_id' => 'text-block', 'order' => 1],
             ],
             'status' => 'active',
         ],
@@ -281,13 +248,10 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'contact', 'name' => 'Contact Page',
             'description' => 'Contact page with form, map, and info.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'breadcrumb', 'order' => 2],
-                ['block_id' => 'text-block', 'order' => 3],
-                ['block_id' => 'contact-form', 'order' => 4],
-                ['block_id' => 'map-embed', 'order' => 5],
-                ['block_id' => 'footer', 'order' => 6],
+                ['block_id' => 'breadcrumb', 'order' => 0],
+                ['block_id' => 'text-block', 'order' => 1],
+                ['block_id' => 'contact-form', 'order' => 2],
+                ['block_id' => 'map-embed', 'order' => 3],
             ],
             'status' => 'active',
         ],
@@ -301,7 +265,6 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
                 ['block_id' => 'testimonials', 'order' => 3],
                 ['block_id' => 'logo-bar', 'order' => 4],
                 ['block_id' => 'cta', 'order' => 5],
-                ['block_id' => 'footer', 'order' => 6],
             ],
             'status' => 'active',
         ],
@@ -309,12 +272,9 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'faq', 'name' => 'FAQ Page',
             'description' => 'Frequently asked questions with accordion.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'breadcrumb', 'order' => 2],
-                ['block_id' => 'faq-accordion', 'order' => 3],
-                ['block_id' => 'cta', 'order' => 4],
-                ['block_id' => 'footer', 'order' => 5],
+                ['block_id' => 'breadcrumb', 'order' => 0],
+                ['block_id' => 'faq-accordion', 'order' => 1],
+                ['block_id' => 'cta', 'order' => 2],
             ],
             'status' => 'active',
         ],
@@ -322,13 +282,10 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'team', 'name' => 'Team Page',
             'description' => 'Team members grid with bios.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'breadcrumb', 'order' => 2],
-                ['block_id' => 'text-block', 'order' => 3],
-                ['block_id' => 'team-grid', 'order' => 4],
-                ['block_id' => 'cta', 'order' => 5],
-                ['block_id' => 'footer', 'order' => 6],
+                ['block_id' => 'breadcrumb', 'order' => 0],
+                ['block_id' => 'text-block', 'order' => 1],
+                ['block_id' => 'team-grid', 'order' => 2],
+                ['block_id' => 'cta', 'order' => 3],
             ],
             'status' => 'active',
         ],
@@ -336,13 +293,10 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'services', 'name' => 'Services Page',
             'description' => 'Service listings with hero, features, and social proof.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'hero', 'order' => 2],
-                ['block_id' => 'image-text', 'order' => 3],
-                ['block_id' => 'cta', 'order' => 4],
-                ['block_id' => 'testimonials', 'order' => 5],
-                ['block_id' => 'footer', 'order' => 6],
+                ['block_id' => 'hero', 'order' => 0],
+                ['block_id' => 'image-text', 'order' => 1],
+                ['block_id' => 'cta', 'order' => 2],
+                ['block_id' => 'testimonials', 'order' => 3],
             ],
             'status' => 'active',
         ],
@@ -350,11 +304,8 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'gallery', 'name' => 'Gallery Page',
             'description' => 'Photo gallery layout.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'breadcrumb', 'order' => 2],
-                ['block_id' => 'gallery', 'order' => 3],
-                ['block_id' => 'footer', 'order' => 4],
+                ['block_id' => 'breadcrumb', 'order' => 0],
+                ['block_id' => 'gallery', 'order' => 1],
             ],
             'status' => 'active',
         ],
@@ -362,12 +313,9 @@ function seedCorePageTemplates(PageTemplateManager $templates): void
             'type' => 'post', 'name' => 'Blog Post',
             'description' => 'Single article/blog post layout with sidebar.',
             'structure' => [
-                ['block_id' => 'top-bar', 'order' => 0],
-                ['block_id' => 'header', 'order' => 1],
-                ['block_id' => 'breadcrumb', 'order' => 2],
-                ['block_id' => 'text-block', 'order' => 3],
-                ['block_id' => 'sidebar', 'order' => 4],
-                ['block_id' => 'footer', 'order' => 5],
+                ['block_id' => 'breadcrumb', 'order' => 0],
+                ['block_id' => 'text-block', 'order' => 1],
+                ['block_id' => 'sidebar', 'order' => 2],
             ],
             'status' => 'active',
         ],

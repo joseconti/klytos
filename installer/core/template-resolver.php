@@ -131,34 +131,17 @@ class TemplateResolver
 
     /**
      * Resolve a template part (shared fragment).
-     * Same hierarchy but within parts/ subdirectories.
+     *
+     * Delegates to PartManager, the single source of truth for parts since
+     * 0.32.0 (hierarchy: custom-templates/parts/ > plugin filter > storage
+     * collection 'parts' > templates/parts/). Kept for backwards compatibility.
      *
      * @param  string $partName Part name (e.g. 'header', 'footer').
      * @return string|null HTML content, or null if not found.
      */
     public function resolvePart( string $partName ): ?string
     {
-        $rootPath = $this->app->getRootPath();
-
-        // 1. custom-templates/parts/.
-        $customPart = $rootPath . '/custom-templates/parts/' . $partName . '.html';
-        if ( file_exists( $customPart ) ) {
-            return file_get_contents( $customPart );
-        }
-
-        // 2. Plugin parts (via filter).
-        $pluginPart = klytos_apply_filters( 'template_part.' . $partName, null );
-        if ( $pluginPart !== null ) {
-            return $pluginPart;
-        }
-
-        // 3. Core parts (templates/parts/).
-        $corePart = $this->app->getTemplatesPath() . '/parts/' . $partName . '.html';
-        if ( file_exists( $corePart ) ) {
-            return file_get_contents( $corePart );
-        }
-
-        return null;
+        return $this->app->getPartManager()->resolveHtml( $partName );
     }
 
     /**

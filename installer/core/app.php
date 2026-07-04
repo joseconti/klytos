@@ -175,6 +175,9 @@ class App
     /** @var TemplateResolver|null Template resolution with 4-level hierarchy. */
     private ?TemplateResolver $templateResolver = null;
 
+    /** @var PartManager|null Unified site-wide reusable parts (header, footer, menu...). */
+    private ?PartManager $partManager = null;
+
     /** @var RouteManager|null Dynamic route manager for plugin routes. */
     private ?RouteManager $routeManager = null;
 
@@ -368,8 +371,10 @@ class App
         $this->metaManager    = new MetaManager( $this->storage );
         $this->noticeManager  = new NoticeManager( $this->storage );
 
-        // Step 10d: Initialize TemplateResolver and RouteManager (before plugins so they can register).
+        // Step 10d: Initialize TemplateResolver, PartManager and RouteManager
+        // (before plugins so they can register).
         $this->templateResolver = new TemplateResolver($this);
+        $this->partManager      = new PartManager($this);
         $this->routeManager     = new RouteManager();
         // Lazy-create custom-templates/ for existing installations that upgraded.
         Helpers::ensureWritableDir($this->rootPath . '/custom-templates');
@@ -1149,6 +1154,12 @@ class App
     public function getTemplateResolver(): TemplateResolver
     {
         return $this->templateResolver;
+    }
+
+    /** Get the PartManager instance (unified site-wide parts). */
+    public function getPartManager(): PartManager
+    {
+        return $this->partManager;
     }
 
     /** Get the RouteManager instance for plugin dynamic routes. */
