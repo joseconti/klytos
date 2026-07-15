@@ -48,3 +48,5 @@ phpstan.neon                export-ignore
 *.eot   binary
 *.zip   binary
 *.tar.gz binary
+# Keel: workflow files — never in the distributable (git archive)
+CLAUDE.md export-ignore
