@@ -6,6 +6,12 @@
     <file>installer/core</file>
     <file>installer/admin</file>
     <file>installer/plugins</file>
+    <!--
+        The test harness lints under the same ruleset as the code it tests
+        (Sprint 1, slice 1). It is new code, so it enters clean and does not
+        touch the D-025 baseline, which is measured over core + admin only.
+    -->
+    <file>tests</file>
 
     <!-- Exclude vendor directories -->
     <exclude-pattern>installer/vendor-ai/*</exclude-pattern>
@@ -29,7 +35,7 @@
         <exclude name="Squiz.WhiteSpace.ControlStructureSpacing.SpacingBeforeClose"/>
     </rule>
 
-    <!-- Line length: warn at 120, no hard error -->
+    <!-- Line length: warn at 150, no hard error -->
     <rule ref="Generic.Files.LineLength">
         <properties>
             <property name="lineLimit" value="150"/>
@@ -40,6 +46,16 @@
     <!-- chat-engine.php has a small DTO alongside the main class -->
     <rule ref="PSR1.Classes.ClassDeclaration.MultipleClasses">
         <exclude-pattern>installer/core/ai/chat-engine.php</exclude-pattern>
+    </rule>
+
+    <!--
+        A test bootstrap is a side-effect file by definition: it loads the
+        autoloader and aborts with instructions when dependencies are missing,
+        then defines the path constants. Splitting the two halves apart to
+        satisfy the sniff would make it harder to read, not safer.
+    -->
+    <rule ref="PSR1.Files.SideEffects.FoundWithSymbols">
+        <exclude-pattern>tests/bootstrap.php</exclude-pattern>
     </rule>
 
     <!-- Allow snake_case in global helper functions (klytos_* API) -->

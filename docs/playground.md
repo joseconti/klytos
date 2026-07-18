@@ -4,7 +4,7 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-18**
+> **last verified: 2026-07-19**
 
 ---
 
@@ -128,6 +128,44 @@ php installer/cli.php logs
 **The CLI is not a valid surface for testing authorization.** `TerminalExecutor::dispatch()` — the
 CLI path — bypasses the permission checks that the web path `execute()` applies. Verify
 authorization over HTTP, always.
+
+## Running the tests
+
+The test harness (Sprint 1 slice 1) is dev-only: `composer.json` declares PHPUnit and PHPCS as
+`require-dev` and nothing of it ships (D-022, D-027).
+
+```bash
+# Once, to install the dev toolchain (needs PHP 8.2+; the product itself runs on 8.1+)
+composer install
+
+# Both tiers
+XDEBUG_MODE=off vendor/bin/phpunit
+
+# One tier at a time
+vendor/bin/phpunit --testsuite unit
+vendor/bin/phpunit --testsuite integration
+
+# Lint (baseline-locked per D-025 — zero violations in the files you touched)
+vendor/bin/phpcs --standard=phpcs.xml tests/
+```
+
+| Tier | Needs the playground? | What it covers |
+|---|---|---|
+| `unit` | no — runs on a bare checkout | Storage, managers and hooks against a per-test temp directory. No App |
+| `integration` | **yes** | The real `App` booted against this playground, with `$_SESSION` set to a seeded role |
+
+**If the integration tier reports skips, the playground is not seeded** — that is the harness telling
+you it has no fixture, not a pass:
+
+```
+OK, but some tests were skipped!
+Tests: 9, Assertions: 9, Skipped: 5.
+```
+
+Seed it (`php scripts/dev/seed-playground.php`) and run again. A skipped authorization test proves
+nothing, which is exactly why it refuses to pass quietly.
+
+`XDEBUG_MODE=off` is the same noise suppression the seeder needs, for the same reason — NEW-03, below.
 
 ## The debug log — how to hand back a diagnosable failure
 

@@ -91,7 +91,17 @@ installer/.install.done.php
 # ─── PHP Dependencies ────────────────────────────────────────
 # Only exclude root-level vendor/ (Composer). Admin vendor assets are tracked.
 /vendor/
-composer.lock
+# composer.lock IS tracked (D-022): the whole point of the dev manifest is that
+# a contributor and CI resolve the SAME PHPUnit/PHPCS versions the author ran.
+# It is kept out of the distributable with export-ignore, not with .gitignore.
+# The old blanket `composer.lock` rule also hid the vendored ones, so they stay
+# ignored explicitly — removing that line must not change what vendor-ai/ tracks.
+# Sprint 1 slice 2 (H-04) may revisit: those locks are evidence of pinned versions.
+installer/vendor-ai/**/composer.lock
+
+# ─── Test tooling caches ─────────────────────────────────────
+.phpunit.cache/
+.phpunit.result.cache
 
 # ─── Node.js (if used for build tools) ───────────────────────
 node_modules/

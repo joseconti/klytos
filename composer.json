@@ -1,0 +1,39 @@
+{
+    "name": "klytos/klytos",
+    "description": "Klytos CMS — development tooling manifest. The runtime itself has no Composer dependencies; this file exists so tests and lint are reproducible outside the author's machine (D-022).",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "homepage": "https://klytos.io",
+    "authors": [
+        {
+            "name": "José Conti",
+            "homepage": "https://klytos.io"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "squizlabs/php_codesniffer": "^3.13"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Klytos\\Tests\\": "tests/"
+        },
+        "classmap": [
+            "installer/core/"
+        ],
+        "files": [
+            "installer/core/helpers-time.php",
+            "installer/core/helpers-security.php",
+            "installer/core/helpers-global.php"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration",
+        "lint": "phpcs --standard=phpcs.xml"
+    }
+}

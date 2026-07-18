@@ -29,15 +29,16 @@
 | 2 Functional spec | **adopted (as-built)** | docs/02-functional-spec.md, docs/03-technical-plan.md, docs/api/INDEX.md |
 | 3 Design handoff | n/a — UI predates Keel, no design contract (D-009) | — |
 | 4 Faithful build | n/a — see Phase 3 | — |
-| 5 Development | **in progress** — Sprint 1 planned & approved (10 slices), not yet started | docs/sprints/sprint-1.md, docs/05-test-points.md, docs/estimate.md |
+| 5 Development | **in progress** — Sprint 1 (10 slices): 0 and 1 closed, 2–9 pending | docs/sprints/sprint-1.md, docs/05-test-points.md, docs/estimate.md |
 | 6 Documentation | pending — progressive backfill of per-surface docs is in force | docs/architecture.md, docs/api/, docs/usage/, docs/reference/ |
 | 7 Release | pending — the next release runs the FULL Phase 7 | docs/07-release.md |
 | 8 Website | deferred (intent = yes) | docs/site/ |
 
 ## Current position
-- Phase: **5 Development — Sprint 1 planned and approved by the user (2026-07-18, plan mode). No code written yet.**
+- Phase: **5 Development — Sprint 1 in progress (plan approved 2026-07-18, plan mode). Slices 0 and 1 closed; the project has a playground and a test harness. The authorization work itself starts at slice 3.**
 - **Slice 0 CLOSED 2026-07-18** — the playground exists and works: `scripts/dev/seed-playground.php` + `scripts/dev/router.php` + `docs/playground.md`. Gate zero met (baseline-locked lint per D-025; app boots; MCP `tools/list` → 177 tools). Evidence in `docs/05-test-points.md`.
-- **Next action: Sprint 1, slice 1 — the test harness (T-01) + dev `composer.json` (D-022).** Two tiers: unit (no App — storage/managers/hooks against a temp dir) and integration (boots the App against the playground and assigns `$_SESSION` to simulate roles — the seam that makes the authorization tests possible). Test point: `composer install` clean, one trivial passing test, `phpunit` and `phpcs` green. Full slice list: `docs/sprints/sprint-1.md`.
+- **Slice 1 CLOSED 2026-07-19** — the test harness exists and both tiers work: `tests/Unit` (no App; temp dir per test; runs on a bare checkout) and `tests/Integration` (real App on the playground; `actingAs( $role )` assigns `$_SESSION`) — the seam slices 3–5 assert refusals through. Dev-only `composer.json` (D-022) with PHPUnit pinned and `composer.lock` now tracked (D-027). Test point PASS: `composer install` clean, 9 tests / 37 assertions green, `phpcs` clean, D-025 baseline unchanged at 204/488. Proven (not assumed) that the integration tier **skips** rather than passing when the playground is absent. Evidence in `docs/05-test-points.md`.
+- **Next action: Sprint 1, slice 2 — `vendor-ai/` manifest + CVE audit (H-04).** Reconstruct a manifest for the 482 vendored files / 9 packages so `composer audit` can run. Test point: manifest resolves; `composer audit` output pasted. **Standing rule (D-022): CVE findings are reported and triaged with the user, never silently patched** — an upgrade across those 482 files is a scope change (→ Estimate v2), not a slice detail. Flagged at planning as *the widest unknown in the sprint*. Full slice list: `docs/sprints/sprint-1.md`.
 - **Two production bugs found by the playground's first boot, recorded and deferred by D-026:** NEW-03 (`Hooks::doAction()` copies arguments, so by-reference listeners never bind — warns on every page create, x402 injection silently dead) and NEW-04 (`build` writes into the repository root, overwriting the tracked `.htaccess`). Neither is fixed; both have triggers. **Never run `installer/install.php` or `installer/cli.php build` in a checkout.**
 - Sprint 1 scope: the audit's fix-now bucket (S-01…S-09, T-01) **plus** NEW-01 (prerequisite — it defeats every gate), T-02, H-04 (D-022), S-11/S-12 and the CSP fail-open. 10 slices.
 - Kickoff re-validation done (Phase 5 §0): three audit claims corrected (S-04, S-07, S-12) and two CRITICAL findings added (NEW-01, NEW-02) — all recorded in `docs/04-adoption-audit.md`.
@@ -49,6 +50,7 @@
 - Unverified external steps/assets: none
 - Forge issues in progress: none open — see `docs/issues.md` (S-01/S-02/S-03/S-05/S-07/S-12 must NOT be filed as public issues before they are fixed; the repo is public — use a private security advisory or fix-then-disclose)
 ### Deferred items (consciously postponed work)
+- **Storage isolation for the integration tier** — severity MEDIUM — **review trigger: BEFORE slice 3 starts.** The integration tier shares the App singleton *and* the real on-disk playground, with no per-test rollback. Slice 1's tests are read-only so nothing breaks yet, but slices 3–5 assert refusals on state-changing surfaces: without a reset primitive those tests become order-dependent within a run and leave the playground permanently mutated across runs, with nothing hinting a `--reset` is needed. Raised by the slice-1 `code-reviewer` pass. Not built in slice 1 because a rollback primitive with no consumer is speculative design.
 - `playground-qa` subagent + `docs/playground.md` + the playground itself — severity HIGH — review trigger: Phase 5 scaffold (Sprint 1).
 - Permission allow-lists per tool, CI workflow, MCP dev-server registration — review trigger: Phase 5 scaffold (all require the plan's *verified* commands, which need the playground first).
 - `launch-verifier` subagent — review trigger: Phase 8 start.
@@ -59,4 +61,4 @@
 - Collaborator setup line for the pre-commit gate (`git config core.hooksPath .githooks`) not yet documented in the repo's development notes (D-015). Severity MEDIUM in a public repo — contributors' clones have no gate. Review trigger: audit H-bucket triage.
 - **Sprint 2 — MCP tool authorization** (NEW-02: 172 tools, zero permission checks; D-020). Review trigger: Sprint 1 close. Stated plainly: until it runs, the admin is gated and the product's primary interface is not.
 
-Last updated: 2026-07-18 — Phase 5 Sprint 1 planned and approved; next action = slice 0 (playground)
+Last updated: 2026-07-19 — slice 1 closed (test harness T-01/T-04 + dev manifest D-022, pinned by D-027); next action = Sprint 1 slice 2 (`vendor-ai/` manifest + CVE audit, H-04)

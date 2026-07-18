@@ -49,7 +49,7 @@ the summary lives there, not duplicated here.
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
 | 0 | Playground + gate zero | T-02 | **closed 2026-07-18** | **PASS** — seeded, booted, admin 302→login, MCP 177 tools, all deny checks 403; evidence in `docs/05-test-points.md` | Found NEW-03 and NEW-04 (both deferred by D-026). Gate zero baseline-locked by D-025. `.gitignore` hardened: identity keys, plain `.json`, `logs-*`, `_cache` |
-| 1 | Test harness + dev manifest | T-01, T-04 | planned | — | Two tiers; auth code is not unit-testable |
+| 1 | Test harness + dev manifest | T-01, T-04 | **closed 2026-07-19** | **PASS** — `composer install` clean, `phpunit` 9 tests/37 assertions green, `phpcs` clean, D-025 baseline unchanged; evidence in `docs/05-test-points.md` | Two tiers built. Integration tier proven to SKIP (not pass) without the playground. PHPUnit pinned + `composer.lock` tracked (D-027). Testing rule propagated to all 7 assistant containers + the core skill |
 | 2 | `vendor-ai/` manifest + CVE audit | H-04 | planned | — | Widest unknown in the sprint |
 | 3 | One matrix + fail-closed current user | S-04, NEW-01 | planned | — | Prerequisite for slices 4–5 |
 | 4 | `klytos_require_permission()` + central default-deny gate | S-07 | planned | — | The systemic fix; 66 files mapped |
@@ -107,7 +107,12 @@ each slice closes.
    482 vendored files may exceed this sprint and spawn its own.
 3. **The playground writes real local credentials.** Seeded `config/`/`data/` stay gitignored;
    `docs/playground.md` carries throwaway values only. The pre-commit gate is the net.
-4. **Never run the web installer in-tree** — `install.php:750` renames the tracked `install.php` and
+4. **The integration tier has no storage isolation** *(added 2026-07-19, slice 1 review)*. It shares
+   the App singleton and the real on-disk playground with no per-test rollback. Slices 3–5 write
+   state through this seam, so their tests would become order-dependent and would mutate the
+   playground permanently. **Resolve before slice 3 starts** — either a per-test reset primitive or
+   fixtures each test creates and destroys. Tracked in `PROGRESS.md` deferred items.
+5. **Never run the web installer in-tree** — `install.php:750` renames the tracked `install.php` and
    `:811-824` renames the whole `installer/` directory and writes into the repo's parent. This is
    documented loudly in `docs/playground.md` as part of slice 0.
 

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Klytos CMS — PHPUnit configuration (Sprint 1, slice 1 / T-01).
+
+    Two tiers, deliberately separated:
+
+      unit         no App, no installation. Storage, managers and hooks are
+                   driven against a per-test temporary directory. Runs on a
+                   bare checkout.
+      integration  boots the real App against the seeded playground and
+                   assigns $_SESSION to simulate a role. This is the seam the
+                   authorization slices (3, 4, 5) assert their refusals through.
+                   Skips itself, loudly, when the playground is not seeded.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         cacheDirectory=".phpunit.cache"
+         colors="true"
+         executionOrder="depends,defects"
+         failOnRisky="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnTestsThatTriggerErrors="true">
+
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <!--
+        failOnWarning is deliberately NOT enabled yet. NEW-03 (Hooks::doAction()
+        copies its arguments, so by-reference listeners never bind) makes every
+        page creation emit a PHP warning; it is a live production bug deferred
+        by D-026, not test noise to be silenced here. Enabling failOnWarning
+        before it is fixed would turn a known-deferred defect into a red suite
+        and invite exactly the "weaken the test to make it pass" move Phase 5
+        forbids.
+
+        Trigger: set failOnWarning="true" in the slice that fixes NEW-03.
+    -->
+
+    <!--
+        installer/vendor-ai/ is a SIBLING of installer/core/, not nested under
+        it, so it needs no exclude here — it was never in the included set.
+    -->
+    <source>
+        <include>
+            <directory>installer/core</directory>
+        </include>
+    </source>
+</phpunit>

@@ -140,6 +140,30 @@ A `register_shutdown_function` in `admin/bootstrap.php` catches PHP fatal errors
 
 `Logger::writeAlways()` is the unconditional counterpart to `Logger::write()`. It skips Developer Mode and per-plugin checks. Use it only for fatal/critical errors that must always be recorded.
 
+## Testing
+
+The project has a real test harness. Use it — a core change asserted only by reading the diff is unverified.
+
+```bash
+composer install                 # dev-only manifest: PHPUnit + PHPCS (nothing ships)
+vendor/bin/phpunit               # both tiers
+vendor/bin/phpunit --testsuite unit
+vendor/bin/phpunit --testsuite integration
+vendor/bin/phpcs --standard=phpcs.xml <paths>
+```
+
+**Two tiers, and the difference matters:**
+
+| Tier | Base class | What it gets | When to use it |
+|---|---|---|---|
+| `tests/Unit` | `Klytos\Tests\UnitTestCase` | No App. A per-test temp dir with its own encryption key and `FileStorage`; `Hooks` reset around every test | Storage, managers, hooks, pure logic. Runs on a bare checkout |
+| `tests/Integration` | `Klytos\Tests\IntegrationTestCase` | The real `App` booted against the seeded playground; `actingAs( 'viewer' )` / `actingAsGuest()` set the session | Anything spanning App + Auth + UserManager — above all **authorization** |
+
+- **Authorization is not unit-testable in this codebase.** The permission decision runs through the App singleton, Auth's session state and UserManager's stored roles at once. Assert refusals through the integration tier.
+- The integration tier needs the playground (`php scripts/dev/seed-playground.php`). Without it those tests **skip loudly** — they never pass silently.
+- `actingAs()` mirrors the session shape of `Auth::login()`. `tests/Integration/HarnessTest.php` guards that mirror; if Auth's session keys change, it fails there first.
+- Rules: a behaviour change ships with its named test in the same slice; a fixed bug ships with its regression test; a test is never deleted, skipped or loosened to make it pass.
+
 ## Security Checklist for Core Changes
 
 - [ ] All user input sanitized (htmlspecialchars, Helpers::sanitizeHtml)

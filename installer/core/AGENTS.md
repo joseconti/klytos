@@ -82,6 +82,13 @@ Source of truth: docs/03-technical-plan.md §3 Conventions. On any conflict, the
 - Every new public surface gets its doc in `docs/api/` or `docs/reference/` AND its row in `docs/api/INDEX.md`, with a runnable example.
 - Update `docs/PROGRESS.md` and `docs/decisions.md` at the moment of the change, not at the end of the session.
 
+## Tests — same slice, never "later"
+- The harness is real since Sprint 1 (T-01): `composer install`, then `vendor/bin/phpunit`. Two tiers — `tests/Unit` (no App; storage/managers/hooks against a per-test temp dir, runs on a bare checkout) and `tests/Integration` (the real App booted on the seeded playground; `$_SESSION` selects the acting role).
+- A behaviour change ships with its named test in the SAME slice; a fixed bug ships with its regression test. A structural fix with no test is an unverified claim, not a fix.
+- Authorization is NOT unit-testable here — the decision spans App, Auth and UserManager at once. Assert refusals through the integration tier, against the real gate; never by reading the diff.
+- Never delete, skip or loosen a test to make it pass. If the test is genuinely wrong that is a spec correction: record it in `docs/decisions.md` first, then change the test.
+- Lint the files you touched: `vendor/bin/phpcs --standard=phpcs.xml <paths>`. The repo-wide baseline is locked (D-025) — it may not grow.
+
 ## Extensibility — this project IS extensible
 - User-facing strings pass through a filter.
 - Every decision the code makes gets a before action and an after action.

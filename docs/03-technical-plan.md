@@ -16,7 +16,7 @@
 | Host | Apache + `mod_rewrite`; 6 tracked `.htaccess` files; shared-hosting oriented |
 | Storage | Pluggable: flat-file JSON (`file-storage.php`) or MySQL/MariaDB (`database-storage.php`) behind `StorageInterface` |
 | Front-end tooling | **None** — no bundler, no transpiler, no npm scripts. Vanilla CSS/JS shipped as-is |
-| Dependency manifest | **None at project level** — no root `composer.json`, no root `package.json` |
+| Dependency manifest | Root `composer.json` since 2026-07-19 (Sprint 1 slice 1) — **`require-dev` only**: PHPUnit + PHPCS, plus `autoload-dev` for the test tiers. The runtime stays dependency-free and nothing ships (`export-ignore`). `composer.lock` is tracked so versions are reproducible (D-022, D-027). No root `package.json` |
 | Vendored deps | `installer/vendor-ai/` committed (482 files: guzzlehttp, psr/*, ramsey/uuid, brick/math, swaggest, symfony polyfills, soukicz/llm) + TinyMCE under `installer/admin/assets/vendor/` |
 | Autoloading | Custom `spl_autoload_register` for `Klytos\Core` at `installer/core/app.php:698`, plus explicit `require_once` chains; Composer's `vendor-ai/autoload.php` loaded lazily at `app.php:1009` |
 | Output | Static HTML generated into `installer/public/` |
@@ -90,16 +90,20 @@ One line per path. `installer/` is the entire application; everything above it i
 - **Plugin contract (immutable).** Plugin ID = directory name = `{id}.php` = the PHP header.
   `klytos-plugin.json` is an optional extension, never the identity.
 
-## 4. Testing (as-built: none)
+## 4. Testing
+
+Adopted as-built with **nothing**. The harness below was built in Sprint 1 slice 1 (audit T-01, T-04).
 
 | Layer | Reality |
 |-------|---------|
-| Unit | **None.** No `tests/`, no `phpunit.xml`, no PHPUnit/Pest/Codeception anywhere |
-| Integration | **None** |
-| E2E | **None** |
-| Static analysis | `phpstan.neon` is export-ignored in `.gitattributes` but **does not exist** |
-| Lint | `phpcs.xml` exists and is real. Command: `phpcs --standard=phpcs.xml` (covers `installer/core`, `installer/admin`, `installer/plugins`). **Measured baseline 2026-07-18: 204 errors / 488 warnings in 114 files** — it has never been clean. PHPCS becomes a declared dev dependency in Sprint 1 slice 1 (D-022) |
-| CI | **None.** No `.github/` directory at all |
+| Unit | **`tests/Unit`, base `Klytos\Tests\UnitTestCase`.** No App and no installation: each test gets its own temp directory, its own encryption key and its own `FileStorage`, with `Hooks` reset around every test. Runs on a bare checkout |
+| Integration | **`tests/Integration`, base `Klytos\Tests\IntegrationTestCase`.** Boots the real `App` against the seeded playground; `actingAs( $role )` / `actingAsGuest()` assign `$_SESSION`. This is the seam the authorization slices assert refusals through — authorization is not unit-testable here, since the decision spans App + Auth + UserManager at once. Skips loudly when the playground is not seeded |
+| E2E | **None.** No browser-driven tier; the playground is walked by hand and by the fresh-context playground-QA pass |
+| Static analysis | `phpstan.neon` is export-ignored in `.gitattributes` but **does not exist** (audit T-03) |
+| Lint | `phpcs.xml`, now covering `tests/` as well as `installer/core`, `installer/admin`, `installer/plugins`. Command: `vendor/bin/phpcs --standard=phpcs.xml`. Baseline-locked per D-025. **Measured 2026-07-19, per ruleset path:** `core`+`admin` **204 errors / 488 warnings in 114 files (unchanged from 2026-07-18)** · `plugins` **131 / 109 in 25 files** · `tests` **0 / 0** · **whole ruleset 335 / 597 in 139 files**. The plugins figure had never been measured — D-025 recorded the baseline over only two of the ruleset's three paths, so the unscoped command returned a number no document explained. All three are now locked: none may grow |
+| Test commands | `composer install`, then `vendor/bin/phpunit` (both tiers), `--testsuite unit`, `--testsuite integration`. Composer script aliases: `composer test`, `composer test:unit`, `composer test:integration`, `composer lint` |
+| Runtime constraint | The suite needs **PHP 8.2+** (PHPUnit 11), while the product supports 8.1+ — so PHP 8.1 cannot be verified through the suite. Deliberate, with a revisit trigger: D-027 |
+| CI | **None** — no workflow runs anything. `.github/` exists but carries only the assistant-config instruction files (D-010), no Actions |
 
 **Playground: EXISTS since 2026-07-18** (Sprint 1 slice 0) — `scripts/dev/seed-playground.php` +
 `scripts/dev/router.php`, documented in `docs/playground.md`. No Docker and no web installer: the

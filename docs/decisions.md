@@ -207,3 +207,12 @@
 - Accepted cost, stated plainly: the NEW-03 warning will pollute the output of every test point in this sprint (mitigated by `XDEBUG_MODE=off`, documented in `docs/playground.md`), and x402's post-type default stays broken in production meanwhile.
 - Alternatives rejected (and why): fixing NEW-03 inside Sprint 1 after slice 1 (defensible — the harness would exist — but it still widens a sprint whose scope was deliberately bounded); fixing both before continuing (cleanest ground to build on, but delays precisely the work triaged as most urgent).
 - Supersedes: none.
+
+## D-027 — PHPUnit is pinned to ^11.5, and `composer.lock` is tracked
+- Date / phase: 2026-07-19 / Phase 5, Sprint 1 slice 1
+- Decision: The dev manifest (D-022) pins `phpunit/phpunit: ^11.5` and `squizlabs/php_codesniffer: ^3.13`, and **`composer.lock` is committed** — the pre-Keel `.gitignore` line that excluded it is removed. Both files stay out of the distributable through `export-ignore`, never through `.gitignore`.
+- Why: D-022 named the two packages but not their versions, and the point of the whole manifest is that a contributor and CI resolve **the same** versions the author ran — an ignored lock file defeats exactly that, so tracking it is implementing D-022, not amending it. `^11.5` matches the PHPUnit already installed globally on the author's machine (11.5.53), so the existing workflow and its results are reproduced rather than migrated in a security sprint.
+- Consequence, stated rather than discovered later: **PHPUnit 11 requires PHP 8.2+, while Klytos itself supports PHP 8.1+ (D-004).** The test suite therefore cannot run on the lowest supported runtime, so CI cannot verify PHP 8.1 through the suite. Nothing in the product changes; the gap is in verification coverage only.
+- Alternatives rejected (and why): **PHPUnit ^10** — the only line still supporting PHP 8.1, which would close the coverage gap above, but it reached end of life in Feb 2025, so the harness would start on an unmaintained runner in a sprint whose whole purpose is security. **PHPUnit ^12** — current and supported, but requires PHP 8.3+, widening the same gap by two minor versions for no gain here.
+- Trigger for revisiting: when the support matrix is next verified, or when CI is introduced (whichever comes first) — decide then whether PHP 8.1 support is real enough to warrant a runner the suite can actually execute on, or whether the floor should rise to 8.2.
+- Supersedes: none — implements D-022.
