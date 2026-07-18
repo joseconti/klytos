@@ -29,12 +29,30 @@ installer/config/database.json.enc
 installer/config/license.json.enc
 installer/config/plugin_licenses/
 installer/config/.install.lock
+# The admin identity key pair. The .priv.enc file holds the site's RSA PRIVATE
+# key — the highest-value secret in the system. It was NOT excluded before, so
+# any local install could have staged it. Added with the Sprint 1 playground,
+# which generates exactly these files.
+installer/config/admin-identity.pub.enc
+installer/config/admin-identity.priv.enc
+# Playground access details written by scripts/dev/seed-playground.php.
+installer/config/.playground-access
 
 # ─── Encrypted Data (user content) ───────────────────────────
 installer/data/*.json.enc
 installer/data/**/*.json.enc
+# Records are only written as *.json.enc when the configured encryption level
+# covers that collection; at lower levels the SAME data lands as plain *.json.
+# The patterns above therefore did not cover it. Exclude both forms.
+installer/data/*.json
+installer/data/**/*.json
 installer/data/rate_limits.json
+# The logs directory name is RANDOMISED per install (config 'logs_dir_name',
+# e.g. data/logs-d8950d4907c6), so the fixed 'logs/' pattern never matched a
+# real install. Cover both.
 installer/data/logs/
+installer/data/logs-*/
+installer/data/_cache/
 installer/data/.transaction.lock
 installer/data/.cron.lock
 
@@ -88,3 +106,11 @@ logs/
 .env
 .env.local
 .env.*.local
+
+# ─── Keel / assistant local state (never commit) ──────────────
+.keel-update-check
+CLAUDE.local.md
+AGENTS.override.md
+.claude/settings.local.json
+.gemini/.env
+.gemini/tmp/
