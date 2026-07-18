@@ -1,0 +1,51 @@
+#!/bin/sh
+# Keel confidential-data gate — blocks commits that stage secrets.
+# Rule source: Keel SKILL.md "Confidential data never reaches Git".
+# Setup (per clone): git config core.hooksPath .githooks
+# Bypass policy: fix the finding, or record the user's explicit OK in
+# docs/decisions.md and repeat that single commit with --no-verify.
+
+files=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$files" ] && exit 0
+
+fail=0
+IFS='
+'
+
+# 1) Suspicious names — skipping the canonical trees that legitimately
+# CONTAIN the gate's own patterns: the gate's script and the embedded Keel
+# skill (either tree). The assistant-side check still scans them.
+for f in $files; do
+  case "$f" in .githooks/*|.claude/skills/*|.agents/skills/*) continue ;; esac
+  base=$(basename "$f")
+  case "$base" in
+    .env|.env.*|*.pem|*.key|*.p12|*.pfx|id_rsa*|*credential*|*secret*|*.sql|*.sqlite|wp-config.php)
+      printf 'BLOCKED (name): %s\n' "$f"; fail=1 ;;
+  esac
+done
+
+# 2) Secret-shaped content in the STAGED blob (not the working tree)
+pat="-----BEGIN [A-Z ]*PRIVATE KEY-----|api[_-]?key[\"']?[[:space:]]*[:=]|Bearer [A-Za-z0-9._~+/=-]{20,}|AKIA[0-9A-Z]{16}|sk-(proj-)?[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{10,}"
+for f in $files; do
+  case "$f" in .githooks/*|.claude/skills/*|.agents/skills/*) continue ;; esac
+  if git show ":$f" 2>/dev/null | LC_ALL=C grep -Eqa -e "$pat"; then
+    printf 'BLOCKED (content): %s matches a secret pattern\n' "$f"; fail=1
+  fi
+done
+
+[ "$fail" -eq 0 ] && exit 0
+
+cat <<'MSG'
+
+Commit stopped by the Keel confidential-data gate.
+A staged file looks like it carries secrets, credentials, keys, or real
+personal data. Options, in order:
+  1. Unstage it and add it to .gitignore (never tracked).
+  2. Already tracked: git rm --cached <file> + .gitignore, commit the removal.
+  3. Ever pushed: purge it from history (git filter-repo / BFG) AND rotate
+     the credential — ignoring it is not enough.
+  4. Genuinely safe (placeholders, sandbox keys meant to ship): record the
+     user's explicit OK in docs/decisions.md, then repeat this one commit
+     with --no-verify.
+MSG
+exit 1

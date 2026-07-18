@@ -48,5 +48,19 @@ phpstan.neon                export-ignore
 *.eot   binary
 *.zip   binary
 *.tar.gz binary
-# Keel: workflow files — never in the distributable (git archive)
-CLAUDE.md export-ignore
+# ─── Keel: workflow & assistant config — never in the distributable ──
+# Nothing from the Keel package ships. Covers every accepted assistant's
+# container (D-010), the embedded skill trees, the lock files and the gate.
+CLAUDE.md                   export-ignore
+AGENTS.md                   export-ignore
+.agents/                    export-ignore
+.codex/                     export-ignore
+.cursor/                    export-ignore
+.gemini/                    export-ignore
+.windsurf/                  export-ignore
+.githooks/                  export-ignore
+.mcp.json                   export-ignore
+.keel-update-check          export-ignore
+installer/core/AGENTS.md    export-ignore
+installer/admin/AGENTS.md   export-ignore
+installer/plugins/AGENTS.md export-ignore

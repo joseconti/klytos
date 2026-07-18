@@ -1,0 +1,35 @@
+---
+paths:
+  - installer/core/**/*.php
+  - installer/admin/**/*.php
+  - installer/plugins/**/*.php
+---
+
+# Code style — Klytos CMS
+
+Source of truth: docs/03-technical-plan.md §3 Conventions. On any conflict, the plan wins — fix this file.
+
+## Naming
+- Global procedural API is `klytos_*`, snake_case.
+- Classes PascalCase under `Klytos\Core` (+ `\MCP`, `\Ai`, `\X402`, `\Cache`); methods camelCase, except the helper files exempted in `phpcs.xml`.
+
+## Formatting
+- PSR-12 as adapted by `phpcs.xml` (ruleset "Klytos"); line limit 150 (warning).
+- Spaces INSIDE parentheses are the project style: `foo( $bar )`, not `foo($bar)`. Never "correct" this.
+
+## Hooks
+- `klytos_do_action( 'domain.event', ... )` / `klytos_apply_filters( 'domain.thing', $v, ... )`; names dot-namespaced lowercase.
+
+## Output and input
+- Escape at print time: `klytos_esc_html/attr/url/js/textarea`; rich HTML via `klytos_kses` / `klytos_kses_post`. Never echo raw. Sanitize input with `klytos_sanitize_*`.
+- `klytos_has_permission( 'domain.action' )` at the top of every admin page and API endpoint; `klytos_csrf_field()` in every form, `klytos_verify_csrf()` in every mutating endpoint; `nonce="$cspNonce"` on every inline script/style, no inline `onclick`/`onchange` — `addEventListener` inside a nonced block. Full rules: the security rule.
+
+## i18n
+- `__( 'domain.key' )`; the key is added to all 20 locale catalogues in the same change.
+- No hardcoded user-facing strings, no concatenation, no plural-by-concatenation.
+
+## Time, comments, plugins, accessibility
+- Store UTC, display local: `klytos_gmdate` / `klytos_date` / `klytos_timezone`.
+- GPL header + `@copyright` on every file; PHPDoc on every public surface; English.
+- Plugin contract (immutable): plugin ID = directory name = `{id}.php` = the PHP header. `klytos-plugin.json` is an optional extension, never the identity.
+- Target WCAG 2.2 AA + European Accessibility Act, for the admin AND the generated frontend output.
