@@ -23,7 +23,7 @@
 
 ### Slice 0 — evidence (commands and output, 2026-07-18)
 
-Commit: *pending — recorded at commit time.*
+Commit: `622d54c` — *Sprint 1 slice 0: verification playground, plus the Keel docs baseline*.
 
 ```
 $ php scripts/dev/seed-playground.php --reset
@@ -68,7 +68,7 @@ With that amendment, **gate zero is met** and slice 0 closes.
 
 ### Slice 1 — evidence (commands and output, 2026-07-19)
 
-Commit: *pending — recorded at commit time.*
+Commit: `585ec68` — *Sprint 1 slice 1: two-tier test harness (T-01) + dev-only composer manifest (D-022)*.
 
 ```
 $ composer install --no-interaction
