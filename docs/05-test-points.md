@@ -276,7 +276,7 @@ The same check found NEW-07's packaging half: `installer/vendor-ai/LICENSE-THIRD
 
 ### Slice 3 — evidence (commands and output, 2026-07-19)
 
-Commit: `__SLICE3_COMMIT__` — *Sprint 1 slice 3: one matrix + fail-closed current user (S-04, NEW-01)*.
+Commit: `bbeeb09` — *Sprint 1 slice 3: one matrix + fail-closed current user (S-04, NEW-01)*.
 
 ```
 $ XDEBUG_MODE=off vendor/bin/phpunit
