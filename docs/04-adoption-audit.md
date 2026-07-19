@@ -365,7 +365,8 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   with the user, never silently patched. Re-vendoring is a change across 482 tracked files → a scope
   change (Estimate v2), not a slice detail.
 - **Fails:** web-app profile — dependency audit; `references/maintenance.md` — CVE duty.
-- **Trigger:** the user's triage decision on this finding (see `docs/PROGRESS.md` open items).
+- **Triaged 2026-07-19 (D-029):** dedicated remediation slice **after** Sprint 1 closes, with Estimate v2. Scope fixed in that decision. Rejected at triage: folding it into Sprint 1, a guzzle-only minimal fix, and permanent acceptance.
+- **Trigger:** Sprint 1 close.
 
 ### NEW-06 — The vendored AI stack requires PHP 8.3, but Klytos declares 8.1+ — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2)*
 - **Where:** `installer/vendor-ai/soukicz/llm` (`php: >=8.3`), `brick/math` (`php: ^8.2`),
