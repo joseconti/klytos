@@ -375,26 +375,44 @@ function klytos_current_user(): ?array
         return null;
     }
 
-    // v2.0: return full user data from UserManager when available.
     $userId = $auth->getUserId();
 
-    if ($userId) {
-        try {
-            $userManager = new \Klytos\Core\UserManager(App::getInstance()->getStorage());
-            return $userManager->getById($userId);
-        } catch (\RuntimeException $e) {
-            // Fall through to v1.x fallback.
-        }
+    // FAIL CLOSED (NEW-01, D-021). This function used to fall back here to a
+    // hardcoded ['role' => 'owner'] built from config whenever the session had
+    // no klytos_user_id or the lookup failed. That silently promoted ANY
+    // authenticated session lacking a user id to owner, which defeated every
+    // permission gate in the product rather than merely weakening one — a gate
+    // is only as good as the identity it is handed.
+    //
+    // An unidentifiable session is now denied. The compensating path for real
+    // v1.x installs is the migration at boot (app.php Step 10b), which creates
+    // the owner record this lookup then finds; it is idempotent and runs before
+    // any request is served, so a migrated install never reaches this branch.
+    if ( ! $userId ) {
+        klytos_log_warning(
+            'Authenticated session without klytos_user_id — denied.',
+            [ 'username' => $_SESSION['klytos_user'] ?? null ],
+            'auth'
+        );
+
+        return null;
     }
 
-    // v1.x fallback: basic info from config.
-    $config = App::getInstance()->getConfig();
-    return [
-        'id'       => 'admin',
-        'username' => $config['admin_user'] ?? 'admin',
-        'role'     => 'owner',
-        'email'    => $config['admin_email'] ?? '',
-    ];
+    try {
+        $userManager = new \Klytos\Core\UserManager( App::getInstance()->getStorage() );
+        return $userManager->getById( $userId );
+    } catch ( \RuntimeException $e ) {
+        // The session names a user that no longer exists (deleted, or storage
+        // unreadable). Denied, and logged: a session pointing at a missing user
+        // is worth seeing in the log, not swallowing.
+        klytos_log_warning(
+            'Session user id does not resolve to a user — denied.',
+            [ 'user_id' => $userId, 'error' => $e->getMessage() ],
+            'auth'
+        );
+
+        return null;
+    }
 }
 
 /**
@@ -413,43 +431,20 @@ function klytos_has_permission(string $permission): bool
         return false;
     }
 
-    // Owner has all permissions.
-    if ($user['role'] === 'owner') {
-        return true;
-    }
+    // ONE MATRIX (S-04). The capability matrix used to be duplicated verbatim
+    // here and in UserManager::hasPermission() — 22 identical entries in two
+    // places, with nothing keeping them in step. They had not diverged yet, so
+    // this is a drift hazard being removed before it becomes a security bug:
+    // a permission tightened in one copy and missed in the other fails OPEN on
+    // whichever path the caller happens to take.
+    //
+    // UserManager owns it because it is the lower layer: it decides for an
+    // explicitly supplied user, while this helper's job is resolving WHICH user
+    // is current. Sprint 2's MCP gating and slice 4's klytos_require_permission()
+    // both reuse the same single implementation.
+    $userManager = new \Klytos\Core\UserManager( App::getInstance()->getStorage() );
 
-    // Default capabilities per role.
-    $capabilities = [
-        'pages.view'      => ['owner', 'admin', 'editor', 'viewer'],
-        'pages.create'    => ['owner', 'admin', 'editor'],
-        'pages.edit'      => ['owner', 'admin', 'editor'],
-        'pages.delete'    => ['owner', 'admin'],
-        'theme.manage'    => ['owner', 'admin'],
-        'menu.manage'     => ['owner', 'admin'],
-        'blocks.manage'   => ['owner', 'admin'],
-        'templates.manage' => ['owner', 'admin'],
-        'templates.approve' => ['owner'],
-        'build.run'       => ['owner', 'admin'],
-        'assets.manage'   => ['owner', 'admin', 'editor'],
-        'tasks.create'    => ['owner', 'admin', 'editor'],
-        'tasks.manage'    => ['owner', 'admin'],
-        'users.manage'    => ['owner'],
-        'mcp.manage'      => ['owner', 'admin'],
-        'site.configure'  => ['owner', 'admin'],
-        'plugins.manage'  => ['owner'],
-        'analytics.view'  => ['owner', 'admin', 'editor'],
-        'forms.manage'    => ['owner', 'admin'],
-        'webhooks.manage' => ['owner', 'admin'],
-        'updates.manage'  => ['owner'],
-        'terminal.access'   => ['owner'],
-    ];
-
-    // Allow plugins to extend or modify capabilities.
-    $capabilities = klytos_apply_filters('auth.capabilities', $capabilities);
-
-    $allowedRoles = $capabilities[$permission] ?? [];
-
-    return in_array($user['role'], $allowedRoles, true);
+    return $userManager->hasPermission( $user, $permission );
 }
 
 // ─── i18n ────────────────────────────────────────────────────

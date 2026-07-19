@@ -103,6 +103,18 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   with its matrix at **422-445** (the cited `:430` is mid-matrix, and is stale in
   `.claude/rules/security.md` too). `UserManager::hasPermission()` at `user-manager.php:592`, matrix
   **602-625**. "Never called" **confirmed** — one repo-wide grep hit, the definition itself.
+- **CLOSED 2026-07-19, Sprint 1 slice 3.** Resolved the opposite way round from the original
+  remediation note, and deliberately: the dead copy was **kept** and the live one deleted.
+  `UserManager::hasPermission()` now holds the single matrix and `klytos_has_permission()` delegates
+  to it, because `UserManager` is the lower layer — it decides for an explicitly supplied user, while
+  the helper's job is resolving *which* user is current. Deleting `UserManager`'s copy instead would
+  have left the sprint's later consumers (slice 4's `klytos_require_permission()`, Sprint 2's MCP
+  gating, which both hold a user object rather than a session) with nothing to call, and "never
+  called" stops being true the moment slice 4 lands. Guarded two ways in
+  `tests/Integration/PermissionMatrixTest.php`: behaviourally, both entry points are asserted to
+  agree across the full 4-role × 23-permission cross-product; and structurally, a test fails if any
+  second definition of the matrix reappears anywhere in `installer/core/`. The structural guard was
+  demonstrated to FAIL against the unfixed code before being trusted.
 
 ### S-05 — Unauthorized file upload — **HIGH**
 - **Where:** `installer/admin/api/media-upload.php:26`
@@ -235,6 +247,15 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   unknown permission resolves to an empty role list and is denied (`helpers-global.php:450-452`) —
   and the matrix is filterable via `auth.capabilities` (`:448`). The defect is the identity, not the
   matrix.
+- **CLOSED 2026-07-19, Sprint 1 slice 3.** The fallback is removed: an authenticated session with no
+  `klytos_user_id`, and a session naming a user that no longer resolves, both return `null` and are
+  logged. Asserted by `tests/Integration/CurrentUserFailClosedTest.php` (6 tests), which was
+  demonstrated to FAIL against the unfixed code before being trusted — 3 of its tests fail when the
+  fix is reverted. Verified on a **real upgraded install**, not only a fixture:
+  `scripts/dev/upgrade-test.sh` installs v0.30.1 with its own installer in a temp directory, upgrades
+  it to the working tree, and asserts the denial there. Compensating migration verified idempotent
+  (`tests/Integration/V1MigrationTest.php`). Side effect exposed by the fix and recorded rather than
+  absorbed: **NEW-08**.
 
 ### NEW-02 — MCP tools have zero authorization: 172 tools, 0 permission checks — **CRITICAL** *(found 2026-07-18, Sprint 1 kickoff re-validation)*
 - **Where:** `installer/core/mcp/tools/` — all 34 files, 172 registered tools.
@@ -256,6 +277,20 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Triage:** **Sprint 2**, dedicated, per **D-020**. Sprint 1 builds the
   `klytos_require_permission()` helper that Sprint 2's `ToolRegistry` enforcement point reuses.
   Recorded plainly: when Sprint 1 closes, the admin is gated and this is not.
+- **Sharpened 2026-07-19** (Sprint 1 slice 3 `security-auditor` pass, on adjacent code):
+  `installer/core/ai/chat-engine.php:401-421` — `getAvailableTools()` is the *only* restriction on
+  which tools AI chat can reach, precisely because no per-call gate exists anywhere (the finding
+  above). It is written as an allow-list by exception: it filters the tool set **only** when the role
+  is exactly `'viewer'` (read-only tools) or exactly `'editor'` (non-destructive tools). **Every other
+  role value falls through unfiltered** — `owner` and `admin` by intent, but equally any unrecognized
+  string: a plugin-defined role, a renamed role, or a corrupted record. That is fail-OPEN on the
+  product's primary interface, and it is a distinct defect from "no gate at tool-call time" — it
+  would survive a naive fix that only added checks to the tools themselves.
+  Slice 3 improved the null case rather than worsening it: with the fallback removed,
+  `klytos_current_user()` returns `null`, so `$user['role'] ?? 'viewer'` now resolves an unidentified
+  session to the **least**-privileged role. The unrecognized-role hole is untouched and belongs to
+  Sprint 2's enforcement point, which must default-deny on any role it does not know rather than
+  filter by exception.
 
 ### NEW-03 — By-reference action listeners are silently broken; every page create warns — **HIGH** *(found 2026-07-18, Sprint 1 slice 0, by booting the playground)*
 - **Where:** `installer/core/hooks.php:124` (`doAction( string $hook, mixed ...$args )`) and `:145`
@@ -404,6 +439,32 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   is `.gitattributes` packaging policy, owned by **H-02**, and changing what ships is a Phase 7
   decision, not a slice-2 side effect.
 - **Trigger:** H-02, at the next full Phase 7.
+
+### NEW-08 — There is no supported way to recreate a missing owner — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 3)*
+- **Where:** `installer/cli.php` (26 commands; `users` **lists** only), `installer/core/app.php`
+  Step 10b, `installer/core/user-manager.php` (`migrateFromV1Config()` throws on a missing or
+  invalid `admin_email`)
+- **What:** If an install ends up with no owner record, there is no supported recovery path on any
+  interface. The CLI has no user-create, no password reset and no owner repair; the admin panel
+  requires a login that cannot succeed without a user; and the web installer refuses to run on an
+  install it considers already installed. The reachable route into that state is a v1.x-shaped
+  install whose config lacks a usable `admin_email`: the boot migration cannot construct the owner
+  and gives up.
+- **Why it surfaced now:** slice 3 removed the fallback that used to paper over exactly this — a
+  session with no `klytos_user_id` was silently promoted to `owner` (NEW-01), which meant a missing
+  owner record was invisible because *everyone* was the owner. Closing the escalation exposes the
+  gap that was underneath it. That is the correct trade: an unrecoverable install is a support
+  incident, a silent privilege escalation is a vulnerability.
+- **Partly mitigated in slice 3, and only partly — stated plainly rather than implied:** Step 10b is
+  now wrapped in `try`/`catch`, so a failed migration logs and degrades to "no owner" instead of
+  throwing out of `App::boot()` and white-screening every request. That converts an undiagnosable
+  fatal into a diagnosable, fail-closed denial. **It does not restore access.** With no owner, login
+  still cannot succeed.
+- **Scope note:** the fix is new functionality (an owner-repair path — most naturally a CLI command,
+  since it must work without a session), with its own design and test point. It was deliberately not
+  folded into slice 3, whose subject is the escalation itself.
+- **Trigger:** with the NEW-03 slice, after Sprint 1 closes. Raise to HIGH if any real install is
+  ever reported in this state.
 
 ### Positive findings (recorded so they are not re-litigated)
 - **No tracked secrets.** `git ls-files` over secret-shaped patterns returns zero; only

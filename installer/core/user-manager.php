@@ -591,7 +591,19 @@ class UserManager
      */
     public function hasPermission(array $user, string $permission): bool
     {
-        $role = $user['role'] ?? 'viewer';
+        // Fail closed on a record that carries no usable role. This used to
+        // default to 'viewer', which still granted the viewer row of the matrix
+        // (pages.view, analytics.view) to a malformed or partial user record.
+        // Every record UserManager itself writes has a VALID_ROLES-checked role
+        // (create(), migrateFromV1Config()), so nothing legitimate relies on the
+        // default — and this method is now the single authorization decision
+        // point in the product (S-04), which is exactly where guessing an
+        // identity's privileges is least acceptable.
+        $role = $user['role'] ?? null;
+
+        if (!is_string($role) || $role === '') {
+            return false;
+        }
 
         // Owner has all permissions.
         if ($role === 'owner') {

@@ -356,8 +356,41 @@ class App
         // Step 10b: Auto-migrate v1.0 admin user to v2.0 multi-user system.
         // On first boot after upgrade from v1.x, the owner user doesn't exist yet.
         // Create it from the admin credentials stored in config.
+        //
+        // The migration is idempotent twice over: guarded by findOwner() here,
+        // and guarded again by its own findOwner() check inside the method, so
+        // it is safe on every boot rather than only the first.
+        //
+        // It is wrapped because it THROWS when the v1 config has no usable
+        // admin_email (user-manager.php), and an uncaught throw here takes the
+        // whole application down on every request — a white screen with no
+        // explanation, on an install that is already in trouble. Degrading to
+        // "no owner record" instead is strictly better and stays fail-closed:
+        // klytos_current_user() then denies (NEW-01/D-021) rather than
+        // promoting anyone, so a failed migration can never become an
+        // escalation. Stated plainly rather than implied: this converts an
+        // undiagnosable fatal into a logged denial — it does NOT by itself
+        // restore access, because there is currently no supported way to
+        // recreate a missing owner (no CLI user-create, no reset). That gap is
+        // recorded as NEW-08.
         if ($this->userManager->findOwner() === null) {
-            $this->userManager->migrateFromV1Config($this->config);
+            try {
+                $this->userManager->migrateFromV1Config($this->config);
+            } catch (\RuntimeException $e) {
+                // error_log(), NOT the Klytos logger, and deliberately so:
+                // getLogger() constructs Logger with a non-nullable PluginLoader,
+                // and $this->pluginLoader is not assigned until Step 11 — well
+                // after this point. Calling it here would raise a TypeError and
+                // crash boot, which is the exact failure this block exists to
+                // prevent. It would also cache a Logger with a null dependency
+                // for the rest of the process. PHP's error log is the only sink
+                // that reliably exists this early in boot.
+                error_log(
+                    'Klytos: v1.x owner migration failed — this install has no owner record, so '
+                    . 'every permission check will deny until one exists. Underlying error: '
+                    . $e->getMessage()
+                );
+            }
         }
 
         // Step 10c: Initialize Options and Meta API managers.
@@ -636,7 +669,9 @@ class App
             $items = klytos_apply_filters( 'admin_bar.items', $items );
 
             // Sort top-level items; sort children of each item.
-            $sortFn = function ( $a, $b ) { return ( $a['position'] ?? 50 ) <=> ( $b['position'] ?? 50 ); };
+            $sortFn = function ( $a, $b ) {
+                return ( $a['position'] ?? 50 ) <=> ( $b['position'] ?? 50 );
+            };
             usort( $items, $sortFn );
             foreach ( $items as &$item ) {
                 if ( !empty( $item['children'] ) ) {

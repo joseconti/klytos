@@ -41,3 +41,29 @@
   that bypasses the application proves only that the fixture works. And treat "the playground boots"
   as a test point with real findings, not as setup to get past — its first run is the cheapest bug
   discovery the project will ever get.
+
+## L-006 — The fix for a crash nearly introduced a crash, on the same path, invisible to every test
+- Problem: Slice 3 wrapped `App::boot()` Step 10b in `try`/`catch` so a failed v1.x owner migration
+  could not fatal the whole application (D-031). The first implementation logged the failure with
+  `$this->logger->write(...)`. `$this->logger` is lazily constructed by `getLogger()`, whose `Logger`
+  constructor requires a **non-nullable** `PluginLoader`, and `$this->pluginLoader` is not assigned
+  until Step 12 — after Step 10b. So the handler would have raised a `TypeError` and crashed boot at
+  exactly the point it was written to keep boot alive.
+- Where: `installer/core/app.php` Step 10b; `getLogger()` and `Logger::__construct()`
+- What failed: writing an error handler against the object graph as it exists at the END of boot,
+  while the handler runs in the MIDDLE of it. The mental model was "the App has a logger" — true of a
+  booted App, false of the one being booted. Nothing in the code signals the boundary; the property
+  is simply null until later.
+- Why no test would have caught it: the branch only executes on an install whose v1 config has no
+  usable `admin_email`. The playground has a valid one, the upgrade test builds a valid one, and the
+  unit tier does not boot an App at all. A defect reachable only from a damaged production config is
+  invisible to a green suite — the failure mode would have been a user reporting a white screen.
+- Working solution: `error_log()`, the only sink with no dependencies at that point in boot, with a
+  comment stating why the obvious choice is wrong so it is not "improved" back later. Caught by
+  reading the dependency chain of the call before running anything — `grep` for the property's
+  assignment line and comparing it to the call site's line number.
+- Rule for next time: **code that runs during initialization may only use services already
+  initialized at that exact point — verify the assignment line is above the call line, do not infer
+  it from the class having the property.** And more generally: when adding a handler for a rare
+  failure path, ask what would execute it in a test. If the honest answer is "nothing", the handler
+  has to be read line by line against its dependencies, because the suite cannot vouch for it.

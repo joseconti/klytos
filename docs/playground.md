@@ -183,6 +183,33 @@ nothing, which is exactly why it refuses to pass quietly.
 
 `XDEBUG_MODE=off` is the same noise suppression the seeder needs, for the same reason — NEW-03, below.
 
+## Testing an upgrade from the real previous release
+
+Keel makes this mandatory because `Installed base: yes`: the upgrade path is tested from the **real
+previous version**, never only from a clean install. Slice 3 needed it, since removing the v1.x owner
+fallback could in principle lock out a production install.
+
+```bash
+# Defaults to v0.30.1; pass any release tag to test a different one.
+XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh v0.29.9
+```
+
+What it does, in order: exports the tagged release from git into a **temp directory outside the
+repo**, runs that release's *own* installer against it over `php -S`, verifies the pre-upgrade state,
+overlays the working tree's `core/` and `VERSION` the way the self-updater does, boots the upgraded
+install, and asserts the slice-3 properties on it — the owner still resolves and keeps its
+permissions, the boot migration is idempotent, and a session with no `klytos_user_id` is denied
+rather than promoted.
+
+It never touches the working tree. That is not incidental: `installer/install.php` is destructive to
+a checkout (the warning at the top of this document), so the only safe place to run a real
+installation is somewhere the repository is not. The script refuses to delete anything outside its
+own `mktemp` directory.
+
+Port 8099 by default (`PORT=8123 bash scripts/dev/upgrade-test.sh` to change it), so it does not
+collide with the playground on 8080 — you can leave the playground running.
+
 ## Auditing the vendored dependencies
 
 `installer/vendor-ai/` ships 16 pre-installed packages (the AI chat stack). Since Sprint 1 slice 2 it

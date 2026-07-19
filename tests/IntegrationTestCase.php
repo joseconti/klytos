@@ -152,10 +152,12 @@ abstract class IntegrationTestCase extends TestCase
     /**
      * Drop all session state — an anonymous, unauthenticated request.
      *
-     * This is the state every authorization test must also assert against:
-     * NEW-01 records that klytos_current_user() currently PROMOTES a session
-     * without klytos_user_id to owner, so "no session" is a case with teeth,
-     * not a trivial one.
+     * This is the state every authorization test must also assert against.
+     * NEW-01 recorded that klytos_current_user() used to PROMOTE a session
+     * without klytos_user_id to owner; slice 3 closed that, so the case is now
+     * a regression guard rather than a live bug — see
+     * tests/Integration/CurrentUserFailClosedTest.php, which asserts the
+     * denial directly.
      *
      * @return void
      */
