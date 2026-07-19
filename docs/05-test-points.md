@@ -1042,7 +1042,7 @@ on disk" arm would have failed the build otherwise — it was left to prove that
 Suite 107 → **116 tests**, 472 → **541 assertions**. Lint baselines unchanged; `installer/public/`
 added to the scanned set at 0/0 after its two pre-existing errors were auto-fixed.
 
-Commit: **(recorded at commit)**.
+Commit: **b4c4c80**.
 
 ## Session-start freshness
 
