@@ -164,6 +164,31 @@ vendor/bin/phpcs --standard=phpcs.xml <paths>
 - `actingAs()` mirrors the session shape of `Auth::login()`. `tests/Integration/HarnessTest.php` guards that mirror; if Auth's session keys change, it fails there first.
 - Rules: a behaviour change ships with its named test in the same slice; a fixed bug ships with its regression test; a test is never deleted, skipped or loosened to make it pass.
 
+## Dependencies
+
+The **runtime has no Composer dependencies**. Two manifests exist, and they are not interchangeable:
+
+| Manifest | Scope | Ships? |
+|---|---|---|
+| `composer.json` (repo root) | Dev toolchain only — PHPUnit + PHPCS, plus `autoload-dev` for the test tiers | no (`export-ignore`) |
+| `installer/composer.json` | Reconstructed record of the 16 packages vendored in `installer/vendor-ai/`, pinned to exactly what ships (`vendor-dir: vendor-ai`) | no (`export-ignore`) |
+
+```bash
+composer audit:vendor     # alias for: composer audit -d installer
+```
+
+- `installer/vendor-ai/` is the AI-chat stack (`soukicz/llm` + Guzzle + PSR-7 + friends). It is
+  **loaded lazily from exactly one place** — `App::getChatEngine()` (`core/app.php:1009`). A site that
+  never opens AI chat never loads it.
+- **Never run `composer install -d installer`** casually: it rewrites 482 tracked files. Use
+  `composer update --no-install -d installer` to refresh the lock alone.
+- `tests/Unit/VendorAiManifestTest.php` fails the suite if the manifest, the lock,
+  `vendor-ai/composer/installed.php` and `LICENSE-THIRD-PARTY.md` stop agreeing. If you change what
+  is vendored, update all four in the same slice.
+- **CVE findings are reported and triaged with the user, never silently patched** (D-022). As of
+  2026-07-19 the audit reports 5 known medium CVEs — see `docs/04-adoption-audit.md` NEW-05 before
+  treating them as a new discovery.
+
 ## Security Checklist for Core Changes
 
 - [ ] All user input sanitized (htmlspecialchars, Helpers::sanitizeHtml)

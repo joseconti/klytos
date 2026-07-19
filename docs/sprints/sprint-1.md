@@ -50,7 +50,7 @@ the summary lives there, not duplicated here.
 |---|-------|--------|--------|-------------------|-------|
 | 0 | Playground + gate zero | T-02 | **closed 2026-07-18** | **PASS** — seeded, booted, admin 302→login, MCP 177 tools, all deny checks 403; evidence in `docs/05-test-points.md` | Found NEW-03 and NEW-04 (both deferred by D-026). Gate zero baseline-locked by D-025. `.gitignore` hardened: identity keys, plain `.json`, `logs-*`, `_cache` |
 | 1 | Test harness + dev manifest | T-01, T-04 | **closed 2026-07-19** | **PASS** — `composer install` clean, `phpunit` 9 tests/37 assertions green, `phpcs` clean, D-025 baseline unchanged; evidence in `docs/05-test-points.md` | Two tiers built. Integration tier proven to SKIP (not pass) without the playground. PHPUnit pinned + `composer.lock` tracked (D-027). Testing rule propagated to all 7 assistant containers + the core skill |
-| 2 | `vendor-ai/` manifest + CVE audit | H-04 | planned | — | Widest unknown in the sprint |
+| 2 | `vendor-ai/` manifest + CVE audit | H-04 | **closed 2026-07-19** | **PASS — 5 CVEs open for user triage** — manifest resolves to the 16 vendored versions with 0 deltas; `composer audit` full output pasted; suite 12 tests/57 assertions green; D-025 baseline unchanged; evidence in `docs/05-test-points.md` | Unknown now bounded: fixes are constraint-compatible (guzzle 7.12.1 / psr7 2.12.1), so a re-vendor, not a dependency rewrite — still a scope change per D-022. Manifest counts corrected: **16 packages, not 9**. New findings NEW-05 (CVEs), NEW-06 (PHP 8.3 floor vs declared 8.1+), NEW-07 (2 BSD packages with no licence text — notice fixed, packaging half left to H-02) |
 | 3 | One matrix + fail-closed current user | S-04, NEW-01 | planned | — | Prerequisite for slices 4–5 |
 | 4 | `klytos_require_permission()` + central default-deny gate | S-07 | planned | — | The systemic fix; 66 files mapped |
 | 5 | Named escalations, one test each | S-01,02,03,05,06,12 | planned | — | Proves each finding individually |
@@ -103,8 +103,12 @@ each slice closes.
 1. **Default-deny can lock someone out.** The map is complete by construction, but a
    plugin-registered admin page or an unenumerated path would 403. Mitigation: the keel-verify check
    plus a full playground walk of all 42 pages per role before the sprint closes.
-2. **Slice 2 is genuinely unbounded** until `composer audit` runs. A CVE requiring an upgrade across
-   482 vendored files may exceed this sprint and spawn its own.
+2. ~~**Slice 2 is genuinely unbounded** until `composer audit` runs. A CVE requiring an upgrade across
+   482 vendored files may exceed this sprint and spawn its own.~~ **Resolved 2026-07-19 — the risk
+   materialised, but bounded.** The audit found 5 medium CVEs (NEW-05). They do require a re-vendor
+   across 482 files, so they do **not** enter this sprint; the fixes are constraint-compatible, so
+   the work is a re-vendor rather than a dependency-tree rewrite. Awaiting the user's triage
+   decision, per D-022.
 3. **The playground writes real local credentials.** Seeded `config/`/`data/` stay gitignored;
    `docs/playground.md` carries throwaway values only. The pre-commit gate is the net.
 4. **The integration tier has no storage isolation** *(added 2026-07-19, slice 1 review)*. It shares

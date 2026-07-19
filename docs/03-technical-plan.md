@@ -17,13 +17,20 @@
 | Storage | Pluggable: flat-file JSON (`file-storage.php`) or MySQL/MariaDB (`database-storage.php`) behind `StorageInterface` |
 | Front-end tooling | **None** — no bundler, no transpiler, no npm scripts. Vanilla CSS/JS shipped as-is |
 | Dependency manifest | Root `composer.json` since 2026-07-19 (Sprint 1 slice 1) — **`require-dev` only**: PHPUnit + PHPCS, plus `autoload-dev` for the test tiers. The runtime stays dependency-free and nothing ships (`export-ignore`). `composer.lock` is tracked so versions are reproducible (D-022, D-027). No root `package.json` |
-| Vendored deps | `installer/vendor-ai/` committed (482 files: guzzlehttp, psr/*, ramsey/uuid, brick/math, swaggest, symfony polyfills, soukicz/llm) + TinyMCE under `installer/admin/assets/vendor/` |
+| Vendored deps | `installer/vendor-ai/` committed — **16 packages, 482 tracked files** (guzzlehttp, psr/*, ramsey/uuid, ramsey/collection, brick/math, swaggest, symfony polyfills, phplang/scope-exit, ralouphie/getallheaders, soukicz/llm) + TinyMCE under `installer/admin/assets/vendor/`. Since 2026-07-19 (slice 2) reconstructed and pinned by `installer/composer.json` + `installer/composer.lock` (D-028), so `composer audit -d installer` runs. Loaded lazily, only by `App::getChatEngine()` |
 | Autoloading | Custom `spl_autoload_register` for `Klytos\Core` at `installer/core/app.php:698`, plus explicit `require_once` chains; Composer's `vendor-ai/autoload.php` loaded lazily at `app.php:1009` |
 | Output | Static HTML generated into `installer/public/` |
 
-**Risk, recorded not fixed:** with no `composer.json` for `vendor-ai/`, there is no record of which
-versions of those 9 packages are pinned, so they cannot be audited against CVEs or updated
-reproducibly. See `docs/04-adoption-audit.md` H-04.
+**Risk closed 2026-07-19 (slice 2), with findings.** `vendor-ai/` now has a manifest (D-028), so the
+tree is auditable and reproducible; audit H-04 is closed. The first audit reported **5 CVEs across
+guzzle 7.10.0 and psr7 2.9.0** (NEW-05, all medium, reachability assessed) and surfaced a
+**PHP 8.3 floor in code shipped by a product declaring 8.1+** (NEW-06). Neither is patched here —
+D-022's standing rule sends CVE findings to user triage, and re-vendoring 482 files is a scope
+change. Audit command:
+
+```bash
+composer audit -d installer
+```
 
 ## 2. Code map
 

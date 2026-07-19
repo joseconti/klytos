@@ -96,7 +96,10 @@ installer/.install.done.php
 # It is kept out of the distributable with export-ignore, not with .gitignore.
 # The old blanket `composer.lock` rule also hid the vendored ones, so they stay
 # ignored explicitly — removing that line must not change what vendor-ai/ tracks.
-# Sprint 1 slice 2 (H-04) may revisit: those locks are evidence of pinned versions.
+# Slice 2 (H-04) revisited this and kept it: those nested locks are each package's
+# own dev lock, not a record of what Klytos vendors. The real record is
+# installer/composer.lock, which IS tracked (D-028), so nothing is lost by
+# ignoring them. Note the pattern is `**/` — it does not match installer/composer.lock.
 installer/vendor-ai/**/composer.lock
 
 # ─── Test tooling caches ─────────────────────────────────────

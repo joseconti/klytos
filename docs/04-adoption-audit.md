@@ -333,6 +333,77 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Trigger:** the first slice touching `build-engine.php`, or the theme-package sprint (D-023),
   which rebuilds the frontend and will need a safe build target anyway.
 
+### NEW-05 — Five CVEs in the vendored HTTP stack — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2, by the first `composer audit` this project has ever been able to run)*
+- **Where:** `installer/vendor-ai/guzzlehttp/guzzle` 7.10.0 and `installer/vendor-ai/guzzlehttp/psr7` 2.9.0
+- **What:** `composer audit` against the reconstructed manifest (D-028) reports **5 advisories across
+  2 packages**, all severity *medium*. Full output in `docs/05-test-points.md` (slice 2 evidence).
+
+  | CVE | Package | Title | Fixed in |
+  |---|---|---|---|
+  | CVE-2026-55767 | guzzle | Dot-only cookie domains match all hosts | 7.12.1 |
+  | CVE-2026-55568 | guzzle | Silent HTTPS proxy downgrade to cleartext | 7.12.1 |
+  | CVE-2026-55766 | psr7 | CRLF injection in HTTP start-line serialization | 2.12.1 |
+  | CVE-2026-49214 | psr7 | CRLF injection via URI host component | 2.10.2 |
+  | CVE-2026-48998 | psr7 | Host confusion via authority reinterpretation | 2.10.2 |
+
+- **Reachability, checked rather than assumed** (this is what makes it MEDIUM and not HIGH):
+  - `vendor-ai/` is loaded **lazily and from exactly one place** — `App::getChatEngine()`
+    (`installer/core/app.php:1009`). A site that never opens the AI chat never loads Guzzle at all.
+  - **No cookie jar.** `CookieJar` and the `cookies` request option appear nowhere in
+    `installer/core/ai/` or in `soukicz/llm`. CVE-2026-55767 has no path.
+  - **No user-controllable URLs.** The five provider endpoints are hardcoded literals in
+    `chat-engine.php:242-247`; no `base_url`/`custom_endpoint` setting exists anywhere in the AI
+    module or the MCP tools. The three PSR-7 URI/host CVEs need an attacker-influenced URI, which
+    this code path does not offer.
+  - **The one plausible path is CVE-2026-55568.** Guzzle honours `HTTP_PROXY`/`HTTPS_PROXY` from the
+    environment without the application asking, so on a shared host that sets them, an LLM API key
+    could leave over cleartext. Klytos never configures a proxy, but it cannot prevent this one.
+- **Fix constraint (verified, so the cost is known):** `soukicz/llm` 0.5.0 requires `guzzlehttp/guzzle: ^7.9`,
+  so 7.12.1 and psr7 2.12.1 are **constraint-compatible** — the upgrade needs no dependency-tree
+  surgery, only a re-vendor.
+- **NOT patched here, deliberately.** D-022's standing rule: CVE findings are reported and triaged
+  with the user, never silently patched. Re-vendoring is a change across 482 tracked files → a scope
+  change (Estimate v2), not a slice detail.
+- **Fails:** web-app profile — dependency audit; `references/maintenance.md` — CVE duty.
+- **Trigger:** the user's triage decision on this finding (see `docs/PROGRESS.md` open items).
+
+### NEW-06 — The vendored AI stack requires PHP 8.3, but Klytos declares 8.1+ — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2)*
+- **Where:** `installer/vendor-ai/soukicz/llm` (`php: >=8.3`), `brick/math` (`php: ^8.2`),
+  `ramsey/collection` (`php: ^8.1`) vs the product's declared PHP 8.1+ (D-004).
+- **What:** On PHP 8.1 or 8.2, the AI chat module loads code whose own manifest says it will not run
+  there. Nothing declares or checks this: `App::getChatEngine()` requires the autoloader
+  unconditionally once the feature is used, so the failure mode is a runtime error inside a vendored
+  library, not a graceful "unsupported" message.
+- **Why it went unnoticed:** with no manifest there was nothing that could state a platform
+  requirement — which is precisely the H-04 defect.
+- **Relation to D-027:** the same shape as the PHPUnit-11-needs-8.2 gap, but this one is in the
+  **product**, not the toolchain. D-027's gap was verification coverage; this one can reach a user.
+- **Fails:** Keel's "external dependencies fail safe" rule — an absent or version-incompatible
+  dependency must degrade gracefully (feature disabled, notice shown), never fatal.
+- **Remediation shape (not done here):** a `PHP_VERSION_ID` guard at the `getChatEngine()` load
+  point that disables AI chat with an explicit message below 8.3 — or raising the product floor, a
+  user decision with installed-base consequences.
+- **Trigger:** the same triage as NEW-05 (both are "what do we do about vendor-ai"), or the next
+  verification of the support matrix (D-027's trigger).
+
+### NEW-07 — Two BSD packages ship with no licence text — **LOW (licence compliance)** *(found 2026-07-19, Sprint 1 slice 2)*
+- **Where:** `installer/vendor-ai/soukicz/llm` (BSD-3-Clause) and `installer/vendor-ai/phplang/scope-exit` (BSD)
+- **What:** Every other vendored package ships its own `LICENSE` file next to its source and those
+  files survive `git archive` (verified with `git check-attr export-ignore`). These two do not have
+  one — upstream omits it — so the only record was `vendor-ai/LICENSE-THIRD-PARTY.md`, which
+  (a) listed 14 of the 16 packages, omitting `phplang/scope-exit` and `ralouphie/getallheaders`
+  entirely, (b) attributed `soukicz/llm` to "Ondrej Soukup" when `composer.json` names **Petr Soukup**,
+  and (c) is itself stripped from every release archive by the blanket `*.md export-ignore`
+  (`.gitattributes:8`) — the same defect already recorded as H-02 for `README.md`/`INSTALL.md`.
+- **Fixed in this slice** (the parts that are the notice itself): the notice now lists all 16
+  packages at their vendored versions, corrects the attribution, and reproduces the BSD-3-Clause
+  text in full for the two packages that lack it. `tests/Unit/VendorAiManifestTest.php` fails the
+  suite if the list ever drifts from `composer/installed.php` again.
+- **NOT fixed here:** the `*.md export-ignore` that keeps the notice out of the distributable. That
+  is `.gitattributes` packaging policy, owned by **H-02**, and changing what ships is a Phase 7
+  decision, not a slice-2 side effect.
+- **Trigger:** H-02, at the next full Phase 7.
+
 ### Positive findings (recorded so they are not re-litigated)
 - **No tracked secrets.** `git ls-files` over secret-shaped patterns returns zero; only
   `installer/core/keys/klytos-integrity.pub` (a public key — correct) is tracked.
@@ -482,11 +553,19 @@ re-included; these two are not.
 ~27 releases undocumented. Users of a self-updating CMS have no way to know what changed — including
 whether a release contains a security fix.
 
-### H-04 — Vendored dependencies have no manifest — **HIGH**
-`installer/vendor-ai/` ships 482 files (guzzlehttp, psr/*, ramsey/uuid, brick/math, swaggest,
+### H-04 — Vendored dependencies have no manifest — **HIGH** — **CLOSED 2026-07-19 (Sprint 1, slice 2)**
+`installer/vendor-ai/` ships 482 tracked files (guzzlehttp, psr/*, ramsey/uuid, brick/math, swaggest,
 symfony polyfills, soukicz/llm) with no `composer.json` recording pinned versions. They cannot be
 audited against CVEs or updated reproducibly.
 **Fails:** web-app profile — dependency audit (`composer audit`); maintenance reference — CVE duty.
+
+**Resolution.** `installer/composer.json` + `installer/composer.lock` reconstruct the tree exactly
+(D-028) and `composer audit -d installer` now runs. Two counts in the original finding were wrong and
+are corrected on the record: the tree holds **16 packages, not 9** (the "9" came from reading the top
+level of `vendor-ai/`, which has 12 vendor directories), and 482 is the **tracked** file count — 484
+exist on disk, two being gitignored package-internal files. The audit's first run produced NEW-05
+(5 CVEs), NEW-06 (PHP 8.3 floor) and NEW-07 (licence texts) below — the findings this manifest
+existed to make visible.
 
 ### H-05 — 33 first-party PHP files carry no license header — **LOW**
 195 of 228 do. Inconsistent for a GPL project that states the plugins/templates clause in its

@@ -34,6 +34,7 @@
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
         "test:integration": "phpunit --testsuite integration",
-        "lint": "phpcs --standard=phpcs.xml"
+        "lint": "phpcs --standard=phpcs.xml",
+        "audit:vendor": "@composer audit -d installer"
     }
 }

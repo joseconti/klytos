@@ -167,6 +167,35 @@ nothing, which is exactly why it refuses to pass quietly.
 
 `XDEBUG_MODE=off` is the same noise suppression the seeder needs, for the same reason — NEW-03, below.
 
+## Auditing the vendored dependencies
+
+`installer/vendor-ai/` ships 16 pre-installed packages (the AI chat stack). Since Sprint 1 slice 2 it
+has a reconstructed manifest at `installer/composer.json`, pinned to exactly what is vendored
+(D-028), so it can be audited:
+
+```bash
+composer audit -d installer
+```
+
+Exit code 1 means advisories were found; the table it prints is the full report. **As of 2026-07-19
+this reports 5 medium CVEs in `guzzlehttp/guzzle` 7.10.0 and `guzzlehttp/psr7` 2.9.0** — known,
+triaged, and recorded as audit finding NEW-05. Seeing them is the current expected output, not a new
+discovery.
+
+The manifest also regenerates the tree reproducibly, but **do not run that in a checkout you care
+about** — it rewrites 482 tracked files:
+
+```bash
+# Lock only, touches nothing vendored (this is what slice 2 ran):
+composer update --no-install -d installer
+
+# Full re-vendor — only as a deliberate, reviewed change:
+# composer install -d installer
+```
+
+`tests/Unit/VendorAiManifestTest.php` fails the suite if the manifest, the lock,
+`vendor-ai/composer/installed.php` and `LICENSE-THIRD-PARTY.md` ever stop agreeing.
+
 ## The debug log — how to hand back a diagnosable failure
 
 Klytos's log switch is **Developer Mode**. `Logger::write()` (`core/logger.php:116`) discards every
