@@ -89,9 +89,14 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 - `mcp.tool_response` (filter) — modify responses
 - `mcp.tool_called` (action) — tool was called
 
-### Authentication
+### Authentication and authorization
 - `auth.before_login`, `auth.after_login` (actions)
-- `auth.capabilities` (filter)
+- `auth.capabilities` (filter) — the capability matrix; add or re-scope a permission here
+- `auth.access_denied` (action) — fires immediately before a request is refused; receives
+  `( int $status, string $code, string $surface )`. The **audit hook**: log or alert on refusals.
+  It deliberately **cannot reverse the decision**
+- `admin.gate_map` (filter) — the admin gate map, `path relative to admin/ => capability`. Add an
+  entry to gate your own admin file; a file with no entry is **denied by default**
 
 ### Admin Panel
 - `admin.sidebar_items` (filter) — customize sidebar

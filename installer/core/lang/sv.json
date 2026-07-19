@@ -38,7 +38,10 @@
     "optional": "Valfritt",
     "view": "Visa",
     "all": "Alla",
-    "no_results": "Inga resultat"
+    "no_results": "Inga resultat",
+    "forbidden": "Åtkomst nekad",
+    "no_permission": "Du har inte behörighet att öppna den här sidan.",
+    "authentication_required": "Autentisering krävs"
   },
   "auth": {
     "login": "Logga in",
@@ -601,7 +604,8 @@
   },
   "plugins": {
     "enable_logs": "Aktivera loggar",
-    "disable_logs": "Inaktivera loggar"
+    "disable_logs": "Inaktivera loggar",
+    "page_declares_no_capability": "Den här tilläggssidan anger ingen nödvändig behörighet, så åtkomst nekas. Tillägget måste ange en ”capability” när sidan registreras."
   },
   "privacy": {
     "title": "Integritet",

@@ -25,7 +25,17 @@ for f in $files; do
 done
 
 # 2) Secret-shaped content in the STAGED blob (not the working tree)
-pat="-----BEGIN [A-Z ]*PRIVATE KEY-----|api[_-]?key[\"']?[[:space:]]*[:=]|Bearer [A-Za-z0-9._~+/=-]{20,}|AKIA[0-9A-Z]{16}|sk-(proj-)?[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{10,}"
+# The api_key branch requires something VALUE-shaped after the separator (a
+# run of at least 16 key-like characters, quoted or bare). Matching the key
+# NAME alone flagged every one of the 20 locale catalogues, because they carry
+# the translation key "api_key" whose value is the UI label "Gemini API key" —
+# see D-037. A pattern that fires on documentation and labels trains people to
+# pass --no-verify, which is worse than the narrower rule.
+# The character classes spell out the case: this grep is deliberately NOT run
+# with -i (that would make the AKIA/ghp_/sk- prefixes case-insensitive too,
+# which loosens them), and the pre-existing lowercase-only branch never matched
+# the very common camelCase `apiKey = "..."`.
+pat="-----BEGIN [A-Z ]*PRIVATE KEY-----|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9_\-]{16,}|Bearer [A-Za-z0-9._~+/=-]{20,}|AKIA[0-9A-Z]{16}|sk-(proj-)?[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{10,}"
 for f in $files; do
   case "$f" in .githooks/*|.claude/skills/*|.agents/skills/*) continue ;; esac
   if git show ":$f" 2>/dev/null | LC_ALL=C grep -Eqa -e "$pat"; then

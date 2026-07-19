@@ -88,14 +88,17 @@ foreach ( $adminPages as $adminPage ) {
 // Allow plugins to override capability via filter.
 $requiredCapability = klytos_apply_filters( 'admin.plugin_page_capability', $requiredCapability, $pluginId, $pageName );
 
-if ( $requiredCapability !== null && !klytos_has_permission( $requiredCapability ) ) {
-    http_response_code( 403 );
-    $pageTitle = __( 'common.forbidden' );
-    require_once __DIR__ . '/templates/header.php';
-    require_once __DIR__ . '/templates/sidebar.php';
-    echo '<div class="alert alert-danger">' . __( 'common.no_permission' ) . '</div>';
-    require_once __DIR__ . '/templates/footer.php';
-    exit;
+// Default-deny (Sprint 1, slice 4). This condition used to be
+// `$requiredCapability !== null && !klytos_has_permission(...)`, so a plugin
+// that declared no capability got its gate SKIPPED — the page was then open to
+// any authenticated user, including a viewer. An undeclared capability is not
+// a grant: it is a plugin that has not answered the question.
+if ( $requiredCapability === null ) {
+    klytos_deny( 403, __( 'plugins.page_declares_no_capability' ), 'no_capability_declared' );
+}
+
+if ( ! klytos_has_permission( $requiredCapability ) ) {
+    klytos_deny( 403, __( 'common.no_permission' ), 'forbidden' );
 }
 
 // ─── Set page context ────────────────────────────────────────

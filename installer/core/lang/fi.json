@@ -38,7 +38,10 @@
     "optional": "Valinnainen",
     "view": "Näytä",
     "all": "Kaikki",
-    "no_results": "Ei tuloksia"
+    "no_results": "Ei tuloksia",
+    "forbidden": "Pääsy evätty",
+    "no_permission": "Sinulla ei ole oikeutta käyttää tätä sivua.",
+    "authentication_required": "Kirjautuminen vaaditaan"
   },
   "auth": {
     "login": "Kirjaudu sisään",
@@ -601,7 +604,8 @@
   },
   "plugins": {
     "enable_logs": "Ota lokit käyttöön",
-    "disable_logs": "Poista lokit käytöstä"
+    "disable_logs": "Poista lokit käytöstä",
+    "page_declares_no_capability": "Tämä liitännäissivu ei määritä vaadittua oikeutta, joten pääsy evätään. Liitännäisen on määritettävä \"capability\" sivua rekisteröitäessä."
   },
   "privacy": {
     "title": "Tietosuoja",

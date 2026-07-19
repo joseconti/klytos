@@ -427,7 +427,13 @@ Custom order is read from user meta after the `admin.sidebar_items` filter and b
 - [ ] CSRF validation on every POST (`klytos_verify_csrf()`)
 - [ ] All user input sanitized before use
 - [ ] All output escaped before rendering
-- [ ] Permission check (`klytos_has_permission()`) if page is role-restricted
+- [ ] **Gate-map entry added** in `installer/core/admin-gate.php` — a new admin file is **denied to
+      everyone, including the owner**, until it is mapped (Sprint 1 slice 4, audit S-07). Verify with
+      `php scripts/keel-verify`
+- [ ] `klytos_require_permission()` inline on any POST branch more privileged than the page itself
+      (the map entry is a floor, not a ceiling)
+- [ ] Plugin-registered pages declare a `'capability'` — since slice 4, a plugin page that declares
+      **none is refused**, not waved through
 - [ ] Equivalent MCP tool(s) exist for the same functionality
 
 ---

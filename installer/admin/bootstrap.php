@@ -240,15 +240,64 @@ klytos_add_filter( 'notice.condition.encryption_key_not_backed_up', function ( b
 } );
 
 // ─── Auth guard ──────────────────────────────────────────────
-// If not authenticated and not on login page, redirect to login.
+// If not authenticated and not on a pre-auth page, refuse — in the shape the
+// caller can parse. This used to 302 EVERY unauthenticated request to the HTML
+// login page, including the 24 JSON endpoints under admin/api/, so an XHR
+// received login HTML and a JSON parse error instead of a status it could act
+// on. It also made the isAuthenticated() re-checks inside 20 of those
+// endpoints unreachable, and with them the 401 contract they advertise.
+// Recorded next to S-07 in docs/04-adoption-audit.md.
 $currentScript = basename( $_SERVER['SCRIPT_NAME'] );
-if ( $currentScript !== 'login.php' && $currentScript !== 'logout.php' && $currentScript !== 'reset-password.php' ) {
+
+// api/webauthn-challenge.php is deliberately NOT exempt, although the passkey
+// second-factor flow needs it to be. Slice 4 added the exemption and then
+// REMOVED it, because the security-auditor pass showed the exemption opens a
+// full account-takeover primitive (NEW-09):
+//
+//   is2faPending() is true as soon as a caller supplies a correct PASSWORD
+//   (auth.php:112-118) — before any second factor. That endpoint gates all
+//   four of its actions on ( isAuthenticated() || is2faPending() ), and
+//   TwoFactor::completePasskeyRegistration() (two-factor.php:507-530) appends
+//   the new credential and sets enabled = true without checking that the
+//   caller ever passed an EXISTING factor. So a password alone would let an
+//   attacker enrol their own authenticator and hold the account permanently.
+//
+// The redirect is what was incidentally preventing that, and removing it buys
+// nothing today anyway: passkey login cannot complete regardless, because
+// login.php's 2FA dispatcher has no 'passkey' branch and
+// TwoFactor::verifyPasskeyAssertion() (two-factor.php:586) has zero call
+// sites. Fixing this properly means restricting the endpoint's actions AND
+// building the missing verification path — its own slice, with its own tests.
+$preAuthScripts = [ 'login.php', 'logout.php', 'reset-password.php' ];
+
+if ( ! in_array( $currentScript, $preAuthScripts, true ) ) {
     if ( ! $app->getAuth()->isAuthenticated() ) {
+        if ( klytos_current_surface() === 'api' ) {
+            \Klytos\Core\Helpers::jsonResponse(
+                [ 'error' => __( 'common.authentication_required' ), 'code' => 'authentication_required' ],
+                401
+            );
+        }
+
         $loginUrl = dirname( $_SERVER['SCRIPT_NAME'] ) . '/login.php?redirect_to=' . urlencode( $_SERVER['REQUEST_URI'] );
         header( 'Location: ' . $loginUrl );
         exit;
     }
 }
+
+// ─── Authorization gate (S-07) ───────────────────────────────
+// The central default-deny gate. Every admin page and API endpoint requires
+// this bootstrap, so this single call gates all 66 of them — and an admin file
+// with no entry in the map is REFUSED, not waved through. Runs after the auth
+// guard (it needs an identity) and before the setup-wizard redirect (so a
+// non-owner is told 403 rather than bounced into a wizard that would then
+// refuse them anyway).
+//
+// Pages that mix privilege tiers — the dashboard's indexing toggle, the page
+// list's trash purge, the encryption-level change — call
+// klytos_require_permission() again inline on the privileged branch. The map
+// entry is the floor, not the ceiling.
+klytos_enforce_admin_gate();
 
 // ─── Setup wizard redirect (first-login only) ──────────────
 // Fresh installations set 'setup_completed' => false in config.

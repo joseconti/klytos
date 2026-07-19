@@ -230,6 +230,68 @@ Check if the current user has a specific permission. Owner role has ALL permissi
 | `forms.manage` | owner, admin |
 | `webhooks.manage` | owner, admin |
 | `updates.manage` | owner |
+| `terminal.access` | owner |
+| `profile.edit` | owner, admin, editor, viewer |
+| `security.self` | owner, admin, editor, viewer |
+| `ui.preferences` | owner, admin, editor, viewer |
+| `setup.run` | owner |
+| `ai.use` | owner, admin |
+
+An **unknown** permission key denies for every role except `owner`, whose shortcut returns before
+the matrix is consulted. A typo therefore fails closed — and silently, so verify the key exists.
+
+> `ai.use` deliberately excludes `editor` for now: the AI chat executes MCP tools, and the MCP tool
+> layer has no permission checks until Sprint 2, so reaching that surface is owner-equivalent power.
+
+### Enforcing a permission — `klytos_require_permission()`
+
+```php
+klytos_require_permission(string $permission, ?string $surface = null): void
+```
+
+The **enforcing** counterpart to `klytos_has_permission()`, which only answers. Refuses and stops:
+**401** when nobody is authenticated, **403** when somebody is but lacks the capability.
+
+```php
+// At the top of a privileged branch — nothing below runs without the capability.
+klytos_require_permission( 'users.manage' );
+```
+
+```php
+klytos_deny(int $status, string $message, string $code = 'forbidden', ?string $surface = null): never
+klytos_current_surface(): string   // 'api' | 'mcp' | 'cli' | 'page'
+```
+
+`klytos_deny()` refuses in the shape the caller can parse — JSON for `api`/`mcp`, stderr for `cli`,
+a self-contained escaped HTML document for pages — then exits. Use it directly only when you need a
+refusal that is not capability-based; otherwise call `klytos_require_permission()`.
+
+### The central admin gate — every admin file is gated, and denies by default
+
+Since Sprint 1 slice 4 you do **not** add a permission check to a new admin page. You add the page
+to the **gate map**, and `admin/bootstrap.php` enforces it for you:
+
+```php
+// installer/core/admin-gate.php
+'my-new-page.php'     => 'site.configure',
+'api/my-endpoint.php' => 'assets.manage',
+```
+
+**A file absent from the map is denied to everyone, including the owner.** That is deliberate:
+before this, 51 of 66 admin files had simply forgotten their gate. Run `php scripts/keel-verify` —
+it fails when any file under `installer/admin/` has no entry.
+
+The map entry is a **floor, not a ceiling**. A page whose branches differ in privilege maps at the
+tier needed to see it and re-gates inline:
+
+```php
+// admin/pages.php is mapped 'pages.view' so an editor can read the list…
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
+    klytos_require_permission( 'pages.delete' );   // …but only owner/admin may purge.
+}
+```
+
+Full reference: `docs/reference/authorization.md`.
 
 ### Extending Permissions from a Plugin
 

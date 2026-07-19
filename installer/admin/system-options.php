@@ -24,10 +24,9 @@ use Klytos\Core\Helpers;
 $pageTitle = __('options.title');
 
 // ─── Permission check ────────────────────────────────────────
-if (!klytos_has_permission('site.configure')) {
-    header('Location: ' . Helpers::url('admin/'));
-    exit;
-}
+// Enforced centrally since Sprint 1 slice 4 — 'site.configure' in the gate
+// map (core/admin-gate.php), refused by admin/bootstrap.php with a 403
+// before this body runs, instead of a redirect to the dashboard.
 
 $auth           = $app->getAuth();
 $csrf           = $auth->getCsrfToken();

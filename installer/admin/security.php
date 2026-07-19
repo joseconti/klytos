@@ -118,11 +118,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         }
     }
 
-    // ── Change Encryption Level (owner/admin only) ──
-    $currentUserRole = ( klytos_current_user() )['role'] ?? '';
-    $isAdminRole     = in_array( $currentUserRole, ['owner', 'admin'], true );
-
-    if ( $action === 'change_encryption_level' && $isAdminRole ) {
+    // ── Change Encryption Level (site.configure) ──
+    // The page itself is gated at 'security.self' — every role may manage
+    // their OWN second factor. These two actions are site-wide and
+    // destructive, so they are re-gated here at the higher tier: the map
+    // entry is the floor, not the ceiling.
+    //
+    // This replaces a hand-rolled in_array( $role, ['owner','admin'] ) — a
+    // second authorization decision point living outside the matrix, which
+    // slice 3's "defined exactly once" guard never saw because that guard only
+    // scans core/*.php. 'site.configure' resolves to the same owner+admin set,
+    // so no one gains or loses access; the difference is that the matrix now
+    // decides, and a future change to it reaches this branch too.
+    //
+    // It also changes the failure mode. Before, a non-admin POST simply fell
+    // through both `if`s and rendered the page again with no error, so the
+    // caller could not tell a refusal from a no-op.
+    if ( $action === 'change_encryption_level' ) {
+        klytos_require_permission( 'site.configure' );
         $newLevel = $_POST['new_encryption_level'] ?? '';
         $confirmPass = $_POST['confirm_password'] ?? '';
 
@@ -137,8 +150,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         }
     }
 
-    // ── Confirm Recovery Keys (owner/admin only) ──
-    if ( $action === 'confirm_recovery_keys' && $isAdminRole ) {
+    // ── Confirm Recovery Keys (site.configure) ──
+    if ( $action === 'confirm_recovery_keys' ) {
+        klytos_require_permission( 'site.configure' );
+
         $mainConfig = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
         $mainConfig['recovery_keys_confirmed']    = true;
         $mainConfig['recovery_keys_confirmed_at'] = date( 'c' );
@@ -146,15 +161,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         $success = __( 'security.recovery_confirmed' );
     }
 
-    // ── Request Identity Key Download (owner/admin only) ──
-    if ( $action === 'request_identity_download' && $isAdminRole ) {
+    // ── Request Identity Key Download (users.manage) ──
+    // Matches the gate on the endpoint it redirects to
+    // (api/download-identity.php), so the refusal happens here rather than
+    // after a redirect the caller cannot act on.
+    if ( $action === 'request_identity_download' ) {
+        klytos_require_permission( 'users.manage' );
+
         // Redirect to the download endpoint.
         header( 'Location: ' . Helpers::getBasePath() . 'admin/api/download-identity.php' );
         exit;
     }
 
-    // ── Generate Identity Keys (owner/admin only) ──
-    if ( $action === 'generate_identity_keys' && $isAdminRole ) {
+    // ── Generate Identity Keys (site.configure) ──
+    // Regenerating the site identity invalidates the previous key pair, so it
+    // sits at the same tier as the encryption-level change.
+    if ( $action === 'generate_identity_keys' ) {
+        klytos_require_permission( 'site.configure' );
+
         $rsaKeys     = \Klytos\Core\Encryption::generateRsaKeyPair();
         $enc         = $app->getStorage()->getEncryption();
         $configPath  = $app->getConfigPath();
@@ -437,10 +461,16 @@ require_once __DIR__ . '/templates/sidebar.php';
 
 <?php
 // ─── Encryption & Recovery Section ─────────────────────────
-// Only visible to owner and admin roles.
-$currentUser = klytos_current_user();
-$userRole    = $currentUser['role'] ?? '';
-if ( in_array( $userRole, ['owner', 'admin'], true ) ):
+// Visibility mirrors the capability its POST handlers require, so the UI
+// cannot offer an action the gate will refuse. Asks the matrix rather than
+// comparing the role by hand: this was the LAST hand-rolled decision point in
+// the product (S-04), and it survived slice 4's first pass precisely because
+// it gates markup rather than a handler — the `code-reviewer` pass caught it.
+//
+// klytos_has_permission() rather than klytos_require_permission(): this is a
+// visibility decision, not an enforcement point. The enforcement lives on the
+// POST branches above.
+if ( klytos_has_permission( 'site.configure' ) ):
 
 // Reload config in case POST handlers modified it.
 $mainConfig       = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );

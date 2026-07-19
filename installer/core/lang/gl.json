@@ -38,7 +38,10 @@
     "optional": "Opcional",
     "view": "Ver",
     "all": "Todo",
-    "no_results": "Sen resultados"
+    "no_results": "Sen resultados",
+    "forbidden": "Acceso denegado",
+    "no_permission": "Non tes permiso para acceder a esta páxina.",
+    "authentication_required": "Autenticación requirida"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -601,7 +604,8 @@
   },
   "plugins": {
     "enable_logs": "Activar rexistros",
-    "disable_logs": "Desactivar rexistros"
+    "disable_logs": "Desactivar rexistros",
+    "page_declares_no_capability": "Esta páxina de plugin non declara ningunha capacidade requirida, polo que se denega o acceso. O plugin debe declarar unha «capability» ao rexistrar a páxina."
   },
   "privacy": {
     "title": "Privacidade",

@@ -634,6 +634,50 @@ class UserManager
             'webhooks.manage'  => ['owner', 'admin'],
             'updates.manage'   => ['owner'],
             'terminal.access'   => ['owner'],
+
+            // ── Self-service tier (Sprint 1, slice 4) ──────────────
+            // Held by EVERY role on purpose. The central admin gate
+            // (S-07) default-denies any surface with no matching
+            // capability, and five surfaces are legitimately reachable
+            // by any authenticated user: their own profile, their own
+            // second factor, and per-user UI state. Nothing in the
+            // pre-existing matrix expressed that — users.manage is
+            // owner-only and would have locked every non-owner out of
+            // their own password.
+            //
+            // These are capabilities rather than a bare "is logged in"
+            // marker so that ONE mechanism decides authorization
+            // (S-04): they are introspectable, they are filterable
+            // through auth.capabilities like every other row, and a
+            // deployment can revoke one without patching the gate.
+            //
+            // Note the failure direction: a role added later does NOT
+            // inherit these, so it is denied its own profile until the
+            // matrix says otherwise. That is the correct direction for
+            // a default-deny system, but it is a real upgrade note.
+            'profile.edit'     => ['owner', 'admin', 'editor', 'viewer'],
+            'security.self'    => ['owner', 'admin', 'editor', 'viewer'],
+            'ui.preferences'   => ['owner', 'admin', 'editor', 'viewer'],
+
+            // ── First-run setup (Sprint 1, slice 4) ────────────────
+            // Owner-only. The setup wizard mints MCP application
+            // passwords and stores AI provider keys; before slice 4 it
+            // required authentication but checked no role, so on a
+            // fresh install any authenticated user could complete it
+            // and issue themselves credentials (NEW-10). Owner-only is
+            // safe on a fresh install because the owner is the only
+            // account that exists at that point.
+            'setup.run'        => ['owner'],
+
+            // ── AI chat (Sprint 1, slice 4) ────────────────────────
+            // Deliberately owner+admin only, and deliberately NOT
+            // granted to editor, while NEW-02 is open: the chat
+            // executes MCP tools and the tool layer has zero
+            // permission checks until Sprint 2 (D-020), so reaching
+            // this surface is effectively owner-equivalent power over
+            // the CMS regardless of the caller's role.
+            // Trigger to revisit (and widen to editor): Sprint 2 close.
+            'ai.use'           => ['owner', 'admin'],
         ];
 
         // Allow plugins to extend capabilities.

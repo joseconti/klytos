@@ -43,6 +43,12 @@ if ($postTypeFilter !== '') {
 
 // Handle actions (trash, restore, permanent delete, empty trash).
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
+    // The list is gated at 'pages.view' so a viewer can read it; every action
+    // below removes or restores content, which is the 'pages.delete' tier
+    // (owner + admin). Gating the page at that tier instead would have locked
+    // editors and viewers out of the page list entirely.
+    klytos_require_permission( 'pages.delete' );
+
     $action = $_POST['action'] ?? '';
     $slug   = $_POST['slug'] ?? '';
 

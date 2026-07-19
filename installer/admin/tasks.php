@@ -31,6 +31,12 @@ $csrf        = $auth->getCsrfToken();
 
 // ─── Handle POST actions ─────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf()) {
+    // The list is gated at 'tasks.create' so editors can see their own work
+    // queue; completing, dismissing and deleting act on ANY task, including
+    // other people's, which is the 'tasks.manage' tier the matrix already
+    // separates.
+    klytos_require_permission( 'tasks.manage' );
+
     $action = $_POST['action'] ?? '';
     $taskId = $_POST['task_id'] ?? '';
 

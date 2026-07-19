@@ -26,10 +26,11 @@ require_once __DIR__ . '/bootstrap.php';
 use Klytos\Core\Helpers;
 
 // Gate: must have terminal.access permission.
-if ( ! klytos_has_permission( 'terminal.access' ) ) {
-    header( 'Location: ' . Helpers::getBasePath() . 'admin/' );
-    exit;
-}
+// Enforced centrally since Sprint 1 slice 4 — 'terminal.access' in the gate
+// map (core/admin-gate.php), refused by admin/bootstrap.php with a 403 before
+// this body runs. The 2FA requirement below is a SEPARATE condition and stays
+// here: it is about how recently the caller proved their identity, not about
+// what their role permits.
 
 $currentUser  = klytos_current_user();
 $has2fa       = ! empty( $currentUser['two_factor']['enabled'] );

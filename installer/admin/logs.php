@@ -28,10 +28,12 @@ use Klytos\Core\Helpers;
 $pageTitle = __( 'logs.title' );
 
 // ─── Permission check ────────────────────────────────────────
-if (!klytos_has_permission( 'site.configure' )) {
-    header( 'Location: ' . Helpers::url( 'admin/' ) );
-    exit;
-}
+// Enforced centrally since Sprint 1 slice 4: the gate map in
+// core/admin-gate.php requires 'site.configure' for this file, and
+// admin/bootstrap.php denies before this page's body runs. The check that
+// stood here redirected to the dashboard instead of refusing, so a caller
+// could not distinguish "denied" from "moved" — and an XHR could not
+// distinguish it from success at all.
 
 $logger      = $app->getLogger();
 $auth        = $app->getAuth();

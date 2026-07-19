@@ -1,0 +1,164 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Klytos CMS — keel-verify: the project's own release linter.
+ *
+ * Keel Phase 5 §1a: verify mechanically that what the docs and the
+ * architecture PROMISE is actually true, so no session re-checks it by eye and
+ * no release ships with a promise quietly broken.
+ *
+ * Introduced in Sprint 1 slice 4 carrying the authorization-gate check, which
+ * is the promise that most needs a machine behind it: S-07 happened because 51
+ * of 66 admin files were each individually responsible for remembering their
+ * own gate, and a reviewer cannot hold 66 files in their head every time one is
+ * added.
+ *
+ * Slice 9 extends this with the remaining Phase 5 §1a checks (version
+ * touchpoints in sync, changelog order, docs/api/INDEX.md parity, no
+ * placeholder copy in distributable surfaces). Each check is independent and
+ * self-reporting: add one, do not restructure.
+ *
+ * Usage:  php scripts/keel-verify        (exit 0 = all checks pass)
+ *
+ * @package Klytos
+ *
+ * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
+ *             This program is free software: you can redistribute it and/or modify
+ *             it under the terms of the GNU General Public License v3 or later.
+ *             Plugins and templates are NOT derivative works — see LICENSE.
+ *             See the LICENSE file at the project root for the full license text.
+ */
+
+declare(strict_types=1);
+
+$repoRoot  = dirname( __DIR__ );
+$adminPath = $repoRoot . '/installer/admin';
+
+$failures = [];
+$checks   = 0;
+
+/**
+ * Report a check's outcome and accumulate its failures.
+ *
+ * @param  string             $name     Check name.
+ * @param  array<int, string> $problems Empty when the check passes.
+ * @return void
+ */
+function keel_report( string $name, array $problems ): void
+{
+    global $failures, $checks;
+
+    $checks++;
+
+    if ( $problems === [] ) {
+        echo "  PASS  {$name}\n";
+        return;
+    }
+
+    echo "  FAIL  {$name}\n";
+
+    foreach ( $problems as $problem ) {
+        echo "          - {$problem}\n";
+        $failures[] = $name . ': ' . $problem;
+    }
+}
+
+echo "keel-verify — Klytos CMS\n\n";
+
+// ─────────────────────────────────────────────────────────────
+// Check: every admin surface carries an authorization gate entry (S-07).
+// ─────────────────────────────────────────────────────────────
+
+// The map is plain data behind one function. Stub the filter so the file can
+// be read WITHOUT booting the application: this check must work on a bare
+// checkout, in CI, and before a release, none of which have a seeded install.
+// The stub also means the check verifies the SHIPPED map rather than whatever
+// a locally-installed plugin filters it into — which is the right subject for
+// a release gate.
+if ( ! function_exists( 'klytos_apply_filters' ) ) {
+    /**
+     * @param  string $hook  Unused.
+     * @param  mixed  $value Value to pass through unchanged.
+     * @return mixed
+     */
+    function klytos_apply_filters( string $hook, mixed $value, mixed ...$args ): mixed
+    {
+        return $value;
+    }
+}
+
+require_once $repoRoot . '/installer/core/admin-gate.php';
+
+$map      = klytos_admin_gate_map();
+$problems = [];
+$onDisk   = [];
+
+foreach ( glob( $adminPath . '/*.php' ) ?: [] as $file ) {
+    $name = basename( $file );
+
+    // bootstrap.php HOSTS the gate; it is not a surface the gate protects, and
+    // leaving it unmapped is what makes a direct request for it default-deny.
+    if ( $name === 'bootstrap.php' ) {
+        continue;
+    }
+
+    $onDisk[] = $name;
+}
+
+foreach ( glob( $adminPath . '/api/*.php' ) ?: [] as $file ) {
+    $onDisk[] = 'api/' . basename( $file );
+}
+
+sort( $onDisk );
+
+foreach ( $onDisk as $surface ) {
+    if ( ! array_key_exists( $surface, $map ) ) {
+        $problems[] = "admin/{$surface} has no entry in klytos_admin_gate_map() — it is denied "
+            . 'to everyone by default. Map it deliberately in installer/core/admin-gate.php.';
+    }
+}
+
+foreach ( array_keys( $map ) as $surface ) {
+    if ( ! in_array( $surface, $onDisk, true ) ) {
+        $problems[] = "the gate map names admin/{$surface}, which does not exist on disk.";
+    }
+}
+
+if ( array_key_exists( 'bootstrap.php', $map ) ) {
+    $problems[] = 'bootstrap.php must NOT be mapped: it is the gate host, not a routable surface.';
+}
+
+keel_report(
+    sprintf( 'authorization gate covers every admin surface (%d files)', count( $onDisk ) ),
+    $problems
+);
+
+// ─────────────────────────────────────────────────────────────
+// Check: the central gate is actually invoked.
+// ─────────────────────────────────────────────────────────────
+// A complete map enforces nothing if nobody calls the enforcer. This is the
+// difference between a gate and a spreadsheet about gates.
+
+$bootstrap = (string) file_get_contents( $adminPath . '/bootstrap.php' );
+$problems  = [];
+
+if ( ! str_contains( $bootstrap, 'klytos_enforce_admin_gate(' ) ) {
+    $problems[] = 'admin/bootstrap.php does not call klytos_enforce_admin_gate() — the gate map '
+        . 'is complete but nothing enforces it, so every admin surface is open.';
+}
+
+keel_report( 'the central gate is invoked from admin/bootstrap.php', $problems );
+
+// ─────────────────────────────────────────────────────────────
+
+echo "\n";
+
+if ( $failures !== [] ) {
+    printf( "FAILED — %d problem(s) across %d check(s).\n", count( $failures ), $checks );
+    exit( 1 );
+}
+
+printf( "OK — %d check(s) passed.\n", $checks );
+exit( 0 );

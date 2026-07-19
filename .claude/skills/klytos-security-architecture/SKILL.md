@@ -100,6 +100,37 @@ klytos_register_option('my-plugin.color', false);            // Only at professi
 - **Recovery file**: `klytos-identity.pem` — downloaded during installation, used with `klytos-encryption.key` for emergency access recovery via the unified installer.
 - **Challenge-response**: The installer verifies identity by signing 32 random bytes with the private key and verifying with the public key.
 
+## Authorization — the central admin gate
+
+Every file under `installer/admin/` requires `admin/bootstrap.php`, which calls
+`klytos_enforce_admin_gate()` once. The gate looks the running file up in the **gate map**
+(`installer/core/admin-gate.php`) and requires the mapped capability.
+
+**A surface absent from the map is refused.** Before this (audit S-07), each of the 66 admin files
+was individually responsible for remembering its own check and 51 did not — so a new admin page
+defaulted to *open*. It now defaults to *closed*, and `scripts/keel-verify` fails the build when a
+file has no entry.
+
+- One decision point: `UserManager::hasPermission()`. `klytos_has_permission()` answers,
+  `klytos_require_permission()` enforces, both delegate there. **Never** hand-roll
+  `in_array( $role, [ 'owner', 'admin' ] )` — that is a second decision point and gets removed.
+- The key is derived from `SCRIPT_FILENAME` (the file PHP executed), never `SCRIPT_NAME`
+  (URL-derived, caller-influenced). A path resolving outside `admin/` yields no key and is denied.
+- `bootstrap.php` is deliberately unmapped, so a direct request for it default-denies.
+- Refusals are shaped for the caller: **JSON 401/403** for `admin/api/*` and MCP, an escaped
+  self-contained **HTML 403** for pages, stderr for CLI. The API half matters — an XHR that receives
+  an HTML login page gets a parse error instead of a status it can act on.
+- `null` in the map means "no capability required" and is the audited exception list. It does **not**
+  mean unauthenticated: the auth guard runs first and separately.
+
+Full reference, including the matrix and the "adding a new admin page" checklist:
+`docs/reference/authorization.md`.
+
+> **Known gap, stated rather than implied:** all 172 MCP tools still have **zero** permission checks
+> (audit NEW-02) until Sprint 2. The admin surface is gated; the product's primary interface is not.
+> Separately, `Auth::login()` validates only against `config['admin_user']`, so `admin`, `editor` and
+> `viewer` accounts cannot log in through the form at all (audit NEW-11).
+
 ## Authentication Methods (MCP)
 
 Order of authentication in `token-auth.php`:

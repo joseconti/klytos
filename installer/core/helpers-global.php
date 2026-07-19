@@ -447,6 +447,137 @@ function klytos_has_permission(string $permission): bool
     return $userManager->hasPermission( $user, $permission );
 }
 
+/**
+ * Determine which response shape the current request expects.
+ *
+ * A refusal is only useful if the caller can parse it. An XHR that receives
+ * an HTML page gets a JSON parse error instead of a status it can act on,
+ * which is exactly the defect S-07 recorded next to the gap itself
+ * (admin/bootstrap.php used to 302 API endpoints to an HTML login page).
+ *
+ * @return string One of: 'api', 'mcp', 'cli', 'page'.
+ */
+function klytos_current_surface(): string
+{
+    if ( klytos_is_cli() ) {
+        return 'cli';
+    }
+
+    // Checked before klytos_is_admin(): admin/api/* is an admin path AND an
+    // API path, and the API shape is the one its callers can parse.
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    if ( str_contains( $scriptName, '/admin/api/' ) ) {
+        return 'api';
+    }
+
+    if ( klytos_is_mcp() ) {
+        return 'mcp';
+    }
+
+    return 'page';
+}
+
+/**
+ * Refuse the current request and stop, in the shape its caller can parse.
+ *
+ * Promoted from the shape already proven in core/router.php:438-447, which
+ * gates plugin-registered dynamic routes and already branches denial by
+ * surface. Static admin pages never pass through that router, which is the
+ * mechanical reason ~70% of them were ungated (S-07) — so the fix is to lift
+ * that branch into a helper every surface can call, not to invent a second one.
+ *
+ * @param  int    $status  HTTP status: 401 (not authenticated) or 403 (denied).
+ * @param  string $message Human-readable, already translated.
+ * @param  string $code    Stable machine-readable code for API callers.
+ * @param  string|null $surface Override the detected surface. Testing seam.
+ * @return never
+ */
+function klytos_deny( int $status, string $message, string $code = 'forbidden', ?string $surface = null ): never
+{
+    $surface = $surface ?? klytos_current_surface();
+
+    /**
+     * Fires immediately before a request is refused.
+     *
+     * The audit hook: this is where a deployment logs or alerts on refusals.
+     * It cannot reverse the decision — a filter that could turn a denial into
+     * a grant would put the product's authorization back in third-party hands,
+     * which is the failure S-07 exists to close.
+     */
+    klytos_do_action( 'auth.access_denied', $status, $code, $surface );
+
+    if ( $surface === 'api' || $surface === 'mcp' ) {
+        \Klytos\Core\Helpers::jsonResponse( [ 'error' => $message, 'code' => $code ], $status );
+    }
+
+    if ( $surface === 'cli' ) {
+        fwrite( STDERR, $message . PHP_EOL );
+        exit( 1 );
+    }
+
+    // Page surface. Deliberately self-contained: no header/sidebar/footer
+    // chrome, because this runs BEFORE a page has set up its own context
+    // ($pageTitle, the admin-page global, its own data). A gate that can
+    // itself fatal while rendering a refusal is not a gate — the same
+    // reasoning L-006 recorded for the boot-time logger.
+    http_response_code( $status );
+    header( 'Content-Type: text/html; charset=utf-8' );
+
+    $title = $status === 401 ? __( 'common.authentication_required' ) : __( 'common.forbidden' );
+
+    // Ask the I18n instance rather than a global: $GLOBALS['klytos_i18n'] is
+    // the only thing bootstrap.php's __() fallback knows about, and it is null
+    // until boot() sets it. A refusal must render correctly on both sides of
+    // that boundary, so the null case falls back rather than dereferencing.
+    $i18n   = $GLOBALS['klytos_i18n'] ?? null;
+    $locale = $i18n !== null ? $i18n->getLocale() : 'en';
+
+    echo '<!DOCTYPE html><html lang="' . klytos_esc_attr( $locale ) . '"><head>';
+    echo '<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+    echo '<meta name="robots" content="noindex,nofollow">';
+    echo '<title>' . klytos_esc_html( $title ) . '</title></head>';
+    echo '<body style="font-family:system-ui,sans-serif;max-width:34rem;margin:4rem auto;padding:0 1rem">';
+    echo '<h1 style="font-size:1.25rem">' . klytos_esc_html( $title ) . '</h1>';
+    echo '<p>' . klytos_esc_html( $message ) . '</p>';
+    echo '<p><a href="' . klytos_esc_url( klytos_admin_url() ) . '">'
+        . klytos_esc_html( __( 'common.back' ) ) . '</a></p>';
+    echo '</body></html>';
+    exit;
+}
+
+/**
+ * Require a capability, or refuse the request and stop.
+ *
+ * The enforcing counterpart to klytos_has_permission(), which only ANSWERS.
+ * S-07's finding was not that the answer was wrong — it was that ~70% of admin
+ * surfaces never asked. This is the single call every gated surface makes, and
+ * it reuses UserManager::hasPermission() as the one decision point (S-04)
+ * rather than adding a second.
+ *
+ * Distinguishes the two refusals, because they are different facts about the
+ * caller and different fixes for them: 401 means "we do not know who you are",
+ * 403 means "we know, and it is not enough".
+ *
+ * @param  string      $permission Capability key, e.g. 'users.manage'.
+ * @param  string|null $surface    Override the detected surface. Testing seam.
+ * @return void
+ */
+function klytos_require_permission( string $permission, ?string $surface = null ): void
+{
+    if ( klytos_current_user() === null ) {
+        klytos_deny(
+            401,
+            __( 'common.authentication_required' ),
+            'authentication_required',
+            $surface
+        );
+    }
+
+    if ( ! klytos_has_permission( $permission ) ) {
+        klytos_deny( 403, __( 'common.no_permission' ), 'forbidden', $surface );
+    }
+}
+
 // ─── i18n ────────────────────────────────────────────────────
 
 /**

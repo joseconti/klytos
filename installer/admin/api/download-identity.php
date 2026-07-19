@@ -30,22 +30,30 @@ require_once dirname( __DIR__ ) . '/bootstrap.php';
 use Klytos\Core\Encryption;
 use Klytos\Core\Helpers;
 
-// ─── Authentication ─────────────────────────────────────────
+// ─── Authorization ──────────────────────────────────────────
+// Two defects were fixed here in Sprint 1 slice 4:
+//
+// 1. This called $auth->isLoggedIn(), which DOES NOT EXIST on Auth (the
+//    methods are isAuthenticated() and is2faPending()). Every request to this
+//    endpoint therefore died with "Call to undefined method" — verified live
+//    against the playground as an authenticated owner. Downloading the site
+//    identity key has been impossible in production, not merely ungated.
+//
+// 2. Owner-ness was decided by comparing the session username against
+//    config['admin_user']. The ROLE is the authority on privilege, not string
+//    equality with a config value that the v1→v2 migration also writes. The
+//    gate map requires 'users.manage', which is owner-only in the matrix, so
+//    the same set of people pass — through the one decision point (S-04)
+//    rather than a second hand-rolled one.
+//
+// Authentication itself is guaranteed by admin/bootstrap.php, which refuses
+// unauthenticated API requests with 401 JSON before this file runs.
 $auth = $app->getAuth();
-if ( !$auth->isLoggedIn() ) {
-    header( 'HTTP/1.1 403 Forbidden' );
-    echo 'Not authenticated.';
-    exit;
-}
 
-// Only the owner (first admin) can download identity keys.
+// Still needed below: it labels the exported key file and the audit-log entry.
+// It is no longer what DECIDES access — that is the gate map's 'users.manage'.
 $username = $auth->getUsername();
 $config   = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
-if ( $username !== ( $config['admin_user'] ?? '' ) ) {
-    header( 'HTTP/1.1 403 Forbidden' );
-    echo 'Only the site owner can download identity keys.';
-    exit;
-}
 
 // ─── Rate Limit: 1 download per 24 hours ────────────────────
 $lastDownload = $config['identity_last_downloaded_at'] ?? null;
@@ -90,13 +98,26 @@ $config['identity_download_count']     = ( $config['identity_download_count'] ??
 $app->getStorage()->writeTo( $configPath, 'config.json.enc', $config );
 
 // ─── Audit Log ──────────────────────────────────────────────
-if ( method_exists( $app, 'getLogger' ) ) {
-    $app->getLogger()->log( 'security', 'Identity key downloaded', [
+// A SECOND non-existent method call lived here, masked by the first one:
+// Logger has no log(). Its API is write()/writeAlways( $level, $message,
+// $context, $source ). The `method_exists( $app, 'getLogger' )` guard did not
+// catch it because it interrogates App — which does have getLogger() — rather
+// than the Logger the call is actually made against, so it passed and then
+// fataled one line later.
+//
+// writeAlways() rather than write(): exporting the site's RSA private key is
+// an audit event, and write() discards everything unless Developer Mode is on
+// (logger.php:116). An audit trail that only exists in debug mode is not one.
+$app->getLogger()->writeAlways(
+    'warning',
+    'Identity key downloaded',
+    [
         'user'       => $username,
         'ip'         => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
         'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
-    ] );
-}
+    ],
+    'security'
+);
 
 // ─── Send File ──────────────────────────────────────────────
 header( 'Content-Type: application/octet-stream' );

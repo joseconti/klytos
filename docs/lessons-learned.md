@@ -67,3 +67,84 @@
   it from the class having the property.** And more generally: when adding a handler for a rare
   failure path, ask what would execute it in a test. If the honest answer is "nothing", the handler
   has to be read line by line against its dependencies, because the suite cannot vouch for it.
+
+## L-007 — "Dead code, delete it" would have deleted the evidence of a live bug
+- Problem: The adoption audit recorded, next to S-07, that the `isAuthenticated()` re-checks inside
+  20 of the 24 admin API endpoints were unreachable — bootstrap 302-redirects an unauthenticated
+  request before any endpoint body runs. The obvious tidy-up is to delete them. One of those 20,
+  `api/webauthn-challenge.php:20`, was **not** redundant: it reads
+  `!$auth->isAuthenticated() && !$auth->is2faPending()`, and the second half exists to serve a user
+  who has passed the password stage but not the second factor. That user was being redirected away
+  by bootstrap, so `login.php:311`'s passkey fetch received HTML instead of challenge JSON.
+  Passkey-as-second-factor login was simply broken (NEW-09).
+- Where: `installer/admin/bootstrap.php:244-251`, `installer/admin/api/webauthn-challenge.php:20`,
+  `installer/admin/login.php:311`
+- What failed: classifying code by whether it *can currently execute* rather than by what it was
+  written to do. "Unreachable" and "unnecessary" are different claims. Every one of the 20 checks
+  looked identical under grep; only reading why each existed separated the nineteen that were
+  belt-and-braces from the one that was a bug report nobody had filed.
+- Working solution: instead of deleting the check, ask what would have to be true for it to run —
+  and then check whether that state can actually arrive. It could not, and that was the defect. The
+  endpoint was added to bootstrap's exemption list so its own check became the real gate; the other
+  nineteen were left in place as defence in depth.
+- Rule for next time: **before removing code as dead, state the condition that would execute it and
+  verify that condition is genuinely impossible — not merely currently prevented.** Code that is
+  unreachable *because something upstream is wrong* is evidence, not clutter. This is the same shape
+  as L-002 and L-004: a surface that disagrees with the code around it is a finding, and deleting
+  the quieter side of the disagreement destroys the finding instead of resolving it.
+
+## L-008 — A test harness that lies about its own result costs more than the bug it was hiding
+- Problem: Three separate harness defects in one slice, each of which made a PASSING gate look like a
+  failure or a hang. (1) The per-role HTTP tests sent `PHPSESSID`, but `Auth::startSession()`
+  renames the session to `klytos_session` (`auth.php:61`), so every request arrived anonymous — the
+  401/302 assertions would have passed for entirely the wrong reason. (2) `proc_open()` was given a
+  command STRING, so the handle referred to `sh -c` rather than to `php -S`; `proc_terminate()`
+  killed the shell, the server kept the port, and `proc_close()` blocked forever waiting for a
+  grandchild nothing would reap — the suite appeared to hang for 7 minutes with every assertion
+  already green. (3) The manual 65-surface role walk iterated alphabetically with one long-lived
+  session and reached `logout.php` a third of the way down, which destroyed the session and made
+  every later surface report an anonymous 302 — a walk that read as a catastrophic lockout and was
+  an artefact of the walk itself.
+- Where: `tests/Integration/AdminGateHttpTest.php`; the scratch walk script
+- What failed: in all three cases, trusting a *default* that the product had deliberately changed —
+  the session cookie name, the shape of a `proc_open` handle, the assumption that requesting a page
+  has no side effects. Each default was reasonable in general and wrong here.
+- Working solution: (1) the real cookie name, with a comment saying why the default is wrong so it
+  is not "simplified" back; (2) the ARRAY form of `proc_open` plus explicit descriptors for all
+  three standard streams, so the handle IS the server and it inherits none of the runner's pipes —
+  and a teardown assertion that FAILS if the server outlives the suite, because an orphan holding
+  the port makes the next run look like a gate defect; (3) rewrite the session before every request.
+- Rule for next time: **when a test's result is surprising, suspect the harness before the product —
+  and prove which one it is rather than adjusting until it goes green.** Specifically: a security
+  test that can pass while its request arrives unauthenticated is worthless, so assert the positive
+  case too (a role that SHOULD reach a surface gets 200) — that is what would have caught defect (1)
+  immediately, and it is why the per-role matrix asserts 200s and not only 403s.
+
+## L-009 — A fatal hid a second fatal, and a status-only assertion would have hidden both
+- Problem: `api/download-identity.php` carried **three** defects stacked on top of each other. Line
+  35 called `Auth::isLoggedIn()`, which does not exist, so every request died there. Fixing only
+  that revealed line 102 calling `Logger::log()`, which also does not exist (the API is
+  `write()`/`writeAlways()`) — reached for the first time in the endpoint's life. Underneath both sat
+  a hand-rolled owner check outside the capability matrix. The first fatal had been masking the
+  second for as long as the file existed.
+- Where: `installer/admin/api/download-identity.php:35`, `:102`; `installer/core/logger.php:113,181`
+- What failed, twice over:
+  1. **The guard that should have caught defect 2 interrogated the wrong object.**
+     `if ( method_exists( $app, 'getLogger' ) )` protects a call made against
+     `$app->getLogger()` — a `Logger`. `App` does have `getLogger()`, so the guard passed and the
+     next line fataled. A defensive check aimed one object to the left of the risk.
+  2. **The first version of the regression test could not fail.** It asserted the HTTP status
+     (`assertNotSame( 500, ... )`). Verified live: this fatal returns **HTTP 200** with the error
+     rendered into the response body, because output has already begun by the time it throws. The
+     test passed against completely broken code, and only failed once it asserted on the BODY.
+- Working solution: assert on the response body for `Uncaught Error` / `Fatal error` /
+  `Call to undefined method`, not on the status. That is what surfaced defect 2 — the test found it,
+  not a human reading the file.
+- Rule for next time: **when a fix removes a crash, assume it has uncovered whatever the crash was
+  standing in front of, and drive the whole path again before calling it fixed.** A file that has
+  never successfully executed past line 35 has no evidence at all about lines 36 onward — its later
+  code has literally never run in production. And when testing that "it no longer crashes", assert
+  on the OUTPUT, because PHP does not reliably signal a fatal in the status code once output has
+  started. Related to L-006 (a crash fix that nearly introduced a crash) and L-007 (unreachable code
+  is evidence): all three come from the same root — reasoning about code paths that have never
+  actually executed.

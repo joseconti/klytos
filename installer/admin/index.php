@@ -28,6 +28,11 @@ $indexingEnabled = $siteConfig['indexing_enabled'] ?? false;
 
 // Handle indexing toggle action.
 if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
+    // The dashboard is gated at 'pages.view' so every role can see it, but
+    // this toggle decides whether the whole site is indexable by search
+    // engines and AI crawlers — a site-wide setting, not a dashboard one.
+    klytos_require_permission( 'site.configure' );
+
     $action = $_POST['action'] ?? '';
     if ( $action === 'disable_block' ) {
         $app->getSiteConfig()->set( ['indexing_enabled' => true] );

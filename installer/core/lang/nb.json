@@ -38,7 +38,10 @@
     "optional": "Valgfritt",
     "view": "Vis",
     "all": "Alle",
-    "no_results": "Ingen resultater"
+    "no_results": "Ingen resultater",
+    "forbidden": "Ingen tilgang",
+    "no_permission": "Du har ikke tilgang til denne siden.",
+    "authentication_required": "Pålogging kreves"
   },
   "auth": {
     "login": "Logg inn",
@@ -601,7 +604,8 @@
   },
   "plugins": {
     "enable_logs": "Aktiver logger",
-    "disable_logs": "Deaktiver logger"
+    "disable_logs": "Deaktiver logger",
+    "page_declares_no_capability": "Denne programtilleggssiden angir ingen påkrevd rettighet, så tilgang nektes. Programtillegget må angi en «capability» når siden registreres."
   },
   "privacy": {
     "title": "Personvern",

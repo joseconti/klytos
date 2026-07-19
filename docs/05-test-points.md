@@ -14,7 +14,7 @@
 | 1 — Test harness + dev manifest | `composer install` clean; both tiers run; unit tier passes on a bare checkout; integration tier boots the App and resolves each seeded role from `$_SESSION`; `phpunit` green; `phpcs` green | **yes** — the integration tier IS a playground run: it boots the real App against the seed and asserts all 4 roles; playground re-seeded and re-booted from the documented commands this session (freshness row below) | Harness only — no product security boundary changed. Two security-relevant properties of the harness itself were verified: the integration tier **skips loudly** instead of passing when the playground is absent (proven by moving the two install files aside), and `actingAs()` sessions are accepted by the product's own `Auth::isAuthenticated()` while a guest session is rejected — so later refusal tests cannot pass against an anonymous session | n/a — no UI written in this slice | n/a — no user-facing strings added | **yes** — class loading uses Composer's `classmap` over `installer/core/` rather than re-implementing `App::registerAutoloader()`'s CamelCase→kebab-case mapping (private, bound to a booted instance), so no second copy of that rule exists. Temp-dir teardown is NOT shared with `seed-playground.php`'s purge: that one deliberately preserves tracked `.htaccess` guards, this one deletes everything — different contracts, not a duplicate | No new product API surface (test harness + dev manifest). Teaching surfaces updated in the same slice per L-004: `docs/03-technical-plan.md` §1 and §4, `docs/playground.md` ("Running the tests"), the `klytos-core-development` skill (new Testing section), and the `docs-discipline` rule in all 7 mirrored containers | n/a — dev tooling, no extension points | See the evidence block below | **PASS** | Composer aliases added (`composer test` / `test:unit` / `test:integration` / `lint`). `composer.lock` untracked→tracked (D-027). `phpcs.xml` now covers `tests/`; `PSR1.Files.SideEffects` excluded for `tests/bootstrap.php` only, with justification. `failOnWarning` deliberately left off until NEW-03 is fixed (D-026) — reason recorded in `phpunit.xml` |
 | 2 — `vendor-ai/` manifest + CVE audit | Manifest resolves to **exactly** the 16 vendored versions (0 deltas); `composer audit` runs and its full output is pasted below; CVE findings reported and triaged, **not** patched (D-022) | **yes** — session-start freshness boot from `docs/playground.md` verbatim: admin 302, login 200, MCP 401 unauthenticated, `config/.encryption_key` 403, 177 tools authenticated. The slice itself changes no runtime code, so there is no new flow to walk | **This slice IS the security check.** First `composer audit` the project has ever been able to run: **5 advisories / 2 packages** (guzzle 7.10.0, psr7 2.9.0), all medium — recorded as NEW-05. Reachability assessed rather than assumed: no `CookieJar` anywhere, no user-controllable URLs (5 hardcoded provider endpoints, `chat-engine.php:242-247`), `vendor-ai/` loaded lazily from one call site. Also found NEW-06 (PHP 8.3 floor vs declared 8.1+) and NEW-07 (2 BSD packages with no licence text). **Verified `vendor-ai/` was not mutated** by the resolution: `git status --porcelain installer/vendor-ai` empty | n/a — no UI written in this slice | n/a — no user-facing strings added | **yes** — no new PHP surface. The drift guard extends `PHPUnit\Framework\TestCase` directly rather than `UnitTestCase`, whose per-test encryption key and throwaway storage would be set-up cost with no consumer; version normalisation is one private helper used by all four readers, not repeated per call site | `docs/03-technical-plan.md` §1 (both the dependency rows and the risk block), `docs/04-adoption-audit.md` (H-04 closed + NEW-05/06/07), `installer/vendor-ai/LICENSE-THIRD-PARTY.md` (all 16 packages, attribution corrected, BSD text added), `docs/playground.md` (new "Auditing the vendored dependencies" section — commands run as written). No new public API surface, so no `docs/api/` row | n/a — dev tooling and packaging metadata, no extension points | See the evidence block below | **PASS — with 5 CVEs open for user triage** | The sprint's "widest unknown" is now bounded: the upgrade is constraint-compatible (`soukicz/llm` allows guzzle `^7.9`, fixes are 7.12.1 / 2.12.1), so it is a re-vendor, not a dependency rewrite. Still a scope change → Estimate v2, per D-022 |
 | 3 — One matrix + fail-closed current user | Viewer denied an owner-only permission; unknown permission denied for every non-owner role; owner shortcut intact (unknown keys included); **a session with no `klytos_user_id` is DENIED, not promoted**; v1.x migration idempotent; **upgrade tested from the REAL previous version (v0.30.1)** | **yes** — session-start freshness boot from `docs/playground.md` verbatim (admin 302, login 200, `config/.encryption_key` 403, MCP 401). Beyond the playground, a **real v0.30.1 install** was built by that release's own installer in a temp dir and upgraded to the working tree: 12/12 assertions pass, including the NEW-01 denial on a genuinely upgraded install | **This slice IS the security fix.** NEW-01 closed: the hardcoded `['role' => 'owner']` fallback is gone; both failure shapes (no `klytos_user_id`; id that does not resolve) deny and log. S-04 closed: one matrix, in `UserManager`. Independent `security-auditor` pass over the diff: **no blocking findings** — it traced every caller of `klytos_current_user()`, `Auth::getUserId()` and direct `$_SESSION['klytos_user_id']` reads and found no residual path to privilege, confirmed display-only callers fail closed on null, and confirmed the new log calls carry no secret, hash or personal data. It also confirmed the temp-dir scripts cannot delete outside their `mktemp` directory and embed only throwaway credentials | n/a — no UI written in this slice | n/a — no user-facing strings added. The two new log messages are operator-facing diagnostics, not UI copy | **yes** — the matrix was not re-implemented anywhere: `klytos_has_permission()` now delegates to the existing `UserManager::hasPermission()`. No new helper was created; the fix is a deletion plus a delegation. Test-side, `PlaygroundState` is a new trait rather than a copy of `UnitTestCase`'s temp-dir teardown, whose contract is different (that one preserves nothing; this one must preserve tracked `.htaccess` guards) | `docs/04-adoption-audit.md` (S-04 and NEW-01 marked CLOSED with the evidence; NEW-02 sharpened; NEW-08 added), `docs/playground.md` (new "Testing an upgrade from the real previous release" section, plus the isolation contract under "Running the tests"), `docs/decisions.md` (D-030, D-031), `docs/lessons-learned.md` (L-006). No new public PHP surface introduced — the change removes a surface and redirects a caller — so no `docs/api/` row | n/a for this slice — the `auth.capabilities` filter already existed and still applies, now at the single remaining call site (`user-manager.php:628`) rather than at two | See the evidence block below | **PASS** | S-04 resolved the **opposite way** to the audit's remediation note, deliberately and recorded: the "dead" copy was kept and the live one deleted, because `UserManager` is the lower layer and slice 4 / Sprint 2 both hold a user object rather than a session. One defect caught before commit and recorded as **L-006**: the first version of the crash fix logged through `$this->logger`, which is null at that point in boot and would have raised a `TypeError` — a crash introduced by a crash fix, on a path no test can reach. **The `code-reviewer` pass returned a BLOCKING finding and it was fixed, not argued with:** the Step 10b `try`/`catch` was never executed by any test, because every install the tests boot already has an owner, so `migrateFromV1Config()` was never reached *through* `App::boot()`. The upgrade script gained two phases (`break-migration`, `boot-must-survive`) that put an install into the exact state that used to fatal and boot it in a fresh process. Two further reviewer findings applied: `UserManager::hasPermission()` now denies a record with no usable role instead of defaulting it to `viewer` (with its own test), and a comment citing the wrong boot step was corrected |
-| 4 — `klytos_require_permission()` + central gate | | | | | | | | | | pending | |
+| 4 — `klytos_require_permission()` + central gate | Per-role integration tests against representative pages **and** endpoints asserting the 403/401 **SHAPE**, not only the status; all 66 admin files accounted for in the gate map; `keel-verify`'s gate check demonstrably FAILS on a removed gate | **yes** — session-start freshness boot from `docs/playground.md` verbatim (admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, 177 tools authenticated). Beyond that, a **full 65-surface × 4-role walk over real HTTP** (260 requests) confirming both halves: privileged surfaces refuse, and nothing a role legitimately needs became unreachable (sprint risk 1) | **This slice IS the security fix.** S-07 closed: coverage 15/66 → 65/66 mapped surfaces, default-deny for the 66th and for anything added later. Defects closed in-path (D-033): NEW-10 setup-wizard escalation, and NEW-12 — `api/download-identity.php`'s **three stacked defects**, each masking the next, all **verified live** rather than believed. **NEW-09's fix was implemented and then REVERTED (D-036)**: the `security-auditor` pass showed the auth-guard exemption opens a full account-takeover primitive (a correct password alone would enrol an attacker's authenticator), and it buys nothing because passkey login cannot complete regardless. The hand-rolled `in_array( $role, ['owner','admin'] )` in `security.php` is gone, so `UserManager::hasPermission()` is still the single decision point (S-04 preserved). Independent `security-auditor` and `code-reviewer` passes over the diff | n/a — no UI written in this slice. The 403 page is a self-contained document; it sets `lang`, `charset`, a viewport and `noindex`, and escapes every interpolated value | **yes** — 4 new keys (`common.forbidden`, `common.no_permission`, `common.authentication_required`, `plugins.page_declares_no_capability`) added to **all 20 catalogues** (D-006). The first two were already REFERENCED by `plugin-page.php` and existed in **no** catalogue, so that gate had been rendering `__()`'s generated fallback — the audit called it "i18n'd"; it was not | **yes** — the denial shape was **promoted** from `core/router.php:438-447`, not reinvented; `klytos_require_permission()` delegates to the existing `klytos_has_permission()` → `UserManager::hasPermission()` chain rather than re-deciding; the 4 legacy redirect gates were deleted rather than left beside the central one | `docs/reference/authorization.md` **created** (matrix, gate map semantics, all 6 functions with runnable examples, both extension points, the "adding a new admin page" checklist, and an explicit "what this does NOT cover"); 8 new rows in `docs/api/INDEX.md` with counts updated 930 → 938; `docs/04-adoption-audit.md` (S-07 CLOSED + NEW-09/10/11); `docs/playground.md`; `docs/decisions.md` (D-032…D-035); `docs/lessons-learned.md` (L-007, L-008) | **yes** — `admin.gate_map` filter (a plugin gates its own admin files) and `auth.access_denied` action (the audit hook, deliberately **unable** to reverse the decision). The pre-existing `auth.capabilities` filter still governs the matrix | See the evidence block below | **PASS** | Both review subagents returned **blocking** findings; both were fixed rather than argued with, and the slice's test set grew from 6 to 13 HTTP tests as a direct result. 5 capabilities added to the one matrix. `ai.use` deliberately excludes `editor` while NEW-02 is open (D-035). `plugin-page.php` now DENIES a plugin that declares no capability — a **breaking change for third-party plugins** (D-034), verified to break no shipped plugin. **NEW-11 found and NOT fixed:** `Auth::login()` never consults `UserManager`, so only `config['admin_user']` can log in — which is very likely *why* S-07 survived unnoticed |
 | 5 — Named escalations, one test each | | | | | | | | | | pending | |
 | 6 — `SafeHttp` + risky call sites | | | | | | | | | | pending | |
 | 7 — Public comments, off the admin path | | | | | | | | | | pending | |
@@ -395,6 +395,226 @@ above) plus three non-blocking, of which two were applied (the role fail-closed 
 test; the wrong boot-step number in a comment) and one was noted as a nit (`klytos_has_permission()`
 constructs `UserManager` twice per call via `klytos_current_user()`).
 
+### Slice 4 — evidence (commands and output, 2026-07-19)
+
+Commit: `PENDING` — *Sprint 1 slice 4: klytos_require_permission() + central default-deny gate (S-07)*.
+
+**The load-bearing assumption was verified before the design relied on it.** A central gate only
+gates what passes through it:
+
+```
+$ for f in installer/admin/*.php installer/admin/api/*.php; do
+    grep -qE "require(_once)?.*bootstrap\.php" "$f" || echo "NO BOOTSTRAP: $f"; done
+  NO BOOTSTRAP: installer/admin/bootstrap.php      ← itself, correctly
+  (no other output — all 65 remaining surfaces require it)
+```
+
+**Full suite green.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+Runtime:       PHP 8.3.12
+..................................................                50 / 50 (100%)
+OK (50 tests, 297 assertions)          [was 32 / 219 at slice 3: +18 tests, +78 assertions]
+```
+
+**The tests were proven able to fail before they were trusted.** Reverting the ONE file that wires
+the gate in — `admin/bootstrap.php` — and re-running:
+
+```
+$ git stash push installer/admin/bootstrap.php
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter AdminGateHttp
+There were 5 failures:
+1) testUnauthenticatedApiRequestGetsJson401
+   An anonymous API call must be 401, not 302.  Failed asserting that 302 is identical to 401.
+2) testApiEndpointRefusesWithJson403
+   A viewer must not reach the plugin API.      Failed asserting that 405 is identical to 403.
+3) testAdminPageRefusesWithHtml403
+   A viewer must not reach user management.     Failed asserting that 200 is identical to 403.
+4) testAnUnmappedAdminFileIsDeniedEvenToTheOwner
+   Failed asserting that 200 is identical to 403.
+5) testPerRoleAccessMatrixAcrossRepresentativeSurfaces
+   installer/admin/users.php as admin:  expected 403, got 200
+   installer/admin/users.php as editor: expected 403, got 200
+   installer/admin/users.php as viewer: expected 403, got 200
+   installer/admin/plugins.php as viewer:  expected 403, got 200
+   installer/admin/updates.php as viewer:  expected 403, got 200
+   installer/admin/terminal.php as viewer: expected 403, got 200
+$ git stash pop
+```
+
+That failure output **is** S-07, made executable: a `viewer` reaching user management, plugin
+management and the core updater with 200. The sixth test
+(`testUnauthenticatedPageRequestRedirectsToLogin`) passes either way, correctly — that behaviour is
+deliberately unchanged.
+
+**`scripts/keel-verify` fails on a removed gate — required by the sprint's acceptance criterion 3,
+and demonstrated rather than asserted:**
+
+```
+$ php scripts/keel-verify                      # 1. baseline
+  PASS  authorization gate covers every admin surface (65 files)
+  PASS  the central gate is invoked from admin/bootstrap.php
+OK — 2 check(s) passed.                        exit=0
+
+# 2. remove ONE entry ('users.php' => 'users.manage') from the gate map
+$ php scripts/keel-verify
+  FAIL  authorization gate covers every admin surface (65 files)
+          - admin/users.php has no entry in klytos_admin_gate_map() — it is denied to
+            everyone by default. Map it deliberately in installer/core/admin-gate.php.
+  PASS  the central gate is invoked from admin/bootstrap.php
+FAILED — 1 problem(s) across 2 check(s).       exit=1
+
+$ php scripts/keel-verify                      # 3. entry restored
+OK — 2 check(s) passed.                        exit=0
+```
+
+The second check exists because a complete map enforces nothing if nobody calls the enforcer — the
+difference between a gate and a spreadsheet about gates.
+
+**Full 65-surface × 4-role walk over real HTTP (260 requests).** Sprint risk 1 is "default-deny can
+lock someone out", so the walk checks both directions. Representative rows:
+
+```
+SURFACE                           owner  admin editor viewer
+users.php                          200   403   403   403
+plugins.php                        200   403   403   403
+updates.php                        200   403   403   403
+terminal.php                       200   403   403   403
+privacy.php                        200   403   403   403
+setup-wizard.php                   302   403   403   403     ← NEW-10 closed
+mcp.php                            200   200   403   403
+settings.php                       200   200   403   403
+theme.php                          200   200   403   403
+ai-chat.php                        200   200   403   403     ← ai.use excludes editor (D-035)
+logs.php                           200   200   403   403     ← was a 302 redirect, now a real 403
+analytics.php                      200   200   200   403
+page-editor.php                    200   200   200   403
+index.php                          200   200   200   200     ← no lockout: dashboard for all
+pages.php                          200   200   200   200
+profile.php                        200   200   200   200     ← self-service tier
+security.php                       200   200   200   200
+api/notices.php                    200   200   200   200
+api/download-identity.php          200   403   403   403     ← was a FATAL for everyone
+api/plugins.php                    405   403   403   403
+api/update-install.php             405   403   403   403
+api/webauthn-challenge.php         400   400   400   400     ← reachable at last (NEW-09)
+```
+
+Every 403-for-`owner` elsewhere in the walk was traced and is the endpoint's **own** CSRF or 2FA
+refusal on a bare GET (`api/image-edit`, `api/options-management`, `api/post-lock`,
+`api/sidebar-order`, `api/translations*`, `api/terminal-autocomplete`), not the gate. No role lost a
+surface its capabilities entitle it to.
+
+**Upgrade from the REAL previous version** (`Installed base: yes`), unchanged and still green:
+
+```
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== Klytos upgrade test: v0.30.1 -> working tree
+   … 17/17 assertions PASS, including the failing-migration boot containment
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+**Lint (D-025) — baseline unchanged, zero violations introduced.** Measured against the same files
+at `HEAD` rather than assumed:
+
+```
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary <the 11 touched admin files, at HEAD>
+A TOTAL OF 37 ERRORS AND 43 WARNINGS WERE FOUND IN 11 FILES     ← before
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary <the same 11 files, after>
+A TOTAL OF 37 ERRORS AND 43 WARNINGS WERE FOUND IN 11 FILES     ← after: identical
+
+$ vendor/bin/phpcs --standard=phpcs.xml installer/core/admin-gate.php scripts/keel-verify tests/
+  (0 errors, 0 warnings — every file this slice CREATED is clean)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+A TOTAL OF 201 ERRORS AND 488 WARNINGS WERE FOUND IN 114 FILES  ← D-025 baseline UNCHANGED
+```
+
+**The i18n additions are purely additive** — the encoder was proven to reproduce all 20 catalogues
+byte-for-byte BEFORE any key was inserted, so the diff is the new keys and nothing else:
+
+```
+$ php <add-gate-keys>
+Encoder reproduces all 20 catalogues byte-for-byte.
+Updated 20 catalogues.
+$ git diff --stat installer/core/lang/
+ 20 files changed, 120 insertions(+), 40 deletions(-)   [4 keys x 20, plus the comma re-punctuation]
+```
+
+**Independent review (Phase 5 §2 test point, item f) — both subagents returned BLOCKING findings.**
+
+`security-auditor` — **1 blocking.** The `api/webauthn-challenge.php` auth-guard exemption added
+earlier in this slice opens a **full account-takeover primitive**. Verified against source before
+being accepted, not taken on the reviewer's word: `is2faPending()` is true after a correct
+**password alone** (`auth.php:112-118`); the endpoint gates all four of its actions on
+`( isAuthenticated() || is2faPending() )`; and `TwoFactor::completePasskeyRegistration()`
+(`two-factor.php:507-530`) enrols the credential and sets `enabled = true` **without checking any
+existing factor**, silently. The exemption was **reverted** (D-036). It also bought nothing —
+`TwoFactor::verifyPasskeyAssertion()` (`two-factor.php:586`) has **zero call sites** and
+`login.php:54-99` has no `passkey` branch, so the legitimate flow could not complete either way:
+
+```
+$ grep -rn "verifyPasskeyAssertion" installer/core installer/admin
+installer/core/two-factor.php:586:    public function verifyPasskeyAssertion(     ← definition only
+```
+
+Four non-blocking findings were recorded rather than actioned, each already owned by a later slice:
+`SCRIPT_NAME` in the pre-auth list (defense-in-depth; the gate re-derives from `SCRIPT_FILENAME`
+regardless), refusals shipping without security headers (slice 8, S-11), `download-identity.php`'s
+docblock claiming protections that do not exist (slice 5, S-12), and `api/oembed.php`'s SSRF
+(slice 6, S-08).
+
+`code-reviewer` — **blocking: a second decision point survived, and six changes shipped untested.**
+The leftover was `security.php`'s `in_array( $userRole, ['owner','admin'] )` guarding the
+Encryption & Recovery section's **visibility** — the first pass converted the four POST branches and
+missed the markup one, while this slice's own `docs/reference/authorization.md` claimed "slice 4
+removed the last of those". Fixed, and now pinned by `testEncryptionSectionIsHiddenBelowItsTier`.
+The untested-change finding was upheld in full: the HTTP test class grew from 6 tests to 13, adding
+the three de-gated files and `security.php`/`tasks.php` to the per-role matrix, the privileged-POST
+re-gates (with their positive case), the plugin-page denial driven through a real activated plugin,
+and the identity export.
+
+**The added tests were proven able to fail, and one of them found a further bug while being proven.**
+
+```
+$ git stash push installer/admin/{security,plugin-page,index,pages,tasks}.php \
+      installer/admin/api/download-identity.php
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter AdminGateHttp
+1) testPluginPageDeclaringNoCapabilityIsRefused
+   A plugin page declaring no capability must be refused, even to the owner.
+   Failed asserting that 200 is identical to 403.
+2) testPrivilegedPostBranchesRefuseTheViewTierRole
+   viewer must be refused the privileged POST branch of installer/admin/index.php.
+   Failed asserting that 200 is identical to 403.
+$ git stash pop
+```
+
+Recorded honestly: `testEncryptionSectionIsHiddenBelowItsTier` does **not** fail against the old
+hand-rolled check, because `in_array( $role, ['owner','admin'] )` and
+`klytos_has_permission( 'site.configure' )` resolve to the same set — that fix removed a second
+decision point without changing behaviour, and the test guards the behaviour going forward rather
+than proving the fix.
+
+`testIdentityExportIsOwnerOnlyAndNoLongerFatals` initially could not fail either, and that mattered:
+the fatal returns **HTTP 200** with the error in the body, so the first version's status-only
+assertion passed against completely broken code. Re-asserted on the body — and it immediately
+exposed a **second** non-existent method in the same file that the first fatal had been masking
+(NEW-12, lesson **L-009**):
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter IdentityExport   # after fixing only isLoggedIn()
+1) testIdentityExportIsOwnerOnlyAndNoLongerFatals
+   Fatal error: Uncaught Error: Call to undefined method Klytos\Core\Logger::log()
+   in .../api/download-identity.php:102
+
+$ git stash push installer/admin/api/download-identity.php     # proof against the original
+1) testIdentityExportIsOwnerOnlyAndNoLongerFatals
+   Fatal error: Uncaught Error: Call to undefined method Klytos\Core\Auth::isLoggedIn()
+   in .../api/download-identity.php:35
+```
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -408,6 +628,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-19 | same two commands, verbatim from `docs/playground.md` | OK — admin 302, login 200, MCP 401 unauthenticated, `config/.encryption_key` 403, 177 tools authenticated. Identical to the slice-0 baseline; the NEW-03 warning appeared on page creation exactly as the document says it would | yes |
 | 2026-07-19 (slice 2 session) | same two commands, verbatim | OK — admin 302, login 200, MCP 401 unauthenticated, `config/.encryption_key` 403, 177 tools authenticated. Unchanged; NEW-03 warning present as documented | yes |
 | 2026-07-19 (slice 3 session) | same two commands, verbatim | OK — admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated. The playground was additionally re-seeded mid-session after the isolation proof run deliberately deleted a seeded user (see the slice-3 evidence block) | yes |
+| 2026-07-19 (slice 4 session) | same two commands, verbatim | OK — admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, **177 tools** authenticated. Counted with `installed.json`'s own parser, not a `grep -c '"name"'`, which reports 215 because nested schema properties are also named `name` — the looser count was discarded rather than recorded | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

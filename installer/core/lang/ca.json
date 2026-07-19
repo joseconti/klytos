@@ -38,7 +38,10 @@
     "optional": "Opcional",
     "view": "Visualitza",
     "all": "Tot",
-    "no_results": "Sense resultats"
+    "no_results": "Sense resultats",
+    "forbidden": "Accés denegat",
+    "no_permission": "No tens permís per accedir a aquesta pàgina.",
+    "authentication_required": "Cal autenticació"
   },
   "auth": {
     "login": "Inicia sessió",
@@ -601,7 +604,8 @@
   },
   "plugins": {
     "enable_logs": "Activa els registres",
-    "disable_logs": "Desactiva els registres"
+    "disable_logs": "Desactiva els registres",
+    "page_declares_no_capability": "Aquesta pàgina de plugin no declara cap capacitat requerida, per la qual cosa es denega l'accés. El plugin ha de declarar una «capability» en registrar la pàgina."
   },
   "privacy": {
     "title": "Privacitat",

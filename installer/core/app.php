@@ -330,6 +330,13 @@ class App
         require_once $this->corePath . '/hooks.php';
         require_once $this->corePath . '/helpers-global.php';
         require_once $this->corePath . '/helpers-security.php';
+        // The admin gate map (S-07). Loaded here rather than from
+        // admin/bootstrap.php so that the map is readable from every context
+        // that needs to reason about it — the test suite and scripts/keel-verify
+        // both consult it without booting an admin request. The file defines
+        // functions and returns data; it enforces nothing until
+        // klytos_enforce_admin_gate() is called.
+        require_once $this->corePath . '/admin-gate.php';
         require_once $this->corePath . '/timezone-cache.php';
         require_once $this->corePath . '/helpers-time.php';
         require_once $this->corePath . '/asset-usage-hooks.php';

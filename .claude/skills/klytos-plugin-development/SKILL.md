@@ -170,6 +170,31 @@ klytos_register_admin_page( 'my-plugin', [
 
 The PHP file at `plugins/my-plugin/admin/settings.php` renders inside the admin layout automatically. It receives `$app`, `$auth`, `$pluginId`, `$pageName`, `$manifest`.
 
+> **`'capability'` is REQUIRED as of Sprint 1 slice 4 — this is a breaking change.** A plugin page
+> that declares no capability is now **refused** with a developer-facing 403. Previously the gate was
+> skipped entirely when `capability` was absent, which left the page open to any authenticated user,
+> `viewer` included. Declare the capability your page actually needs; use `auth.capabilities` to
+> register your own if none of the built-ins fit:
+>
+> ```php
+> klytos_add_filter( 'auth.capabilities', function ( array $caps ): array {
+>     $caps['my_plugin.manage'] = [ 'owner', 'admin' ];
+>     return $caps;
+> } );
+> ```
+>
+> `'children'` entries inherit the parent's `capability` unless they declare their own.
+
+If your plugin ships its own file under `installer/admin/` (rare — prefer `klytos_register_admin_page`),
+it must also be added to the gate map via the `admin.gate_map` filter, or it is denied by default:
+
+```php
+klytos_add_filter( 'admin.gate_map', function ( array $map ): array {
+    $map['my-report.php'] = 'analytics.view';
+    return $map;
+} );
+```
+
 ---
 
 ## Core Service Accessors

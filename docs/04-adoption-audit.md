@@ -167,6 +167,26 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   **dead code** — they can never be reached unauthenticated — and XHR callers receive an opaque
   redirect rather than a parseable error.
 
+- **CLOSED 2026-07-19, Sprint 1 slice 4.** Resolved by inversion rather than by addition. The
+  remediation note above asked for "a single enforced gate helper called at the top of every admin
+  page and API endpoint"; that shape was **rejected** because it preserves the defect — file 67 can
+  still forget. Instead the decision moved to the one place all 66 files provably pass through
+  (`admin/bootstrap.php`, verified mechanically: zero exceptions), driven by a **gate map** in
+  `installer/core/admin-gate.php` in which an ABSENT entry is a REFUSAL. A new admin file is denied
+  until someone maps it deliberately. Coverage went from 15/66 to **65/66 mapped surfaces**, the
+  66th being `bootstrap.php` itself, which is deliberately unmapped so a direct request for it hits
+  default-deny. `klytos_require_permission()` and `klytos_deny()` were added as the reusable
+  enforcing counterparts to `klytos_has_permission()`; Sprint 2 consumes the same pair at the MCP
+  enforcement point. The denial shape from `core/router.php:438-447` was **promoted**, not
+  reinvented, exactly as this finding recommended. Mechanically guarded by `scripts/keel-verify`,
+  which was proven to FAIL on a removed gate entry and then restored. Full design and the rejected
+  alternatives: **D-032**.
+- **The adjacent defect is also CLOSED (same slice).** The auth guard now answers **401 JSON** for
+  `admin/api/*` instead of 302-redirecting to an HTML login page, so the 401 contract those
+  endpoints advertise is observable for the first time. The dead `isAuthenticated()` re-checks
+  inside them are left in place as defence in depth — removing them is cosmetic and would have
+  hidden NEW-09, which was found precisely by asking why one of those "dead" checks existed.
+
 ### S-08 — SSRF in the oEmbed resolver — **MEDIUM**
 - **Where:** `installer/admin/api/oembed.php:131` (`discoverOembed($url)`), validation at `:19`
 - **What:** Fetches an arbitrary user-supplied URL when no known provider matches.
@@ -368,6 +388,17 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Trigger:** the first slice touching `build-engine.php`, or the theme-package sprint (D-023),
   which rebuilds the frontend and will need a safe build target anyway.
 
+- **New trigger observed 2026-07-19 (Sprint 1 slice 4):** it is not only `cli.php build`.
+  **Activating a plugin** rebuilds the frontend asset bundle and writes
+  `assets/js/klytos-hooks.js` into the repository root. Found because slice 4's
+  `testPluginPageDeclaringNoCapabilityIsRefused` activates a fixture plugin through the product's
+  own API, and `git add -A` then staged the generated file — caught by the pre-commit
+  confidential-data review, one step before it entered history. The test now records whether the
+  directory existed beforehand and removes what it created, asserting the repository root is left
+  clean; the underlying defect is still NEW-04's and still deferred by D-026. Widens the standing
+  warning in `docs/playground.md`: any operation that triggers a build writes into the checkout, not
+  just the obvious one.
+
 ### NEW-05 — Five CVEs in the vendored HTTP stack — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2, by the first `composer audit` this project has ever been able to run)*
 - **Where:** `installer/vendor-ai/guzzlehttp/guzzle` 7.10.0 and `installer/vendor-ai/guzzlehttp/psr7` 2.9.0
 - **What:** `composer audit` against the reconstructed manifest (D-028) reports **5 advisories across
@@ -476,6 +507,120 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   rate limiting, AES-256-GCM at rest, RSA-signed integrity manifests.
 
 ---
+
+### NEW-09 — Passkey second-factor login is broken, and the obvious fix opens an account-takeover path — **HIGH** *(found 2026-07-19, Sprint 1 slice 4)* — **NOT FIXED, deliberately**
+- **Where:** `installer/admin/bootstrap.php` (the auth-guard exemption list),
+  `installer/admin/api/webauthn-challenge.php:20`, `installer/admin/login.php:54-99` and `:311`,
+  `installer/core/two-factor.php:507-530` and `:586`
+- **What (two independent defects, and the second is why the first must not be fixed alone):**
+  1. **The endpoint is unreachable in the state it was written for.**
+     `webauthn-challenge.php` guards itself with
+     `if ( !$auth->isAuthenticated() && !$auth->is2faPending() )` — the `is2faPending()` half exists
+     to serve a user who has submitted a password but not cleared the second factor. It was not in
+     bootstrap's exemption list, so bootstrap 302-redirected that request to the HTML login page
+     before the endpoint's own check ran, and `login.php:311`'s passkey fetch got HTML.
+  2. **Even reachable, passkey login still cannot complete.**
+     `TwoFactor::verifyPasskeyAssertion()` (`two-factor.php:586`) has **zero call sites** anywhere in
+     the repository, and `login.php:54-99`'s 2FA dispatcher branches on `totp` / `recovery` /
+     `email` / `emergency_email` only — there is no `passkey` branch. The assertion the browser
+     posts is never verified.
+- **Why the exemption was added and then REMOVED in the same slice.** Slice 4 first added
+  `webauthn-challenge.php` to the exemption list, on the strength of defect 1 alone. The
+  `security-auditor` pass showed that is a **full account-takeover primitive**, and the finding was
+  verified against source before being accepted: `is2faPending()` becomes true as soon as a caller
+  supplies a correct **password** (`auth.php:112-118`); the endpoint gates **all four** of its
+  actions on the same weak condition, including `register_challenge` and `register_complete`; and
+  `TwoFactor::completePasskeyRegistration()` (`two-factor.php:507-530`) appends the new credential,
+  adds `'passkey'` to the enabled methods and sets `enabled = true` **without checking that the
+  caller ever passed an existing second factor**, with no notification to the account owner. So
+  anyone holding a stolen or phished password alone — no possession of the victim's TOTP device or
+  existing passkey — could enrol their own authenticator and hold the account permanently, defeating
+  2FA entirely. The redirect was the only thing preventing it.
+- **The exemption bought nothing anyway**, which is what makes the reversal unambiguous rather than
+  a trade-off: because of defect 2, the legitimate flow could not complete even with the endpoint
+  reachable. The change was therefore all risk and no function.
+- **Fix shape when this is done properly (its own slice, with its own tests):** restrict
+  `register_challenge` / `register_complete` to fully authenticated callers, leave only
+  `auth_challenge` reachable in the 2FA-pending state, add the missing `passkey` branch to
+  `login.php`'s dispatcher wired to `verifyPasskeyAssertion()`, and notify the account owner when a
+  new authenticator is enrolled. **Trigger:** the same slice that closes NEW-11, since both are
+  authentication rather than authorization.
+- **Standing warning for slice 7:** `api/comment-submit.php` is the next file scheduled to be added
+  to this same exemption list (S-09). It must get exactly the scrutiny this one did — an entry in
+  `$preAuthScripts` removes the *only* authentication check standing in front of whatever the file
+  does internally.
+
+### NEW-10 — Any authenticated user could complete the setup wizard on a fresh install — **HIGH (privilege escalation)** *(found 2026-07-19, Sprint 1 slice 4)* — **CLOSED in the same slice**
+- **Where:** `installer/admin/setup-wizard.php` (POST `wizard_action=*`), reachable because
+  `admin/bootstrap.php` required authentication but checked no role
+- **What:** The wizard writes 2FA settings, stores AI provider keys, mints **MCP application
+  passwords**, and sets `setup_completed`. It had no role check of any kind. On a fresh install —
+  the exact window in which it is reachable — any authenticated account could complete it and issue
+  itself an MCP application password, which is a durable credential against the product's primary
+  interface.
+- **Interaction with NEW-11, which is why this was not exploitable in practice yet:** since
+  `Auth::login()` only ever authenticated `config['admin_user']`, the only account that could reach
+  it was the owner's. The escalation was latent, not live — but it was latent behind an
+  authentication defect, not behind a control, and fixing NEW-11 without fixing this would have
+  opened it.
+- **Fixed 2026-07-19 (D-033):** gated on the new owner-only `setup.run` capability. Safe on a fresh
+  install because the owner is the only account that exists at that point. Verified in the per-role
+  walk: owner 302 (setup already complete), admin/editor/viewer 403.
+
+### NEW-11 — Only one account can log in: `Auth::login()` never consults `UserManager` — **HIGH** *(found 2026-07-19, Sprint 1 slice 4)*
+- **Where:** `installer/core/auth.php:99-102` versus `installer/core/user-manager.php:384`
+- **What:** `Auth::login()` validates credentials **exclusively** against `config['admin_user']` and
+  `config['admin_pass_hash']` — the single v1 admin credential. It never calls
+  `UserManager::authenticate()`, which is fully implemented one layer below: it verifies the
+  per-user bcrypt `pass_hash`, refuses suspended accounts, and updates `last_login`. That method is
+  used only for **re-authentication** inside `admin/profile.php:45` and
+  `admin/partials/ai-panel-profile.php:33`. Consequence: accounts with role `admin`, `editor` or
+  `viewer` **cannot log into the admin panel at all**, no matter that they exist, are `active`, and
+  carry a valid password hash.
+- **Verified live, not inferred:** all four seeded playground users were driven against the real
+  login form with their correct passwords. `owner` → 302 (success); `admin`, `editor`, `viewer` →
+  200 with "Incorrect username or password".
+- **Why it matters beyond the obvious:** it is very likely *why* S-07 survived — with one account in
+  practice, an ungated admin surface never misbehaves, so nothing ever pointed at the missing gates.
+  It also means the multi-user role system, the capability matrix, and now the gate, have never been
+  exercised by a real non-owner session in production.
+- **NOT fixed in slice 4, deliberately.** This is authentication, not authorization — an adjacent
+  subsystem in D-031's sense, and a real piece of work: wiring `Auth::login()` to
+  `UserManager::authenticate()` means deciding precedence against the v1 config credential, routing
+  per-user 2FA, per-user lockout, and the app-password path. It has its own design and test point.
+  Slice 4's gate is correct regardless of it.
+- **Trigger:** Sprint 2 planning — it belongs with the MCP authorization work, since both concern
+  who a caller actually is before deciding what they may do. Until then, stated plainly: **Sprint 1
+  gates a multi-role system that, in production, only one role can currently enter.**
+
+### NEW-12 — `api/download-identity.php` carried three defects, and each masked the next — **HIGH** *(found 2026-07-19, Sprint 1 slice 4)* — **CLOSED in the same slice**
+- **Where:** `installer/admin/api/download-identity.php:35` (was), `:102` (was), and the owner check
+- **What:**
+  1. `$auth->isLoggedIn()` — **no such method** on `Auth` (it defines `isAuthenticated()` and
+     `is2faPending()`; there is no `__call`). Every request to the endpoint died here.
+  2. `$app->getLogger()->log( ... )` — **no such method** on `Logger` (its API is
+     `write()` / `writeAlways( $level, $message, $context, $source )`). The guard on the line above,
+     `method_exists( $app, 'getLogger' )`, does not catch this: it interrogates **App**, which does
+     have `getLogger()`, rather than the `Logger` the call is made against — so it passed and the
+     next line fataled.
+  3. Owner-ness was decided by `$username !== $config['admin_user']`, a hand-rolled check outside
+     the capability matrix (S-04).
+- **How each masked the next:** defect 1 killed the request at line 35, so defect 2 at line 102 was
+  never reached and never observed. Fixing 1 alone would have "restored" an endpoint that still
+  fataled — which is exactly what happened, and was caught only because the test asserts on the
+  response BODY rather than the status.
+- **Why a status-only test could not have caught either fatal — worth recording, because it is the
+  general lesson:** verified live, the PHP fatal returns **HTTP 200** with the error rendered into
+  the body, because output has already begun by then. An assertion on the status code alone would
+  have passed against completely broken code.
+- **Fixed 2026-07-19:** authentication comes from bootstrap (401 JSON for API surfaces),
+  authorization from the gate map's owner-only `users.manage`, and the audit entry uses
+  `writeAlways( 'warning', …, 'security' )` — `writeAlways` rather than `write` because `write()`
+  discards everything unless Developer Mode is on (`logger.php:116`), and an audit trail for a
+  private-key export that only exists in debug mode is not an audit trail.
+- **Not fixed here, still open:** the file's docblock claims re-authentication with the current
+  password, 2FA verification and an email notification, none of which exist. That is the S-12 class
+  of defect (a docblock asserting protections the code does not implement) and belongs to slice 5.
 
 ## A — Accessibility (target: WCAG 2.2 AA + EAA, `references/accessibility.md`)
 

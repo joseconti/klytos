@@ -7,15 +7,15 @@
 ## Summary
 | Kind | Count |
 |------|-------|
-| Global helper functions | 138 |
+| Global helper functions | 144 |
 | Classes and interfaces | 96 |
-| Actions | 301 |
-| Filters | 110 |
+| Actions | 302 |
+| Filters | 111 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **930** |
+| **Total** | **938** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -29,6 +29,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_add_persistent_notice() | function | installer/core/helpers-global.php | — | Store an admin notice by ID that persists across page loads and sessions |
 | klytos_add_shortcode() | function | installer/core/helpers-global.php | — | Bind a shortcode tag to a render callback |
 | klytos_admin_url() | function | installer/core/helpers-global.php | — | Build an absolute URL into the admin panel from a relative path |
+| klytos_admin_gate_key() | function | installer/core/admin-gate.php | docs/reference/authorization.md | Resolve the running admin script to its gate-map key, or null when it is outside admin/ |
+| klytos_admin_gate_map() | function | installer/core/admin-gate.php | docs/reference/authorization.md | The capability required by every admin surface; an absent entry means denied |
 | klytos_app() | function | installer/core/helpers-global.php | — | Return the App singleton that owns all core services |
 | klytos_apply_filters() | function | installer/core/helpers-global.php | — | Pass a value through every callback registered on a filter and return the result |
 | klytos_auth() | function | installer/core/helpers-global.php | — | Return the authentication manager used for login and permission checks |
@@ -45,6 +47,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_config() | function | installer/core/helpers-global.php | — | Read a configuration value addressed by dot-notation path |
 | klytos_csrf_field() | function | installer/core/helpers-security.php | — | Build a ready-to-echo hidden input carrying the current CSRF token |
 | klytos_current_admin_page() | function | installer/core/helpers-global.php | — | Return the identifier of the admin screen handling this request |
+| klytos_current_surface() | function | installer/core/helpers-global.php | docs/reference/authorization.md | Report whether this request expects an api, mcp, cli or page response shape |
 | klytos_current_user() | function | installer/core/helpers-global.php | — | Return the logged-in user's data array, or null when nobody is authenticated |
 | klytos_date() | function | installer/core/helpers-time.php | — | Render a Unix timestamp in the site's configured timezone |
 | klytos_datetime_to_timestamp() | function | installer/core/helpers-time.php | — | Parse an ISO 8601 or MySQL datetime string into a Unix timestamp |
@@ -52,11 +55,13 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_delete_option() | function | installer/core/helpers-global.php | — | Remove a stored option and its value |
 | klytos_delete_options_by_domain() | function | installer/core/helpers-global.php | — | Purge every option owned by a text domain and return how many were removed |
 | klytos_delete_transient() | function | installer/core/helpers-global.php | — | Remove a transient before its expiry |
+| klytos_deny() | function | installer/core/helpers-global.php | docs/reference/authorization.md | Refuse the current request with 401 or 403 in the shape its caller can parse, and stop |
 | klytos_did_action() | function | installer/core/helpers-global.php | — | Return how many times an action has fired during this request |
 | klytos_die() | function | installer/core/helpers-security.php | — | Abort the request and render a safe error page, after a plugin-overridable hook |
 | klytos_dismiss_notice() | function | installer/core/helpers-global.php | — | Mark a persistent notice as hidden for the current user session |
 | klytos_do_action() | function | installer/core/helpers-global.php | — | Fire an action hook, running every callback bound to it |
 | klytos_do_shortcode() | function | installer/core/helpers-global.php | — | Expand every registered shortcode found in a string of content |
+| klytos_enforce_admin_gate() | function | installer/core/admin-gate.php | docs/reference/authorization.md | The central default-deny admin gate, called once from admin/bootstrap.php |
 | klytos_esc_attr() | function | installer/core/helpers-security.php | — | Escape text for an HTML attribute, also stripping tabs and newlines |
 | klytos_esc_html() | function | installer/core/helpers-security.php | — | Escape dynamic text before echoing it into HTML body content |
 | klytos_esc_js() | function | installer/core/helpers-security.php | — | Escape text for embedding inside a JavaScript string literal |
@@ -117,6 +122,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_register_dashboard_widget() | function | installer/core/helpers-global.php | — | Add a widget to the admin dashboard with a position and capability gate |
 | klytos_register_option() | function | installer/core/helpers-global.php | — | Declare an option and its data-sensitivity classification for privacy tooling |
 | klytos_register_route() | function | installer/core/helpers-global.php | — | Map a URL pattern to a plugin callback that renders the response |
+| klytos_require_permission() | function | installer/core/helpers-global.php | docs/reference/authorization.md | Require a capability or refuse and stop; the enforcing counterpart to klytos_has_permission |
 | klytos_register_template_part() | function | installer/core/helpers-global.php | — | Hook a callback that supplies or rewrites the markup of a template part |
 | klytos_register_templates() | function | installer/core/helpers-global.php | — | Make a plugin's page templates available to the template resolver |
 | klytos_register_translations() | function | installer/core/helpers-global.php | — | Point the translation loader at a plugin's language files directory |
@@ -389,6 +395,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | asset_category.after_delete | action | installer/core/asset-manager.php | — | Emitted once a media category is removed; receives the deleted category ID |
 | asset_category.before_create | action | installer/core/asset-manager.php | — | Emitted before a media category is stored; receives the proposed name and slug |
 | asset_category.before_delete | action | installer/core/asset-manager.php | — | Emitted before a media category is removed; receives the category ID |
+| auth.access_denied | action | installer/core/helpers-global.php | docs/reference/authorization.md | Fires immediately before a request is refused; audit hook, cannot reverse the decision |
 | auth.after_login | action | installer/core/auth.php | — | Emitted on successful sign-in (also after 2FA); receives the username and user ID |
 | auth.before_login | action | installer/core/auth.php | — | Emitted before credentials are validated; receives the submitted username |
 | backup.after | action | installer/core/updater.php | — | Emitted when a manual backup finished; receives type 'local' and the backup directory |
@@ -571,6 +578,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
 | admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
+| admin.gate_map | filter | installer/core/admin-gate.php | docs/reference/authorization.md | Filters the admin gate map so plugins can gate their own admin files |
 | admin.logs_file_list | filter | installer/admin/logs.php | — | Filters the list of log files shown on the admin Logs page |
 | admin.logs_toolbar | filter | installer/admin/logs.php | — | Filters extra HTML injected into the Logs page toolbar |
 | admin.page_title | filter | installer/admin/templates/header.php | — | Filters the admin page title before the header template renders it |

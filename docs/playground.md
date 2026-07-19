@@ -84,13 +84,64 @@ Everything the playground writes is gitignored — verified with `git check-igno
 
 1. Open http://127.0.0.1:8080/installer/admin/ — you should be redirected to `login.php`.
 2. Log in as `owner`. You should reach the dashboard.
-3. Log out, log back in as `viewer`.
-4. **Today, a `viewer` can reach privileged pages it should not** — for example
-   http://127.0.0.1:8080/installer/admin/users.php. That is audit finding S-01/S-07, and closing it
-   is Sprint 1's purpose. When slices 4 and 5 land, that URL must return 403 for `viewer`. Until
-   then, seeing it succeed is the bug, not a playground fault.
 
-### 2. The MCP endpoint
+### ⚠️ Only `owner` can log in — and that is a product bug, not a playground fault
+
+The seeded `admin`, `editor` and `viewer` accounts exist, are `active`, and carry valid password
+hashes, but the login form will reject them with *"Incorrect username or password"*.
+`Auth::login()` (`core/auth.php:99-102`) validates **only** against `config['admin_user']` and never
+calls `UserManager::authenticate()`, which is fully implemented one layer below. Recorded as audit
+**NEW-11**; not fixed in Sprint 1 because it is authentication, not authorization.
+
+To exercise the role system, drive it the way the tests do — write the session directly:
+
+```bash
+# Start a server with a private, inspectable session store.
+SP=/tmp/klytos-sessions; mkdir -p $SP
+php -d session.save_path=$SP -d session.serialize_handler=php_serialize \
+    -S 127.0.0.1:8099 -t . scripts/dev/router.php &
+
+# Mint a session for any seeded role and print its cookie value.
+XDEBUG_MODE=off php -r '
+require "installer/core/app.php"; $a=\Klytos\Core\App::getInstance(); $a->boot();
+$u=(new \Klytos\Core\UserManager($a->getStorage()))->getByUsername($argv[1]);
+$sid=substr(hash("sha256","try-".$argv[1]),0,32);
+file_put_contents("/tmp/klytos-sessions/sess_".$sid, serialize([
+  "klytos_auth"=>true,"klytos_user"=>$u["username"],"klytos_user_id"=>$u["id"],
+  "klytos_login_time"=>time(),"klytos_last_active"=>time(),"klytos_csrf"=>str_repeat("a",64)]));
+echo $sid."\n";' viewer
+```
+
+The cookie is named **`klytos_session`**, not `PHPSESSID` (`auth.php:61`):
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -b "klytos_session=<the id>" \
+  http://127.0.0.1:8099/installer/admin/users.php     # 403 for viewer
+```
+
+### 2. Authorization — what each role may reach (Sprint 1 slice 4)
+
+Since slice 4 every admin surface is gated centrally and **denies by default**. A `viewer` gets:
+
+| URL | Expected |
+|---|---|
+| `/installer/admin/users.php` | **403** — HTML refusal page, not a redirect |
+| `/installer/admin/api/plugins.php` | **403** — `{"error":"…","code":"forbidden"}` |
+| `/installer/admin/profile.php` | **200** — self-service, every role holds `profile.edit` |
+| `/installer/admin/index.php` | **200** — the dashboard is reachable by all roles |
+
+Anonymous (no cookie at all):
+
+| URL | Expected |
+|---|---|
+| `/installer/admin/users.php` | **302** to `login.php` — a browser should land on the form |
+| `/installer/admin/api/plugins.php` | **401** `{"…","code":"authentication_required"}` — **not** a 302 |
+
+If you add a new file under `installer/admin/`, it is **denied to everyone, including the owner,**
+until you add it to `klytos_admin_gate_map()` in `installer/core/admin-gate.php`. That is deliberate.
+`php scripts/keel-verify` tells you which files are missing an entry.
+
+### 3. The MCP endpoint
 
 ```bash
 # Unauthenticated — must be 401
@@ -108,7 +159,7 @@ curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:8080/installer/mcp \
 MCP rate limiting is 60 requests/minute per identity, plus per-IP blocking on auth failures
 (`core/mcp/server.php:84-126`) — expect it to bite in a tight loop.
 
-### 3. The CLI
+### 4. The CLI
 
 ```bash
 php installer/cli.php help        # 26 commands
@@ -182,6 +233,20 @@ Seed it (`php scripts/dev/seed-playground.php`) and run again. A skipped authori
 nothing, which is exactly why it refuses to pass quietly.
 
 `XDEBUG_MODE=off` is the same noise suppression the seeder needs, for the same reason — NEW-03, below.
+
+## Running keel-verify
+
+The project's own release linter (Keel Phase 5 §1a). Introduced in Sprint 1 slice 4 carrying the
+authorization-gate check; slice 9 extends it with the remaining checks.
+
+```bash
+php scripts/keel-verify
+```
+
+Exit 0 means every mechanical promise the docs make is currently true. Exit 1 lists what broke. The
+gate check is the one that matters today: it fails the build when any file under `installer/admin/`
+has no entry in `klytos_admin_gate_map()`, and when `admin/bootstrap.php` stops calling
+`klytos_enforce_admin_gate()` — a complete map enforces nothing if nobody invokes the enforcer.
 
 ## Testing an upgrade from the real previous release
 
