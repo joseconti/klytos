@@ -617,7 +617,8 @@ $ git stash push installer/admin/api/download-identity.php     # proof against t
 
 ### Slice 5 — evidence (commands and output, 2026-07-19)
 
-Commit: *(filled at commit)* — *Sprint 1 slice 5: named escalations, one test each (S-01, S-02, S-03, S-05, S-06, S-12)*.
+Commit: `815d3c8` — *Sprint 1 slice 5: named escalations, one test each (S-01, S-02, S-03, S-05, S-06, S-12)*.
+Committed cleanly through the confidential-data pre-commit gate; **no `--no-verify`**.
 
 **1. Session-start freshness — the playground, from `docs/playground.md` verbatim.**
 
