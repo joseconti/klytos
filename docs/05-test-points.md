@@ -397,7 +397,7 @@ constructs `UserManager` twice per call via `klytos_current_user()`).
 
 ### Slice 4 — evidence (commands and output, 2026-07-19)
 
-Commit: `PENDING` — *Sprint 1 slice 4: klytos_require_permission() + central default-deny gate (S-07)*.
+Commit: `6e293f3` — *Sprint 1 slice 4: klytos_require_permission() + central default-deny gate (S-07)*.
 
 **The load-bearing assumption was verified before the design relied on it.** A central gate only
 gates what passes through it:
@@ -416,7 +416,7 @@ $ XDEBUG_MODE=off vendor/bin/phpunit
 PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
 Runtime:       PHP 8.3.12
 ..................................................                50 / 50 (100%)
-OK (50 tests, 297 assertions)          [was 32 / 219 at slice 3: +18 tests, +78 assertions]
+OK (50 tests, 298 assertions)          [was 32 / 219 at slice 3: +18 tests, +78 assertions]
 ```
 
 **The tests were proven able to fail before they were trusted.** Reverting the ONE file that wires
