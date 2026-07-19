@@ -161,17 +161,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         $success = __( 'security.recovery_confirmed' );
     }
 
-    // ── Request Identity Key Download (users.manage) ──
-    // Matches the gate on the endpoint it redirects to
-    // (api/download-identity.php), so the refusal happens here rather than
-    // after a redirect the caller cannot act on.
-    if ( $action === 'request_identity_download' ) {
-        klytos_require_permission( 'users.manage' );
-
-        // Redirect to the download endpoint.
-        header( 'Location: ' . Helpers::getBasePath() . 'admin/api/download-identity.php' );
-        exit;
-    }
+    // ── Identity Key Download: no longer routed through this page ──
+    // The 'request_identity_download' branch was REMOVED in slice 5 (audit
+    // S-12). It gated on users.manage and then 302-redirected to
+    // api/download-identity.php — and a browser follows a 302 with a GET, so
+    // that redirect was precisely what made a state-writing secret export
+    // answer GET. A redirect cannot carry a POST, so the fix is structural:
+    // the form posts straight to the endpoint, which now requires POST and a
+    // CSRF token and is gated at users.manage by the gate map.
+    //
+    // Removed rather than left in place (per L-007, having stated what would
+    // still execute it): a stale cached page could POST this action, and the
+    // branch would then redirect to a guaranteed 405 — a path that cannot
+    // succeed. Falling through to a re-render is the less misleading outcome.
 
     // ── Generate Identity Keys (site.configure) ──
     // Regenerating the site identity invalidates the previous key pair, so it
@@ -542,9 +544,13 @@ $levelLabels = [
             <?php if ( $identityFingerprint ): ?>
                 <p class="text-muted text-sm"><?php echo __( 'security.fingerprint' ); ?>:</p>
                 <code class="text-sm" style="word-break:break-all;"><?php echo klytos_esc_html( substr( $identityFingerprint, 0, 24 ) . '...' ); ?></code>
-                <form method="post" style="margin-top:0.75rem;">
+                <?php // Posts DIRECTLY to the export endpoint. It used to post here and be
+                      // 302-redirected, which the browser follows as a GET — so a
+                      // state-writing secret export answered GET (audit S-12). A redirect
+                      // cannot carry a POST, so the form has to target the endpoint itself. ?>
+                <?php $identityExportUrl = $basePath . 'admin/api/download-identity.php'; ?>
+                <form method="post" action="<?php echo klytos_esc_url( $identityExportUrl ); ?>" style="margin-top:0.75rem;">
                     <?php echo klytos_csrf_field(); ?>
-                    <input type="hidden" name="action" value="request_identity_download">
                     <button type="submit" class="btn btn-sm btn-outline"><?php echo __( 'security.download_identity' ); ?></button>
                 </form>
             <?php else: ?>

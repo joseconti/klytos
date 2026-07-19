@@ -4,13 +4,28 @@
  * Klytos Admin API — Identity Key Download
  * Protected endpoint for downloading the klytos-identity.pem file.
  *
- * Security:
- * - Requires active admin session (owner only).
- * - Re-authentication with current password.
- * - 2FA verification if active.
+ * Exports the site's RSA private key — the highest-value secret in the system.
+ *
+ * Security, as ACTUALLY implemented:
+ * - Authentication: enforced by admin/bootstrap.php before this file runs.
+ * - Authorization: the gate map requires 'users.manage', which is owner-only.
+ * - Method: POST required. This endpoint writes state, so it must not answer a GET.
+ * - CSRF: verified below.
  * - Rate limit: 1 download per 24 hours.
- * - Audit log entry.
- * - Email notification to admin.
+ * - Audit log entry (writeAlways, so it survives Developer Mode being off).
+ *
+ * NOT implemented, and previously claimed here in a way that made this endpoint
+ * look far better protected than it was (audit S-12, the L-002 class of defect
+ * — a doc asserting a property the code does not have):
+ * - Re-authentication with the current password.
+ * - 2FA verification.
+ * - Email notification to the owner.
+ *
+ * Those three are recorded as audit finding NEW-13, bound to the authentication
+ * slice that also owns NEW-09 and NEW-11 — that slice is already opening the
+ * password and 2FA plumbing all three need. Until it runs, a stolen admin
+ * SESSION is sufficient to export the key; the password is not re-checked.
+ * Do not re-add the claims above to this block without the code to match.
  *
  * @package Klytos
  * @since   1.1.0
@@ -23,7 +38,7 @@
  *             See the LICENSE file at the project root for the full license text.
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 require_once dirname( __DIR__ ) . '/bootstrap.php';
 
@@ -49,6 +64,40 @@ use Klytos\Core\Helpers;
 // Authentication itself is guaranteed by admin/bootstrap.php, which refuses
 // unauthenticated API requests with 401 JSON before this file runs.
 $auth = $app->getAuth();
+
+// ─── Method: POST only (audit S-12) ─────────────────────────
+// This endpoint WRITES state further down (identity_last_downloaded_at and
+// identity_download_count, persisted to config at :98), and it previously had
+// no REQUEST_METHOD check at all — so a secret-exporting, state-writing
+// operation answered GET. security.php reached it by 302-redirecting, which
+// the browser follows as a GET, so that was the normal path rather than an
+// edge case.
+//
+// The exposure was denial-of-service and audit noise rather than exfiltration:
+// an attacker could force the owner's browser to issue the request with an
+// <img src> or a link, burning the 24-hour rate limit and writing config, but
+// could NOT read the key material back, because the response is an
+// octet-stream attachment. It still breaks the project's own "don't change
+// state on a GET" rule, and a rate limit an unauthenticated third party can
+// exhaust for the owner is a real defect.
+if ( ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) !== 'POST' ) {
+    header( 'HTTP/1.1 405 Method Not Allowed' );
+    header( 'Allow: POST' );
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    echo 'Method Not Allowed. This endpoint writes state and requires POST.';
+    exit;
+}
+
+// ─── CSRF ───────────────────────────────────────────────────
+// The confirmed half of S-12: there was no klytos_verify_csrf() anywhere in
+// this file. The method check above is not a substitute — a cross-origin form
+// can POST just as easily as an image tag can GET.
+if ( ! klytos_verify_csrf() ) {
+    header( 'HTTP/1.1 403 Forbidden' );
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    echo 'Invalid CSRF token.';
+    exit;
+}
 
 // Still needed below: it labels the exported key file and the audit-log entry.
 // It is no longer what DECIDES access — that is the gate map's 'users.manage'.

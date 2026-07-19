@@ -91,6 +91,15 @@ A page whose tiers differ maps at the level needed to *see* it and re-gates its 
 inline. `admin/pages.php` is mapped `pages.view` so an editor can read the list, and its POST handler
 calls `klytos_require_permission( 'pages.delete' )` before trashing anything.
 
+**An API twin must re-gate the same branches its page does.** This is where the floor/ceiling rule
+is easiest to get wrong, and it was wrong here until slice 5: `admin/tasks.php` is mapped
+`tasks.create` and re-gates completion at `tasks.manage` (`tasks.php:38`), while
+`admin/api/tasks.php` — mapped at the same `tasks.create` — re-gated nothing. An editor was
+therefore refused task completion through the interface and allowed it through the endpoint the
+interface calls (audit **S-06**). When a page and an API expose the same operation, they express the
+same capability model or the model is enforced in only one of them; the gate map cannot see the
+difference, because both files legitimately sit at the same floor.
+
 ## Functions
 
 ### `klytos_require_permission( string $permission, ?string $surface = null ): void`
@@ -218,4 +227,13 @@ klytos_add_filter( 'auth.capabilities', function ( array $caps ): array {
   `api/webauthn-challenge.php` from the auth guard — was tried in this slice and **reverted**,
   because it opens an account-takeover path (**D-036**). Do not re-add it without also restricting
   that endpoint's registration actions.
-- **CSRF.** Separate concern, separate helpers (`klytos_csrf_field()` / `klytos_verify_csrf()`).
+- **CSRF.** Separate concern, separate helpers (`klytos_csrf_field()` / `klytos_verify_csrf()`). The
+  gate answers *may this caller do this*, never *did this caller intend it* — so passing the gate is
+  not a substitute for a token, and a state-changing surface needs both. `api/download-identity.php`
+  is the worked example: it is gated owner-only at `users.manage` and STILL required a POST guard and
+  a CSRF check, because the gate cannot tell an owner's deliberate click from an owner's browser
+  being made to issue the request by someone else (audit **S-12**, slice 5).
+- **Step-up authentication.** Nothing in this system re-checks a password or a second factor before a
+  privileged action. Holding the capability is sufficient, so a hijacked session is as good as the
+  account. That gap is recorded as **NEW-13** for the identity-key export specifically, and is bound
+  to the authentication slice that owns NEW-09 and NEW-11.

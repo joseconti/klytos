@@ -70,8 +70,43 @@ trait PlaygroundState
     /** @var string|null Absolute path to this test's snapshot directory. */
     private ?string $snapshotDir = null;
 
-    /** @var string|null SHA-256 of config.json.enc at snapshot time. */
-    private ?string $configHashAtSnapshot = null;
+    /** @var string|null Raw bytes of config.json.enc at snapshot time. */
+    private ?string $configBytesAtSnapshot = null;
+
+    /**
+     * Raw bytes of config.json.enc as the test LEFT it, captured before restore.
+     *
+     * Load-bearing, and it exists because the first version of this guard could
+     * not fail. assertConfigNotMutated() runs after restorePlayground() — which
+     * is correct, so the playground is left clean even when the assertion fails
+     * (D-030) — but it re-hashed the file the restore had just put back, so the
+     * comparison was always snapshot-against-itself. Verified with a probe in
+     * slice 5: a test that wrote a marker key into core config passed green.
+     * The observation has to be taken BEFORE the restore erases it.
+     *
+     * @var string|null
+     */
+    private ?string $configBytesBeforeRestore = null;
+
+    /**
+     * Config keys that change on their own and do not mean a test mutated state.
+     *
+     * `scheduler_last_run` is written by ActionScheduler::setConfigValue()
+     * (action-scheduler.php:398) every time due actions are processed, which
+     * App::boot() triggers on EVERY request. The HTTP tests boot a real server
+     * per request, so each one rewrites core config from a separate process as
+     * a matter of course. Hashing raw bytes therefore flagged ten passing tests
+     * the moment the guard was repaired — a true observation about the file and
+     * a false one about the test.
+     *
+     * The comparison is on DECRYPTED content minus these keys for a second
+     * reason too: the stored file is encrypted, so a rewrite of byte-identical
+     * content still produces different ciphertext. A byte comparison cannot
+     * tell "changed" from "rewritten", and only one of those is a defect.
+     *
+     * @var array<int, string>
+     */
+    private const VOLATILE_CONFIG_KEYS = [ 'scheduler_last_run' ];
 
     /**
      * The two directories that hold every byte of playground runtime state.
@@ -110,7 +145,7 @@ trait PlaygroundState
             $this->copyTree( $source, $this->snapshotDir . '/' . basename( $source ) );
         }
 
-        $this->configHashAtSnapshot = $this->configHash();
+        $this->configBytesAtSnapshot = $this->configBytes();
     }
 
     /**
@@ -129,6 +164,12 @@ trait PlaygroundState
         if ( $this->snapshotDir === null ) {
             return;
         }
+
+        // Observe BEFORE overwriting. The restore below is what makes the
+        // playground safe for the next test, and it is also what destroys the
+        // evidence assertConfigNotMutated() needs — so the evidence is taken
+        // here, while it still exists.
+        $this->configBytesBeforeRestore = $this->configBytes();
 
         foreach ( $this->stateDirectories() as $target ) {
             $captured = $this->snapshotDir . '/' . basename( $target );
@@ -154,33 +195,88 @@ trait PlaygroundState
      */
     protected function assertConfigNotMutated(): void
     {
-        if ( $this->configHashAtSnapshot === null ) {
+        if ( $this->configBytesAtSnapshot === null ) {
             return;
         }
 
-        $current = $this->configHash();
+        // The bytes as the test left them, not as the restore put them back.
+        // Reading the file live here is what made the original guard inert.
+        $left                           = $this->configBytesBeforeRestore;
+        $this->configBytesBeforeRestore = null;
 
-        if ( $current !== $this->configHashAtSnapshot ) {
-            self::fail(
-                'This test mutated installer/config/config.json.enc while App was already booted. '
-                . 'The file has been restored, but App::$config (app.php:217) was decrypted once at '
-                . 'boot and cannot be refreshed — any later assertion would read the stale value and '
-                . 'pass for the wrong reason. Run this test with #[RunInSeparateProcess] so it gets '
-                . 'its own App, or assert against storage directly instead of App::getConfig().'
-            );
+        // Identical ciphertext means nothing was written at all — the cheap
+        // path, and the common one.
+        if ( $left === $this->configBytesAtSnapshot ) {
+            return;
         }
+
+        if ( $this->meaningfulConfig( $left ) === $this->meaningfulConfig( $this->configBytesAtSnapshot ) ) {
+            return;
+        }
+
+        self::fail(
+            'This test mutated installer/config/config.json.enc while App was already booted. '
+            . 'The file has been restored, but App::$config (app.php:217) was decrypted once at '
+            . 'boot and cannot be refreshed — any later assertion would read the stale value and '
+            . 'pass for the wrong reason. Run this test with #[RunInSeparateProcess] so it gets '
+            . 'its own App, or assert against storage directly instead of App::getConfig().'
+        );
     }
 
     /**
-     * SHA-256 of the encrypted core config file, or null when absent.
+     * Decrypted core config, minus the keys that change on their own.
+     *
+     * Returns a canonical JSON string so two states can be compared directly.
+     * When the ciphertext cannot be decrypted — a test that changed the
+     * encryption level, a truncated write — the raw bytes are returned instead,
+     * so an undecryptable difference still counts as a difference. Failing
+     * loudly beats silently treating "I cannot read this" as "nothing changed".
+     *
+     * @param  string|null $bytes Raw ciphertext, or null when the file was absent.
+     * @return string      Canonical comparable form.
+     */
+    private function meaningfulConfig( ?string $bytes ): string
+    {
+        if ( $bytes === null ) {
+            return '<absent>';
+        }
+
+        // Decryption needs the booted App's storage. A test that skipped or
+        // failed during setUp may never have got one — treat that as
+        // undecryptable rather than fataling inside a teardown assertion.
+        if ( ! isset( $this->storage ) ) {
+            return $bytes;
+        }
+
+        try {
+            $config = $this->storage->getEncryption()->decrypt( $bytes );
+        } catch ( \Throwable $e ) {
+            return $bytes;
+        }
+
+        if ( ! is_array( $config ) ) {
+            return $bytes;
+        }
+
+        foreach ( self::VOLATILE_CONFIG_KEYS as $key ) {
+            unset( $config[ $key ] );
+        }
+
+        ksort( $config );
+
+        return (string) json_encode( $config );
+    }
+
+    /**
+     * Raw bytes of the encrypted core config file, or null when absent.
      *
      * @return string|null
      */
-    private function configHash(): ?string
+    private function configBytes(): ?string
     {
         $path = KLYTOS_INSTALLER_PATH . '/config/config.json.enc';
 
-        return is_file( $path ) ? hash_file( 'sha256', $path ) : null;
+        return is_file( $path ) ? (string) file_get_contents( $path ) : null;
     }
 
     /**

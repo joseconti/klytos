@@ -22,6 +22,32 @@
 can be *asserted* but not *demonstrated*. Keel's test-point rule — "a result without its command and
 output is an empty cell" — cannot be satisfied on an authorization fix by reading the diff.
 
+### Fix-now bucket — status as of 2026-07-19 (end of slice 5)
+
+Each finding's own section carries its closure note and the test that pins it; this is the index.
+
+| Finding | Status | Closed by |
+|---|---|---|
+| **S-01** privilege escalation via `users.php` | **CLOSED** | slice 4 (gate) + slice 5 (named test, asserts the role did not change) |
+| **S-02** arbitrary plugin ZIP → RCE | **CLOSED** | slice 4 + slice 5 |
+| **S-03** unauthorized core update install | **CLOSED** | slice 4 + slice 5 |
+| **S-04** dead + duplicated capability matrix | **CLOSED** | slice 3 |
+| **S-05** unauthorized file upload | **CLOSED** | slice 4 + slice 5 |
+| **S-06** ungated write endpoints | **CLOSED** | slice 4, **plus a live residue in `api/tasks.php` closed in slice 5** |
+| **S-07** ~30% gate coverage (systemic) | **CLOSED** | slice 4 (central default-deny gate, 65/66 mapped) |
+| **S-12** identity export: GET + no CSRF | **CLOSED** | slice 5 |
+| **T-01** no test harness | **CLOSED** | slice 1 |
+| **T-02** no playground | **CLOSED** | slice 0 |
+| **H-04** unauditable vendored tree | **CLOSED** | slice 2 |
+| **NEW-01** `klytos_current_user()` promotes to owner | **CLOSED** | slice 3 |
+| **S-08** SSRF in the oEmbed resolver | open | slice 6 |
+| **S-09** public comment submission | open | slice 7 |
+| **S-11** no HSTS + the CSP fail-open | open | slice 8 |
+
+Stated plainly so the closures are not read as more than they are: **the admin surface is gated and
+the product's primary interface is not.** All 172 MCP tools still have zero permission checks
+(**NEW-02**, Sprint 2 per D-020), and only `config['admin_user']` can actually log in (**NEW-11**).
+
 ### Re-validation, 2026-07-18 (Phase 5 Sprint 1 kickoff) — three claims corrected, two findings added
 
 Every fix-now finding was re-verified against source before planning on top of it. The corrections
@@ -70,6 +96,12 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   privilege.
 - **Note:** CSRF *is* checked, which means the attack requires an authenticated session — not an
   anonymous request. It is still full vertical privilege escalation.
+- **CLOSED 2026-07-19, Sprint 1 slice 4 (access) + slice 5 (proof).** `users.php` is mapped
+  `users.manage` in the gate map (owner-only), so a viewer never reaches the POST handler. Pinned by
+  `NamedEscalationsTest::testS01ViewerCannotPromoteItselfToOwner`, which asserts more than the 403:
+  it reads the record back through `UserManager` afterwards and fails if the role changed. A gate
+  that returned 403 *after* the handler had run would satisfy a status-only assertion, so the
+  role-unchanged check is the one that actually closes this finding.
 
 ### S-02 — Arbitrary plugin ZIP install → remote code execution — **CRITICAL**
 - **Where:** `installer/admin/api/plugins.php:44`, `:72`, `:167-253`; UI page `installer/admin/plugins.php` (no gate)
@@ -77,12 +109,22 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   authenticated user can `install` an uploaded plugin ZIP — which is PHP that Klytos then executes —
   or activate / deactivate / delete / uninstall / restore any plugin.
 - **Fails:** web-app profile — authorization; safe handling of uploaded executable content.
+- **CLOSED 2026-07-19, Sprint 1 slice 4 (access) + slice 5 (proof).** `api/plugins.php` is mapped
+  `plugins.manage` (owner-only) and `plugins.php` likewise, so no non-owner reaches the install path.
+  Pinned by `NamedEscalationsTest::testS02NonOwnersCannotReachThePluginInstallEndpoint`, which
+  asserts all three non-owner roles — **admin included**, which is the interesting one, since an
+  admin holds nearly everything else but not this — and asserts the refusal arrives as parseable
+  JSON, because this endpoint is called by XHR.
 
 ### S-03 — Unauthorized core update install — **HIGH**
 - **Where:** `installer/admin/api/update-install.php:42`
 - **What:** CSRF only, no `updates.manage` gate (`owner` only). Any authenticated user can trigger a
   core update install (which downloads and unpacks code).
 - **Fails:** web-app profile — authorization; supply-chain integrity of the update path.
+- **CLOSED 2026-07-19, Sprint 1 slice 4 (access) + slice 5 (proof).** `api/update-install.php` is
+  mapped `updates.manage` (owner-only). Pinned by
+  `NamedEscalationsTest::testS03NonOwnersCannotTriggerACoreUpdateInstall`, with the owner's
+  allow-path asserted alongside so the test cannot pass by the endpoint simply being unreachable.
 
 ### S-04 — The capability matrix is dead code, and duplicated divergently — **HIGH**
 - **Where:** `installer/core/user-manager.php:592` (`hasPermission()`, never called from anywhere)
@@ -121,6 +163,12 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **What:** CSRF only, no `assets.manage` gate (matrix: owner/admin/editor). A `viewer` can upload
   files.
 - **Fails:** web-app profile — authorization on upload endpoints.
+- **CLOSED 2026-07-19, Sprint 1 slice 4 (access) + slice 5 (proof).** `api/media-upload.php` is
+  mapped `assets.manage` (owner/admin/editor). Pinned by
+  `NamedEscalationsTest::testS05ViewerCannotUploadMediaButEditorCan`. The positive half is unusually
+  load-bearing here, and the test name says so deliberately: the boundary is between **editor and
+  viewer**, not around the owner, so a gate that refused everyone would satisfy the refusal
+  assertion while silently breaking uploads for the three roles that are supposed to have them.
 
 ### S-06 — Ungated write endpoints — **MEDIUM**
 - **Where:** `installer/admin/api/autosave.php`, `notices.php`, `sidebar-order.php`, `tasks.php`
@@ -132,6 +180,26 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   at `:42`, checks 2FA at `:48` but **never** `terminal.access`). Also noted: `post-lock.php:67`
   gates only the lock-*takeover* branch, leaving the file's other actions ungated, and `ai-chat.php`
   has no top-level gate — `site.configure` is checked per-action at `:248`, `:272`, `:282`, `:298`.
+- **CLOSED 2026-07-19, Sprint 1 slice 4 (access) + slice 5 (the residue the gate could not reach).**
+  All six named endpoints are mapped: `autosave`/`inline-edit`/`post-lock` → `pages.edit`, `tasks` →
+  `tasks.create`, `terminal-revalidate` → `terminal.access`. `notices` and `sidebar-order` are mapped
+  `ui.preferences`, which **every** role holds, and that is deliberate rather than an omission: they
+  carry per-user interface state, and gating them at a content tier would stop a viewer dismissing
+  its own notice. Both are asserted as *reachable*, so a later "tightening" that breaks them fails a
+  test instead of a user.
+- **A live residue survived slice 4 and was closed in slice 5, and it is the part worth remembering:**
+  `admin/api/tasks.php` is mapped at the same `tasks.create` floor as its page twin, but — unlike the
+  page (`admin/tasks.php:38`) — it never re-gated `update` and `complete` at `tasks.manage`. So an
+  editor was **refused task completion through the interface and allowed it through the endpoint that
+  interface calls.** The gate map cannot detect this, because both files legitimately sit at the same
+  floor; only reading the two surfaces side by side does. Fixed by adding
+  `klytos_require_permission( 'tasks.manage' )` to both branches, before any state change. Pinned by
+  `NamedEscalationsTest::testS06TaskApiRegatesManageActionsLikeItsPage`, **proven to fail first** —
+  it returned **500**, not 403, which is itself the proof: the handler had executed and thrown on a
+  non-existent task id, so the authorization branch was never consulted.
+- **General rule this produced,** now recorded in `docs/reference/authorization.md`: when a page and
+  an API expose the same operation, they express the same capability model or the model is enforced
+  in only one of them.
 
 ### S-07 — Permission-gate coverage is ~30% — **HIGH (systemic)**
 - **Where:** `klytos_has_permission` appears in 13 of 42 admin pages and 11 of 24 API endpoints.
@@ -235,6 +303,27 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **What it exports (`:72-85`):** the admin identity **RSA private key**, fingerprint and
   `admin_user`, decrypted from `config/admin-identity.priv.enc`. The highest-value secret in the
   system.
+- **CLOSED 2026-07-19, Sprint 1 slice 5** (the capability half was already refuted at re-validation
+  and re-closed properly by slice 4's gate map, which maps this endpoint to owner-only
+  `users.manage`). Both remaining halves are fixed:
+  - **The state-changing GET.** `api/download-identity.php` now requires **POST** (405 with
+    `Allow: POST` otherwise). The fix had to be structural rather than local: `admin/security.php`
+    gated on `users.manage` and then **302-redirected** to the endpoint, and a browser follows a 302
+    with a GET — so the redirect *was* the defect, and it was the normal path, not an edge case. A
+    redirect cannot carry a POST, so the form was retargeted to POST straight at the endpoint and the
+    `request_identity_download` branch was removed (per L-007, with its remaining exit condition
+    stated: a stale cached page would now fall through to a harmless re-render instead of being
+    redirected to a guaranteed 405).
+  - **The missing CSRF.** `klytos_verify_csrf()` is now called, after the method check and before any
+    secret is read or any state written.
+  - Pinned by `NamedEscalationsTest::testS12IdentityExportRefusesAStateChangingGet` and
+    `::testS12IdentityExportRequiresCsrf`, both **proven to fail** against the unfixed code (200
+    where 405 and 403 were required), plus `::testS12IdentityExportIsOwnerOnlyAndDoesNotFatal`
+    carried over from slice 4, still asserting on the response **BODY** per L-009.
+  - **Independent confirmation nobody had to write:** the repaired config-mutation guard (D-039)
+    fired on both new tests against the unfixed code — because the GET genuinely did write
+    `identity_last_downloaded_at` and `identity_download_count` — and went quiet once the fix landed.
+  - Decision: **D-040**. The three protections the docblock had falsely claimed are now **NEW-13**.
 - **Documentation defect in the same file (L-002 class):** the header block at `:9-13` claims
   re-authentication with the current password, 2FA verification, and an email notification to the
   admin. **None of the three is implemented.** A reviewer trusting the docblock concludes the
@@ -621,6 +710,63 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Not fixed here, still open:** the file's docblock claims re-authentication with the current
   password, 2FA verification and an email notification, none of which exist. That is the S-12 class
   of defect (a docblock asserting protections the code does not implement) and belongs to slice 5.
+  **Resolved in slice 5 by correcting the docblock; the missing protections themselves are now
+  tracked as NEW-13 below.**
+
+### NEW-13 — The identity export has no re-authentication, no 2FA check and no owner notification — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 5)*
+- **Where:** `installer/admin/api/download-identity.php`
+- **What:** the endpoint exports the site's RSA **private key**, and the only things standing in
+  front of it are the session (authentication, from `admin/bootstrap.php`), the gate map's owner-only
+  `users.manage`, a POST + CSRF check (both added in slice 5), and a 1-per-24-hours rate limit.
+  Its docblock claimed three further protections — re-authentication with the current password, 2FA
+  verification, and an email notification to the owner. **None of the three is implemented.**
+- **Fails:** web-app profile — step-up authentication for a high-value secret export; absence of an
+  out-of-band signal on a security-critical action.
+- **What this actually means, stated plainly:** a stolen or hijacked owner **session** is sufficient
+  to exfiltrate the site's private key. The password is never re-checked, so an attacker who obtains
+  a session (XSS, a borrowed unlocked machine, a stolen session cookie) does not need the password
+  at all — and nothing notifies the owner that it happened. The audit-log entry exists
+  (`writeAlways`, so it survives Developer Mode being off), but a log nobody is told to read is a
+  forensic record, not a control.
+- **Why it is NOT fixed in slice 5 (user decision, D-040):** re-authentication and 2FA verification
+  are the authentication subsystem, not the authorization one this sprint is about, and an email
+  notification adds a mail dependency with its own failure modes. That is a second subsystem with
+  its own test point inside a slice already carrying six findings — the tangling refused by D-025,
+  D-026, D-029 and narrowed by D-031.
+- **Trigger:** the authentication slice that also owns **NEW-09** (passkey second factor) and
+  **NEW-11** (`Auth::login()` never consults `UserManager`). That slice is already opening the
+  password-verification and 2FA plumbing all three need, so the marginal cost there is small and the
+  marginal cost here would be the whole of it.
+- **Guard against silent regression:** the docblock now states what the code actually does and names
+  what it does not, so the L-002 failure mode (a doc asserting a property the code lacks) cannot
+  quietly return. Re-adding the claims without the code is a review-blocking change.
+
+### NEW-14 — No admin API endpoint sends security headers — **MEDIUM (systemic)** *(found 2026-07-19, Sprint 1 slice 5, by the `security-auditor` pass)*
+- **Where:** all **24** files in `installer/admin/api/`
+- **What:** `Auth::sendSecurityHeaders()` (`installer/core/auth.php:779`) has exactly **six** call sites
+  repo-wide — `installer/index.php:91`, `core/mcp/oauth-authorize-view.php:142`,
+  `admin/reset-password.php:27`, `admin/setup-wizard.php:48`, `admin/templates/header.php:20`, and
+  the definition itself. Every admin PAGE gets them, because they all include `templates/header.php`.
+  **No admin API endpoint does** — verified by counting, not by sampling: `grep -l` over
+  `installer/admin/api/*.php` returns **0 of 24**.
+- **Fails:** web-app profile — security headers on every response, not only on HTML pages.
+- **Severity reasoning, stated honestly rather than inflated:** these endpoints return JSON to
+  same-origin XHR, so the headers that matter most for them are a narrower set than for a page —
+  `X-Content-Type-Options: nosniff` above all, plus `Referrer-Policy` and, once S-11 lands,
+  `Strict-Transport-Security`. CSP matters less on a JSON response that is never rendered as a
+  document. It is still a real gap: `nosniff` is precisely what stops a browser being talked into
+  treating a JSON body as something executable, and several of these endpoints reflect
+  caller-supplied values into their responses.
+- **Relationship to existing findings:** distinct from **S-11**, which is about a missing HSTS
+  directive *inside* `sendSecurityHeaders()`. This is about the function never being **called** on 24
+  surfaces. Fixing S-11 alone would improve headers on pages and change nothing here — which is
+  exactly why it is recorded separately instead of folded in.
+- **Not fixed in slice 5:** unrelated to the six escalations this slice owns, and it is a 24-file
+  change that wants one shared entry point rather than 24 remembered calls — the same shape as S-07,
+  and the same answer (a single enforcement point, most likely in `admin/bootstrap.php` beside the
+  gate, so a new endpoint cannot forget).
+- **Trigger:** **slice 8** (`HSTS + CSP fail-open + hardening`), which is already opening
+  `sendSecurityHeaders()` for S-11 and is the natural home.
 
 ## A — Accessibility (target: WCAG 2.2 AA + EAA, `references/accessibility.md`)
 

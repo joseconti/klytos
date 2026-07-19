@@ -148,3 +148,43 @@
   started. Related to L-006 (a crash fix that nearly introduced a crash) and L-007 (unreachable code
   is evidence): all three come from the same root — reasoning about code paths that have never
   actually executed.
+
+## L-010 — A guard written to "fail loudly" was inert for two slices, and its own docblock argued for it
+- Problem: `PlaygroundState::assertConfigNotMutated()` (D-030) existed to fail a test that mutated
+  core config under a booted App — the acknowledged hole in the isolation primitive, the part that
+  refuses to pretend a file restore can refresh `App::$config`. It could not fail. It runs after
+  `restorePlayground()`, and it re-read the config file *live*, so it compared the restored file
+  against the snapshot it had just been restored from. Every run was snapshot-against-itself.
+  Slices 3 and 4 were both signed off with this guard as part of the evidence.
+- Where: `tests/PlaygroundState.php` — `assertConfigNotMutated()` vs `restorePlayground()`, and
+  `tests/IntegrationTestCase.php:104-105`, which calls them in that order.
+- What failed: the ordering was reasoned about carefully and the reasoning was *recorded* — D-030
+  states "Restore runs before the config assertion, so the playground is left correct even when the
+  assertion fails." That sentence is true and it is a good property. What nobody asked is what the
+  assertion would be *reading* by then. The docblock, the decision entry and the failure message
+  were all written from the intent, and the intent was sound; only the data flow was wrong, and
+  nothing in the code looks wrong locally. A well-argued rationale next to a broken mechanism is
+  harder to catch than a bare mistake, because it answers the question you were about to ask.
+- How it was found: not by reading. By needing it — slice 5's S-12 tests hit an endpoint that writes
+  config, and the question "will the guard catch that?" was settled with a probe instead of an
+  opinion. The probe wrote a marker key into core config and passed green.
+- Second defect the repair uncovered, in the L-009 shape: once the guard could fail, it failed **ten
+  healthy tests**. The comparison was a hash of the *encrypted* file, and (a) re-encrypting identical
+  content yields different ciphertext, so it could not tell "changed" from "written again"; (b)
+  `ActionScheduler::setConfigValue()` writes `scheduler_last_run` on every `App::boot()`, and the
+  HTTP tests boot a server per request. The first repair was correct and unusable — a permanently
+  red suite trains people to ignore it, which is how a guard goes inert the second time.
+- Working solution: capture the bytes BEFORE the restore overwrites them, and compare **decrypted**
+  content with a documented volatile-key allowlist. Undecryptable input falls back to comparing raw
+  bytes, so "I cannot read this" counts as a difference rather than as "nothing changed". Pinned
+  permanently by `tests/Integration/PlaygroundGuardTest.php`, which asserts both halves — a real
+  mutation trips it, a heartbeat-only change does not.
+- Rule for next time: **a guard is not delivered until it has been observed FAILING on the thing it
+  exists to catch — and observed passing on the benign case that most resembles it.** One direction
+  is half a test. This project already applies that discipline to product fixes (slice 2's drift
+  guard, slice 3's migration test, slice 4's removed gate); the lesson is that **test infrastructure
+  needs it more, not less**, because a broken product fix fails visibly while a broken check just
+  goes quiet and lends its credibility to everything downstream. Concretely: when writing an
+  assertion that runs in teardown, state which observation it reads and at what moment that
+  observation was taken — and if any cleanup runs in between, assume the evidence is gone until
+  proven otherwise.

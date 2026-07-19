@@ -72,6 +72,16 @@ try {
             Helpers::jsonResponse(['success' => true, 'task' => $task]);
 
         } elseif ($action === 'update') {
+            // The gate map puts this file at 'tasks.create' (owner/admin/editor)
+            // so an editor can raise a task, but updating or completing SOMEBODY
+            // ELSE'S task is 'tasks.manage' (owner/admin). The page already drew
+            // that line (admin/tasks.php:38); this endpoint did not, so an editor
+            // was refused through the UI and allowed through the API twin —
+            // audit S-06, closed in slice 5. A page-level capability is a floor,
+            // not a ceiling, and an API twin has to re-gate the same branches its
+            // page does or the model is enforced in only one of them.
+            klytos_require_permission( 'tasks.manage' );
+
             $taskId = $input['task_id'] ?? '';
             if (empty($taskId)) {
                 Helpers::jsonResponse(['error' => 'task_id is required'], 400);
@@ -80,6 +90,8 @@ try {
             Helpers::jsonResponse(['success' => true, 'task' => $task]);
 
         } elseif ($action === 'complete') {
+            klytos_require_permission( 'tasks.manage' );
+
             $taskId = $input['task_id'] ?? '';
             if (empty($taskId)) {
                 Helpers::jsonResponse(['error' => 'task_id is required'], 400);
