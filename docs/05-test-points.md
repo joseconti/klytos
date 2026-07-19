@@ -920,6 +920,8 @@ Findings acted on from the two reviews, each verified against source first:
 After the cycle: **107 tests / 472 assertions**, `keel-verify` 2/2, upgrade passing, 0 lint errors on
 every touched file, plugins baseline **131 → 113**.
 
+Commit: **478657a**.
+
 Suite 60 → **95 tests**, 336 → **445 assertions** at first pass, **107 / 472** after review. The six lint errors removed from
 `integrity-checker.php` and the two from `ImportValidator.php` were pre-existing PSR-12 violations,
 fixed under D-025's opportunistic rule because the slice was already editing both files.
