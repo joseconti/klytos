@@ -7,15 +7,15 @@
 ## Summary
 | Kind | Count |
 |------|-------|
-| Global helper functions | 144 |
-| Classes and interfaces | 96 |
-| Actions | 302 |
-| Filters | 111 |
+| Global helper functions | 145 |
+| Classes and interfaces | 97 |
+| Actions | 304 |
+| Filters | 113 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **938** |
+| **Total** | **944** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -131,6 +131,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_remove_all_filters() | function | installer/core/helpers-global.php | — | Unbind every callback from a filter hook, including other plugins' |
 | klytos_remove_filter() | function | installer/core/helpers-global.php | — | Unbind one specific callback from a filter hook |
 | klytos_render_form() | function | installer/plugins/klytos-forms/klytos-forms.php | — | Render a Klytos Forms form to HTML by its ID |
+| klytos_safe_http() | function | installer/core/helpers-global.php | docs/reference/safe-http.md | Return the SafeHttp fetcher for URLs an untrusted party influenced |
 | klytos_sanitize_email() | function | installer/core/helpers-security.php | — | Clean an email address, yielding an empty string when it is invalid |
 | klytos_sanitize_filename() | function | installer/core/helpers-security.php | — | Strip directory parts and unsafe characters from a filename before writing it |
 | klytos_sanitize_float() | function | installer/core/helpers-security.php | — | Coerce an arbitrary input value into a float |
@@ -229,6 +230,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\ProfilingStorage` | class | installer/core/profiling-storage.php | — | Storage decorator that records the timing of every storage operation |
 | `Klytos\Core\RouteManager` | class | installer/core/route-manager.php | — | Registry matching custom routes contributed by core and plugins |
 | `Klytos\Core\Router` | class | installer/core/router.php | — | Dispatches an incoming HTTP request to the matching handler |
+| `Klytos\Core\SafeHttp` | class | installer/core/safe-http.php | docs/reference/safe-http.md | Fetches user- and AI-influenced URLs, refusing private addresses and re-validating every redirect hop |
 | `Klytos\Core\ShortcodeManager` | class | installer/core/shortcode-manager.php | — | Registers shortcodes and expands them when processing content |
 | `Klytos\Core\SiteConfig` | class | installer/core/site-config.php | — | Reads and writes global site configuration values |
 | `Klytos\Core\SiteHealthManager` | class | installer/core/site-health-manager.php | — | Runs the site health checks and reports their results |
@@ -441,6 +443,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | form.notification_sent | action | installer/plugins/klytos-forms/src/FormManager.php | — | Emitted per notification dispatch attempt; gets notification, entry and success flag |
 | http.after_request | action | installer/core/http-client.php | — | Emitted when an outbound HTTP call returns; gets result, method, URL and duration in ms |
 | http.error | action | installer/core/http-client.php | — | Emitted when an outbound HTTP call fails; receives the error message, method and URL |
+| http.safe.blocked | action | installer/core/safe-http.php | docs/reference/safe-http.md | Fires when SafeHttp refuses an outbound request; audit hook, cannot reverse the decision |
+| http.safe.redirect | action | installer/core/safe-http.php | docs/reference/safe-http.md | Fires for each redirect hop before it is validated and followed |
 | importer.after_analyze | action | installer/plugins/klytos-importer/klytos-importer.php | — | Emitted when a sitemap or crawl scan finishes; gets the source kind and analysis result |
 | importer.after_fetch | action | installer/plugins/klytos-importer/klytos-importer.php | — | Emitted after a source URL is downloaded; receives the URL and the HTTP response |
 | importer.after_import | action | installer/plugins/klytos-importer/klytos-importer.php | — | Emitted when an import batch completes; receives the session ID and the results array |
@@ -639,6 +643,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | form.after_validate | filter | installer/plugins/klytos-forms/src/FormManager.php | — | Filters form validation errors after core validation so plugins can add errors |
 | form.before_render | filter | installer/plugins/klytos-forms/src/FormRenderer.php | — | Filters the form definition before it is rendered |
 | http.before_request | filter | installer/core/http-client.php | — | Filters the method, URL and options tuple before an outgoing HTTP request |
+| http.safe.allowed_schemes | filter | installer/core/safe-http.php | docs/reference/safe-http.md | Filters the URL schemes SafeHttp will fetch; CAN weaken a security control |
+| http.safe.max_redirects | filter | installer/core/safe-http.php | docs/reference/safe-http.md | Filters how many redirect hops SafeHttp will follow |
 | importer.page_data | filter | installer/plugins/klytos-importer/klytos-importer.php | — | Filters imported page HTML content before the page is created |
 | importer.session_columns | filter | installer/plugins/klytos-importer/admin/import.php | — | Filters the columns of the importer sessions table in the admin UI |
 | kses_post_allowed_tags | filter | installer/core/helpers.php | — | Filters the allowed HTML tag/attribute list used by the KSES post sanitizer |

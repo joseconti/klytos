@@ -113,6 +113,29 @@ class WebhookManager
             throw new \InvalidArgumentException('Invalid webhook URL.');
         }
 
+        // This URL arrives from the MCP tool klytos_create_webhook, so it is
+        // AI-controlled — and every delivery afterwards is an outbound POST the
+        // server makes on a schedule. FILTER_VALIDATE_URL alone accepted
+        // http://127.0.0.1/ and http://169.254.169.254/, which made a webhook a
+        // durable SSRF: subscribe once, receive the host's own internal
+        // responses on every event. Refused at creation so the bad URL is never
+        // stored, and re-checked at delivery (sendHttpPost) because a host that
+        // resolves publicly today can resolve privately tomorrow.
+        // The SAME message as the malformed case above, deliberately. A
+        // distinct "that address is private" reply would be an internal-network
+        // oracle, and this one is worse than the oEmbed case it would have
+        // mirrored: create() is reachable from the MCP tool
+        // klytos_create_webhook, which per NEW-02/D-020 has NO permission check
+        // until Sprint 2, and admin/webhooks.php echoes getMessage() straight
+        // into the page. So any app-password holder of any role could submit
+        // candidate hosts and learn, one per request, which ones exist inside
+        // the network. Collapsing both refusals into one message costs a little
+        // diagnostic precision and removes the scanner; the specific reason is
+        // in the error log, where the operator can see it and the caller cannot.
+        if (!klytos_safe_http()->isAllowed($url)) {
+            throw new \InvalidArgumentException('Invalid webhook URL.');
+        }
+
         if (empty($events) || !is_array($events)) {
             throw new \InvalidArgumentException('At least one event is required.');
         }
@@ -156,10 +179,26 @@ class WebhookManager
      * @param  string $webhookId Webhook ID.
      * @param  array  $data      Fields to update: url, events, description, status.
      * @return array  Updated webhook.
+     * @throws \InvalidArgumentException When a supplied url is malformed or not allowed by SafeHttp.
      */
     public function update(string $webhookId, array $data): array
     {
         $webhook = $this->storage->read(self::COLLECTION, $webhookId);
+
+        // update() accepts a new url just as create() does, so it gets the same
+        // check. It has no caller today — no admin form and no MCP tool reach
+        // it (verified by grep) — which is precisely why it is worth closing
+        // now: an unvalidated write path that nothing currently calls is the
+        // "next call site nobody remembered" this class was written to end, and
+        // it would be found by whoever adds the first caller, or by nobody.
+        // Same generic message as create(), for the same anti-oracle reason.
+        if (array_key_exists('url', $data)) {
+            $url = trim((string) $data['url']);
+
+            if (!filter_var($url, FILTER_VALIDATE_URL) || !klytos_safe_http()->isAllowed($url)) {
+                throw new \InvalidArgumentException('Invalid webhook URL.');
+            }
+        }
 
         $updatable = ['url', 'events', 'description', 'status'];
         foreach ($updatable as $field) {
@@ -343,40 +382,36 @@ class WebhookManager
      */
     private function sendHttpPost(string $url, string $payload, string $signature): int
     {
-        $ch = curl_init($url);
-
-        if ($ch === false) {
-            throw new \RuntimeException('Failed to initialize cURL.');
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => self::HTTP_TIMEOUT,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_HTTPHEADER     => [
-                'Content-Type: application/json',
-                'X-Klytos-Signature: ' . $signature,
-                'X-Klytos-Event: webhook',
-                'User-Agent: Klytos-Webhook/2.0',
+        // Re-validated at delivery, not only at create(): a subscription is
+        // long-lived, so a host that resolved publicly when it was stored can
+        // resolve to a private address by the time an event fires. The old
+        // "follow redirects cautiously" comment described MAXREDIRS 3 — a hop
+        // LIMIT, not a hop CHECK, so the target could still bounce the delivery
+        // into the internal network. SafeHttp validates each hop.
+        $result = klytos_safe_http()->fetch(
+            $url,
+            [
+                'timeout' => self::HTTP_TIMEOUT,
+                'body'    => $payload,
+                'headers' => [
+                    'Content-Type'       => 'application/json',
+                    'X-Klytos-Signature' => $signature,
+                    'X-Klytos-Event'     => 'webhook',
+                    'User-Agent'         => 'Klytos-Webhook/2.0',
+                ],
             ],
-            // Security: follow redirects cautiously.
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 3,
-        ]);
+            'POST'
+        );
 
-        $response = curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error    = curl_error($ch);
-
-        curl_close($ch);
-
-        if (!empty($error)) {
-            throw new \RuntimeException("cURL error: {$error}");
+        if ($result['blocked'] !== null) {
+            throw new \RuntimeException("Webhook target refused: {$result['blocked']}");
         }
 
-        return $httpCode;
+        if ($result['error'] !== null) {
+            throw new \RuntimeException("HTTP error: {$result['error']}");
+        }
+
+        return $result['status'];
     }
 
     /**

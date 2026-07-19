@@ -9,7 +9,7 @@
  * @package KlytosImporter
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace KlytosImporter;
 
@@ -55,42 +55,31 @@ class ImportValidator
      */
     public static function validateUrl( string $url ): bool
     {
-        $parsed = parse_url( $url );
-
-        if ( $parsed === false || empty( $parsed['scheme'] ) || empty( $parsed['host'] ) ) {
-            return false;
-        }
-
-        // Only HTTP and HTTPS allowed.
-        if ( !in_array( strtolower( $parsed['scheme'] ), ['http', 'https'], true ) ) {
-            return false;
-        }
-
-        $host = $parsed['host'];
-
-        // Resolve hostname to check for private IPs.
-        $ips = gethostbynamel( $host );
-        if ( $ips === false ) {
-            return false; // DNS resolution failed.
-        }
-
-        foreach ( $ips as $ip ) {
-            if ( self::isPrivateIp( $ip ) ) {
-                return false;
-            }
-        }
-
-        return true;
+        // This method WAS the product's only working SSRF control, and it was
+        // reachable only from this plugin while six core call sites fetched
+        // user- and AI-influenced URLs behind nothing but FILTER_VALIDATE_URL.
+        // Sprint 1 slice 6 promoted the logic into Klytos\Core\SafeHttp and
+        // applied it at those call sites; this method now delegates so there is
+        // ONE implementation rather than a core copy and a plugin copy free to
+        // drift apart. Behaviour is unchanged for existing callers — the same
+        // scheme allow-list, the same resolve-then-classify, the same fail-
+        // closed answer on a host that will not resolve.
+        //
+        // It also gains something the old body did not have: SafeHttp refuses
+        // http://[::1]/ as the loopback address it is, rather than mis-refusing
+        // it as unresolvable because parse_url() leaves the brackets on.
+        return klytos_safe_http()->isAllowed( $url );
     }
 
     /**
      * Check if an IP address is private, reserved, or loopback.
+     *
+     * Retained as a public surface for backward compatibility; the
+     * classification itself now lives in SafeHttp (see validateUrl above).
      */
     public static function isPrivateIp( string $ip ): bool
     {
-        // FILTER_VALIDATE_IP with private/reserved flags.
-        $flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
-        return filter_var( $ip, FILTER_VALIDATE_IP, $flags ) === false;
+        return \Klytos\Core\SafeHttp::isReservedAddress( $ip );
     }
 
     /**

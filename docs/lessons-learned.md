@@ -188,3 +188,113 @@
   assertion that runs in teardown, state which observation it reads and at what moment that
   observation was taken — and if any cleanup runs in between, assume the evidence is gone until
   proven otherwise.
+
+## L-011 — The verification tested a stranger's server for three checks, and reported it as findings
+- Problem: the session-start freshness check ran `docs/playground.md`'s documented commands verbatim.
+  Port 8080 was already held by a Docker container from an unrelated project, so `php -S` could not
+  bind — and because the command had been backgrounded, that failure was invisible. Every subsequent
+  `curl` reached the squatter. The check duly recorded that the admin panel answered `302` (right,
+  by luck), that the MCP endpoint answered `302` where `docs/playground.md` documents `401`, and that
+  it exposed 200 tools rather than 177. Two of those three read as a **regression in the slice-4
+  authorization gate** — the most alarming thing the project could find at that moment — and all
+  three were an unrelated Apache.
+- Where: `docs/playground.md` "Start"; the session-start freshness step of Phase 5 §4.
+- What failed: the documented start command has no way to fail loudly. `php -S` prints its bind error
+  and exits, which is fine in the foreground and silent when backgrounded — and the document
+  backgrounds it in every example that then runs `curl`. Nothing distinguishes "the playground is
+  serving this" from "something else is".
+- How it was caught, and the tell is worth memorising: `curl -D -` showed `Server: Apache/2.4.54
+  (Debian)`. **PHP's built-in server never sends a `Server` header of that shape.** One header
+  settled in seconds what would otherwise have become an investigation into a gate that was fine.
+- The uncomfortable part: the test harness had already solved this. `AdminHttpTestCase` refuses to
+  run when its port is taken, and its comment says why — "the whole class would silently test a
+  process with a different session save path… it happened once." That guard was written in slice 4,
+  for exactly this failure, and it was never carried across to the human-facing document. The
+  automated path was hardened and the manual path was left as it was.
+- Working solution: `docs/playground.md` gained a bind check as step 2 (`nc -z 127.0.0.1 8080 && echo
+  "PORT IS TAKEN"`), plus the diagnostic note above, so the next session cannot lose the same time.
+- Rule for next time: **when a guard is added to the automated harness, ask what the human-facing
+  document does in the same situation** — a defect that can waste a session through the docs is a
+  defect, and "the tests catch it" is not an answer when the docs are what a person follows. And
+  concretely: when a result surprises you, `curl -D -` before believing it. This is L-008's rule
+  ("suspect the harness before the product") applied one layer out — the harness is not only the test
+  suite, it is also the environment the commands actually reached.
+
+## L-012 — A test tier reset its hooks and its sibling did not, and it took a year of slices to notice
+- Problem: `UnitTestCase` calls `Hooks::reset()` before and after every test. `IntegrationTestCase`
+  called it **never**. `Hooks` is static and `App::boot()` runs once per process (D-030), so any
+  listener an integration test registered stayed registered for every test that ran after it.
+- Where: `tests/IntegrationTestCase.php` vs `tests/UnitTestCase.php:62,67`.
+- Why it survived five slices: **no integration test had ever registered a hook.** The tier was built
+  in slice 1 and used hard by slices 3, 4 and 5, and none of those tests needed a filter, so the
+  missing reset had nothing to leak and looked exactly like a tier that did not need one. Slice 6 is
+  the first — a test that filters `http.safe.allowed_schemes` to permit `ftp://` — and it was
+  immediately leaking that permission into every test that followed it in the same process.
+- How it was caught: not by reading the base class. By reading the tier's own **log output** and
+  noticing that a later test refused a URL for the reason `too_many_redirects` where
+  `private_or_reserved_address` was expected. The refusal was still correct; the *reason* was not,
+  and the reason is exactly what these tests assert on. A test that had only asserted "was it
+  refused?" would have stayed green and told nobody. **Asserting the reason, not just the outcome, is
+  what surfaced this** — the same instinct that made SafeHttp return a REASON_* constant rather than
+  a bool.
+- Nothing was passing for the wrong reason yet, and that is the point rather than a reassurance: the
+  affected assertions still held by luck. The next weakening filter registered in this tier would
+  have leaked into everything downstream and looked like a green suite. That is L-010's failure mode
+  arriving again, one slice after L-010 was written — which says the lesson generalises further than
+  the one method it was written about.
+- Working solution: the tier records the post-boot hook registry as a baseline and fails any test
+  that hands it back larger, with a message naming the hook and pointing at the
+  `addTemporaryFilter()` / `addTemporaryAction()` helpers that clean up by callback identity (D-042).
+  A blanket `Hooks::reset()` was rejected: it would strip the App's own hooks from every test after
+  the first. Proven in BOTH directions with a throwaway probe before being trusted — a leaking test
+  failed with the intended message, a helper-using test passed in the same run — then the probe was
+  deleted.
+- Rule for next time: **when two test tiers share a static subsystem, the isolation each one performs
+  is part of its contract — compare them explicitly rather than assuming the newer one inherited the
+  older one's care.** More sharply: an isolation primitive covers what its author thought of, and
+  D-030 thought about storage. Hooks are also global, also static, also mutable, and were simply not
+  on the list. When adding isolation, enumerate every *global* the tier touches, not just the one
+  that prompted the work.
+
+## L-013 — The reviewer said "very likely already handled"; testing found a live bypass in the control I had just shipped
+- Problem: `SafeHttp::isReservedAddress()` classified addresses with
+  `filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE )` —
+  promoted verbatim from `ImportValidator::isPrivateIp()`, the product's only working SSRF control,
+  and verified against a table of a dozen addresses that all classified correctly. It does **not**
+  understand IPv4-mapped IPv6. `::ffff:127.0.0.1`, `::ffff:169.254.169.254`, `::ffff:10.0.0.1` and
+  `::ffff:192.168.1.1` all passed as **public**. `http://[::ffff:127.0.0.1]/` was allowed by
+  `blockReason()`, and a live request confirmed it: **HTTP 200, body returned, `remote_ip
+  ::ffff:127.0.0.1`.** Every private address has such a spelling, so the entire class was one
+  notation away from being bypassable — in the slice written to close SSRF.
+- Where: `installer/core/safe-http.php` — `isReservedAddress()`, now preceded by `normalizeAddress()`.
+- How it was nearly missed, which is the whole lesson: the `security-auditor` pass raised this exact
+  case and then reasoned its way past it — *"`FILTER_FLAG_NO_RES_RANGE` is documented to have
+  explicit handling for IPv4-mapped IPv6, so `::ffff:127.0.0.1` is very likely already handled
+  correctly."* That sentence is plausible, cites the documentation, and is wrong. It was also the
+  only finding in either review marked as unverifiable, because that subagent had no shell. Had the
+  claim been accepted at face value — and it was the *reassuring* half of a finding whose other half
+  was being acted on — the bypass would have shipped with a note in the audit saying it had been
+  considered.
+- What actually found it: running the encodings. Seven candidate spellings through `blockReason()`,
+  one line each. Six were refused; one printed `*** ALLOWED ***`. Then a second command confirmed it
+  was not merely a classification quirk but a real fetch, against a real local server, returning a
+  real body. Total cost: about two minutes.
+- The adjacent finding, same root: the code reviewer noted `gethostbynamel()` reads **A records
+  only** while the transport is dual-stack, so a host publishing a public A and a private AAAA
+  passes. That one needs no exotic notation at all — just two DNS records. Both are the same defect:
+  the classifier was reasoned about in terms of the *flags it passes* rather than the *inputs it
+  will actually receive*.
+- Working solution: normalize IPv4-mapped and IPv4-compatible IPv6 to dotted-quad **before**
+  classifying, working on the packed bytes from `inet_pton()` so every spelling of one address
+  (`::ffff:127.0.0.1` and `::ffff:7f00:1`) normalizes identically; and resolve AAAA alongside A so
+  both families are checked. Both pinned by named rows in `tests/Unit/SafeHttpTest.php`, together
+  with a public-IPv6 row asserting the fix did not over-correct into "refuses IPv6".
+- Rule for next time: **a security predicate is not verified by reading its flags or its
+  documentation — only by feeding it the encodings an attacker would actually use.** Concretely,
+  before trusting any address or URL check, run it against the alternative notations as a table:
+  IPv4-mapped and IPv4-compatible IPv6, octal/decimal/hex integer forms, short forms, userinfo
+  disguises, trailing dots. It is minutes of work and it is the difference between a control and the
+  appearance of one. And on review findings specifically: **a reviewer's reassurance is a hypothesis,
+  exactly like a reviewer's accusation.** This project already knows to verify accusations before
+  acting on them (slice 5 refuted one); L-013 is the mirror — the *comforting* half of a review needs
+  the same treatment, and it is the half nobody thinks to check.

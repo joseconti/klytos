@@ -16,7 +16,18 @@ header( 'Content-Type: application/json; charset=utf-8' );
 
 $url = $_GET['url'] ?? '';
 
-if ( ! $url || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+// S-08: filter_var( FILTER_VALIDATE_URL ) was the ONLY check here, and it
+// accepts http://127.0.0.1:6379/, http://169.254.169.254/latest/meta-data/ and
+// http://[::1]/ without complaint — so an authenticated editor could point this
+// proxy at anything the server could reach. SafeHttp refuses loopback, private,
+// link-local and reserved addresses and non-HTTP(S) schemes, and re-validates
+// every redirect hop rather than trusting the transport to stop.
+//
+// The refusal deliberately reuses the SAME generic 400 as a malformed URL. A
+// distinct "that host is private" reply would turn this endpoint into an
+// internal-network scanner that answers one address per request; the specific
+// reason goes to the error log instead.
+if ( ! $url || ! filter_var( $url, FILTER_VALIDATE_URL ) || ! klytos_safe_http()->isAllowed( $url ) ) {
     http_response_code( 400 );
     echo json_encode( [ 'error' => 'Invalid URL' ] );
     exit;
@@ -164,61 +175,46 @@ echo json_encode( $data );
 
 
 /**
- * Fetch a URL using cURL (preferred) or file_get_contents as fallback.
+ * Fetch a URL through SafeHttp.
+ *
+ * Every fetch this file makes goes through here, and that is load-bearing
+ * rather than tidy: the DISCOVERED endpoint is attacker-controlled too. When no
+ * hardcoded provider pattern matches, discoverOembed() reads an
+ * <link type="application/json+oembed" href="..."> out of the fetched page and
+ * hands it straight back to be fetched by the `fetchUrl( $requestUrl )` call
+ * below the provider lookup — and unlike the page fetch, that response IS
+ * echoed to the caller. Validating only the URL the caller supplied would leave
+ * that second, fully arbitrary fetch wide open.
+ *
+ * The hand-rolled cURL and file_get_contents transports this replaced followed
+ * redirects with no per-hop validation (CURLOPT_FOLLOWLOCATION with
+ * MAXREDIRS 5, and PHP's http wrapper following up to 20 by default), so a
+ * public URL answering 302 -> http://169.254.169.254/ defeated any pre-flight
+ * check. SafeHttp walks the chain itself and re-validates every hop.
  *
  * @param  string $url
- * @return string|false Response body, or false on failure.
+ * @return string|false Response body, or false on failure or refusal.
  */
 function fetchUrl( string $url )
 {
-    // Prefer cURL — works on virtually all hosts, handles HTTPS properly.
-    if ( function_exists( 'curl_init' ) ) {
-        $ch = curl_init( $url );
-        curl_setopt_array( $ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_USERAGENT      => 'Klytos CMS/2.0',
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_HTTPHEADER     => [ 'Accept: application/json' ],
-        ] );
-
-        $response = curl_exec( $ch );
-        $httpCode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        $error    = curl_error( $ch );
-        curl_close( $ch );
-
-        if ( $response === false || $httpCode >= 400 ) {
-            error_log( "Klytos oEmbed: cURL failed for {$url} — HTTP {$httpCode}, error: {$error}" );
-            return false;
-        }
-
-        return $response;
-    }
-
-    // Fallback: file_get_contents with SSL context.
-    $context = stream_context_create( [
-        'http' => [
-            'timeout'       => 10,
-            'user_agent'    => 'Klytos CMS/2.0',
-            'ignore_errors' => true,
-            'header'        => 'Accept: application/json',
-        ],
-        'ssl' => [
-            'verify_peer'      => true,
-            'verify_peer_name' => true,
-        ],
+    $result = klytos_safe_http()->fetch( $url, [
+        'timeout' => 10,
+        'headers' => [ 'Accept' => 'application/json' ],
     ] );
 
-    $response = @file_get_contents( $url, false, $context );
-
-    if ( $response === false ) {
-        error_log( "Klytos oEmbed: file_get_contents failed for {$url}" );
+    // SafeHttp already logged the specific reason. Collapsing a refusal into
+    // the same false the caller returns for any other failure is deliberate —
+    // see the note at the top of this file about not answering as an oracle.
+    if ( $result['blocked'] !== null ) {
+        return false;
     }
 
-    return $response;
+    if ( $result['error'] !== null || $result['status'] >= 400 ) {
+        error_log( "Klytos oEmbed: fetch failed for {$url} — HTTP {$result['status']}" );
+        return false;
+    }
+
+    return $result['body'];
 }
 
 /**

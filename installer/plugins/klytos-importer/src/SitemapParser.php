@@ -10,7 +10,7 @@
  * @package KlytosImporter
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace KlytosImporter;
 
@@ -215,25 +215,19 @@ class SitemapParser
      */
     private function fetchXml( string $url ): ?\SimpleXMLElement
     {
-        $ch = curl_init();
-        curl_setopt_array( $ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_USERAGENT      => 'KlytosImporter/1.0',
-            CURLOPT_SSL_VERIFYPEER => true,
+        // Through SafeHttp: the caller validates the sitemap URL up front, but
+        // that check did not survive a redirect, and a sitemap is fetched
+        // repeatedly as the crawl walks nested <sitemapindex> entries.
+        $result = klytos_safe_http()->fetch( $url, [
+            'timeout' => 30,
+            'headers' => [ 'User-Agent' => 'KlytosImporter/1.0' ],
         ] );
 
-        $body = curl_exec( $ch );
-        $code = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        curl_close( $ch );
-
-        if ( $body === false || $code !== 200 ) {
+        if ( $result['blocked'] !== null || $result['error'] !== null || $result['status'] !== 200 ) {
             return null;
         }
+
+        $body = $result['body'];
 
         $prev = libxml_use_internal_errors( true );
         $xml  = simplexml_load_string( $body, 'SimpleXMLElement', LIBXML_NONET | LIBXML_NOENT );

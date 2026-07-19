@@ -32,9 +32,24 @@ No Docker, no MySQL, no Apache — flat-file storage and PHP's built-in server a
 # 1. Seed a fresh installation (once)
 php scripts/dev/seed-playground.php
 
-# 2. Serve it — 127.0.0.1 ONLY, never a routable interface
+# 2. Check nobody else already owns the port (see the warning below)
+nc -z 127.0.0.1 8080 && echo "PORT 8080 IS TAKEN — pick another or stop the squatter"
+
+# 3. Serve it — 127.0.0.1 ONLY, never a routable interface
 php -S 127.0.0.1:8080 -t . scripts/dev/router.php
 ```
+
+> **Always run step 2.** `php -S` fails to bind a busy port, prints its error and exits — and if you
+> backgrounded it, you will not see that. Every subsequent `curl` then reaches **whatever else is on
+> 8080**, and reads as a Klytos response. This is not hypothetical: on 2026-07-19 a Docker container
+> from an unrelated project held 8080, and the session-start verification recorded an MCP endpoint
+> answering `302` where it documents `401` — a result that looked exactly like a regression in the
+> slice-4 gate and was an unrelated Apache. The tell was `Server: Apache/2.4.54 (Debian)` in the
+> response headers; PHP's built-in server never sends that. `curl -D -` when a result surprises you.
+>
+> The automated harness already refuses to run in this situation — `tests/AdminHttpTestCase.php`
+> fails loudly rather than testing a server it did not start. This document had no equivalent.
+> Same defect, same fix (L-008: suspect the harness before the product).
 
 | Surface | URL |
 |---|---|

@@ -10,7 +10,7 @@
  * @package KlytosImporter
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace KlytosImporter;
 
@@ -201,23 +201,24 @@ class MediaDownloader
         }
         $lastRequest[$host] = microtime( true );
 
-        // Download via cURL.
-        $ch = curl_init();
-        curl_setopt_array( $ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT        => self::DOWNLOAD_TIMEOUT,
-            CURLOPT_USERAGENT      => 'KlytosImporter/1.0',
-            CURLOPT_SSL_VERIFYPEER => true,
+        // Download through SafeHttp, which validates every redirect hop. This
+        // was the worst of the importer's three fetchers: it followed redirects
+        // and never re-checked the destination even once, so a 302 into the
+        // internal network wrote that response to disk as a "media asset" —
+        // giving an attacker not just a blind request but the response body,
+        // stored and servable.
+        $result = klytos_safe_http()->fetch( $url, [
+            'timeout' => self::DOWNLOAD_TIMEOUT,
+            'headers' => [ 'User-Agent' => 'KlytosImporter/1.0' ],
         ] );
 
-        $body = curl_exec( $ch );
-        $code = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        $mime = curl_getinfo( $ch, CURLINFO_CONTENT_TYPE );
-        curl_close( $ch );
+        if ( $result['blocked'] !== null ) {
+            throw new \RuntimeException( 'Refused unsafe URL or redirect.' );
+        }
+
+        $body = $result['error'] === null ? $result['body'] : false;
+        $code = $result['status'];
+        $mime = $result['headers']['content-type'] ?? '';
 
         if ( $body === false || $code !== 200 ) {
             throw new \RuntimeException( "HTTP {$code}" );

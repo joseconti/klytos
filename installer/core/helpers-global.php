@@ -1395,6 +1395,27 @@ function klytos_http_post( string $url, mixed $body = null, array $args = [] ): 
     return App::getInstance()->getHttpClient()->post( $url, $body, $headers, $args );
 }
 
+/**
+ * Return a SafeHttp fetcher for URLs an untrusted party influenced.
+ *
+ * Use this — never klytos_http_get() — whenever any part of the URL comes from
+ * a request parameter, stored content, an MCP tool argument, a plugin header or
+ * anything else the operator did not type themselves. It refuses loopback,
+ * private, link-local and reserved addresses, refuses non-HTTP(S) schemes, and
+ * re-validates every redirect hop instead of letting the transport follow them
+ * unchecked. See docs/reference/safe-http.md.
+ *
+ * @return \Klytos\Core\SafeHttp
+ * @since  0.31.0
+ */
+function klytos_safe_http(): \Klytos\Core\SafeHttp
+{
+    // Stateless and cheap, so it is constructed per call rather than held as an
+    // App service — which also keeps it usable in the unit tier, where no App
+    // is booted.
+    return new \Klytos\Core\SafeHttp();
+}
+
 // ─── Transients API ───────────────────────────────────────────
 // Temporary data storage with automatic expiration.
 // Thin wrappers over CacheManager with a 'transient:' prefix.

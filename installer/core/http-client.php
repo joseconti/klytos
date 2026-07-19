@@ -96,7 +96,16 @@ class HttpClient
         if ( function_exists( 'curl_init' ) ) {
             $result = $this->requestWithCurl( $method, $url, $headers, $body, $timeout, $sslVerify, $followRedirs, $maxRedirects );
         } else {
-            $result = $this->requestWithStream( $method, $url, $headers, $body, $timeout, $sslVerify );
+            $result = $this->requestWithStream(
+                $method,
+                $url,
+                $headers,
+                $body,
+                $timeout,
+                $sslVerify,
+                $followRedirs,
+                $maxRedirects
+            );
         }
 
         $durationMs = round( ( microtime( true ) - $startTime ) * 1000, 1 );
@@ -176,6 +185,13 @@ class HttpClient
 
     /**
      * Stream-context-based fallback.
+     *
+     * $followRedirs and $maxRedirects were previously accepted by request() and
+     * then dropped on this path, which hardcoded follow_location => 1: a caller
+     * that switched redirects OFF got them anyway whenever cURL was unavailable.
+     * SafeHttp validates every hop itself and relies on the transport not moving
+     * behind its back, so on a host without ext-curl that silent override would
+     * have handed back exactly the SSRF the class exists to prevent.
      */
     private function requestWithStream(
         string $method,
@@ -183,7 +199,9 @@ class HttpClient
         array $headers,
         ?string $body,
         int $timeout,
-        bool $sslVerify
+        bool $sslVerify,
+        bool $followRedirs = true,
+        int $maxRedirects = 5
     ): array {
         $headers['User-Agent'] = $headers['User-Agent'] ?? $this->userAgent;
 
@@ -198,8 +216,8 @@ class HttpClient
                 'header'          => $headerStr,
                 'timeout'         => $timeout,
                 'ignore_errors'   => true,
-                'follow_location' => 1,
-                'max_redirects'   => 5,
+                'follow_location' => $followRedirs ? 1 : 0,
+                'max_redirects'   => $maxRedirects,
             ],
             'ssl' => [
                 'verify_peer'      => $sslVerify,

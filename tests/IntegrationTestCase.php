@@ -15,6 +15,7 @@ namespace Klytos\Tests;
 use Klytos\Core\App;
 use Klytos\Core\Auth;
 use Klytos\Core\Helpers;
+use Klytos\Core\Hooks;
 use Klytos\Core\StorageInterface;
 use Klytos\Core\UserManager;
 use PHPUnit\Framework\TestCase;
@@ -68,6 +69,34 @@ abstract class IntegrationTestCase extends TestCase
     /** @var UserManager Users as the application sees them. */
     protected UserManager $users;
 
+    /**
+     * Hook registry as it stood once the App had booted.
+     *
+     * The unit tier calls Hooks::reset() around every test; this tier CANNOT,
+     * because App::boot() runs once per process (see $booted) and registers the
+     * core and plugin hooks as it goes — a blanket reset would strip them from
+     * every test after the first and leave the application quietly half-wired.
+     * So the tier records the post-boot baseline instead and asserts each test
+     * hands it back unchanged.
+     *
+     * Found while writing slice 6, which is the first test in this tier to
+     * register a hook at all: a test that filters http.safe.allowed_schemes to
+     * permit ftp:// was silently permitting it for every test that ran
+     * afterwards. Nothing was passing for the wrong reason yet — but the next
+     * security test to register a filter would have been, and it would have
+     * looked exactly like a green suite (L-010).
+     *
+     * @var array{actions: array<string,int>, filters: array<string,int>}
+     */
+    private array $hookBaseline = [];
+
+    /**
+     * Hooks this test registered through the helpers below, for exact removal.
+     *
+     * @var list<array{kind: string, hook: string, callback: callable}>
+     */
+    private array $temporaryHooks = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -91,11 +120,33 @@ abstract class IntegrationTestCase extends TestCase
         $this->users   = new UserManager( $this->storage );
 
         $this->actingAsGuest();
+
+        // Taken AFTER boot, so the baseline is "the application's own hooks"
+        // and not "no hooks at all".
+        $this->hookBaseline   = Hooks::getRegisteredHooks();
+        $this->temporaryHooks = [];
     }
 
     protected function tearDown(): void
     {
         $this->actingAsGuest();
+
+        $this->removeTemporaryHooks();
+
+        // The hook check runs FIRST among the assertions, and the ordering is
+        // load-bearing rather than arbitrary. A failed assertion throws
+        // immediately, so if the config check ran first, a test that mutated
+        // config AND leaked a hook would report only the config mutation — and
+        // the leak would silently affect every later test in the process while
+        // attention went to the louder failure. That is L-010's masking shape
+        // one level removed: not a check that cannot fail, but a check that
+        // never gets to run.
+        //
+        // Reading the state before restorePlayground() is safe here for the
+        // reason L-010 demands be stated explicitly: this assertion reads the
+        // static Hooks registry, which the playground restore does not touch,
+        // so no cleanup runs between the observation and the check.
+        $this->assertNoHookLeaked();
 
         if ( $this->isolatePlaygroundState ) {
             // Restore first, then assert: the check reports what the test did,
@@ -106,6 +157,91 @@ abstract class IntegrationTestCase extends TestCase
         }
 
         parent::tearDown();
+    }
+
+    /**
+     * Register a filter for the duration of this test only.
+     *
+     * Use this instead of klytos_add_filter() in the integration tier. The
+     * callback is removed by identity in tearDown, so it cannot survive into a
+     * later test — which matters most for filters that WEAKEN something, since
+     * a leaked one makes a later test pass without the control it is asserting.
+     *
+     * @param  string   $hook     Hook name.
+     * @param  callable $callback Listener.
+     * @param  int      $priority Priority.
+     * @return void
+     */
+    protected function addTemporaryFilter( string $hook, callable $callback, int $priority = 10 ): void
+    {
+        Hooks::addFilter( $hook, $callback, $priority );
+
+        $this->temporaryHooks[] = [ 'kind' => 'filter', 'hook' => $hook, 'callback' => $callback ];
+    }
+
+    /**
+     * Register an action for the duration of this test only.
+     *
+     * @param  string   $hook     Hook name.
+     * @param  callable $callback Listener.
+     * @param  int      $priority Priority.
+     * @return void
+     */
+    protected function addTemporaryAction( string $hook, callable $callback, int $priority = 10 ): void
+    {
+        Hooks::addAction( $hook, $callback, $priority );
+
+        $this->temporaryHooks[] = [ 'kind' => 'action', 'hook' => $hook, 'callback' => $callback ];
+    }
+
+    /**
+     * Remove exactly the listeners this test registered.
+     *
+     * By callback identity rather than removeAllFilters( $hook ): a test that
+     * hooks a name the application also uses must not take the application's
+     * listeners down with its own on the way out.
+     *
+     * @return void
+     */
+    private function removeTemporaryHooks(): void
+    {
+        foreach ( $this->temporaryHooks as $registered ) {
+            if ( $registered['kind'] === 'filter' ) {
+                Hooks::removeFilter( $registered['hook'], $registered['callback'] );
+            } else {
+                Hooks::removeAction( $registered['hook'], $registered['callback'] );
+            }
+        }
+
+        $this->temporaryHooks = [];
+    }
+
+    /**
+     * Fail if this test left a hook registered above the post-boot baseline.
+     *
+     * @return void
+     */
+    private function assertNoHookLeaked(): void
+    {
+        $current = Hooks::getRegisteredHooks();
+
+        foreach ( [ 'actions', 'filters' ] as $kind ) {
+            foreach ( $current[ $kind ] as $hook => $count ) {
+                $baseline = $this->hookBaseline[ $kind ][ $hook ] ?? 0;
+
+                if ( $count > $baseline ) {
+                    self::fail( sprintf(
+                        'This test left %d extra listener(s) on the %s "%s", which would '
+                        . 'leak into every later test in this process. Register throwaway '
+                        . 'hooks with addTemporaryFilter()/addTemporaryAction() instead of '
+                        . 'klytos_add_filter()/klytos_add_action().',
+                        $count - $baseline,
+                        rtrim( $kind, 's' ),
+                        $hook
+                    ) );
+                }
+            }
+        }
     }
 
     /**

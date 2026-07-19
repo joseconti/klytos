@@ -16,7 +16,7 @@
 | 3 — One matrix + fail-closed current user | Viewer denied an owner-only permission; unknown permission denied for every non-owner role; owner shortcut intact (unknown keys included); **a session with no `klytos_user_id` is DENIED, not promoted**; v1.x migration idempotent; **upgrade tested from the REAL previous version (v0.30.1)** | **yes** — session-start freshness boot from `docs/playground.md` verbatim (admin 302, login 200, `config/.encryption_key` 403, MCP 401). Beyond the playground, a **real v0.30.1 install** was built by that release's own installer in a temp dir and upgraded to the working tree: 12/12 assertions pass, including the NEW-01 denial on a genuinely upgraded install | **This slice IS the security fix.** NEW-01 closed: the hardcoded `['role' => 'owner']` fallback is gone; both failure shapes (no `klytos_user_id`; id that does not resolve) deny and log. S-04 closed: one matrix, in `UserManager`. Independent `security-auditor` pass over the diff: **no blocking findings** — it traced every caller of `klytos_current_user()`, `Auth::getUserId()` and direct `$_SESSION['klytos_user_id']` reads and found no residual path to privilege, confirmed display-only callers fail closed on null, and confirmed the new log calls carry no secret, hash or personal data. It also confirmed the temp-dir scripts cannot delete outside their `mktemp` directory and embed only throwaway credentials | n/a — no UI written in this slice | n/a — no user-facing strings added. The two new log messages are operator-facing diagnostics, not UI copy | **yes** — the matrix was not re-implemented anywhere: `klytos_has_permission()` now delegates to the existing `UserManager::hasPermission()`. No new helper was created; the fix is a deletion plus a delegation. Test-side, `PlaygroundState` is a new trait rather than a copy of `UnitTestCase`'s temp-dir teardown, whose contract is different (that one preserves nothing; this one must preserve tracked `.htaccess` guards) | `docs/04-adoption-audit.md` (S-04 and NEW-01 marked CLOSED with the evidence; NEW-02 sharpened; NEW-08 added), `docs/playground.md` (new "Testing an upgrade from the real previous release" section, plus the isolation contract under "Running the tests"), `docs/decisions.md` (D-030, D-031), `docs/lessons-learned.md` (L-006). No new public PHP surface introduced — the change removes a surface and redirects a caller — so no `docs/api/` row | n/a for this slice — the `auth.capabilities` filter already existed and still applies, now at the single remaining call site (`user-manager.php:628`) rather than at two | See the evidence block below | **PASS** | S-04 resolved the **opposite way** to the audit's remediation note, deliberately and recorded: the "dead" copy was kept and the live one deleted, because `UserManager` is the lower layer and slice 4 / Sprint 2 both hold a user object rather than a session. One defect caught before commit and recorded as **L-006**: the first version of the crash fix logged through `$this->logger`, which is null at that point in boot and would have raised a `TypeError` — a crash introduced by a crash fix, on a path no test can reach. **The `code-reviewer` pass returned a BLOCKING finding and it was fixed, not argued with:** the Step 10b `try`/`catch` was never executed by any test, because every install the tests boot already has an owner, so `migrateFromV1Config()` was never reached *through* `App::boot()`. The upgrade script gained two phases (`break-migration`, `boot-must-survive`) that put an install into the exact state that used to fatal and boot it in a fresh process. Two further reviewer findings applied: `UserManager::hasPermission()` now denies a record with no usable role instead of defaulting it to `viewer` (with its own test), and a comment citing the wrong boot step was corrected |
 | 4 — `klytos_require_permission()` + central gate | Per-role integration tests against representative pages **and** endpoints asserting the 403/401 **SHAPE**, not only the status; all 66 admin files accounted for in the gate map; `keel-verify`'s gate check demonstrably FAILS on a removed gate | **yes** — session-start freshness boot from `docs/playground.md` verbatim (admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, 177 tools authenticated). Beyond that, a **full 65-surface × 4-role walk over real HTTP** (260 requests) confirming both halves: privileged surfaces refuse, and nothing a role legitimately needs became unreachable (sprint risk 1) | **This slice IS the security fix.** S-07 closed: coverage 15/66 → 65/66 mapped surfaces, default-deny for the 66th and for anything added later. Defects closed in-path (D-033): NEW-10 setup-wizard escalation, and NEW-12 — `api/download-identity.php`'s **three stacked defects**, each masking the next, all **verified live** rather than believed. **NEW-09's fix was implemented and then REVERTED (D-036)**: the `security-auditor` pass showed the auth-guard exemption opens a full account-takeover primitive (a correct password alone would enrol an attacker's authenticator), and it buys nothing because passkey login cannot complete regardless. The hand-rolled `in_array( $role, ['owner','admin'] )` in `security.php` is gone, so `UserManager::hasPermission()` is still the single decision point (S-04 preserved). Independent `security-auditor` and `code-reviewer` passes over the diff | n/a — no UI written in this slice. The 403 page is a self-contained document; it sets `lang`, `charset`, a viewport and `noindex`, and escapes every interpolated value | **yes** — 4 new keys (`common.forbidden`, `common.no_permission`, `common.authentication_required`, `plugins.page_declares_no_capability`) added to **all 20 catalogues** (D-006). The first two were already REFERENCED by `plugin-page.php` and existed in **no** catalogue, so that gate had been rendering `__()`'s generated fallback — the audit called it "i18n'd"; it was not | **yes** — the denial shape was **promoted** from `core/router.php:438-447`, not reinvented; `klytos_require_permission()` delegates to the existing `klytos_has_permission()` → `UserManager::hasPermission()` chain rather than re-deciding; the 4 legacy redirect gates were deleted rather than left beside the central one | `docs/reference/authorization.md` **created** (matrix, gate map semantics, all 6 functions with runnable examples, both extension points, the "adding a new admin page" checklist, and an explicit "what this does NOT cover"); 8 new rows in `docs/api/INDEX.md` with counts updated 930 → 938; `docs/04-adoption-audit.md` (S-07 CLOSED + NEW-09/10/11); `docs/playground.md`; `docs/decisions.md` (D-032…D-035); `docs/lessons-learned.md` (L-007, L-008) | **yes** — `admin.gate_map` filter (a plugin gates its own admin files) and `auth.access_denied` action (the audit hook, deliberately **unable** to reverse the decision). The pre-existing `auth.capabilities` filter still governs the matrix | See the evidence block below | **PASS** | Both review subagents returned **blocking** findings; both were fixed rather than argued with, and the slice's test set grew from 6 to 13 HTTP tests as a direct result. 5 capabilities added to the one matrix. `ai.use` deliberately excludes `editor` while NEW-02 is open (D-035). `plugin-page.php` now DENIES a plugin that declares no capability — a **breaking change for third-party plugins** (D-034), verified to break no shipped plugin. **NEW-11 found and NOT fixed:** `Auth::login()` never consults `UserManager`, so only `config['admin_user']` can log in — which is very likely *why* S-07 survived unnoticed |
 | 5 — Named escalations, one test each | One NAMED test per finding asserting the refusal (S-01, S-02, S-03, S-05, S-06, S-12), each with its POSITIVE counterpart (a role that SHOULD reach the surface gets through, per L-008); S-12's remaining half closed — state-changing GET and missing CSRF; full suite green | **yes** — session-start freshness boot from `docs/playground.md` verbatim: admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated (counted via the documented `.playground-access` recipe, matching the slice-0 baseline exactly). The escalation tests are themselves real HTTP against a real `php -S` server on the seeded playground | **This slice IS the security proof.** Each of the six findings now fails a named test if it regresses. Two live defects closed: **S-06 residue** — `api/tasks.php` did not re-gate `update`/`complete` at `tasks.manage` while its page twin does (`tasks.php:38`), so an editor was refused via the UI and allowed via the API; and **S-12** — POST + CSRF now required on the RSA private-key export, with the caller retargeted because the old 302 redirect *was* what made it a GET. Three of the new tests were **proven to FAIL against the unfixed code** (200 where 405/403 required; 500 proving the editor's task action executed) before the fixes landed. Independent `code-reviewer` and `security-auditor` passes over the diff | n/a — no new UI. The one markup change is the identity-export form's `action` attribute; the button, label and surrounding structure are untouched | **yes** — no new user-facing strings. The 405/403 bodies on `download-identity.php` are operator-facing plain text on a machine endpoint, consistent with the file's existing 429/404 responses, not UI copy | **yes** — and this drove a real refactor: the HTTP harness was **extracted** from `AdminGateHttpTest` into `tests/AdminHttpTestCase.php` rather than copied for the second HTTP class. Duplicating it would have forked the three defects L-008 records (session cookie name, `proc_open` handle shape, teardown orphan check) so a later fix to one copy would silently miss the other. `klytos_require_permission()` was reused in `api/tasks.php`; **no second authorization decision point was added** (S-04 preserved) | `docs/reference/authorization.md` (API-twin re-gating rule; CSRF and step-up-authentication added to "what this does NOT cover"), `docs/04-adoption-audit.md` (**NEW-13** added; NEW-12's open half resolved), `docs/decisions.md` (D-038, D-039, D-040), `docs/lessons-learned.md` (**L-010**). No new public PHP surface — the changes are two guards, one re-gate and test infrastructure — so no `docs/api/INDEX.md` row | n/a for this slice — no new extension point. The existing `admin.gate_map`, `auth.access_denied` and `auth.capabilities` all still apply unchanged | See the evidence block below | **PASS** | **A harness defect was found and repaired mid-slice, and it is the most consequential thing here: `PlaygroundState::assertConfigNotMutated()` was INERT** — it ran after `restorePlayground()` and re-hashed the already-restored file, so it compared the snapshot against itself and had been checking nothing since slice 3 (D-039, **L-010**). Proven inert with a probe, repaired to compare decrypted content minus `scheduler_last_run`, and pinned by a permanent two-way regression test. It then paid for itself immediately: it fired on the S-12 tests against the unfixed code, independently confirming the GET really did write config, and stopped once the fix landed. Lint baseline **improved** to 199/488 (errors −2). NEW-13 recorded and deliberately NOT fixed (D-040) |
-| 6 — `SafeHttp` + risky call sites | | | | | | | | | | pending | |
+| 6 — `SafeHttp` + risky call sites | Refusals for `127.0.0.1`, `[::1]`, `169.254.169.254`, a non-HTTP scheme, **and a public URL that 302-redirects to a private one**; full suite green | **yes** — session-start freshness boot (see the freshness row: the documented port was held by an unrelated container, which is itself the session's first finding, **L-011**). The redirect and endpoint tests are real HTTP against real `php -S` servers; the oEmbed tests drive the endpoint as a seeded owner exactly as an editor would | **This slice IS the security fix.** S-08 closed by `SafeHttp`, applied at 5 call sites. The finding was **wider than recorded**: the *discovered* oEmbed endpoint is attacker-controlled too and its response **is** echoed back, and every fetch followed redirects unvalidated. Proven against the unfixed code: **6 of the 8** endpoint tests failed (404 where 400 required — the 404 the endpoint returns *after* fetching), and the old transport was demonstrated following a 302 to `http://169.254.169.254/latest/meta-data/` with `CURLINFO_EFFECTIVE_URL`. Fixed in-path: `HttpClient::requestWithStream()` silently dropped `follow_redirects`. Both review subagents run over the diff | n/a — no UI written in this slice | n/a — no new user-facing strings. The refusal deliberately reuses the endpoint's existing generic `Invalid URL`, so no catalogue key was needed and no internal-network oracle was created | **yes, and it drove the shape** — the validation was **promoted** from `ImportValidator::validateUrl()`, not rewritten, and `ImportValidator` now delegates, so ONE implementation exists where there were about to be two. `SafeHttp` reuses `HttpClient` for transport rather than opening a third cURL call site. `AdminHttpTestCase` was **generalized** with a `routerScript()` hook rather than copied for the fixture server, keeping L-008's three defects in one place | `docs/reference/safe-http.md` **created** (the rule, return shape, all 5 reason codes, redirects, the oracle rule, all 4 extension points, known limits, where it is applied, tests); **6 new rows** in `docs/api/INDEX.md` with counts updated 938 → 944; `docs/04-adoption-audit.md` (S-08 CLOSED + **NEW-15**); `docs/playground.md` (bind check); `docs/decisions.md` (D-041, D-042); `docs/lessons-learned.md` (**L-011**, **L-012**) | **yes** — `http.safe.allowed_schemes` and `http.safe.max_redirects` (filters, both tested), `http.safe.redirect` and `http.safe.blocked` (actions, both tested). `http.safe.blocked` is deliberately an action, not a filter, so it cannot reverse a refusal | See the evidence block below | **PASS** | **A second harness defect found, in the L-010 shape: the integration tier never reset hooks** while the unit tier always had, so a filter registered by one test leaked into every later test in the process (D-042, **L-012**). Nothing was passing for the wrong reason *yet*; the next weakening filter would have been. Caught by asserting on the refusal REASON rather than just the refusal. Lint baselines **improved**: core+admin 199 → **193**, plugins 131 → **129**. **NEW-15 recorded and deliberately NOT fixed:** DNS rebinding survives, because the address is resolved to validate and resolved again to connect — stated plainly in the reference doc rather than implied away |
 | 7 — Public comments, off the admin path | | | | | | | | | | pending | |
 | 8 — HSTS + CSP fail-open + hardening | | | | | | | | | | pending | |
 | 9 — `keel-verify` + regenerable INDEX | | | | | | | | | | pending | |
@@ -733,6 +733,197 @@ The two lint errors removed were a pre-existing `declare( strict_types=1 )` spac
 editing that file. The one warning the slice *added* (an over-long form line in `security.php`) was
 removed by hoisting the URL to a variable, rather than left to grow the baseline.
 
+### Slice 6 — evidence (commands and output, 2026-07-19)
+
+**Baseline before the slice** — 60 tests / 336 assertions, exactly as slice 5 left it:
+
+```
+$ composer install --no-interaction
+Nothing to install, update or remove
+
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (60 tests, 336 assertions)
+```
+
+**The four pre-flight refusals S-08's test point names, plus the reason each is refused FOR.**
+Asserting the reason and not only the refusal is deliberate, and it paid for itself twice in this
+slice: it caught `http://[::1]/` being refused as *unresolvable* rather than as *loopback* (because
+`parse_url()` leaves the brackets on, which `gethostbynamel()` and `filter_var()` both reject), and
+it is what surfaced the hook leak recorded as L-012.
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter SafeHttpTest
+OK (20 tests, 48 assertions)
+```
+
+Verified empirically before relying on it, rather than assumed from the flag names — `filter_var`
+with `FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE` on PHP 8.3.12:
+
+```
+127.0.0.1          blocked=YES        8.8.8.8            blocked=no
+::1                blocked=YES        93.184.216.34      blocked=no
+169.254.169.254    blocked=YES        fd00::1            blocked=YES
+10.0.0.1           blocked=YES        fe80::1            blocked=YES
+192.168.1.1        blocked=YES        0.0.0.0            blocked=YES
+172.16.0.1         blocked=YES
+```
+
+**THE CASE THE SLICE EXISTS FOR — a public URL that 302-redirects to a private one.** Driven against
+a real `php -S` fixture server answering a real 302 with a real `Location` header:
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter SafeHttpRedirectTest
+OK (7 tests, 14 assertions)
+
+  refused http://169.254.169.254/latest/meta-data/  (private_or_reserved_address, requested: http://127.0.0.1:8102/redirect-to-metadata)
+  refused http://[::1]/admin                        (private_or_reserved_address, requested: http://127.0.0.1:8102/redirect-to-ipv6-loopback)
+  refused file:///etc/passwd                        (scheme_not_allowed,          requested: http://127.0.0.1:8102/redirect-to-file-scheme)
+  refused http://127.0.0.1:8102/redirect-loop       (too_many_redirects)
+```
+
+The one thing narrowed for this test is stated openly rather than buried: `tests/Support/
+LoopbackPermittingSafeHttp.php` treats **127.0.0.1 and nothing else** as public, because a test suite
+cannot own a public host and the real classifier would otherwise refuse the fixture at hop zero, so
+the redirect would never be reached. Every refusal above still comes from the real, unmodified
+`SafeHttp::isReservedAddress()` — `::1` is deliberately NOT exempted, and one of the tests asserts a
+redirect to it is refused. Not faked: the socket, the request, the 302, the `Location` header, the
+absolutization of a relative `Location`, and the hop limit. The positive control
+(`/redirect-relative` → `/final` → 200 `FINAL-BODY`) is what separates "refused the dangerous hop"
+from "cannot follow redirects at all" (L-008).
+
+**PROVEN TO FAIL AGAINST THE UNFIXED CODE — the endpoint tests.** `oembed.php` alone reverted to
+HEAD, `SafeHttp` left in place, so only the wiring is missing:
+
+```
+$ git stash push installer/admin/api/oembed.php
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter OembedSsrfTest
+FAILURES!  Tests: 8, Assertions: 10, Failures: 6
+
+  The oEmbed proxy did not refuse http://127.0.0.1/ before fetching it.
+  The oEmbed proxy did not refuse http://[::1]/ before fetching it.
+  The oEmbed proxy did not refuse http://169.254.169.254/latest/meta-data/ before fetching it.
+  The oEmbed proxy did not refuse http://192.168.1.1/ before fetching it.
+  The oEmbed proxy did not refuse file:///etc/passwd before fetching it.
+  The oEmbed proxy did not refuse gopher://127.0.0.1:6379/ before fetching it.
+    Failed asserting that 404 is identical to 400.
+$ git stash pop
+```
+
+All six failed with **404**, which is precisely the point: 404 is what the endpoint answers *after*
+it has already made the request on the server's behalf and found no oEmbed link in the response. The
+two tests that still passed are the positive control and the authentication check — neither was
+broken, and a proof run in which everything fails would have proved only that the file was missing.
+
+**PROVEN: the old transport followed the redirect.** The exact `curl_setopt_array` block from the old
+`fetchUrl()`, verbatim, against the same fixture:
+
+```
+OLD transport followed the 302 to: http://169.254.169.254/latest/meta-data/
+redirect count: 1
+SafeHttp: blocked='private_or_reserved_address' at http://127.0.0.1:8103/redirect-to-metadata
+```
+
+(SafeHttp refuses at hop 0 here because the *real* classifier is in play and the fixture is on
+loopback — the per-hop check itself is what `SafeHttpRedirectTest` proves, with loopback narrowed.)
+
+**PROVEN IN BOTH DIRECTIONS — the new hook-leak guard (L-010's rule: one direction is half a test).**
+A throwaway probe with two tests, one leaking a filter through the raw API and one using the helper:
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter ZzLeakProbeTest
+F.                                                                  2 / 2 (100%)
+
+1) ZzLeakProbeTest::testLeaksAFilterOnPurpose
+This test left 1 extra listener(s) on the filter "http.safe.allowed_schemes", which would leak
+into every later test in this process. Register throwaway hooks with addTemporaryFilter()/
+addTemporaryAction() instead of klytos_add_filter()/klytos_add_action().
+
+FAILURES!  Tests: 2, Assertions: 3, Failures: 1
+```
+
+The leaking test failed with the intended message; the helper-using test passed in the same run. The
+probe was then deleted (`tests/Integration/ZzLeakProbeTest.php` no longer exists).
+
+**Full gate:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (95 tests, 445 assertions)
+
+$ php scripts/keel-verify
+  PASS  authorization gate covers every admin surface (65 files)
+  PASS  the central gate is invoked from admin/bootstrap.php
+OK — 2 check(s) passed.
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml <every file this slice touched> tests/
+A TOTAL OF 0 ERRORS AND 2 WARNINGS WERE FOUND IN 2 FILES      (both warnings pre-existing)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+A TOTAL OF 193 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES   (D-025 baseline: 199 → 193)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/plugins
+A TOTAL OF 129 ERRORS AND 109 WARNINGS WERE FOUND IN 24 FILES    (baseline: 131 → 129)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary tests
+(no findings — 0/0, unchanged)
+```
+
+**THE REVIEW CYCLE, which changed the slice materially.** Both subagents ran on the diff before the
+commit, and the most serious finding came from neither of them:
+
+```
+$ php -r '...blockReason() against seven alternative notations...'
+http://0177.0.0.1/                 -> private_or_reserved_address
+http://2130706433/                 -> private_or_reserved_address
+http://0x7f000001/                 -> private_or_reserved_address
+http://127.1/                      -> private_or_reserved_address
+http://[::ffff:127.0.0.1]/         -> *** ALLOWED ***          <-- LIVE BYPASS
+http://expected.com@127.0.0.1/     -> private_or_reserved_address
+http://127.0.0.1./                 -> host_does_not_resolve
+
+$ curl -s -o /dev/null -w "HTTP %{http_code} from %{remote_ip}\n" "http://[::ffff:127.0.0.1]:8104/final"
+HTTP 200 from ::ffff:127.0.0.1
+$ curl -s "http://[::ffff:127.0.0.1]:8104/final"
+FINAL-BODY
+```
+
+`filter_var`'s reserved-range flags do not understand IPv4-mapped IPv6 — `::ffff:169.254.169.254`
+and `::ffff:10.0.0.1` also passed as public. The `security-auditor` raised this exact case and
+reasoned past it ("very likely already handled correctly"); running it took two minutes and found the
+opposite. Recorded as **L-013**. After the fix, every spelling refuses and public IPv6 still passes:
+
+```
+http://[::ffff:127.0.0.1]/  -> private_or_reserved_address     http://192.0.2.10/            -> allowed
+http://[::ffff:7f00:1]/     -> private_or_reserved_address     http://[2606:4700:4700::1111]/ -> allowed
+http://[::127.0.0.1]/       -> private_or_reserved_address
+```
+
+Findings acted on from the two reviews, each verified against source first:
+
+| From | Finding | Outcome |
+|---|---|---|
+| security-auditor | `integrity-checker.php::httpGet()` — the SAME file's second untrusted fetch (`Integrity URL` header, same parser as the one fixed) had raw cURL, `FOLLOWLOCATION`, no address check | **Fixed.** Confirmed at `plugin-loader.php:118-125` and `integrity-checker.php:358-373` |
+| both | The importer's fetchers still followed redirects unvalidated; the audit's S-08 text names them and D-041 cited `PageFetcher` **by name** as the unsound pattern while shipping it | **Fixed** — `PageFetcher::fetch()`, `fetchRobotsTxt()`, `MediaDownloader::downloadFile()`, `SitemapParser::fetchXml()` |
+| security-auditor | `docs/reference/safe-http.md` claimed the importer's fetch paths were covered when only the pre-flight check was | **Fixed** — table corrected, with the check-vs-fetch distinction spelled out |
+| security-auditor | `WebhookManager::create()` gave distinct messages for blocked vs malformed — an oracle reachable via an MCP tool with no permission check (NEW-02) | **Fixed** — identical message |
+| code-reviewer | Dual-stack: `gethostbynamel()` reads A only, transport is dual-stack | **Fixed** — AAAA resolved too |
+| code-reviewer | `absolutize()` mishandled a query-only `Location`; dot segments unnormalized | **Fixed**, with two new fixture routes and tests |
+| code-reviewer | `update()` had no URL check | **Fixed** |
+| code-reviewer | `tearDown()` ran the config assertion before the hook check, so a throw would skip the hook check | **Fixed** — hook check first |
+| code-reviewer | `http.safe.redirect` docblock claimed the hop was followed | **Fixed** |
+| code-reviewer | `PROGRESS.md` still said "next is slice 6" | Already updated before the review landed |
+| both (non-blocking) | `PageFetcher`'s `CURLOPT_RESOLVE, []` labelled "DNS resolution SSRF check" is a no-op | **Removed** with the method it sat in, rather than left to reassure a reader about a protection that never existed |
+
+After the cycle: **107 tests / 472 assertions**, `keel-verify` 2/2, upgrade passing, 0 lint errors on
+every touched file, plugins baseline **131 → 113**.
+
+Suite 60 → **95 tests**, 336 → **445 assertions** at first pass, **107 / 472** after review. The six lint errors removed from
+`integrity-checker.php` and the two from `ImportValidator.php` were pre-existing PSR-12 violations,
+fixed under D-025's opportunistic rule because the slice was already editing both files.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -748,6 +939,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-19 (slice 3 session) | same two commands, verbatim | OK — admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated. The playground was additionally re-seeded mid-session after the isolation proof run deliberately deleted a seeded user (see the slice-3 evidence block) | yes |
 | 2026-07-19 (slice 4 session) | same two commands, verbatim | OK — admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, **177 tools** authenticated. Counted with `installed.json`'s own parser, not a `grep -c '"name"'`, which reports 215 because nested schema properties are also named `name` — the looser count was discarded rather than recorded | yes |
 | 2026-07-19 (slice 5 session) | same two commands, verbatim | OK — admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated via the documented `.playground-access` recipe (`docs/playground.md:153-157`, run as written). Identical to the slice-0 baseline on every check; no drift in five sessions | yes |
+| 2026-07-19 (slice 6 session) | documented commands, **but port 8080 was held by an unrelated Docker container** | **The document's own defect, caught here rather than by a user.** `php -S` could not bind, and because it had been backgrounded the failure was invisible — every check then reached the squatter. It reported admin `302` and MCP `302` where `401` is documented, plus a 200-tool count: three "findings" that looked like a slice-4 gate regression and were an unrelated Apache. The tell was `Server: Apache/2.4.54 (Debian)` in `curl -D -`; PHP's built-in server never sends it. Re-run on a **verified-free port (8123)**: admin **302**, MCP **401** unauthenticated, **177 tools** authenticated — identical to the slice-0 baseline, no drift in six sessions. `docs/playground.md` now carries a bind check as step 2 and the diagnostic note, so the next session cannot lose the same time. Recorded as **L-011** | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

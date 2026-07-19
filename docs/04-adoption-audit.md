@@ -40,7 +40,7 @@ Each finding's own section carries its closure note and the test that pins it; t
 | **T-02** no playground | **CLOSED** | slice 0 |
 | **H-04** unauditable vendored tree | **CLOSED** | slice 2 |
 | **NEW-01** `klytos_current_user()` promotes to owner | **CLOSED** | slice 3 |
-| **S-08** SSRF in the oEmbed resolver | open | slice 6 |
+| **S-08** SSRF in the oEmbed resolver | **CLOSED** | slice 6 (`SafeHttp`, applied at 5 call sites; DNS rebinding remains open as **NEW-15**) |
 | **S-09** public comment submission | open | slice 7 |
 | **S-11** no HSTS + the CSP fail-open | open | slice 8 |
 
@@ -255,7 +255,20 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   inside them are left in place as defence in depth — removing them is cosmetic and would have
   hidden NEW-09, which was found precisely by asking why one of those "dead" checks existed.
 
-### S-08 — SSRF in the oEmbed resolver — **MEDIUM**
+### S-08 — SSRF in the oEmbed resolver — **MEDIUM** — **CLOSED 2026-07-19 (Sprint 1 slice 6)**
+
+> **Closed by** `Klytos\Core\SafeHttp` (`installer/core/safe-http.php`), which promoted
+> `KlytosImporter\ImportValidator::validateUrl()` — the product's only working SSRF control — into
+> core and applied it at five call sites. The audit entry below described the pre-flight half only;
+> the survey done for the fix found the finding was **wider than recorded** in two ways:
+> (a) the *discovered* oEmbed endpoint is attacker-controlled too, and unlike the page fetch its
+> response **is** echoed to the caller, so the file had a second and fully arbitrary fetch; and
+> (b) every fetch followed redirects with no per-hop validation, so pre-flight validation alone would
+> not have closed it. Both are fixed. Tests: `tests/Unit/SafeHttpTest.php`,
+> `tests/Integration/SafeHttpRedirectTest.php`, `tests/Integration/OembedSsrfTest.php` — six of the
+> eight endpoint tests proven to FAIL against the unfixed code. Residual gap: **NEW-15** (DNS
+> rebinding). Reference: `docs/reference/safe-http.md`. Decision: **D-041**.
+
 - **Where:** `installer/admin/api/oembed.php:131` (`discoverOembed($url)`), validation at `:19`
 - **What:** Fetches an arbitrary user-supplied URL when no known provider matches.
   `filter_var(FILTER_VALIDATE_URL)` is the only check — no blocking of private ranges, `127.0.0.0/8`,
@@ -1016,6 +1029,32 @@ The authoring half holds; the propagation half is half-built. Recorded in full a
 **Remediation shape:** implement smart propagation for parts on the markers that already exist,
 expose it over MCP, and make "one edit → whole site updated, no full rebuild, no per-page work" a
 verified test point with a recorded files-updated count.
+
+---
+
+### NEW-15 — `SafeHttp` resolves twice, so DNS rebinding survives S-08's fix — **LOW** *(found 2026-07-19, Sprint 1 slice 6, while writing the fix)*
+
+- **Where:** `installer/core/safe-http.php` — `blockReason()` resolves via `resolveHost()`, then
+  `HttpClient` resolves again independently when it connects.
+- **What:** the address is validated at time-of-check and resolved again at time-of-use. A hostname
+  served by a nameserver the attacker controls, with a very short TTL, can answer with a public
+  address for the validating lookup and a private one for the connecting lookup. The check passes and
+  the connection still lands inside the network.
+- **Why it was not fixed in slice 6:** the remedy is to pin the validated address for the connection
+  (`CURLOPT_RESOLVE`, plus the equivalent for the stream fallback, which has none — it would have to
+  refuse rather than degrade). That changes `HttpClient`'s transport contract for every caller, needs
+  its own test point with a resolver it can actually control, and lands in a slice already carrying
+  the redirect chain and five call-site conversions. D-031's narrowing applies: the slice fixes the
+  path it is changing, not the adjacent subsystem.
+- **Severity is LOW, and the reasoning is on the record rather than assumed:** it requires the
+  attacker to control authoritative DNS for a name they can get the product to fetch, and the
+  reachable surfaces are authenticated (oEmbed: `pages.edit`) or operator-initiated (webhook
+  creation, plugin install). It is a real gap, not a theoretical one — it is simply the harder half.
+- **Honest framing, because overstating the fix is the L-002 defect:** slice 6 raises the cost of
+  SSRF substantially. It does not make it impossible, and `docs/reference/safe-http.md` says so in
+  those words.
+- **Trigger:** the authentication slice (which already reopens this area), or the first time any
+  unauthenticated surface gains an outbound fetch — whichever comes first.
 
 ---
 

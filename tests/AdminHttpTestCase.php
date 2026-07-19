@@ -71,6 +71,24 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      */
     abstract protected static function serverPort(): int;
 
+    /**
+     * The router script this class's server runs.
+     *
+     * Defaults to the playground router, which is what every admin test wants.
+     * Slice 6 needed a server that answers redirect shapes instead, and the
+     * choice was to generalize here rather than write a second harness: a copy
+     * would fork the three defects L-008 records — the session cookie name, the
+     * proc_open handle shape, and the teardown orphan check — so that fixing
+     * one copy would silently leave the other broken. Overriding one path is
+     * the whole difference between the two servers.
+     *
+     * @return string Absolute path to the router script.
+     */
+    protected static function routerScript(): string
+    {
+        return dirname( KLYTOS_INSTALLER_PATH ) . '/scripts/dev/router.php';
+    }
+
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -127,7 +145,7 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
             '-d', 'session.serialize_handler=php_serialize',
             '-S', self::HOST . ':' . $port,
             '-t', self::$repoRoot,
-            self::$repoRoot . '/scripts/dev/router.php',
+            static::routerScript(),
         ];
 
         // All three standard descriptors are given explicitly so the server

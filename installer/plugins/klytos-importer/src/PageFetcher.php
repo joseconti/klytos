@@ -13,7 +13,7 @@
  * @package KlytosImporter
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace KlytosImporter;
 
@@ -44,51 +44,36 @@ class PageFetcher
 
         $this->rateLimit( $url );
 
-        $ch = curl_init();
-        $responseHeaders = [];
-
-        curl_setopt_array( $ch, [
-            CURLOPT_URL            => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_USERAGENT      => 'KlytosImporter/1.0',
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_ENCODING       => '',
-            CURLOPT_HEADERFUNCTION => function ( $ch, $header ) use ( &$responseHeaders ) {
-                $parts = explode( ':', $header, 2 );
-                if ( count( $parts ) === 2 ) {
-                    $responseHeaders[strtolower( trim( $parts[0] ) )] = trim( $parts[1] );
-                }
-                return strlen( $header );
-            },
+        // Through SafeHttp, which validates EVERY redirect hop before following
+        // it. What this replaced followed redirects with CURLOPT_FOLLOWLOCATION
+        // and then checked the final URL afterwards — by which point the body
+        // had already been fetched from whatever internal host the redirect
+        // pointed at, and the intermediate hops had never been looked at at
+        // all. That is the exact pattern D-041 names as unsound, and it cited
+        // this very method as the example.
+        //
+        // The `CURLOPT_RESOLVE, []` line that used to sit here was labelled
+        // "DNS resolution SSRF check" and was a no-op — an empty array pins
+        // nothing. It is removed rather than left to reassure the next reader
+        // about a protection that never existed (L-002).
+        $result = klytos_safe_http()->fetch( $url, [
+            'timeout' => 30,
+            'headers' => [ 'User-Agent' => 'KlytosImporter/1.0' ],
         ] );
 
-        // DNS resolution SSRF check.
-        curl_setopt( $ch, CURLOPT_RESOLVE, [] );
-
-        $body     = curl_exec( $ch );
-        $code     = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-        $finalUrl = curl_getinfo( $ch, CURLINFO_EFFECTIVE_URL );
-        $error    = curl_error( $ch );
-        curl_close( $ch );
-
-        if ( $body === false ) {
-            throw new \RuntimeException( "cURL error fetching {$url}: {$error}" );
+        if ( $result['blocked'] !== null ) {
+            throw new \RuntimeException( "Refused unsafe URL or redirect while fetching {$url}" );
         }
 
-        // Verify the final URL (after redirects) is also safe.
-        if ( $finalUrl !== $url && !ImportValidator::validateUrl( $finalUrl ) ) {
-            throw new \RuntimeException( "Redirect to unsafe URL: {$finalUrl}" );
+        if ( $result['error'] !== null ) {
+            throw new \RuntimeException( "HTTP error fetching {$url}: {$result['error']}" );
         }
 
         return [
-            'status_code' => $code,
-            'html'        => (string) $body,
-            'headers'     => $responseHeaders,
-            'final_url'   => (string) $finalUrl,
+            'status_code' => $result['status'],
+            'html'        => $result['body'],
+            'headers'     => $result['headers'],
+            'final_url'   => $result['final_url'],
         ];
     }
 
@@ -414,23 +399,20 @@ class PageFetcher
         $rules = [];
 
         try {
-            $ch = curl_init();
-            curl_setopt_array( $ch, [
-                CURLOPT_URL            => $domain . '/robots.txt',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_TIMEOUT        => 10,
-                CURLOPT_USERAGENT      => 'KlytosImporter/1.0',
-                CURLOPT_SSL_VERIFYPEER => true,
+            // This one was never validated at all — the URL is derived from
+            // the crawl target and was fetched straight, on the assumption
+            // that a checked target implies a checked robots.txt. It does not:
+            // it is a separate request to a separately-constructed URL.
+            $result = klytos_safe_http()->fetch( $domain . '/robots.txt', [
+                'timeout' => 10,
+                'headers' => [ 'User-Agent' => 'KlytosImporter/1.0' ],
             ] );
 
-            $body = curl_exec( $ch );
-            $code = (int) curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-            curl_close( $ch );
-
-            if ( $body === false || $code !== 200 ) {
+            if ( $result['blocked'] !== null || $result['error'] !== null || $result['status'] !== 200 ) {
                 return $rules;
             }
+
+            $body = $result['body'];
 
             $inUserAgent = false;
             foreach ( explode( "\n", $body ) as $line ) {

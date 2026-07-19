@@ -80,12 +80,16 @@ class IntegrityChecker
         ];
 
         // Determine global status.
-        if ( $report['core']['status'] === 'error'
-             || $this->hasPluginWithStatus( $report['plugins'], 'error' ) ) {
+        if (
+            $report['core']['status'] === 'error'
+             || $this->hasPluginWithStatus( $report['plugins'], 'error' )
+        ) {
             $report['status'] = 'error';
-        } elseif ( $report['core']['status'] === 'warning'
+        } elseif (
+            $report['core']['status'] === 'warning'
                    || $this->hasPluginWithStatus( $report['plugins'], 'warning' )
-                   || $this->hasPluginWithStatus( $report['plugins'], 'unverified' ) ) {
+                   || $this->hasPluginWithStatus( $report['plugins'], 'unverified' )
+        ) {
             $report['status'] = 'warning';
         }
 
@@ -215,20 +219,26 @@ class IntegrityChecker
     public function registerDeveloperKey( string $pluginId, string $keyUrl ): bool
     {
         try {
-            $context = stream_context_create( [
-                'http' => [
-                    'timeout' => 15,
-                    'header'  => "Accept: application/x-pem-file\r\n"
-                               . 'User-Agent: Klytos/' . KLYTOS_VERSION . "\r\n",
-                ],
-                'ssl' => [
-                    'verify_peer' => true,
+            // $keyUrl comes from the integrity_key_url header of a plugin file
+            // (plugin-loader.php:517), so it is supplied by whoever authored
+            // the plugin — not by the operator. The raw file_get_contents this
+            // replaced had no address check at all and, being PHP's http
+            // wrapper, followed up to 20 redirects by default.
+            $result = klytos_safe_http()->fetch( $keyUrl, [
+                'timeout' => 15,
+                'headers' => [
+                    'Accept'     => 'application/x-pem-file',
+                    'User-Agent' => 'Klytos/' . KLYTOS_VERSION,
                 ],
             ] );
 
-            $publicKey = @file_get_contents( $keyUrl, false, $context );
+            if ( $result['blocked'] !== null || $result['error'] !== null || $result['status'] >= 400 ) {
+                return false;
+            }
 
-            if ( $publicKey === false ) {
+            $publicKey = $result['body'];
+
+            if ( $publicKey === '' ) {
                 return false;
             }
 
@@ -497,47 +507,38 @@ class IntegrityChecker
      */
     private function httpGet( string $url ): ?string
     {
-        // Prefer cURL — works even when allow_url_fopen is disabled.
-        if ( function_exists( 'curl_init' ) ) {
-            $ch = curl_init( $url );
-            curl_setopt_array( $ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 15,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS      => 3,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_HTTPHEADER     => [
-                    'Accept: application/json',
-                    'User-Agent: Klytos/' . KLYTOS_VERSION,
-                ],
-            ] );
-
-            $body = curl_exec( $ch );
-            $code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-            unset( $ch );
-
-            if ( $body === false || $code < 200 || $code >= 300 ) {
-                return null;
-            }
-
-            return $body;
-        }
-
-        // Fallback: file_get_contents (requires allow_url_fopen = On).
-        $context = stream_context_create( [
-            'http' => [
-                'timeout' => 15,
-                'header'  => "Accept: application/json\r\n"
-                           . 'User-Agent: Klytos/' . KLYTOS_VERSION . "\r\n",
-            ],
-            'ssl' => [
-                'verify_peer' => true,
+        // Through SafeHttp, and this is the SECOND untrusted fetch in this file
+        // rather than a tidy-up. registerDeveloperKey() takes its URL from a
+        // plugin's `Integrity Key URL` header; this one is reached from
+        // resolvePluginManifestUrl(), which returns an external plugin's
+        // `Integrity URL` header — parsed from the same untrusted plugin file,
+        // by the same parser (plugin-loader.php:124-125). Fixing one and not
+        // the other, in one file, is exactly the "one call site remembered,
+        // one forgotten" failure this class exists to end.
+        //
+        // The raw transports this replaced followed redirects with no per-hop
+        // validation (cURL: FOLLOWLOCATION with MAXREDIRS 3; the stream
+        // fallback: PHP's default of 20 hops) and had no address check at all
+        // — not even filter_var. Reachable from verify(), verifyOnePlugin()
+        // and the cron-driven verifyBatch(), so a hostile plugin header would
+        // be re-fetched on every scheduled verification run.
+        $result = klytos_safe_http()->fetch( $url, [
+            'timeout' => 15,
+            'headers' => [
+                'Accept'     => 'application/json',
+                'User-Agent' => 'Klytos/' . KLYTOS_VERSION,
             ],
         ] );
 
-        $response = @file_get_contents( $url, false, $context );
+        if ( $result['blocked'] !== null || $result['error'] !== null ) {
+            return null;
+        }
 
-        return $response !== false ? $response : null;
+        if ( $result['status'] < 200 || $result['status'] >= 300 ) {
+            return null;
+        }
+
+        return $result['body'];
     }
 
     // ─── Manifest Download & Cache ──────────────────────────────
@@ -558,8 +559,10 @@ class IntegrityChecker
         if ( !$forceRefresh ) {
             try {
                 $cached = $this->storage->read( self::COLLECTION, $cacheId );
-                if ( isset( $cached['fetched_at'] )
-                     && ( time() - strtotime( $cached['fetched_at'] ) ) < $this->cacheLifetime ) {
+                if (
+                    isset( $cached['fetched_at'] )
+                     && ( time() - strtotime( $cached['fetched_at'] ) ) < $this->cacheLifetime
+                ) {
                     return $cached['data'];
                 }
             } catch ( \Throwable ) {
