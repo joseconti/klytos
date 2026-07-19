@@ -120,6 +120,21 @@ if ( $requestPath === '/' . $adminDir || str_starts_with( $requestPath, '/' . $a
 // ─── Everything else: the generated static site ──────────────────────────
 $publicPath = $klytosRoot . '/public' . ( $requestPath === '/' ? '/index.html' : $requestPath );
 
+// Public PHP entry points are EXECUTED, not served. In production these files
+// are copied to the web root and run there (public/comment-submit.php by the
+// build engine, public/x402-gate.php on plugin activation); streaming them as
+// bytes here would both disclose source and make the playground disagree with
+// production on the one surface an anonymous visitor can reach. Returning false
+// is not an option either — the built-in server would then look for the file
+// under the document root, which is the repository, not installer/public.
+if ( is_file( $publicPath ) && str_ends_with( $publicPath, '.php' ) ) {
+    $_SERVER['SCRIPT_NAME']     = $requestPath;
+    $_SERVER['SCRIPT_FILENAME'] = $publicPath;
+
+    require $publicPath;
+    return true;
+}
+
 if ( is_file( $publicPath ) ) {
     // Serve from public/ by streaming it: returning false would make the
     // built-in server look under the document root, which is the repo, not

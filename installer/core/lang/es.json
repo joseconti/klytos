@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Plantilla",
     "filter_all": "Todos los orígenes"
+  },
+  "comments": {
+    "disabled": "Los comentarios están desactivados.",
+    "submitted": "Comentario enviado para su moderación.",
+    "rate_limited": "Demasiados comentarios. Espera antes de publicar de nuevo.",
+    "submit_failed": "No se ha podido enviar tu comentario.",
+    "notification_subject": "Nuevo comentario en",
+    "author": "Autor",
+    "page": "Página",
+    "page_slug_required": "Falta la página.",
+    "author_name_required": "Falta el nombre.",
+    "content_required": "El comentario no puede estar vacío.",
+    "status_pending": "Estado: pendiente de moderación"
   }
 }

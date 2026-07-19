@@ -711,5 +711,18 @@
     "plugin": "Liitännäinen",
     "template": "Malli",
     "filter_all": "Kaikki lähteet"
+  },
+  "comments": {
+    "disabled": "Kommentit on poistettu käytöstä.",
+    "submitted": "Kommentti lähetetty moderointiin.",
+    "rate_limited": "Liian monta kommenttia. Odota hetki ennen uutta kommenttia.",
+    "submit_failed": "Kommenttiasi ei voitu lähettää.",
+    "notification_subject": "Uusi kommentti sivulla",
+    "author": "Kirjoittaja",
+    "page": "Sivu",
+    "page_slug_required": "Sivu vaaditaan.",
+    "author_name_required": "Nimi vaaditaan.",
+    "content_required": "Kommentti ei voi olla tyhjä.",
+    "status_pending": "Tila: odottaa moderointia"
   }
 }

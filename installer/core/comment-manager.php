@@ -37,6 +37,21 @@ class CommentManager
     /** @var int Maximum threading depth. */
     public const MAX_THREAD_DEPTH = 3;
 
+    /**
+     * Input bounds for the PUBLIC submission path.
+     *
+     * Until Sprint 1 slice 7 this method was only reachable by an authenticated
+     * caller, and only `content` was bounded (audit S-09). Anonymous reach makes
+     * every unbounded field a way to write an arbitrarily large record with one
+     * request, so each one is capped here rather than at the endpoint — the
+     * manager is the single place every caller passes through, including the
+     * MCP tools.
+     */
+    public const MAX_CONTENT_LENGTH     = 5000;
+    public const MAX_AUTHOR_NAME_LENGTH = 100;
+    public const MAX_EMAIL_LENGTH       = 254;
+    public const MAX_SLUG_LENGTH        = 200;
+
     public function __construct( StorageInterface $storage )
     {
         $this->storage = $storage;
@@ -51,28 +66,42 @@ class CommentManager
      */
     public function submit( array $data ): array
     {
-        $pageSlug = Helpers::sanitizeSlug( $data['page_slug'] ?? '' );
+        // Bound every field BEFORE sanitizing it. sanitizeSlug() transliterates
+        // and rewrites, so handing it a megabyte does the work before the cap
+        // could apply; the raw truncation has to come first.
+        $pageSlug = Helpers::sanitizeSlug( mb_substr( (string) ( $data['page_slug'] ?? '' ), 0, self::MAX_SLUG_LENGTH ) );
         if ( empty( $pageSlug ) ) {
-            throw new \RuntimeException( 'page_slug is required.' );
+            throw new \RuntimeException( __( 'comments.page_slug_required' ) );
         }
 
-        $authorName = trim( $data['author_name'] ?? '' );
+        $authorName = trim( (string) ( $data['author_name'] ?? '' ) );
         if ( empty( $authorName ) ) {
-            throw new \RuntimeException( 'author_name is required.' );
+            throw new \RuntimeException( __( 'comments.author_name_required' ) );
         }
+        $authorName = mb_substr( $authorName, 0, self::MAX_AUTHOR_NAME_LENGTH );
 
-        $content = trim( $data['content'] ?? '' );
+        $content = trim( (string) ( $data['content'] ?? '' ) );
         if ( empty( $content ) ) {
-            throw new \RuntimeException( 'Comment content is required.' );
+            throw new \RuntimeException( __( 'comments.content_required' ) );
         }
         // Strip HTML tags from comment content.
         $content = strip_tags( $content );
-        if ( mb_strlen( $content ) > 5000 ) {
-            $content = mb_substr( $content, 0, 5000 );
+        if ( mb_strlen( $content ) > self::MAX_CONTENT_LENGTH ) {
+            $content = mb_substr( $content, 0, self::MAX_CONTENT_LENGTH );
         }
 
-        $authorEmail = trim( $data['author_email'] ?? '' );
-        $parentId    = $data['parent_id'] ?? '';
+        $authorEmail = mb_substr( trim( (string) ( $data['author_email'] ?? '' ) ), 0, self::MAX_EMAIL_LENGTH );
+
+        // A parent ID is one of this collection's own identifiers —
+        // Helpers::randomHex( 16 ), i.e. 32 hex characters. Anything else came
+        // from somewhere other than a rendered thread, so it is dropped rather
+        // than stored: FileStorage::sanitizeId() would already stop it from
+        // traversing on read (file-storage.php:598-612), but the raw value was
+        // being written into the record and echoed back to every later reader.
+        $parentId = (string) ( $data['parent_id'] ?? '' );
+        if ( $parentId !== '' && preg_match( '/^[a-f0-9]{32}$/', $parentId ) !== 1 ) {
+            $parentId = '';
+        }
 
         // Verify threading depth.
         if ( !empty( $parentId ) ) {
@@ -302,15 +331,21 @@ class CommentManager
             $content    = nl2br( Helpers::escHtml( $comment['content'] ?? '' ) );
             $date       = $comment['created_at'] ?? '';
             $emailHash  = $comment['author_email_hash'] ?? '';
+            // Escaped on the way out even though both inputs are server-generated
+            // (Helpers::now() and an md5 hash, neither reachable from request
+            // input). The project's "escape at print time" rule has no
+            // exceptions, and an unescaped print site whose safety depends on an
+            // invariant three functions away is one refactor from being live.
             $gravatarUrl = !empty( $emailHash )
-                ? 'https://www.gravatar.com/avatar/' . $emailHash . '?s=48&d=mp'
+                ? 'https://www.gravatar.com/avatar/' . Helpers::escAttr( $emailHash ) . '?s=48&d=mp'
                 : 'https://www.gravatar.com/avatar/?s=48&d=mp';
 
             $html .= '<li class="comment" id="comment-' . Helpers::escAttr( $comment['id'] ) . '">' . "\n";
             $html .= '  <div class="comment-header">' . "\n";
-            $html .= '    <img src="' . $gravatarUrl . '" alt="" class="comment-avatar" width="48" height="48" loading="lazy">' . "\n";
+            $html .= '    <img src="' . Helpers::escUrl( $gravatarUrl ) . '" alt=""'
+                . ' class="comment-avatar" width="48" height="48" loading="lazy">' . "\n";
             $html .= '    <strong class="comment-author">' . $authorName . '</strong>' . "\n";
-            $html .= '    <time class="comment-date" datetime="' . Helpers::escAttr( $date ) . '">' . $date . '</time>' . "\n";
+            $html .= '    <time class="comment-date" datetime="' . Helpers::escAttr( $date ) . '">' . Helpers::escHtml( $date ) . '</time>' . "\n";
             $html .= '  </div>' . "\n";
             $html .= '  <div class="comment-body">' . $content . '</div>' . "\n";
 

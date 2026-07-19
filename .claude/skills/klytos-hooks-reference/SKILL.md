@@ -98,6 +98,21 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 - `admin.gate_map` (filter) — the admin gate map, `path relative to admin/ => capability`. Add an
   entry to gate your own admin file; a file with no entry is **denied by default**
 
+### Public comments (the one anonymous write surface)
+- `comment.before_save`, `comment.after_save` (actions) — fired by `CommentManager`
+- `comment.rate_limit` (filter) — `( int $max, string $clientIp )`, comments allowed per
+  60-second window from one address. Default 2. **Cannot raise the hard flood ceiling**, which is
+  enforced before plugins are loaded and is therefore not filterable
+- `comment.notification_recipient` (filter) — `( string $email, array $comment )`, who is told
+  about a new comment. Return `''` to disable the notification
+- `comment.honeypot_rejected` (action) — `( array{page_slug: string, ip: string} )`, a bot filled
+  the hidden field
+- `comment.rate_limited` (action) — `( string $clientIp )`, a submission was refused
+
+The last two are actions rather than filters on purpose: a listener able to turn a refusal into an
+acceptance would put anti-spam policy in third-party hands. Full reference:
+`docs/reference/public-comments.md`.
+
 ### Admin Panel
 - `admin.sidebar_items` (filter) — customize sidebar
 - `admin.head`, `admin.footer` (actions)

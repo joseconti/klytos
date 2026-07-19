@@ -322,7 +322,6 @@ The admin panel is accessible via a secret URL defined during installation. It i
 - `api/media-upload.php` — File upload handler
 - `api/image-edit.php` — Image crop, resize, rotate, flip
 - `api/assets-management.php` — Asset CRUD operations
-- `api/comment-submit.php` — Comment submission
 - `api/tasks.php` — Task CRUD operations
 - `api/plugins.php` — Plugin activation/deactivation
 - `api/notices.php` — Admin notice management

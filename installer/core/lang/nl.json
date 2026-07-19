@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Sjabloon",
     "filter_all": "Alle bronnen"
+  },
+  "comments": {
+    "disabled": "Reacties zijn uitgeschakeld.",
+    "submitted": "Reactie ingediend voor moderatie.",
+    "rate_limited": "Te veel reacties. Wacht even voordat u opnieuw plaatst.",
+    "submit_failed": "Uw reactie kon niet worden verzonden.",
+    "notification_subject": "Nieuwe reactie op",
+    "author": "Auteur",
+    "page": "Pagina",
+    "page_slug_required": "Een pagina is vereist.",
+    "author_name_required": "Een naam is vereist.",
+    "content_required": "De reactie mag niet leeg zijn.",
+    "status_pending": "Status: wacht op moderatie"
   }
 }

@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Vorlage",
     "filter_all": "Alle Quellen"
+  },
+  "comments": {
+    "disabled": "Kommentare sind deaktiviert.",
+    "submitted": "Kommentar zur Moderation eingereicht.",
+    "rate_limited": "Zu viele Kommentare. Bitte warten Sie, bevor Sie erneut schreiben.",
+    "submit_failed": "Ihr Kommentar konnte nicht gesendet werden.",
+    "notification_subject": "Neuer Kommentar auf",
+    "author": "Autor",
+    "page": "Seite",
+    "page_slug_required": "Die Seite ist erforderlich.",
+    "author_name_required": "Der Name ist erforderlich.",
+    "content_required": "Der Kommentar darf nicht leer sein.",
+    "status_pending": "Status: wartet auf Moderation"
   }
 }

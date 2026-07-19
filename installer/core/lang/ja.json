@@ -711,5 +711,18 @@
     "plugin": "プラグイン",
     "template": "テンプレート",
     "filter_all": "すべてのソース"
+  },
+  "comments": {
+    "disabled": "コメントは無効になっています。",
+    "submitted": "コメントを承認待ちとして送信しました。",
+    "rate_limited": "コメントが多すぎます。しばらく待ってから再度投稿してください。",
+    "submit_failed": "コメントを送信できませんでした。",
+    "notification_subject": "新しいコメント:",
+    "author": "投稿者",
+    "page": "ページ",
+    "page_slug_required": "ページを指定してください。",
+    "author_name_required": "名前を入力してください。",
+    "content_required": "コメントを入力してください。",
+    "status_pending": "ステータス: 承認待ち"
   }
 }

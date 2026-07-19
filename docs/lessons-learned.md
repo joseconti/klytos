@@ -298,3 +298,57 @@
   exactly like a reviewer's accusation.** This project already knows to verify accusations before
   acting on them (slice 5 refuted one); L-013 is the mirror — the *comforting* half of a review needs
   the same treatment, and it is the half nobody thinks to check.
+
+## L-014 — The audit's recorded fix was refuted by the audit's own recorded test point, and the feature was broken at three independent layers
+- Problem: audit **S-09** said public comment submission was broken because the handler sat behind
+  the admin auth guard, and recorded the remediation as "add it to bootstrap's `$preAuthScripts`".
+  Applying that would have produced a green slice and a still-useless feature. Three separate
+  layers were broken, only the first of which the finding named:
+  1. the endpoint was unreachable anonymously (the recorded defect);
+  2. `SiteConfig::setValue()` **did not exist**, although `comment-tools.php:136-148` calls it four
+     times — so `klytos_set_comment_settings`, the only supported way to switch comments on, had
+     fataled for its entire life, and its sibling `set()` silently drops `comments_enabled` through
+     a hardcoded allow-list (NEW-16);
+  3. **no comment form exists anywhere in the generated output**, and none ever did — no template,
+     part or build step emits one, and `renderCommentsHtml()` returns early on zero approved
+     comments, so a first commenter would have had no entry point even if one did.
+- Where: `installer/admin/api/comment-submit.php` (deleted), `installer/core/site-config.php`,
+  `installer/core/build-engine.php`, `installer/core/comment-manager.php:257-259`.
+- **What caught the wrong remediation, and this is the transferable part: the finding's own
+  acceptance criteria contradicted the finding's own suggested fix.** S-09's recorded remediation
+  was "make it reachable where it is". Criterion 4 of the same slice's test point, written months
+  later at sprint planning, was "**no admin-directory name appears in any frontend-reachable
+  URL**". Both were in the repository, three files apart, and they cannot both be satisfied: the
+  handler lived inside the randomized admin directory, so any form posting to it publishes that
+  directory's name. Nobody reconciled them until the slice was planned against source.
+  **When a recorded remediation and a recorded acceptance criterion disagree, the criterion is
+  the requirement and the remediation is a guess** — the criterion describes the property the
+  system must have, the remediation describes one person's idea of how. The disagreement is itself
+  evidence that the original diagnosis stopped early.
+- The D-036 question is what changed the design, not the URL: asking *what would this endpoint
+  PERMIT once its only authentication check is gone* found that `admin/bootstrap.php` runs the cron
+  manager and the action scheduler on every request (`bootstrap.php:184-196`). Exempting it would
+  have given every anonymous passer-by a scheduler trigger — a capability nobody was proposing to
+  grant, attached to a comment box. `installer/index.php` does neither, which is why relocating the
+  handler out of the admin tree beat exempting it on security grounds and not merely on URL
+  hygiene. D-036 exists because the webauthn diagnosis "identified the redirect and stopped"; this
+  is the first slice to ask its question *before* acting, and the answer moved the file.
+- A control can be inert because its INPUT can never arrive, not because its logic is wrong. The
+  "per-session rate limit" read `$_SESSION['last_comment_at']`, and the session cookie is scoped
+  `path=<base>/admin/` with `SameSite=Strict` (`auth.php:52-62`), so a form on the generated site
+  can never send it. The comparison was correct; the value was structurally guaranteed absent.
+  This is L-010's family — a guard that checks nothing — but reached by a different route: L-010's
+  guard read the wrong data at the wrong moment, this one read data that could not exist. Both are
+  invisible to a reader who checks the logic and not the data flow into it.
+- How layer 3 was found: not by reading the endpoint, but by asking a separate agent to trace how
+  the feature reaches a generated page at all. The answer — "it does not, there is no form" — is
+  not visible from any file the slice touches, which is exactly why it survived an adoption audit
+  that produced a 930-surface API index.
+- Rule for next time: **before closing a finding, drive the whole FEATURE end to end, not the
+  defect the finding names.** Ask three questions in order — can it be switched on? can it be
+  reached? is there anything that calls it? — and answer each against the source, not the finding
+  text. A finding is a report about one symptom, written by someone who was looking at one file;
+  closing it is not the same as making the feature work, and a slice that conflates the two ships
+  a green test point over a dead feature. Where the whole feature is deliberately not finished in
+  this slice (here: the form), say so in the reference doc in plain words — claiming otherwise is
+  the L-002 defect.

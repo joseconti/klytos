@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Modello",
     "filter_all": "Tutte le fonti"
+  },
+  "comments": {
+    "disabled": "I commenti sono disattivati.",
+    "submitted": "Commento inviato per la moderazione.",
+    "rate_limited": "Troppi commenti. Attendi prima di pubblicare di nuovo.",
+    "submit_failed": "Non è stato possibile inviare il tuo commento.",
+    "notification_subject": "Nuovo commento su",
+    "author": "Autore",
+    "page": "Pagina",
+    "page_slug_required": "La pagina è obbligatoria.",
+    "author_name_required": "Il nome è obbligatorio.",
+    "content_required": "Il commento non può essere vuoto.",
+    "status_pending": "Stato: in attesa di moderazione"
   }
 }

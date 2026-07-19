@@ -243,6 +243,25 @@ klytos_set_config(string $key, mixed $value): void
 
 **Note**: Top-level keys only (no dot-notation for writing). Use sparingly.
 
+#### Writing SITE config (the `SiteConfig` record, not core config)
+
+`klytos_set_config()` writes **core** config (`config.json.enc` — install-level values such as
+`admin_user`). Site-level settings live in the `SiteConfig` record and have their own accessors:
+
+```php
+$config = klytos_app()->getSiteConfig();
+
+$config->getValue( 'comments_enabled', false );        // read, dot-notation supported
+$config->setValue( 'comments_enabled', true );         // write, dot-notation supported
+$config->set( [ 'site_name' => 'New name' ] );         // bulk write — ALLOW-LISTED
+```
+
+**Use `setValue()` for anything outside the settings form.** `set()` carries a hardcoded
+allow-list of twelve top-level fields and **silently drops** any key not on it — a value it
+discards produces no error, so the write appears to succeed. That is exactly how the comment
+system stayed unswitchable: `SiteConfig::setValue()` did not exist at all until Sprint 1 slice 7,
+although the MCP tool that enables comments had always called it (audit **NEW-16**).
+
 ### Full Config Structure
 
 ```php

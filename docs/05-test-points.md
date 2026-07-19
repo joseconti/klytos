@@ -17,7 +17,7 @@
 | 4 — `klytos_require_permission()` + central gate | Per-role integration tests against representative pages **and** endpoints asserting the 403/401 **SHAPE**, not only the status; all 66 admin files accounted for in the gate map; `keel-verify`'s gate check demonstrably FAILS on a removed gate | **yes** — session-start freshness boot from `docs/playground.md` verbatim (admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, 177 tools authenticated). Beyond that, a **full 65-surface × 4-role walk over real HTTP** (260 requests) confirming both halves: privileged surfaces refuse, and nothing a role legitimately needs became unreachable (sprint risk 1) | **This slice IS the security fix.** S-07 closed: coverage 15/66 → 65/66 mapped surfaces, default-deny for the 66th and for anything added later. Defects closed in-path (D-033): NEW-10 setup-wizard escalation, and NEW-12 — `api/download-identity.php`'s **three stacked defects**, each masking the next, all **verified live** rather than believed. **NEW-09's fix was implemented and then REVERTED (D-036)**: the `security-auditor` pass showed the auth-guard exemption opens a full account-takeover primitive (a correct password alone would enrol an attacker's authenticator), and it buys nothing because passkey login cannot complete regardless. The hand-rolled `in_array( $role, ['owner','admin'] )` in `security.php` is gone, so `UserManager::hasPermission()` is still the single decision point (S-04 preserved). Independent `security-auditor` and `code-reviewer` passes over the diff | n/a — no UI written in this slice. The 403 page is a self-contained document; it sets `lang`, `charset`, a viewport and `noindex`, and escapes every interpolated value | **yes** — 4 new keys (`common.forbidden`, `common.no_permission`, `common.authentication_required`, `plugins.page_declares_no_capability`) added to **all 20 catalogues** (D-006). The first two were already REFERENCED by `plugin-page.php` and existed in **no** catalogue, so that gate had been rendering `__()`'s generated fallback — the audit called it "i18n'd"; it was not | **yes** — the denial shape was **promoted** from `core/router.php:438-447`, not reinvented; `klytos_require_permission()` delegates to the existing `klytos_has_permission()` → `UserManager::hasPermission()` chain rather than re-deciding; the 4 legacy redirect gates were deleted rather than left beside the central one | `docs/reference/authorization.md` **created** (matrix, gate map semantics, all 6 functions with runnable examples, both extension points, the "adding a new admin page" checklist, and an explicit "what this does NOT cover"); 8 new rows in `docs/api/INDEX.md` with counts updated 930 → 938; `docs/04-adoption-audit.md` (S-07 CLOSED + NEW-09/10/11); `docs/playground.md`; `docs/decisions.md` (D-032…D-035); `docs/lessons-learned.md` (L-007, L-008) | **yes** — `admin.gate_map` filter (a plugin gates its own admin files) and `auth.access_denied` action (the audit hook, deliberately **unable** to reverse the decision). The pre-existing `auth.capabilities` filter still governs the matrix | See the evidence block below | **PASS** | Both review subagents returned **blocking** findings; both were fixed rather than argued with, and the slice's test set grew from 6 to 13 HTTP tests as a direct result. 5 capabilities added to the one matrix. `ai.use` deliberately excludes `editor` while NEW-02 is open (D-035). `plugin-page.php` now DENIES a plugin that declares no capability — a **breaking change for third-party plugins** (D-034), verified to break no shipped plugin. **NEW-11 found and NOT fixed:** `Auth::login()` never consults `UserManager`, so only `config['admin_user']` can log in — which is very likely *why* S-07 survived unnoticed |
 | 5 — Named escalations, one test each | One NAMED test per finding asserting the refusal (S-01, S-02, S-03, S-05, S-06, S-12), each with its POSITIVE counterpart (a role that SHOULD reach the surface gets through, per L-008); S-12's remaining half closed — state-changing GET and missing CSRF; full suite green | **yes** — session-start freshness boot from `docs/playground.md` verbatim: admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated (counted via the documented `.playground-access` recipe, matching the slice-0 baseline exactly). The escalation tests are themselves real HTTP against a real `php -S` server on the seeded playground | **This slice IS the security proof.** Each of the six findings now fails a named test if it regresses. Two live defects closed: **S-06 residue** — `api/tasks.php` did not re-gate `update`/`complete` at `tasks.manage` while its page twin does (`tasks.php:38`), so an editor was refused via the UI and allowed via the API; and **S-12** — POST + CSRF now required on the RSA private-key export, with the caller retargeted because the old 302 redirect *was* what made it a GET. Three of the new tests were **proven to FAIL against the unfixed code** (200 where 405/403 required; 500 proving the editor's task action executed) before the fixes landed. Independent `code-reviewer` and `security-auditor` passes over the diff | n/a — no new UI. The one markup change is the identity-export form's `action` attribute; the button, label and surrounding structure are untouched | **yes** — no new user-facing strings. The 405/403 bodies on `download-identity.php` are operator-facing plain text on a machine endpoint, consistent with the file's existing 429/404 responses, not UI copy | **yes** — and this drove a real refactor: the HTTP harness was **extracted** from `AdminGateHttpTest` into `tests/AdminHttpTestCase.php` rather than copied for the second HTTP class. Duplicating it would have forked the three defects L-008 records (session cookie name, `proc_open` handle shape, teardown orphan check) so a later fix to one copy would silently miss the other. `klytos_require_permission()` was reused in `api/tasks.php`; **no second authorization decision point was added** (S-04 preserved) | `docs/reference/authorization.md` (API-twin re-gating rule; CSRF and step-up-authentication added to "what this does NOT cover"), `docs/04-adoption-audit.md` (**NEW-13** added; NEW-12's open half resolved), `docs/decisions.md` (D-038, D-039, D-040), `docs/lessons-learned.md` (**L-010**). No new public PHP surface — the changes are two guards, one re-gate and test infrastructure — so no `docs/api/INDEX.md` row | n/a for this slice — no new extension point. The existing `admin.gate_map`, `auth.access_denied` and `auth.capabilities` all still apply unchanged | See the evidence block below | **PASS** | **A harness defect was found and repaired mid-slice, and it is the most consequential thing here: `PlaygroundState::assertConfigNotMutated()` was INERT** — it ran after `restorePlayground()` and re-hashed the already-restored file, so it compared the snapshot against itself and had been checking nothing since slice 3 (D-039, **L-010**). Proven inert with a probe, repaired to compare decrypted content minus `scheduler_last_run`, and pinned by a permanent two-way regression test. It then paid for itself immediately: it fired on the S-12 tests against the unfixed code, independently confirming the GET really did write config, and stopped once the fix landed. Lint baseline **improved** to 199/488 (errors −2). NEW-13 recorded and deliberately NOT fixed (D-040) |
 | 6 — `SafeHttp` + risky call sites | Refusals for `127.0.0.1`, `[::1]`, `169.254.169.254`, a non-HTTP scheme, **and a public URL that 302-redirects to a private one**; full suite green | **yes** — session-start freshness boot (see the freshness row: the documented port was held by an unrelated container, which is itself the session's first finding, **L-011**). The redirect and endpoint tests are real HTTP against real `php -S` servers; the oEmbed tests drive the endpoint as a seeded owner exactly as an editor would | **This slice IS the security fix.** S-08 closed by `SafeHttp`, applied at 5 call sites. The finding was **wider than recorded**: the *discovered* oEmbed endpoint is attacker-controlled too and its response **is** echoed back, and every fetch followed redirects unvalidated. Proven against the unfixed code: **6 of the 8** endpoint tests failed (404 where 400 required — the 404 the endpoint returns *after* fetching), and the old transport was demonstrated following a 302 to `http://169.254.169.254/latest/meta-data/` with `CURLINFO_EFFECTIVE_URL`. Fixed in-path: `HttpClient::requestWithStream()` silently dropped `follow_redirects`. Both review subagents run over the diff | n/a — no UI written in this slice | n/a — no new user-facing strings. The refusal deliberately reuses the endpoint's existing generic `Invalid URL`, so no catalogue key was needed and no internal-network oracle was created | **yes, and it drove the shape** — the validation was **promoted** from `ImportValidator::validateUrl()`, not rewritten, and `ImportValidator` now delegates, so ONE implementation exists where there were about to be two. `SafeHttp` reuses `HttpClient` for transport rather than opening a third cURL call site. `AdminHttpTestCase` was **generalized** with a `routerScript()` hook rather than copied for the fixture server, keeping L-008's three defects in one place | `docs/reference/safe-http.md` **created** (the rule, return shape, all 5 reason codes, redirects, the oracle rule, all 4 extension points, known limits, where it is applied, tests); **6 new rows** in `docs/api/INDEX.md` with counts updated 938 → 944; `docs/04-adoption-audit.md` (S-08 CLOSED + **NEW-15**); `docs/playground.md` (bind check); `docs/decisions.md` (D-041, D-042); `docs/lessons-learned.md` (**L-011**, **L-012**) | **yes** — `http.safe.allowed_schemes` and `http.safe.max_redirects` (filters, both tested), `http.safe.redirect` and `http.safe.blocked` (actions, both tested). `http.safe.blocked` is deliberately an action, not a filter, so it cannot reverse a refusal | See the evidence block below | **PASS** | **A second harness defect found, in the L-010 shape: the integration tier never reset hooks** while the unit tier always had, so a filter registered by one test leaked into every later test in the process (D-042, **L-012**). Nothing was passing for the wrong reason *yet*; the next weakening filter would have been. Caught by asserting on the refusal REASON rather than just the refusal. Lint baselines **improved**: core+admin 199 → **193**, plugins 131 → **129**. **NEW-15 recorded and deliberately NOT fixed:** DNS rebinding survives, because the address is resolved to validate and resolved again to connect — stated plainly in the reference doc rather than implied away |
-| 7 — Public comments, off the admin path | | | | | | | | | | pending | |
+| 7 — Public comments, off the admin path | Anonymous submission succeeds; honeypot rejects a bot; rate limit holds **ACROSS sessions**; **no admin-directory name in any frontend-reachable URL** | **yes** — session-start freshness boot (port 8080 held by an unrelated container again, so a verified-free port was used, per L-011); the four criteria were then walked for real with `curl` against the playground, and the accented submission round-tripped intact | **This slice IS the security fix.** S-09 closed by RELOCATION, not by the recorded remediation: the handler left the admin tree entirely rather than being exempted from its auth guard. The D-036 question was asked *before* acting and changed the design — `admin/bootstrap.php` runs cron and the action scheduler on every request (`bootstrap.php:184-196`), so the recorded fix would have handed every anonymous caller a scheduler trigger. Input bounds added to `CommentManager::submit()` because it is now anonymously reachable. Both review subagents run; the `security-auditor` returned a **blocking** finding that restructured the slice (rate limit ran AFTER `App::boot()`, and the honeypot ran BEFORE the rate limit, so a `_honeypot` flood was never counted) | n/a — no UI written in this slice | **yes** — a new `comments` domain with **11 keys** added to **all 20 catalogues**; three hardcoded English validation messages in `submit()` converted to `__()` after the code review flagged that they reach anonymous callers verbatim. The `405`/`500` paths keep literals by necessity — they fire before I18n exists (**NEW-18**) | **yes** — the persistent IP-keyed `MCP\RateLimiter` was **reused**, not forked, even though its fixed 60s window meant expressing the policy as a count rather than the old "1 per 30s" interval; `AdminHttpTestCase::post()` was **generalized** (nullable `$role`) rather than copied for anonymous POSTs; `SiteConfig::setValue()` was written as the counterpart to the existing `getValue()`. The install-root discovery loop IS duplicated with `x402-gate.php` and is recorded as deliberately not extracted, with a trigger | `docs/reference/public-comments.md` **created**; **5 rows** changed/added in `docs/api/INDEX.md` with counts 944 → 948; `docs/04-adoption-audit.md` (S-09 CLOSED + **NEW-16…NEW-20**); `docs/playground.md` (new try-it section); `docs/decisions.md` (**D-043**, amended after its review cycle); `docs/lessons-learned.md` (**L-014**); stale `api/comment-submit.php` row removed from `README.md` | **yes** — `comment.rate_limit` and `comment.notification_recipient` (filters), `comment.honeypot_rejected` and `comment.rate_limited` (actions). Both are actions, not filters, so a listener cannot turn a refusal into an acceptance | See the evidence block below | **PASS** | **The named finding was the shallowest of three.** Underneath it: `SiteConfig::setValue()` **did not exist** although the MCP tool calls it four times, so comments could never be switched on at all (**NEW-16**, fixed in path); and **no comment form exists in the generated output**, which is deliberately still true at the end of this slice (D-023 owns it) and is said plainly in the reference doc. Lint baselines held exactly at 193/488 and 113/109; `installer/public/` was found to be **outside the phpcs scan set entirely** and is now scanned, at 0/0. Recorded and NOT fixed: **NEW-17** (proxy collapses the rate limit into one bucket), **NEW-18** (no `__()` outside the admin bootstrap), **NEW-19**, **NEW-20** (limiter race — carried as *plausible and unproven*, because the concurrency test that would settle it was not run) |
 | 8 — HSTS + CSP fail-open + hardening | | | | | | | | | | pending | |
 | 9 — `keel-verify` + regenerable INDEX | | | | | | | | | | pending | |
 
@@ -926,6 +926,124 @@ Suite 60 → **95 tests**, 336 → **445 assertions** at first pass, **107 / 472
 `integrity-checker.php` and the two from `ImportValidator.php` were pre-existing PSR-12 violations,
 fixed under D-025's opportunistic rule because the slice was already editing both files.
 
+### Slice 7 — evidence (commands and output, 2026-07-20)
+
+**The defect, reproduced live before anything was changed.** The audit records a 302 to login; slice
+4 changed API surfaces to JSON, so the recorded symptom was stale:
+
+```
+$ curl -s -D - -X POST http://127.0.0.1:8104/installer/admin/api/comment-submit.php \
+    -d "page_slug=about&author_name=Bot&content=hello"
+HTTP/1.1 401 Unauthorized
+Set-Cookie: klytos_session=c5srq9t0l5hmhfdnvbapn6o8gn; path=/installer/admin/; HttpOnly; SameSite=Strict
+{"error":"Authentication required","code":"authentication_required"}
+```
+
+Note the `path=/installer/admin/` and `SameSite=Strict` on that cookie, and that a **new** one was
+issued on every anonymous request. That is the whole reason the old `$_SESSION['last_comment_at']`
+rate limit was not a weak rate limit but no rate limit at all.
+
+**NEW-16 proven, not inferred** — the second defect, hidden behind the first:
+
+```
+$ php -r 'require "installer/core/app.php"; $a=App::getInstance(); $a->boot();
+          $c=$a->getSiteConfig(); echo implode(", ", get_class_methods($c));
+          $c->setValue("comments_enabled", true);'
+methods: __construct, get, set, getValue, updateBuildTimestamp
+has setValue: NO
+FATAL: Error: Call to undefined method Klytos\Core\SiteConfig::setValue()
+```
+
+**Every new test proven to FAIL against the unfixed code** (probes applied, run, reverted):
+
+```
+PROBE 1 — endpoint file removed:
+  "An anonymous visitor could not submit a comment (S-09). Body: 404 — not found."
+  Failed asserting that 404 is identical to 201.
+
+PROBE 2 — rate limit disabled (the pre-slice per-session behaviour):
+  "Six submissions from one address, each with a DIFFERENT session cookie, were all accepted.
+   The rate limit is keyed on something the caller controls (S-09)."
+
+PROBE 3 — honeypot disabled:
+  Failed asserting that 201 is identical to 200.   (the bot's comment was stored)
+
+PROBE 4 — parent_id format check removed:
+  "A caller-supplied parent_id that is not a comment ID was stored verbatim."
+
+PROBE A — honeypot restored to its pre-review position, BEFORE the rate limit:
+  "Four honeypot submissions in one window were all accepted. Tripping the honeypot buys an
+   attacker an uncounted request, so the rate limit can never engage. Statuses: 200, 200, 200, 200"
+
+PROBE B — flood ceiling removed from the pre-boot path:
+  "Twelve anonymous requests were served past the flood ceiling while comments were disabled,
+   so the ceiling is not being enforced ahead of the boot-dependent checks.
+   Statuses: 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403"
+
+PROBE C — honeypot answering 200 again (post-review camouflage):
+  "The honeypot answers a different status from a real submission, so a bot can detect the trap
+   by comparing status codes."  Failed asserting that 200 is identical to 201.
+```
+
+Every probe was reverted and green restored before proceeding.
+
+**The four test-point criteria, walked for real in the playground** (post-review code):
+
+```
+1. anonymous submission
+   {"success":true,"message":"Comment submitted for moderation.","id":"8e2e…0230"}  [201]
+
+2. honeypot — indistinguishable from the above, by design
+   {"success":true,"message":"Comment submitted for moderation.","id":"6bd4…95a3"}  [201]
+
+3. rate limit across sessions (a DIFFERENT klytos_session cookie on every request)
+   req 3..12 -> 429 429 429 429 429 429 429 429 429 429
+
+4. no admin-directory name in the frontend URL
+   posted to: /comment-submit.php          (no admin segment, in any install)
+   old path:  /installer/admin/api/comment-submit.php -> 404
+
+   stored afterwards: 1
+     status=pending author=Visitante content=Comentario anónimo con acentos: ñ, á, é.
+```
+
+Only the legitimate comment was stored — the honeypot request and all ten rate-limited requests
+wrote nothing — and the accented content round-tripped intact, which is what the
+`JSON_UNESCAPED_UNICODE` alignment was for.
+
+**Full gates:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (116 tests, 541 assertions)
+
+$ php scripts/keel-verify
+  PASS  authorization gate covers every admin surface (64 files)
+  PASS  the central gate is invoked from admin/bootstrap.php
+OK — 2 check(s) passed.
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+A TOTAL OF 193 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES     (unchanged — D-025 holds)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/plugins
+A TOTAL OF 113 ERRORS AND 109 WARNINGS WERE FOUND IN 17 FILES      (unchanged)
+
+$ vendor/bin/phpcs --standard=phpcs.xml installer/public tests
+(no output — 0 errors, 0 warnings)
+```
+
+`keel-verify` reports **64** admin surfaces, down from 65: `api/comment-submit.php` was deleted, and
+its gate-map entry removed in the same change. The check's "the map names a file that does not exist
+on disk" arm would have failed the build otherwise — it was left to prove that, and did.
+
+Suite 107 → **116 tests**, 472 → **541 assertions**. Lint baselines unchanged; `installer/public/`
+added to the scanned set at 0/0 after its two pre-existing errors were auto-fixed.
+
+Commit: **(recorded at commit)**.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -942,6 +1060,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-19 (slice 4 session) | same two commands, verbatim | OK — admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, **177 tools** authenticated. Counted with `installed.json`'s own parser, not a `grep -c '"name"'`, which reports 215 because nested schema properties are also named `name` — the looser count was discarded rather than recorded | yes |
 | 2026-07-19 (slice 5 session) | same two commands, verbatim | OK — admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated via the documented `.playground-access` recipe (`docs/playground.md:153-157`, run as written). Identical to the slice-0 baseline on every check; no drift in five sessions | yes |
 | 2026-07-19 (slice 6 session) | documented commands, **but port 8080 was held by an unrelated Docker container** | **The document's own defect, caught here rather than by a user.** `php -S` could not bind, and because it had been backgrounded the failure was invisible — every check then reached the squatter. It reported admin `302` and MCP `302` where `401` is documented, plus a 200-tool count: three "findings" that looked like a slice-4 gate regression and were an unrelated Apache. The tell was `Server: Apache/2.4.54 (Debian)` in `curl -D -`; PHP's built-in server never sends it. Re-run on a **verified-free port (8123)**: admin **302**, MCP **401** unauthenticated, **177 tools** authenticated — identical to the slice-0 baseline, no drift in six sessions. `docs/playground.md` now carries a bind check as step 2 and the diagnostic note, so the next session cannot lose the same time. Recorded as **L-011** | yes |
+| 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

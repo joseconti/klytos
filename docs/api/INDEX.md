@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 145 |
 | Classes and interfaces | 97 |
-| Actions | 304 |
-| Filters | 113 |
+| Actions | 306 |
+| Filters | 115 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **944** |
+| **Total** | **948** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -192,7 +192,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\Cache\RedisCache` | class | installer/core/cache/redis-cache.php | — | Cache driver backed by a Redis server |
 | `Klytos\Core\CacheInterface` | interface | installer/core/cache-interface.php | — | Contract every cache driver implements for get/set/flush and driver stats |
 | `Klytos\Core\CacheManager` | class | installer/core/cache-manager.php | — | Front end to the configured cache driver, adding groups, remember and counters |
-| `Klytos\Core\CommentManager` | class | installer/core/comment-manager.php | — | Stores, moderates and renders page comments, including threaded output |
+| `Klytos\Core\CommentManager` | class | installer/core/comment-manager.php | docs/reference/public-comments.md | Stores, moderates and renders page comments, including threaded output |
 | `Klytos\Core\ConsentManager` | class | installer/core/consent-manager.php | — | Holds GDPR cookie-consent config, plugin declarations and audit reports |
 | `Klytos\Core\CronManager` | class | installer/core/cron-manager.php | — | Runs the scheduled tasks that are due on each cron tick |
 | `Klytos\Core\DatabaseStorage` | class | installer/core/database-storage.php | — | PDO-backed storage driver persisting encrypted records in database tables |
@@ -418,7 +418,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | comment.after_save | action | installer/core/comment-manager.php | — | Emitted once a submitted comment is stored; gets the comment array and 'create' |
 | comment.before_delete | action | installer/core/comment-manager.php | — | Emitted before a comment row is removed; receives the comment ID |
 | comment.before_save | action | installer/core/comment-manager.php | — | Emitted before a submitted comment is written; receives the comment array |
+| comment.honeypot_rejected | action | installer/public/comment-submit.php | docs/reference/public-comments.md | Emitted when the honeypot catches a bot; receives the page slug and client IP |
 | comment.moderated | action | installer/core/comment-manager.php | — | Emitted when a comment's moderation state changes; gets the comment and new status |
+| comment.rate_limited | action | installer/public/comment-submit.php | docs/reference/public-comments.md | Emitted when an anonymous submission is refused by the rate limiter; receives the client IP |
 | consent.after_save | action | installer/core/consent-manager.php | — | Emitted once the cookie consent config is stored; receives the sanitized config |
 | consent.before_save | action | installer/core/consent-manager.php | — | Emitted after sanitizing but before writing consent config; gets the sanitized config |
 | cron.run | action | installer/core/cron-manager.php | — | Emitted at the end of a due-task sweep; receives executed task list and error list |
@@ -633,6 +635,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | build.sitemap_urls | filter | installer/core/build-engine.php | — | Filters extra plugin URLs added to the generated sitemap |
 | build.structural_block_mapping | filter | installer/core/build-engine.php | — | Filters the template-to-structural-block mapping used for structure detection |
 | cache.groups | filter | installer/core/cache-manager.php | — | Filters the cache group list flushed when all caches are cleared |
+| comment.notification_recipient | filter | installer/public/comment-submit.php | docs/reference/public-comments.md | Filters the address told about a new comment; empty disables the notification |
+| comment.rate_limit | filter | installer/public/comment-submit.php | docs/reference/public-comments.md | Filters how many comments one address may submit per 60-second window (default 2) |
 | consent.audit_export | filter | installer/core/consent-manager.php | — | Filters the consent audit report payload returned for compliance export |
 | consent.config | filter | installer/core/consent-manager.php | — | Filters the consent manager configuration when it is read |
 | consent.declarations | filter | installer/core/consent-manager.php | — | Filters the cookie and script declarations collected from plugins |
@@ -921,7 +925,6 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | /admin/api/ai-chat.php | endpoint | installer/admin/api/ai-chat.php | — | Backs the built-in admin AI chat, relaying prompts to the configured provider |
 | /admin/api/assets-management.php | endpoint | installer/admin/api/assets-management.php | — | Manages asset metadata, categories, usage tracking, sync and cleanup |
 | /admin/api/autosave.php | endpoint | installer/admin/api/autosave.php | — | Persists editor content every 60 seconds to protect against lost work |
-| /admin/api/comment-submit.php | endpoint | installer/admin/api/comment-submit.php | — | Unauthenticated handler that accepts comments posted from the static frontend |
 | /admin/api/download-identity.php | endpoint | installer/admin/api/download-identity.php | — | Serves the klytos-identity.pem private key under elevated access checks |
 | /admin/api/image-edit.php | endpoint | installer/admin/api/image-edit.php | — | Applies crop, rotate, flip and resize operations to an image via GD |
 | /admin/api/inline-edit.php | endpoint | installer/admin/api/inline-edit.php | — | Receives content edits made through the frontend inline editor |
@@ -942,6 +945,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | /admin/api/translations.php | endpoint | installer/admin/api/translations.php | — | Saves individual translation strings from the translations screen |
 | /admin/api/update-install.php | endpoint | installer/admin/api/update-install.php | — | Drives core update installation so the UI can show a progress overlay |
 | /admin/api/webauthn-challenge.php | endpoint | installer/admin/api/webauthn-challenge.php | — | Issues and verifies passkey registration and authentication challenges |
+| /comment-submit.php | endpoint | installer/public/comment-submit.php | docs/reference/public-comments.md | Anonymous comment submission, at the WEB ROOT so no admin directory name reaches a public URL |
 
 ## Terminal / CLI commands
 | Surface | Kind | Code file | Doc | Purpose (one line) |

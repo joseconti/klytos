@@ -138,6 +138,9 @@ class BuildEngine
         // 7b. Handle maintenance mode files.
         $this->handleMaintenanceMode( $siteConfig );
 
+        // 7c. Place (or remove) the public comment endpoint at the web root.
+        $this->syncCommentEndpoint( $siteConfig );
+
         // 8. Update build timestamp
         $this->app->getSiteConfig()->updateBuildTimestamp();
 
@@ -925,6 +928,43 @@ class BuildEngine
      * - /slug  redirects to /slug/ (trailing slash)
      * - Static files are served directly
      */
+    /**
+     * Place the public comment endpoint at the web root, or remove it.
+     *
+     * The handler has to live at the web root rather than under the admin
+     * directory: a form on a generated page must be able to post to it, and
+     * the admin directory name is randomized precisely so it never appears in
+     * a public URL (core/helpers.php:192-197). This is the same placement
+     * x402 uses for its own public gate (core/x402-bootstrap.php:265-267).
+     *
+     * When comments are switched off the file is REMOVED rather than left
+     * behind. A disabled endpoint that still boots the application on every
+     * anonymous POST is attack surface with no feature behind it — and the
+     * previous build would have left it there forever once written.
+     *
+     * @param  array $siteConfig Site configuration.
+     * @return void
+     */
+    private function syncCommentEndpoint( array $siteConfig ): void
+    {
+        $source = $this->app->getRootPath() . '/public/comment-submit.php';
+        $target = $this->outputPath . '/comment-submit.php';
+
+        if ( empty( $siteConfig['comments_enabled'] ) ) {
+            if ( is_file( $target ) ) {
+                @unlink( $target );
+            }
+
+            return;
+        }
+
+        if ( ! is_file( $source ) ) {
+            return;
+        }
+
+        @copy( $source, $target );
+    }
+
     private function ensurePublicHtaccess(): void
     {
         $htaccessPath = $this->outputPath . '/.htaccess';

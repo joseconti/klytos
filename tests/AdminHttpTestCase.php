@@ -283,22 +283,36 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      * into the synthetic session, which is what Helpers::verifyCsrf()
      * validates against (`helpers.php:1027-1035`).
      *
-     * @param  string               $path   Path relative to the document root.
-     * @param  array<string,string> $fields Form fields.
-     * @param  string               $role   Seeded username.
+     * A null $role posts ANONYMOUSLY: no session cookie and no CSRF field.
+     * Slice 7 needed that for the public comment endpoint, which by definition
+     * has neither — and generalizing this method was preferable to adding a
+     * second one, for the reason in the class docblock: a copy would fork the
+     * three defects L-008 records. A caller passing a role is unaffected.
+     *
+     * @param  string               $path    Path relative to the document root.
+     * @param  array<string,string> $fields  Form fields.
+     * @param  string|null          $role    Seeded username, or null for anonymous.
+     * @param  array<int,string>    $headers Extra request headers.
      * @return array{status:int, body:string, content_type:string, location:string}
      */
-    protected function post( string $path, array $fields, string $role ): array
+    protected function post( string $path, array $fields, ?string $role, array $headers = [] ): array
     {
         $handle = $this->handleFor( $path );
 
-        $fields['csrf'] = self::CSRF_TOKEN;
+        if ( $role !== null ) {
+            $fields['csrf'] = self::CSRF_TOKEN;
+
+            curl_setopt( $handle, CURLOPT_COOKIE, 'klytos_session=' . $this->sessionFor( $role ) );
+        }
 
         curl_setopt_array( $handle, [
             CURLOPT_POST       => true,
             CURLOPT_POSTFIELDS => http_build_query( $fields ),
-            CURLOPT_COOKIE     => 'klytos_session=' . $this->sessionFor( $role ),
         ] );
+
+        if ( $headers !== [] ) {
+            curl_setopt( $handle, CURLOPT_HTTPHEADER, $headers );
+        }
 
         return $this->send( $handle, $path );
     }

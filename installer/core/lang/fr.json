@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Modèle",
     "filter_all": "Toutes les sources"
+  },
+  "comments": {
+    "disabled": "Les commentaires sont désactivés.",
+    "submitted": "Commentaire soumis pour modération.",
+    "rate_limited": "Trop de commentaires. Veuillez patienter avant de publier à nouveau.",
+    "submit_failed": "Votre commentaire n'a pas pu être envoyé.",
+    "notification_subject": "Nouveau commentaire sur",
+    "author": "Auteur",
+    "page": "Page",
+    "page_slug_required": "La page est obligatoire.",
+    "author_name_required": "Le nom est obligatoire.",
+    "content_required": "Le commentaire ne peut pas être vide.",
+    "status_pending": "Statut : en attente de modération"
   }
 }

@@ -4,7 +4,7 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-19**
+> **last verified: 2026-07-20**
 
 ---
 
@@ -174,7 +174,61 @@ curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:8080/installer/mcp \
 MCP rate limiting is 60 requests/minute per identity, plus per-IP blocking on auth failures
 (`core/mcp/server.php:84-126`) — expect it to bite in a tight loop.
 
-### 4. The CLI
+### 4. Public comments — the one anonymous write surface (Sprint 1 slice 7)
+
+`/comment-submit.php` is the only endpoint that accepts a write from a caller with no
+identity. It is served from the **web root**, not from the admin directory, so nothing
+a visitor sees names the randomized `<hex>-admin` folder. Full reference:
+`docs/reference/public-comments.md`.
+
+Comments ship **disabled**, so switch them on first:
+
+```bash
+XDEBUG_MODE=off php -r 'require "installer/core/app.php";
+  $a=\Klytos\Core\App::getInstance(); $a->boot();
+  $a->getSiteConfig()->setValue( "comments_enabled", true );'
+```
+
+```bash
+# Anonymous submission — 201, and the comment is stored as "pending".
+curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:8080/comment-submit.php \
+  -d "page_slug=about&author_name=Visitor&content=Hello from nobody in particular."
+
+# The honeypot — answers EXACTLY like a success (201, same shape, a decoy id) and
+# stores nothing. A distinguishable response would teach a bot to skip the field.
+curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:8080/comment-submit.php \
+  -d "page_slug=about&author_name=Bot&content=spam&_honeypot=http://spam.test/"
+
+# The rate limit is IP-keyed and PERSISTENT — 2 per 60s. Send a different session
+# cookie every time: it makes no difference, which is the whole point (S-09).
+for i in 1 2 3 4; do
+  curl -s -o /dev/null -w "req $i -> %{http_code}\n" -X POST \
+    http://127.0.0.1:8080/comment-submit.php -b "klytos_session=sess$i" \
+    -d "page_slug=about&author_name=N&content=msg$i"
+done
+```
+
+Expect `201`, then `201` again (the honeypot, indistinguishable on purpose — check
+`klytos_list_comments` or the admin Comments page to see that it stored nothing), then
+`429`s once the window is spent. The flood ceiling is 10 per minute per address and the
+comment policy is 2; reset by waiting 60 seconds or deleting
+`installer/data/rate_limits.json`.
+
+Switch comments back off when you are done, so the playground matches its documented
+default:
+
+```bash
+XDEBUG_MODE=off php -r 'require "installer/core/app.php";
+  $a=\Klytos\Core\App::getInstance(); $a->boot();
+  $a->getSiteConfig()->setValue( "comments_enabled", false );'
+```
+
+> **There is no comment FORM on the generated site yet**, by decision — nothing in the
+> build emits one, so the endpoint is exercised with `curl` and not through a page.
+> Form emission belongs to the theme-package sprint (D-023), which is replacing the
+> template layer that would carry it.
+
+### 5. The CLI
 
 ```bash
 php installer/cli.php help        # 26 commands

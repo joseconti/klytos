@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Mall",
     "filter_all": "Alla källor"
+  },
+  "comments": {
+    "disabled": "Kommentarer är avstängda.",
+    "submitted": "Kommentaren har skickats för granskning.",
+    "rate_limited": "För många kommentarer. Vänta innan du skriver igen.",
+    "submit_failed": "Din kommentar kunde inte skickas.",
+    "notification_subject": "Ny kommentar på",
+    "author": "Författare",
+    "page": "Sida",
+    "page_slug_required": "Sidan är obligatorisk.",
+    "author_name_required": "Namn är obligatoriskt.",
+    "content_required": "Kommentaren får inte vara tom.",
+    "status_pending": "Status: väntar på granskning"
   }
 }

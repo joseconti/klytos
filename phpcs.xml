@@ -6,6 +6,7 @@
     <file>installer/core</file>
     <file>installer/admin</file>
     <file>installer/plugins</file>
+    <file>installer/public</file>
     <!--
         The test harness lints under the same ruleset as the code it tests
         (Sprint 1, slice 1). It is new code, so it enters clean and does not

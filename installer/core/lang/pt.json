@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Modelo",
     "filter_all": "Todas as origens"
+  },
+  "comments": {
+    "disabled": "Os comentários estão desativados.",
+    "submitted": "Comentário enviado para moderação.",
+    "rate_limited": "Demasiados comentários. Aguarde antes de publicar novamente.",
+    "submit_failed": "Não foi possível enviar o seu comentário.",
+    "notification_subject": "Novo comentário em",
+    "author": "Autor",
+    "page": "Página",
+    "page_slug_required": "A página é obrigatória.",
+    "author_name_required": "O nome é obrigatório.",
+    "content_required": "O comentário não pode estar vazio.",
+    "status_pending": "Estado: pendente de moderação"
   }
 }

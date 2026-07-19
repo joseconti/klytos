@@ -711,5 +711,18 @@
     "plugin": "插件",
     "template": "模板",
     "filter_all": "所有来源"
+  },
+  "comments": {
+    "disabled": "评论已关闭。",
+    "submitted": "评论已提交待审核。",
+    "rate_limited": "评论过于频繁。请稍后再发表。",
+    "submit_failed": "无法提交您的评论。",
+    "notification_subject": "新评论:",
+    "author": "作者",
+    "page": "页面",
+    "page_slug_required": "请指定页面。",
+    "author_name_required": "请填写姓名。",
+    "content_required": "评论不能为空。",
+    "status_pending": "状态：待审核"
   }
 }

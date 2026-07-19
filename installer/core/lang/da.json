@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Skabelon",
     "filter_all": "Alle kilder"
+  },
+  "comments": {
+    "disabled": "Kommentarer er deaktiveret.",
+    "submitted": "Kommentaren er sendt til moderation.",
+    "rate_limited": "For mange kommentarer. Vent venligst, før du skriver igen.",
+    "submit_failed": "Din kommentar kunne ikke sendes.",
+    "notification_subject": "Ny kommentar på",
+    "author": "Forfatter",
+    "page": "Side",
+    "page_slug_required": "Siden skal angives.",
+    "author_name_required": "Navn er påkrævet.",
+    "content_required": "Kommentaren må ikke være tom.",
+    "status_pending": "Status: afventer moderation"
   }
 }

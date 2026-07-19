@@ -711,5 +711,18 @@
     "plugin": "Eklenti",
     "template": "Şablon",
     "filter_all": "Tüm kaynaklar"
+  },
+  "comments": {
+    "disabled": "Yorumlar devre dışı.",
+    "submitted": "Yorum moderasyona gönderildi.",
+    "rate_limited": "Çok fazla yorum. Tekrar göndermeden önce bekleyin.",
+    "submit_failed": "Yorumunuz gönderilemedi.",
+    "notification_subject": "Yeni yorum:",
+    "author": "Yazar",
+    "page": "Sayfa",
+    "page_slug_required": "Sayfa gereklidir.",
+    "author_name_required": "İsim gereklidir.",
+    "content_required": "Yorum boş olamaz.",
+    "status_pending": "Durum: moderasyon bekliyor"
   }
 }

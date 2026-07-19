@@ -153,6 +153,49 @@ class SiteConfig
     }
 
     /**
+     * Set a single config value by dot-notation key.
+     *
+     * The counterpart to {@see getValue()}, and it did not exist until Sprint 1
+     * slice 7. Four call sites in core/mcp/tools/comment-tools.php:136-148 have
+     * always called it, so `klytos_set_comment_settings` — the only supported
+     * way to switch the comment system on — has been fataling with "Call to
+     * undefined method" for its entire life. That is why audit S-09 could not
+     * be demonstrated closed without this: the endpoint was unreachable AND
+     * the feature was unswitchable, the second defect hidden behind the first
+     * (the L-009 shape).
+     *
+     * Deliberately NOT routed through {@see set()}: that method carries a
+     * hardcoded allow-list of top-level fields for the settings form, and
+     * `comments_enabled` is not on it — so a value handed to set() is dropped
+     * silently, which is the other half of the same bug. This writes the key
+     * it was given.
+     *
+     * @param  string $key   e.g. 'comments_enabled' or 'social.twitter'
+     * @param  mixed  $value Value to store.
+     * @return void
+     */
+    public function setValue(string $key, mixed $value): void
+    {
+        $config = $this->get();
+        $parts  = explode('.', $key);
+        $target  = &$config;
+
+        foreach ($parts as $part) {
+            if (!isset($target[$part]) || !is_array($target[$part])) {
+                $target[$part] = [];
+            }
+            $target = &$target[$part];
+        }
+
+        $target = $value;
+        unset($target);
+
+        $config['updated_at'] = Helpers::now();
+
+        $this->storage->write(self::COLLECTION, self::ID, $config);
+    }
+
+    /**
      * Update the last build timestamp.
      */
     public function updateBuildTimestamp(): void

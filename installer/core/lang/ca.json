@@ -711,5 +711,18 @@
     "plugin": "Connector",
     "template": "Plantilla",
     "filter_all": "Totes les fonts"
+  },
+  "comments": {
+    "disabled": "Els comentaris estan desactivats.",
+    "submitted": "Comentari enviat per a moderació.",
+    "rate_limited": "Massa comentaris. Espereu abans de publicar-ne un altre.",
+    "submit_failed": "No s'ha pogut enviar el comentari.",
+    "notification_subject": "Nou comentari a",
+    "author": "Autor",
+    "page": "Pàgina",
+    "page_slug_required": "Cal indicar la pàgina.",
+    "author_name_required": "Cal indicar el nom.",
+    "content_required": "El comentari no pot estar buit.",
+    "status_pending": "Estat: pendent de moderació"
   }
 }

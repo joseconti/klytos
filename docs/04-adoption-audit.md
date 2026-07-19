@@ -41,7 +41,7 @@ Each finding's own section carries its closure note and the test that pins it; t
 | **H-04** unauditable vendored tree | **CLOSED** | slice 2 |
 | **NEW-01** `klytos_current_user()` promotes to owner | **CLOSED** | slice 3 |
 | **S-08** SSRF in the oEmbed resolver | **CLOSED** | slice 6 (`SafeHttp`, applied at 5 call sites; DNS rebinding remains open as **NEW-15**) |
-| **S-09** public comment submission | open | slice 7 |
+| **S-09** public comment submission | **CLOSED** | slice 7 (handler moved OUT of `admin/` to the web root; the per-session rate limit replaced with the persistent IP-keyed one; **NEW-16** found and fixed in path, **NEW-17**/**NEW-18**/**NEW-19** recorded) |
 | **S-11** no HSTS + the CSP fail-open | open | slice 8 |
 
 Stated plainly so the closures are not read as more than they are: **the admin surface is gated and
@@ -286,6 +286,51 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Fails:** Correctness; and the comment misleads a future reader about the file's trust boundary.
   When it is fixed, it becomes a genuinely unauthenticated endpoint and the anti-spam and rate
   limiting must be verified, not assumed.
+- **CORRECTED 2026-07-20 (slice 7).** The recorded symptom is stale: anonymous callers no longer get
+  a 302 to login, they get **`401 {"code":"authentication_required"}`** — slice 4 changed API
+  surfaces to answer JSON. Same defect, different shape. Verified live before any change was made.
+- **CLOSED 2026-07-20, Sprint 1 slice 7 — and the recorded remediation was NOT the one applied.**
+  The audit's fix ("add it to `$preAuthScripts`") was rejected against source for two reasons, and
+  the second is the one that matters:
+  - **It could not satisfy this slice's own test point.** The endpoint's documented address is
+    `<admin>/api/comment-submit.php`, and the admin directory is renamed to a randomized
+    `<hex>-admin` at install (`install.php:811-824`) precisely so that it never appears in a public
+    URL — `Helpers::getBasePath()` says so in those words (`core/helpers.php:192-197`), as does the
+    root `.htaccess` header. A comment form on a generated page posting there would have published
+    the secret directory name on every page of every site.
+  - **It would have handed anonymous callers more than a comment box.** `admin/bootstrap.php` runs
+    the cron manager and the action scheduler on **every** request (`bootstrap.php:184-196`). An
+    endpoint exempted from its auth guard is a scheduler trigger for any passer-by.
+    `installer/index.php` does neither (`index.php:62`). This is exactly the D-036 question — what
+    does the file PERMIT once the only authentication check in front of it is removed — and it is
+    why the handler moved instead of being exempted.
+  - **Resolution:** the handler is now `installer/public/comment-submit.php`, copied to the site's
+    **web root** by `BuildEngine::syncCommentEndpoint()` (the placement x402 already uses for its
+    own public gate), reachable at `/comment-submit.php`. The old admin file is **deleted** and its
+    gate-map entry removed, so no admin surface answers anonymous callers and `keel-verify` still
+    passes at 64 files.
+  - **The rate limit was not weak — it did not exist.** `$_SESSION['last_comment_at']` could never
+    be read from the generated site: `Auth::startSession()` scopes the cookie to
+    `path=<base>/admin/` with `SameSite=Strict` (`core/auth.php:52-62`), so every anonymous
+    submission arrives with a brand-new session. Confirmed live — each request received a fresh
+    `klytos_session`. It now uses the product's existing persistent, IP-keyed
+    `MCP\RateLimiter`, 2 per 60s, filterable via `comment.rate_limit`. Residual gap recorded as
+    **NEW-17**.
+  - **Input bounds added**, because anonymous reach makes an unbounded field a one-request disk
+    write: `author_name` 100, `author_email` 254, `page_slug` 200 (truncated *before* sanitizing),
+    and `parent_id` must match this collection's own ID shape or it is dropped rather than stored
+    verbatim.
+  - **A second, deeper defect was uncovered and fixed in path: NEW-16** — comments could never be
+    enabled at all, because `SiteConfig::setValue()` did not exist although the MCP tool called it
+    four times. The L-009 shape again: the first fault was hiding the second.
+  - Pinned by `tests/Integration/PublicCommentTest.php` — 7 tests, each of the four test-point
+    criteria asserted, all **proven to FAIL** against the unfixed code by probe (endpoint removed →
+    404; rate limit disabled → six submissions with six different session cookies all accepted;
+    honeypot disabled → the bot's comment stored; `parent_id` check removed → the forged value
+    stored verbatim). Walked for real in the playground as well as in the suite.
+  - Still absent by decision: **there is no comment form in the generated output**, and there never
+    was one. Form emission belongs to the theme-package sprint (D-023). Said plainly here rather
+    than left implied — the endpoint works and nothing calls it yet.
 
 ### S-10 — CSP allows `style-src 'unsafe-inline'` — **LOW**
 - **Where:** `installer/core/auth.php:793`
@@ -1055,6 +1100,108 @@ verified test point with a recorded files-updated count.
   those words.
 - **Trigger:** the authentication slice (which already reopens this area), or the first time any
   unauthenticated surface gains an outbound fetch — whichever comes first.
+
+---
+
+### NEW-16 — Comments could never be switched on: `SiteConfig::setValue()` did not exist — **HIGH (functional)** *(found 2026-07-20, Sprint 1 slice 7, while proving S-09 closed)* — **FIXED in slice 7**
+- **Where:** `installer/core/site-config.php` (method absent); callers at
+  `installer/core/mcp/tools/comment-tools.php:136,139,143,147`
+- **What:** `klytos_set_comment_settings` — the **only** supported way to enable the comment
+  system — called `$config->setValue( ... )` four times. `SiteConfig` exposed exactly
+  `__construct`, `get`, `set`, `getValue` and `updateBuildTimestamp`, and has no `__call`. Every
+  invocation therefore died with *Call to undefined method
+  Klytos\Core\SiteConfig::setValue()*. **Proven live, not inferred:** booting the app and calling
+  the method returns that fatal.
+- **The second half, which is the reason a "just call set() instead" fix would also have failed:**
+  `SiteConfig::set()` (`site-config.php:54-127`) carries a hardcoded allow-list of twelve
+  top-level fields, and `comments_enabled` is not among them — so a value passed to `set()` is
+  **silently dropped**. Both the method that was called and the method that exists were incapable
+  of storing this setting.
+- **Why this is the L-009 shape, recorded because the pattern keeps recurring:** S-09 said comments
+  were broken because the endpoint was unreachable. Underneath that sat a feature that could not be
+  turned on at all. Fixing the first defect is what made the second one reachable — exactly as
+  `api/download-identity.php`'s first fatal had been masking its second. A slice that had only
+  added `comment-submit.php` to `$preAuthScripts` would have shipped, passed its own review, and
+  left comments just as non-functional, because nothing would ever have set `comments_enabled`.
+- **Fixed in slice 7** (D-043): `SiteConfig::setValue()` is implemented as the dot-notation
+  counterpart to the existing `getValue()`, deliberately not routed through `set()`'s allow-list.
+  In scope by necessity rather than by opportunism — S-09's test point requires an anonymous
+  submission to succeed, which is unreachable while the feature cannot be enabled.
+
+### NEW-17 — Behind a non-loopback proxy, the comment rate limit becomes one shared bucket — **MEDIUM** *(found 2026-07-20, Sprint 1 slice 7)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/rate-limiter.php:151-170` (`getClientIp()`)
+- **What:** `getClientIp()` honours `X-Forwarded-For` **only** when `REMOTE_ADDR` is loopback, and
+  otherwise returns `REMOTE_ADDR`. That is the right default against header spoofing on a
+  directly-exposed host. On a site behind a CDN or reverse proxy whose address is not loopback,
+  every visitor resolves to the **same** address, so the whole audience shares one rate-limit
+  bucket: two comments per minute for the entire site, and one spammer denies commenting to
+  everyone. The failure direction is availability, not bypass.
+- **Why not fixed here:** the remedy is a configurable trusted-proxy list, which changes
+  `getClientIp()` for the MCP endpoint, the OAuth token endpoint and the plugin route layer too —
+  three surfaces this slice does not touch, each needing its own test point. Deferring it is the
+  user's recorded decision, taken with the trade-off stated.
+- **Stated in the reference doc rather than implied away:** `docs/reference/public-comments.md`
+  says the limit raises the cost of spam substantially and that a proxied deployment needs this
+  fix before it means what it says.
+- **Trigger:** the first deployment behind a CDN, or the slice that adds trusted-proxy config.
+
+### NEW-18 — The global `__()` exists only inside the admin bootstrap, so no public surface can translate — **MEDIUM (i18n)** *(found 2026-07-20, Sprint 1 slice 7)* — recorded, NOT fixed
+- **Where:** `installer/admin/bootstrap.php:28` (the only global definition);
+  `installer/core/app.php:775-793` (`registerI18nGlobal()`)
+- **What:** `App::registerI18nGlobal()` declares `function __()` **inside a namespaced file**, so
+  it becomes `Klytos\Core\__()` and is unreachable from an unnamespaced file. The global `__()`
+  every surface actually uses is declared in the ADMIN bootstrap. Any entry point outside
+  `admin/` — `t.php`, `public/x402-gate.php`, and now `public/comment-submit.php` — therefore has
+  no translation function at all. **Verified by the failure, not by reading:** the new endpoint
+  fataled with *Call to undefined function `__()`* on its first run.
+- **Consequence:** this is why the other public entry points hardcode English. It is not
+  sloppiness; it is structural, and it silently pushes every public surface out of the i18n system
+  that D-006 makes mandatory.
+- **Worked around, not fixed, in slice 7:** the comment endpoint calls
+  `$app->getI18n()->get( $key )` through a local closure rather than adding a third copy of the
+  shim. Its strings ARE translated, in all 20 catalogues.
+- **The real fix** is to move the global declaration into a core file both bootstraps require, and
+  then convert `t.php` and `x402-gate.php`. That touches the admin bootstrap and the x402 surface —
+  adjacent subsystems under D-031's narrowing.
+- **Trigger:** the theme-package sprint (D-023), which makes the generated frontend a first-class
+  surface, or the next slice that adds a public entry point.
+
+### NEW-19 — `RateLimiter` rewrites its whole file per request, now on an anonymous path — **LOW** *(found 2026-07-20, Sprint 1 slice 7)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/rate-limiter.php` — `check()` calls `loadData()` and `saveData()`,
+  each reading and rewriting the entire `data/rate_limits.json`
+- **What:** every call decodes the whole file, appends, and re-encodes it. Entries are pruned only
+  probabilistically (1% per call) plus an hourly cron. Until slice 7 every caller was
+  authenticated, so the number of distinct identifiers was bounded by the number of credentialed
+  clients. The comment endpoint is reachable by anyone, so a distributed spammer can create an
+  entry per source address and drive the per-request cost up with the file size.
+- **Not a bypass** — the limit still holds — and there is no lock-free corruption concern beyond
+  what already exists (`saveData` uses `LOCK_EX`). It is a scaling and disk-growth characteristic
+  that changed the moment an unauthenticated caller could reach the limiter.
+- **Compounding detail added by the slice's `security-auditor` pass:** cleanup only removes an
+  identifier once **every** timestamp under it has expired, so the set of addresses ever seen grows
+  monotonically between cron runs, and an attacker rotating source addresses (cheap from an IPv6
+  /64) gets an independent bucket per address with no global ceiling above the per-IP one.
+- **Trigger:** the first report of `rate_limits.json` growth, or the slice that fixes NEW-17 (which
+  is already opening this class).
+
+### NEW-20 — `RateLimiter::check()` is a read-decide-write with no lock spanning it — **MEDIUM** *(found 2026-07-20, Sprint 1 slice 7 `security-auditor` pass)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/rate-limiter.php:48-78` — `check()` calls `loadData()` (shared
+  lock, released) and then `saveData()` (exclusive lock) as two separate operations
+- **What:** the read, the decision and the write are not atomic. Two concurrent requests can both
+  read the same pre-write state, both conclude they are under the limit, and the later `saveData()`
+  overwrites the earlier one's counter — so more than `maxRequests` land in a window. The limit is
+  not defeated arbitrarily, but it is not exact under concurrency.
+- **Pre-existing, and this slice did not introduce it** — the class has backed the MCP endpoint,
+  the OAuth token endpoint and auth-failure tracking since 1.1.0. What changed is how cheaply it can
+  be driven: comment spam is trivially parallelised, whereas the previous callers all required a
+  credential first.
+- **Explicitly UNVERIFIED, recorded as such rather than asserted:** the reviewer traced this
+  statically and did not run a concurrency test, and neither did this slice. Settling it takes a
+  parallel burst against the playground (e.g. `ab -c 20 -n 20` against `/comment-submit.php`) and
+  counting how many exceed the configured maximum. **It is recorded as plausible-and-unproven, not
+  as confirmed** — the L-013 discipline applied to an accusation rather than to a reassurance.
+- **Fix when taken:** hold one exclusive lock across the whole read-check-write in `check()`.
+- **Trigger:** the same slice that takes NEW-17 or NEW-19 — all three are in this one class.
 
 ---
 

@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Template",
     "filter_all": "All sources"
+  },
+  "comments": {
+    "disabled": "Comments are disabled.",
+    "submitted": "Comment submitted for moderation.",
+    "rate_limited": "Too many comments. Please wait before posting again.",
+    "submit_failed": "Your comment could not be submitted.",
+    "notification_subject": "New comment on",
+    "author": "Author",
+    "page": "Page",
+    "page_slug_required": "A page is required.",
+    "author_name_required": "A name is required.",
+    "content_required": "The comment cannot be empty.",
+    "status_pending": "Status: pending moderation"
   }
 }

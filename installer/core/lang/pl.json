@@ -711,5 +711,18 @@
     "plugin": "Wtyczka",
     "template": "Szablon",
     "filter_all": "Wszystkie źródła"
+  },
+  "comments": {
+    "disabled": "Komentarze są wyłączone.",
+    "submitted": "Komentarz przesłany do moderacji.",
+    "rate_limited": "Zbyt wiele komentarzy. Poczekaj przed ponownym opublikowaniem.",
+    "submit_failed": "Nie udało się wysłać komentarza.",
+    "notification_subject": "Nowy komentarz na",
+    "author": "Autor",
+    "page": "Strona",
+    "page_slug_required": "Strona jest wymagana.",
+    "author_name_required": "Imię jest wymagane.",
+    "content_required": "Komentarz nie może być pusty.",
+    "status_pending": "Status: oczekuje na moderację"
   }
 }

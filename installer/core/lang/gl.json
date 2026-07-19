@@ -711,5 +711,18 @@
     "plugin": "Complemento",
     "template": "Modelo",
     "filter_all": "Todas as fontes"
+  },
+  "comments": {
+    "disabled": "Os comentarios están desactivados.",
+    "submitted": "Comentario enviado para moderación.",
+    "rate_limited": "Demasiados comentarios. Agarda antes de publicar de novo.",
+    "submit_failed": "Non se puido enviar o teu comentario.",
+    "notification_subject": "Novo comentario en",
+    "author": "Autor",
+    "page": "Páxina",
+    "page_slug_required": "Falta a páxina.",
+    "author_name_required": "Falta o nome.",
+    "content_required": "O comentario non pode estar baleiro.",
+    "status_pending": "Estado: pendente de moderación"
   }
 }

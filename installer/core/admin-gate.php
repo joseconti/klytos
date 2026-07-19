@@ -190,13 +190,14 @@ function klytos_admin_gate_map(): array
         // second-factor login could not work at all (NEW-09).
         'api/webauthn-challenge.php' => null,
 
-        // NULL because it is public by design: an anonymous visitor
-        // submitting a comment on the generated site. It is NOT
-        // reachable anonymously today — bootstrap's auth guard still
-        // blocks it — which is audit finding S-09, owned by slice 7.
-        // Mapping it here records the authorization answer; making the
-        // path reachable is that slice's work.
-        'api/comment-submit.php' => null,
+        // api/comment-submit.php USED to be mapped here, NULL, as "public by
+        // design". Slice 7 removed the file instead of exempting it from the
+        // auth guard (S-09). A public form posting to an admin path would have
+        // published the randomized admin directory name on every generated
+        // page, which core/helpers.php:192-197 states must never happen — so
+        // the handler moved to the web root as public/comment-submit.php,
+        // where no admin bootstrap, auth guard or gate is involved at all.
+        // Nothing under admin/ answers anonymous callers.
     ];
 
     /**

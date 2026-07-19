@@ -711,5 +711,18 @@
     "plugin": "Plugina",
     "template": "Txantiloia",
     "filter_all": "Iturburu guztiak"
+  },
+  "comments": {
+    "disabled": "Iruzkinak desaktibatuta daude.",
+    "submitted": "Iruzkina moderaziora bidali da.",
+    "rate_limited": "Iruzkin gehiegi. Itxaron mesedez berriro bidali aurretik.",
+    "submit_failed": "Ezin izan da zure iruzkina bidali.",
+    "notification_subject": "Iruzkin berria hemen:",
+    "author": "Egilea",
+    "page": "Orria",
+    "page_slug_required": "Orria beharrezkoa da.",
+    "author_name_required": "Izena beharrezkoa da.",
+    "content_required": "Iruzkina ezin da hutsik egon.",
+    "status_pending": "Egoera: moderazioaren zain"
   }
 }

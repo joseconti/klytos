@@ -711,5 +711,18 @@
     "plugin": "Plugin",
     "template": "Mal",
     "filter_all": "Alle kilder"
+  },
+  "comments": {
+    "disabled": "Kommentarer er deaktivert.",
+    "submitted": "Kommentaren er sendt til moderering.",
+    "rate_limited": "For mange kommentarer. Vent litt før du skriver igjen.",
+    "submit_failed": "Kommentaren din kunne ikke sendes.",
+    "notification_subject": "Ny kommentar på",
+    "author": "Forfatter",
+    "page": "Side",
+    "page_slug_required": "Siden er påkrevd.",
+    "author_name_required": "Navn er påkrevd.",
+    "content_required": "Kommentaren kan ikke være tom.",
+    "status_pending": "Status: venter på moderering"
   }
 }
