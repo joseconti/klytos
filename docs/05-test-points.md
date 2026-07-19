@@ -127,7 +127,7 @@ rule globally.
 
 ### Slice 2 — evidence (commands and output, 2026-07-19)
 
-Commit: *(recorded in the follow-up commit, per the slice 0/1 precedent)*.
+Commit: `d406e1f` — *Sprint 1 slice 2: vendor-ai manifest + first CVE audit (H-04, D-028)*.
 
 **The tree, established from Composer's own record — not from counting directories.**
 `installer/vendor-ai/composer/installed.json` and `installed.php` were already present, so the
