@@ -35,12 +35,29 @@ use PHPUnit\Framework\TestCase;
  * machine where it never ran.
  *
  * App is a singleton with a private constructor and no reset, so it is booted
- * once per process and shared; per-test isolation is the session, not the App.
+ * once per process and shared; per-test isolation is the session plus a
+ * snapshot/restore of the playground's on-disk state (see {@see PlaygroundState},
+ * D-030), not a fresh App.
  */
 abstract class IntegrationTestCase extends TestCase
 {
+    use PlaygroundState;
+
     /** @var bool Whether App::boot() has already run in this process. */
     private static bool $booted = false;
+
+    /**
+     * Whether to snapshot and roll back the playground around each test.
+     *
+     * Defaults to ON for every test in the tier rather than being opted into by
+     * the tests that mutate state, because which tests mutate is exactly what
+     * cannot be known in advance — a helper three calls deep that writes an
+     * audit-log record or a rate-limit counter is still a mutation. A test may
+     * set this to false only with a recorded reason.
+     *
+     * @var bool
+     */
+    protected bool $isolatePlaygroundState = true;
 
     /** @var App The booted application. */
     protected App $app;
@@ -57,6 +74,13 @@ abstract class IntegrationTestCase extends TestCase
 
         $this->requirePlayground();
 
+        // Snapshot BEFORE boot, so the very first test in a process captures a
+        // playground that boot() has not yet written to (App's Step 10b
+        // migration and the action scheduler both write on boot).
+        if ( $this->isolatePlaygroundState ) {
+            $this->snapshotPlayground();
+        }
+
         if ( ! self::$booted ) {
             App::getInstance()->boot();
             self::$booted = true;
@@ -72,6 +96,14 @@ abstract class IntegrationTestCase extends TestCase
     protected function tearDown(): void
     {
         $this->actingAsGuest();
+
+        if ( $this->isolatePlaygroundState ) {
+            // Restore first, then assert: the check reports what the test did,
+            // but the playground is left correct either way — including when
+            // the assertion fails.
+            $this->restorePlayground();
+            $this->assertConfigNotMutated();
+        }
 
         parent::tearDown();
     }

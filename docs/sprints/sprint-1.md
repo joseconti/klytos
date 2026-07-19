@@ -111,11 +111,15 @@ each slice closes.
    decision, per D-022.
 3. **The playground writes real local credentials.** Seeded `config/`/`data/` stay gitignored;
    `docs/playground.md` carries throwaway values only. The pre-commit gate is the net.
-4. **The integration tier has no storage isolation** *(added 2026-07-19, slice 1 review)*. It shares
-   the App singleton and the real on-disk playground with no per-test rollback. Slices 3–5 write
-   state through this seam, so their tests would become order-dependent and would mutate the
-   playground permanently. **Resolve before slice 3 starts** — either a per-test reset primitive or
-   fixtures each test creates and destroys. Tracked in `PROGRESS.md` deferred items.
+4. ~~**The integration tier has no storage isolation**~~ *(added 2026-07-19, slice 1 review)*.
+   **Resolved 2026-07-19, before slice 3, by D-030** — snapshot/restore of `installer/config/` +
+   `installer/data/` around every integration test (`tests/PlaygroundState.php`), ON by default. The
+   "either/or" in the original note was settled by the requirement, not by preference: fixtures
+   cannot express slice 3's migration test, which must delete a record belonging to the seed. Proven
+   to fail with isolation off before being trusted. Residual risk carried forward, stated rather than
+   closed: a file restore cannot refresh `App::$config`, `EncryptionLevelTrait::$cachedEncryptionLevel`,
+   `OptionsManager::$cache` or `AiKeyManager::$cache` — the tier fails loudly on core-config mutation
+   instead of covering it.
 5. **Never run the web installer in-tree** — `install.php:750` renames the tracked `install.php` and
    `:811-824` renames the whole `installer/` directory and writes into the repo's parent. This is
    documented loudly in `docs/playground.md` as part of slice 0.

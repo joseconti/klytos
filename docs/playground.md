@@ -154,6 +154,22 @@ vendor/bin/phpcs --standard=phpcs.xml tests/
 | `unit` | no — runs on a bare checkout | Storage, managers and hooks against a per-test temp directory. No App |
 | `integration` | **yes** | The real `App` booted against this playground, with `$_SESSION` set to a seeded role |
 
+**The integration tier does not leave the playground mutated.** Since D-030 every test in that tier
+snapshots `installer/config/` + `installer/data/` before it runs and restores them after, so tests
+that create, modify or delete records — which slices 3–5 all do — cannot affect each other or
+persist across runs. You do not need to reseed between runs.
+
+Two consequences worth knowing before writing a test here:
+
+- A test that mutates **core config** (`config.json.enc`) fails on purpose. `App::$config` is
+  decrypted once at boot and has no refresh path, so restoring the file would leave the booted App
+  holding the old value and the test would pass for the wrong reason. Use `#[RunInSeparateProcess]`,
+  or assert against storage instead of `App::getConfig()`. The same limit applies to options, the
+  encryption level and AI keys — the caches are named with file:line in `tests/PlaygroundState.php`.
+- If you ever need to opt out, set `protected bool $isolatePlaygroundState = false;` on the test
+  class **with a recorded reason**. That is also how the primitive is proven: flipping it makes
+  `PlaygroundIsolationTest` fail, which is how it was verified before anything relied on it.
+
 **If the integration tier reports skips, the playground is not seeded** — that is the harness telling
 you it has no fixture, not a pass:
 
