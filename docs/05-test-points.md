@@ -1197,7 +1197,7 @@ OK (138 tests, 603 assertions)
 Suite 116 → **138 tests**, 541 → **603 assertions**. All four lint baselines held exactly; the new
 code adds zero violations.
 
-Commit: **TBD**.
+Commit: **8c208b7**.
 
 ## Session-start freshness
 
