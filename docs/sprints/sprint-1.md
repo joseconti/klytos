@@ -145,6 +145,7 @@ each slice closes.
 | **User's recorded verdict** | **PENDING — this is the user's, and the sprint does not close without it** |
 | `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **yes** |
 | Continuation prompt produced unprompted | **yes** |
+| Finished docs archived to `docs/old/sprint-1/` | **nothing qualified — stated rather than skipped.** Phase 5 §5.7 moves docs that are finished AND no longer consulted. Every `docs/` file is still live: `04-adoption-audit.md` gained NEW-27/NEW-28 today, `theme-package-model.md` specifies an upcoming sprint, `estimate.md` awaits v2, and `sprint-1.md` is the precedent Sprint 2 reads for reuse targets. The state files, specs, technical plan, flows and api/reference docs never move while the project is alive. `docs/old/` is deliberately not created empty |
 
 ### What the sprint delivered
 
