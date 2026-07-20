@@ -23,6 +23,23 @@ nbproject/
 
 # ─── Klytos Runtime Data (NEVER commit) ──────────────────────
 # These are generated at install time and contain encrypted secrets.
+#
+# DEFAULT-DENY, added in Sprint 1 slice 8. Everything below this pair of rules
+# was — and still is — enumerated file by file, which is an allow-list for
+# COMMITTING: a runtime file nobody anticipated defaults to committable. That
+# is exactly how `installer/config/update_cache.json.enc` turned up untracked
+# and stageable during this slice, and the next such file would too. The only
+# tracked files in these two directories are the `.htaccess` access guards
+# (verified: `git ls-files installer/config installer/data` lists those two and
+# nothing else), so the directories are ignored wholesale and the guards are
+# re-included. The specific rules below are kept deliberately: they document
+# WHICH secrets live here, and they keep protecting anyone whose clone predates
+# this change.
+installer/config/*
+!installer/config/.htaccess
+installer/data/*
+!installer/data/.htaccess
+
 installer/config/.encryption_key
 installer/config/config.json.enc
 installer/config/database.json.enc

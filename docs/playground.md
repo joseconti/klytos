@@ -228,7 +228,51 @@ XDEBUG_MODE=off php -r 'require "installer/core/app.php";
 > Form emission belongs to the theme-package sprint (D-023), which is replacing the
 > template layer that would carry it.
 
-### 5. The CLI
+### 5. Security headers — every admin surface, including the refusals (Sprint 1 slice 8)
+
+Since slice 8 the headers are decided in one place and sent from one place, so
+**every** admin page and API endpoint carries them — including the 401 and 403
+refusals. Full contract: `docs/reference/security-headers.md`.
+
+```bash
+# An admin API endpoint. Before slice 8, 0 of the 23 files in admin/api/ sent anything.
+curl -s -D - -o /dev/null -b "klytos_session=<the id>" \
+  http://127.0.0.1:8080/installer/admin/api/notices.php |
+  grep -iE '^X-|^Referrer|^Content-Security|^Permissions|^Strict'
+
+# The login page — it sent NOTHING before slice 8, despite being the most
+# security-sensitive page in the product.
+curl -s -D - -o /dev/null http://127.0.0.1:8080/installer/admin/login.php | grep -i '^content-security'
+
+# The refusals carry them too. This is the ordering proof: klytos_deny() and the
+# auth guard both write a body and exit, so a header set below them would never
+# reach the client.
+curl -s -D - -o /dev/null http://127.0.0.1:8080/installer/admin/api/plugins.php   # 401 + headers
+```
+
+**HSTS is absent here and that is correct** — it is sent only over HTTPS, and the
+playground speaks plain HTTP. A browser ignores HSTS on a cleartext response, so
+sending it would be a claim the transport cannot back:
+
+```bash
+curl -s -D - -o /dev/null http://127.0.0.1:8080/installer/admin/index.php |
+  grep -ci strict-transport      # expect 0
+```
+
+**Checking the CSP in a browser** (the part only a person can do): open any admin
+page, then the DevTools console. It should be **empty** — no
+`Refused to execute inline script` messages. Every inline `<script>` in the admin
+carries the request's nonce. Two known exceptions that are *not* violations:
+`page-editor.php` sets its own policy allowing inline script (**NEW-21**), and the
+public generated site keeps `unsafe-inline` because a build-time file cannot hold
+a per-request nonce (**NEW-23**).
+
+If you add an inline `<script>` to an admin page, it needs
+`nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>"` — the CSP now **fails
+closed**, so an un-nonced block is silently refused by the browser rather than
+quietly allowed.
+
+### 6. The CLI
 
 ```bash
 php installer/cli.php help        # 26 commands

@@ -252,6 +252,28 @@ class Helpers
     }
 
     /**
+     * Is the current request being served over HTTPS?
+     *
+     * The single answer to that question in the product. Four copies of this
+     * expression existed before slice 8 (here twice, plus auth.php's two
+     * session-cookie `secure` flags); a fifth was about to be written for the
+     * HSTS header, so they were collapsed into this one instead.
+     *
+     * Deliberately does NOT consult X-Forwarded-Proto: that header is
+     * caller-supplied unless a trusted proxy is configured, and trusting it
+     * here would let a client talk the application into believing a cleartext
+     * request was secure — which for HSTS and for the session cookie's
+     * `secure` flag is exactly the wrong direction to be wrong in. Trusted
+     * proxy support is NEW-17's subject and changes MCP and OAuth too.
+     *
+     * @return bool True when the request arrived over TLS.
+     */
+    public static function isHttps(): bool
+    {
+        return ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off';
+    }
+
+    /**
      * Get the full site URL.
      *
      * @param  string $path Optional relative path.
@@ -259,7 +281,7 @@ class Helpers
      */
     public static function siteUrl(string $path = ''): string
     {
-        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $scheme = self::isHttps() ? 'https' : 'http';
         $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
         return $scheme . '://' . $host . self::url($path);
@@ -313,7 +335,7 @@ class Helpers
      */
     public static function publicUrl( string $path = '' ): string
     {
-        $scheme   = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
+        $scheme   = self::isHttps() ? 'https' : 'http';
         $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $basePath = self::getPublicBasePath();
         $url      = $scheme . '://' . $host . $basePath;

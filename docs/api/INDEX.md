@@ -10,12 +10,12 @@
 | Global helper functions | 145 |
 | Classes and interfaces | 97 |
 | Actions | 306 |
-| Filters | 115 |
+| Filters | 116 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **948** |
+| **Total** | **949** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -182,7 +182,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\App` | class | installer/core/app.php | — | Singleton application container that boots the CMS and exposes every core service |
 | `Klytos\Core\AssetManager` | class | installer/core/asset-manager.php | — | Manages media uploads, categories, image editing and asset usage tracking |
 | `Klytos\Core\AuditLog` | class | installer/core/audit-log.php | — | Records and queries security-relevant admin activity, pruning old entries |
-| `Klytos\Core\Auth` | class | installer/core/auth.php | — | Handles login sessions, CSRF tokens, bearer tokens and application passwords |
+| `Klytos\Core\Auth` | class | installer/core/auth.php | docs/reference/security-headers.md | Handles login sessions, CSRF tokens, bearer tokens and application passwords; also decides the response security headers (`sendSecurityHeaders()` / `buildSecurityHeaders()`) |
 | `Klytos\Core\BlockManager` | class | installer/core/block-manager.php | — | Stores, renders and manages reusable blocks, their slots and global block data |
 | `Klytos\Core\BuildEngine` | class | installer/core/build-engine.php | — | Renders pages and generates the static HTML, CSS and JS output of the site |
 | `Klytos\Core\Cache\ApcuCache` | class | installer/core/cache/apcu-cache.php | — | Cache driver backed by APCu shared memory |
@@ -201,7 +201,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\EncryptionLevelTrait` | trait | installer/core/encryption-level-trait.php | — | Shared per-record encryption-level decisions reused by storage drivers |
 | `Klytos\Core\ExportManager` | class | installer/core/export-manager.php | — | Exports site content to JSON, CSV and WXR files |
 | `Klytos\Core\FileStorage` | class | installer/core/file-storage.php | — | Filesystem storage driver reading and writing encrypted records as files |
-| `Klytos\Core\Helpers` | class | installer/core/helpers.php | — | Static utilities for URLs, slugs, sanitization, tokens and environment checks |
+| `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens and environment checks; `isHttps()` is the single TLS check (see the reference doc) |
 | `Klytos\Core\Hooks` | class | installer/core/hooks.php | — | Action and filter registry that dispatches the CMS extensibility events |
 | `Klytos\Core\HtmlToMarkdown` | class | installer/core/html-to-markdown.php | — | Converts HTML fragments into Markdown text |
 | `Klytos\Core\HttpClient` | class | installer/core/http-client.php | — | Performs outbound HTTP requests on behalf of core and plugins |
@@ -679,6 +679,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | privacy.erase_plugin_data | filter | installer/core/privacy-manager.php | — | Filters the erasure results so plugins can erase their own user data |
 | privacy.export_data | filter | installer/core/privacy-manager.php | — | Filters the collected personal data sections for a user data export |
 | privacy.export_html_sections | filter | installer/core/privacy-manager.php | — | Filters the HTML of a personal data export so plugins can append sections |
+| security.hsts | filter | installer/core/auth.php | docs/reference/security-headers.md | Filters the Strict-Transport-Security value (HTTPS responses only); CAN weaken or suppress transport security |
 | shortcode.output | filter | installer/core/shortcode-manager.php | — | Filters a shortcode's output after its callback runs |
 | shortcode.pre_process | filter | installer/core/shortcode-manager.php | — | Filters content before shortcodes are parsed and executed |
 | site_health.checks | filter | installer/core/site-health-manager.php | — | Filters the site health check list so plugins can add their own checks |

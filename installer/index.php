@@ -87,8 +87,25 @@ try {
     exit( 1 );
 }
 
-// Set security headers.
-Auth::sendSecurityHeaders();
+// ─── Security headers ────────────────────────────────────────
+// The public front controller states its policy EXPLICITLY rather than
+// inheriting the default. Slice 8 made a missing nonce fail CLOSED
+// (script-src 'self'), and this call site passes no nonce — because it cannot.
+//
+// Router::dispatch() readfile()s PRE-GENERATED static HTML (router.php:303-326),
+// and the build engine emits inline <script> into it: the consent manager's
+// ConsentManager.init(...) call (build-engine.php:881) and a page's custom_js
+// (build-engine.php:444). A file generated once at build time cannot carry a
+// per-request nonce, so 'unsafe-inline' here is a structural property of
+// static output, not an oversight — and dropping it would silently disable the
+// GDPR consent banner on every generated page.
+//
+// Written out as a literal policy so the weakening is visible AT the call site
+// and shows up in a diff, which is exactly what the implicit fallback this
+// slice removed did not do. Recorded as NEW-23; the fix (nonce-less hashes, or
+// externalizing the inline calls) belongs to the theme-package sprint (D-023),
+// which owns generated output.
+Auth::sendSecurityHeaders( null, "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; frame-src 'self' blob:" );
 
 // Route the request.
 $router = new Router( $app );

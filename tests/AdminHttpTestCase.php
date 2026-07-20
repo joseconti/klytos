@@ -400,7 +400,24 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
             'body'         => $body,
             'content_type' => $this->header( $headers, 'content-type' ),
             'location'     => $this->header( $headers, 'location' ),
+            // Raw block, so a caller can assert on ANY header. Slice 8 asserts
+            // on security headers, which are not knowable in advance as named
+            // keys — generalized here rather than adding a second harness, for
+            // the reason in the class docblock.
+            'headers'      => $headers,
         ];
+    }
+
+    /**
+     * Read one header value out of a response returned by request()/post().
+     *
+     * @param  array{headers:string} $response Response array.
+     * @param  string                $name     Header name, case-insensitive.
+     * @return string Value, or '' when the header is absent.
+     */
+    protected function headerValue( array $response, string $name ): string
+    {
+        return $this->header( $response['headers'] ?? '', strtolower( $name ) );
     }
 
     /**

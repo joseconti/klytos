@@ -352,3 +352,45 @@
   a green test point over a dead feature. Where the whole feature is deliberately not finished in
   this slice (here: the form), say so in the reference doc in plain words — claiming otherwise is
   the L-002 defect.
+
+## L-015 — A review is a snapshot of the moment it READ, and the "12 blocks" I wrote were never counted
+- Problem: two things went wrong in slice 8's review cycle, and they point the same way.
+  1. The `code-reviewer` returned exactly one **BLOCKING** finding — that `docs/PROGRESS.md` still
+     said "slices 0–7 closed, next is slice 8" while `decisions.md`, `api/INDEX.md`,
+     `reference/security-headers.md` and `05-test-points.md` all recorded the slice as done. The
+     finding was **false at the time it was reported and true at the time it was read**: the
+     reviewers were launched as soon as the *code* was stable, and the docs were written while they
+     ran. `PROGRESS.md` had been updated minutes before the agent finished. The second reviewer,
+     running in the same window, read the file after the edit and said nothing about it.
+  2. In the same slice I wrote, in two separate new documents, that "the 12 `<style>` blocks now
+     carry nonce attributes". There are **10** in `installer/admin/`. The audit's S-10 entry says
+     12, and I carried that number across without counting, into a decision entry whose neighbouring
+     paragraphs argue for verifying claims against source. Two of the audit's twelve are `<style>`
+     occurrences embedded inside `srcdoc` attributes (`blocks.php:82`, `block-data.php:172`) that
+     build an iframe document as an escaped string and **cannot carry a nonce at all**.
+- Where: the slice-8 review cycle; `docs/decisions.md` D-044 and `docs/reference/security-headers.md`
+  as first written; `docs/04-adoption-audit.md` S-10 as the inherited source of the wrong number.
+- What failed, and it is one root not two: **treating a number or a report as evidence because of
+  where it came from rather than because it was checked.** The reviewer's blocking finding carried
+  the authority of an independent pass; the "12" carried the authority of the project's own audit.
+  Neither had been re-derived. L-013 established that a reviewer's *reassurance* is a hypothesis
+  like its accusation; this adds that **an accusation can also be stale rather than wrong**, and
+  that the project's own earlier documents are a source to verify, not a source to quote.
+- Why the stale finding was harmless and would not always be: verifying it cost one `grep`, and the
+  answer was "already done". Had I acted on it without looking, I would have rewritten a correct
+  file — noise, not damage. But the same mechanism applied to a *code* finding ("this check is
+  missing") would have meant re-adding something already present, or worse, "fixing" a file the
+  reviewer saw in a half-written state. The mechanism scales badly even though this instance did not.
+- Working solution: every finding from both reviewers was re-derived against source before anything
+  was changed — which is how the blocking one was refuted, and how the real ones (unescaped nonce
+  echoes at `updates.php:379,554`; a surviving `isHttps()` duplicate at `bootstrap.php:195`; the two
+  public entry points sending no headers at all) were confirmed and acted on. The count was settled
+  with one command that excluded `srcdoc` matches, and corrected in all three documents.
+- Rule for next time: **launch the review subagents on a diff that is FINISHED, docs included — or
+  state in the prompt which surfaces are still in flight.** A reviewer cannot tell "not yet written"
+  from "forgotten", and it will always report the latter. And separately: **a number copied from
+  another document is not a measurement.** When writing a count into a decision or a reference doc,
+  run the command that produces it — especially when the number came from this project's own audit,
+  because that is exactly the source trusted hardest and checked least. This is L-002's shape
+  turned inward: a document asserting a property the code does not have, written by the person who
+  had just finished warning about it.

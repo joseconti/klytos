@@ -18,6 +18,15 @@ require_once __DIR__ . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
 
+// login.php is one of the five admin pages that do NOT include
+// templates/header.php, and before slice 8 it was the only one of those with
+// inline script that never called sendSecurityHeaders() at all — so it ran
+// with no CSP whatsoever. bootstrap.php now sends one for every surface, which
+// means this page's inline blocks must carry the request's nonce or the 2FA
+// method switcher below stops working. This is why the CSP fail-open mattered:
+// under the old 'unsafe-inline' fallback the breakage would have been silent.
+$cspNonce = $GLOBALS['klytos_csp_nonce'] ?? \Klytos\Core\Auth::generateCspNonce();
+
 $auth  = $app->getAuth();
 $error = '';
 $info  = '';
@@ -138,7 +147,7 @@ if ($show2fa) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title><?php echo __( 'auth.login' ); ?> — Klytos</title>
-    <style>
+    <style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .login-card { background: #1e293b; border-radius: 1rem; box-shadow: 0 25px 60px rgba(0,0,0,0.4); border: 1px solid #334155; padding: 2.5rem; width: 100%; max-width: 400px; margin: 1rem; }
@@ -292,7 +301,7 @@ if ($show2fa) {
 
         <a href="<?php echo klytos_esc_url( $basePath . 'admin/login.php?cancel_2fa=1' . ($redirectTo ? '&redirect_to=' . urlencode($redirectTo) : '') ); ?>" class="link-cancel"><?php echo __('common.cancel'); ?></a>
 
-        <script>
+        <script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
         // Tab switching for 2FA methods
         document.querySelectorAll('.method-tab').forEach(function(tab) {
             tab.addEventListener('click', function() {

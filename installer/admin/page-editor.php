@@ -321,7 +321,7 @@ include __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action( 'admin.editor.before' ); ?>
 
 <!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
-<style>
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
     .admin-sidebar  { display: none !important; }
     .admin-topbar   { display: none !important; }
     .admin-content  { margin-left: 0 !important; }

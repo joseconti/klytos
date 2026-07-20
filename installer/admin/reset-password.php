@@ -23,8 +23,12 @@ use Klytos\Core\Helpers;
 use Klytos\Core\UserManager;
 use Klytos\Core\Auth;
 
-$cspNonce = Auth::generateCspNonce();
-Auth::sendSecurityHeaders($cspNonce);
+// Reuse the request's nonce. bootstrap.php generated it and already sent the
+// headers with it (NEW-14), so minting a second one here and re-sending would
+// produce two nonces per request for no gain. The removed re-send is verified
+// redundant rather than assumed so (L-007): this page passes no $customCsp, so
+// its call produced byte-identical headers to the bootstrap's.
+$cspNonce = $GLOBALS['klytos_csp_nonce'] ?? Auth::generateCspNonce();
 
 $userManager = new UserManager($app->getStorage());
 $error       = '';
@@ -81,7 +85,7 @@ $basePath = Helpers::getBasePath();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Reset Password — Klytos</title>
-    <style>
+    <style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f1f5f9; color: #1e293b; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .login-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2.5rem; width: 100%; max-width: 400px; margin: 1rem; }

@@ -94,6 +94,40 @@ try {
     exit( 1 );
 }
 
+// ─── Security headers (NEW-14, S-11) ─────────────────────────
+// ONE enforcement point for all 64 admin surfaces, in the same shape and for
+// the same reason as the authorization gate below: Auth::sendSecurityHeaders()
+// had six call sites repo-wide and NONE was an admin API endpoint, so 0 of the
+// 23 files in admin/api/ sent any header, while login.php and logout.php —
+// pages, but the two that do not include templates/header.php — sent none
+// either. Adding 25 remembered calls has the S-07 failure mode: surface 26
+// forgets. This call cannot be forgotten, because every admin file requires
+// this bootstrap (verified mechanically, zero exceptions).
+//
+// PLACEMENT IS LOAD-BEARING, and it is bounded on both sides:
+//   - It must run BEFORE anything that emits. Everything below this line that
+//     can produce output — the pending-rename redirect, the auth guard's 401
+//     JSON and its 302, the gate's 403 refusal document, the setup-wizard
+//     redirect — is therefore covered, as are all page and endpoint bodies.
+//   - It cannot run any EARLIER than this. App::boot() Step 1 is
+//     registerAutoloader() (app.php:268), so the Auth class does not resolve
+//     before boot returns, and klytos_apply_filters() does not exist until
+//     app.php:331 requires helpers-global.php during the same boot. Verified
+//     by probe, not inferred — L-006's rule is that initialization-time code
+//     may only use services already initialized at that exact point.
+//
+// The consequence of that lower bound, stated rather than left implied: the
+// boot-FAILURE page above (the 500 that echoes an escaped exception message)
+// and the two pre-boot redirects still send no security headers, because the
+// autoloader does not exist yet on those paths. Recorded as NEW-22.
+//
+// The nonce is generated ONCE per request here and published in $GLOBALS, so
+// templates/header.php reuses it rather than minting a second one. A page that
+// needs its own policy re-calls sendSecurityHeaders() with a $customCsp;
+// header() replaces same-name headers, so the later call simply wins.
+$GLOBALS['klytos_csp_nonce'] = \Klytos\Core\Auth::generateCspNonce();
+\Klytos\Core\Auth::sendSecurityHeaders( $GLOBALS['klytos_csp_nonce'] );
+
 // ─── Fatal-error shutdown handler ────────────────────────────
 // Catches fatal errors that occur AFTER boot (during page rendering).
 // These are invisible to try-catch and would otherwise go unlogged.
@@ -158,7 +192,7 @@ if ( $pendingRename !== null ) {
             unset( $cfg['pending_rename'] );
 
             // Recalculate URLs using install_base (set during installation).
-            $scheme      = ( !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ? 'https' : 'http';
+            $scheme      = Helpers::isHttps() ? 'https' : 'http';
             $host        = $_SERVER['HTTP_HOST'] ?? 'localhost';
             $installBase = $cfg['install_base'] ?? '/';
 

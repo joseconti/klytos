@@ -376,7 +376,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 </div>
 
-<script nonce="<?php echo $cspNonce; ?>">
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 ( function() {
     var csrfToken = '<?php echo klytos_esc_attr( $csrf ); ?>';
 
@@ -551,7 +551,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 } )();
 </script>
 
-<style nonce="<?php echo $cspNonce; ?>">
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
 @keyframes updatePulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.6; transform: scale(0.9); }

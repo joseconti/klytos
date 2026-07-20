@@ -46,7 +46,7 @@ class Auth
             return;
         }
 
-        $secure   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+        $secure   = Helpers::isHttps();
         $basePath = Helpers::getBasePath();
 
         session_set_cookie_params([
@@ -341,7 +341,7 @@ class Auth
         setcookie( 'klytos_admin_bar', $cookieValue, [
             'expires'  => 0,
             'path'     => '/',
-            'secure'   => !empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off',
+            'secure'   => Helpers::isHttps(),
             'httponly'  => false,
             'samesite' => 'Lax',
         ] );
@@ -772,28 +772,102 @@ class Auth
     // ─── Security Headers ──────────────────────────────────────
 
     /**
-     * Send security headers for admin pages.
+     * Send the response security headers. The ONE place headers are decided.
      *
-     * @param string|null $nonce CSP nonce for inline scripts. If null, falls back to unsafe-inline.
+     * Called once per request from admin/bootstrap.php (which every admin page
+     * and API endpoint requires), and from the public entry points. Safe to
+     * call again later with a nonce or a custom policy: header() replaces a
+     * header of the same name, so the last call wins — which is how a page
+     * upgrades the bootstrap's baseline CSP to its own nonced one.
+     *
+     * @param string|null $nonce     CSP nonce for this request's inline scripts.
+     *                               When null the policy FAILS CLOSED to 'self'
+     *                               — see the note below.
+     * @param string|null $customCsp Complete replacement policy. Bypasses the
+     *                               nonce logic entirely.
      */
     public static function sendSecurityHeaders(?string $nonce = null, ?string $customCsp = null): void
     {
-        header('X-Content-Type-Options: nosniff');
-        header('X-Frame-Options: DENY');
-        header('X-XSS-Protection: 1; mode=block');
-        header('Referrer-Policy: strict-origin-when-cross-origin');
+        foreach ( self::buildSecurityHeaders( $nonce, $customCsp ) as $name => $value ) {
+            header( $name . ': ' . $value );
+        }
+    }
 
-        if ($customCsp !== null) {
-            header("Content-Security-Policy: {$customCsp}");
-        } else {
-            $scriptSrc = $nonce
-                ? "'self' 'nonce-{$nonce}'"
-                : "'self' 'unsafe-inline'";
+    /**
+     * Compute the security headers for this request, without sending them.
+     *
+     * Split out from sendSecurityHeaders() so the POLICY can be tested
+     * independently of the emission. header() is a no-op under the CLI SAPI
+     * and headers_list() returns nothing there, so a unit test that drove
+     * sendSecurityHeaders() directly could observe absolutely nothing — and
+     * its "the header is absent" assertions would pass against ANY code,
+     * including code that never set a header at all. That is L-010's failure
+     * mode (a check that cannot fail), and it is why this function exists.
+     *
+     * The two tiers now prove different halves: the unit tier asserts the
+     * policy this returns, and tests/Integration/SecurityHeadersHttpTest.php
+     * asserts that it actually reaches the wire on a real response.
+     *
+     * @param  string|null $nonce     CSP nonce, or null to fail closed.
+     * @param  string|null $customCsp Complete replacement policy.
+     * @return array<string,string> Header name => value.
+     */
+    public static function buildSecurityHeaders(?string $nonce = null, ?string $customCsp = null): array
+    {
+        $headers = [
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options'        => 'DENY',
+            'X-XSS-Protection'       => '1; mode=block',
+            'Referrer-Policy'        => 'strict-origin-when-cross-origin',
+        ];
 
-            header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data:; script-src {$scriptSrc}; frame-src 'self' blob:");
+        // S-11 — HSTS, but ONLY over TLS. A browser ignores this header on a
+        // cleartext response anyway, and sending it there would be a claim the
+        // transport cannot back. Deliberately without includeSubDomains: this
+        // is self-hosted software and a sibling subdomain the operator runs on
+        // plain HTTP is not ours to break — a directive a browser caches for a
+        // year is not something to opt an installed base into by default.
+        // Filterable for operators who want to widen it (preload, subdomains).
+        if ( Helpers::isHttps() ) {
+            $hsts = 'max-age=31536000';
+
+            // function_exists() because this method must stay callable from a
+            // PRE-BOOT entry point: klytos_apply_filters() lives in
+            // helpers-global.php, which app.php:331 requires inside boot().
+            // Public entry points (NEW-18's subject) run without it, and a
+            // header function that fatals is worse than an unfilterable one.
+            if ( function_exists( 'klytos_apply_filters' ) ) {
+                $hsts = klytos_apply_filters( 'security.hsts', $hsts );
+            }
+
+            if ( is_string( $hsts ) && $hsts !== '' ) {
+                $headers['Strict-Transport-Security'] = $hsts;
+            }
         }
 
-        header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+        if ($customCsp !== null) {
+            $headers['Content-Security-Policy'] = $customCsp;
+        } else {
+            // FAIL CLOSED. This previously fell back to 'unsafe-inline' when no
+            // nonce was supplied, so any caller that forgot one silently got the
+            // weakest policy in the product and nothing signalled it. A missing
+            // nonce now means "no inline script runs", which is the safe
+            // direction to be wrong in: the failure is a visible broken widget,
+            // not a silently disabled defence.
+            $scriptSrc = $nonce ? "'self' 'nonce-{$nonce}'" : "'self'";
+
+            // style-src keeps 'unsafe-inline' ON PURPOSE (S-10, deferred to its
+            // own sprint): 349 inline style= attributes across 40 files cannot
+            // carry a nonce. Adding a nonce SOURCE here would make browsers
+            // ignore 'unsafe-inline' per CSP Level 3 and break every one of
+            // them — which is why the <style> blocks carry nonce attributes
+            // that do nothing yet, ready for the slice that removes it.
+            $headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data:; script-src {$scriptSrc}; frame-src 'self' blob:";
+        }
+
+        $headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()';
+
+        return $headers;
     }
 
     /**

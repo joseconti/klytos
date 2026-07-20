@@ -169,14 +169,46 @@ Order of authentication in `token-auth.php`:
 
 ## Security Headers
 
+Decided in ONE place — `Auth::sendSecurityHeaders()` — and sent from ONE place
+per entry point. `admin/bootstrap.php` calls it once, and every admin page and
+API endpoint requires that bootstrap, so no surface can forget. Full contract:
+`docs/reference/security-headers.md`.
+
 ```
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 X-XSS-Protection: 1; mode=block
 Referrer-Policy: strict-origin-when-cross-origin
-Content-Security-Policy: [with nonce support]
+Strict-Transport-Security: max-age=31536000     # HTTPS responses ONLY
+Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-<per-request>'; …
 Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
+
+**Rules when writing admin code:**
+
+- **Never add a call to `sendSecurityHeaders()` in a new admin file.** The
+  bootstrap already sent them. A second call is only correct when the page
+  needs its own policy, and then it passes `$customCsp`.
+- **The CSP fails closed.** No nonce means `script-src 'self'` — inline script
+  is refused, not waved through. Every inline `<script>` needs
+  `nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>"`.
+- **There is ONE nonce per request**, in `$GLOBALS['klytos_csp_nonce']`. Reuse
+  it; never call `generateCspNonce()` in a page. A second nonce would not match
+  the header that was already sent, and the browser would refuse the script.
+- **No inline `onclick=` / `onchange=`** — a nonce-based CSP refuses them. Use
+  `addEventListener` inside a nonced block.
+- **HSTS is HTTPS-only and carries no `includeSubDomains`**, by decision
+  (D-044): the directive is cached for a year and would force HTTPS onto
+  subdomains that belong to the operator, not to Klytos. Widen it via the
+  `security.hsts` filter, not by editing core.
+- **`style-src` still allows `'unsafe-inline'`** while audit S-10 is open (349
+  inline `style=` attributes cannot carry a nonce). Do **not** "improve" this by
+  adding a nonce source to `style-src`: per CSP Level 3 that makes browsers
+  IGNORE `'unsafe-inline'` and would break all 349 at once.
+- **The public front controller is different.** `installer/index.php` keeps
+  `script-src 'unsafe-inline'` explicitly, because it serves pre-generated
+  static HTML containing inline scripts (the consent banner) that cannot hold a
+  per-request nonce. Tracked as NEW-23.
 
 ## .htaccess Protection
 

@@ -124,7 +124,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     <?php endif; ?>
 </div>
 
-<style>
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
     .templates-grid {
         display: grid;
         grid-template-columns: repeat( auto-fill, minmax( 280px, 1fr ) );

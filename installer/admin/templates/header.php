@@ -15,8 +15,16 @@
 use Klytos\Core\Auth;
 use Klytos\Core\Helpers;
 
-$cspNonce = Auth::generateCspNonce();
+// Reuse the request's nonce rather than minting a second one: bootstrap.php
+// already generated it and already sent the headers with it (NEW-14). Minting
+// another here would put a nonce in the markup that the sent CSP does not
+// name, and every inline script on the page would be refused. The fallback
+// covers a caller that reaches this template without the bootstrap.
+$cspNonce = $GLOBALS['klytos_csp_nonce'] ?? Auth::generateCspNonce();
 $GLOBALS['klytos_csp_nonce'] = $cspNonce;
+
+// Re-sent because a page may supply its own $customCsp; header() replaces a
+// same-name header, so this call overrides the bootstrap's baseline policy.
 Auth::sendSecurityHeaders($cspNonce, $customCsp ?? null);
 $basePath    = Helpers::getBasePath();
 $adminPath   = $basePath . 'admin/';

@@ -443,7 +443,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     </div>
 </div>
 
-<style>
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
     .mcp-steps {
         display: flex;
         flex-direction: column;

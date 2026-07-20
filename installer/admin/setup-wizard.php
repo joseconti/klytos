@@ -43,9 +43,12 @@ if ( !isset( $config['setup_completed'] ) || $config['setup_completed'] !== fals
 }
 
 // ─── CSP nonce ──────────────────────────────────────────────
-$cspNonce = Auth::generateCspNonce();
+// Reuse the request's nonce — bootstrap.php generated it and already sent the
+// headers with it (NEW-14). Overwriting the global here would invalidate any
+// nonce already emitted upstream. The removed re-send is verified redundant
+// (L-007): this page passes no $customCsp, so its call was byte-identical.
+$cspNonce = $GLOBALS['klytos_csp_nonce'] ?? Auth::generateCspNonce();
 $GLOBALS['klytos_csp_nonce'] = $cspNonce;
-Auth::sendSecurityHeaders( $cspNonce );
 
 // ─── Session step management ────────────────────────────────
 if ( !isset( $_SESSION['klytos_setup_step'] ) ) {

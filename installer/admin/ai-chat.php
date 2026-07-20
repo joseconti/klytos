@@ -69,7 +69,7 @@ require_once __DIR__ . '/templates/sidebar.php';
     $imgBase = $basePath . 'admin/assets/images/';
     ?>
 
-<style>
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
     .admin-sidebar  { display: none !important; }
     .admin-topbar   { display: none !important; }
     .admin-content  { margin-left: 0 !important; }

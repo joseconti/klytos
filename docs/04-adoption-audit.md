@@ -42,7 +42,8 @@ Each finding's own section carries its closure note and the test that pins it; t
 | **NEW-01** `klytos_current_user()` promotes to owner | **CLOSED** | slice 3 |
 | **S-08** SSRF in the oEmbed resolver | **CLOSED** | slice 6 (`SafeHttp`, applied at 5 call sites; DNS rebinding remains open as **NEW-15**) |
 | **S-09** public comment submission | **CLOSED** | slice 7 (handler moved OUT of `admin/` to the web root; the per-session rate limit replaced with the persistent IP-keyed one; **NEW-16** found and fixed in path, **NEW-17**/**NEW-18**/**NEW-19** recorded) |
-| **S-11** no HSTS + the CSP fail-open | open | slice 8 |
+| **S-11** no HSTS + the CSP fail-open | **CLOSED** | slice 8 (HSTS added, HTTPS-only and without `includeSubDomains` per D-044; the CSP now fails closed to `script-src 'self'`) |
+| **NEW-14** no admin API endpoint sends security headers | **CLOSED** | slice 8 (ONE enforcement point in `admin/bootstrap.php`; the gap was **25** surfaces, not 24 — see the corrected entry below; **NEW-21**/**NEW-22**/**NEW-23** recorded) |
 
 Stated plainly so the closures are not read as more than they are: **the admin surface is gated and
 the product's primary interface is not.** All 172 MCP tools still have zero permission checks
@@ -336,10 +337,35 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Where:** `installer/core/auth.php:793`
 - **What:** Weakens an otherwise well-implemented nonce-based CSP.
 
-### S-11 — No `Strict-Transport-Security` header — **LOW**
+### S-11 — No `Strict-Transport-Security` header — **LOW** — **CLOSED 2026-07-20 (slice 8)**
 - **Where:** `installer/core/auth.php:781-796` (sets `X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`, `Permissions-Policy`)
 - **Fails:** web-app profile — transport security headers.
+- **Resolution (D-044):** `Strict-Transport-Security: max-age=31536000`, sent **only over TLS** and
+  deliberately **without `includeSubDomains`** — a browser honours the directive for the full
+  max-age after the header stops being sent, so forcing HTTPS onto an operator's sibling subdomains
+  by default is close to irreversible and is not Klytos's call to make. Filterable via
+  `security.hsts` for operators who want preload or subdomains.
+- **Verification:** the HTTPS branch is pinned by `tests/Unit/SecurityHeadersTest.php` (the
+  playground speaks plain HTTP and `php -S` cannot terminate TLS, so there is no real response to
+  observe it on); the cleartext branch is asserted on a real playground response
+  (`testHstsIsNotSentOverPlainHttp`) and confirmed absent by `curl -D -`. Proven to fail against the
+  unfixed code by removing the emission line.
+
+### The CSP fail-open — **CLOSED 2026-07-20 (slice 8)**
+- **Where:** `installer/core/auth.php` — the `$nonce ? … : "'self' 'unsafe-inline'"` fallback.
+- **What:** a caller that supplied no nonce silently received the **weakest policy in the product**,
+  with nothing to signal it. The docblock even documented the fallback as intended behaviour.
+- **Resolution (D-044):** a missing nonce now yields `script-src 'self'` — it fails closed. The
+  failure mode becomes a visibly broken widget instead of a silently disabled defence.
+- **Why it was not cosmetic:** `login.php` had **no CSP at all** and carries an inline `<script>`
+  (the 2FA method switcher). Extending header coverage to it without nonce-ing that block would have
+  broken two-factor login — a regression shipped *by* a security fix. Nonce-ing it was in scope by
+  necessity, the NEW-16 shape from slice 7.
+- **The one deliberate exception, stated rather than hidden:** `installer/index.php` passes an
+  explicit policy that keeps `script-src 'unsafe-inline'`, because the front controller `readfile()`s
+  pre-generated static HTML carrying inline scripts that cannot hold a per-request nonce. Recorded
+  as **NEW-23**.
 
 ### S-12 — Identity export: no CSRF, and a state-changing GET — **MEDIUM**
 - **Where:** `installer/admin/api/download-identity.php`
@@ -825,6 +851,130 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   gate, so a new endpoint cannot forget).
 - **Trigger:** **slice 8** (`HSTS + CSP fail-open + hardening`), which is already opening
   `sendSecurityHeaders()` for S-11 and is the natural home.
+- **CLOSED 2026-07-20 (slice 8, D-044) — and this finding's own numbers were wrong in two ways,
+  both found by enumerating rather than re-reading the sentence:**
+  1. **23 files, not 24.** Slice 7 deleted `admin/api/comment-submit.php` (D-043). The count was
+     accurate when written and stale by the time it was actioned.
+  2. **The gap was 25 surfaces, not 24, and the framing "every admin PAGE gets them, because they
+     all include `templates/header.php`" is false.** Five admin pages do **not** include it —
+     `bootstrap.php`, `login.php`, `logout.php`, `reset-password.php`, `setup-wizard.php`. Two of
+     those called `sendSecurityHeaders()` themselves; **`login.php` and `logout.php` called
+     nothing**, so the login form — the single most security-sensitive page in the product — was
+     served with no CSP, no `nosniff` and no `X-Frame-Options` at all. The finding's own reasoning
+     ("pages are fine, endpoints are not") is what hid it.
+- **Resolution:** ONE call in `admin/bootstrap.php`, which all **64** admin entry points require
+  (verified mechanically this slice, not inherited from slice 4's record). Placement is bounded on
+  both sides and that is the load-bearing part — see D-044: it cannot go later because everything
+  below it emits or exits, and it cannot go earlier because `registerAutoloader()` is Step 1 of
+  `App::boot()`. The residue is recorded as **NEW-22** rather than papered over.
+- **Verification:** asserted on **real responses**, never on the fact that a function was called —
+  a header set after output has begun is not set at all, so only the response can answer it. The
+  401 JSON refusal and the 403 gate document both carry the headers on the wire. Proven to fail
+  against the unfixed code: removing the enforcement point fails 6 of 11 tests in
+  `tests/Integration/SecurityHeadersHttpTest.php`.
+
+### NEW-21 — `page-editor.php` sets its own CSP with `script-src 'unsafe-inline'` — **LOW** *(found 2026-07-20, slice 8)*
+- **Where:** `installer/admin/page-editor.php:314`
+- **What:** the page builds a `$customCsp` that explicitly allows inline script, and serves **7**
+  inline `<script>` blocks under it. Distinct from the fail-open slice 8 closed: that was an
+  *implicit* fallback nobody chose, this is an *explicit* opt-out that is visible at its call site.
+- **Not fixed, by user decision:** nonce-ing the editor's seven blocks is its own change with its
+  own verification pass — this is the most JS-dense surface in the admin — and landing it inside a
+  headers slice repeats the tangling D-025/D-026/D-029/D-031 have each refused in turn.
+- **Trigger:** the same sprint that closes **S-10** (the CSS/JS consolidation work), which is
+  already rewriting this page's markup.
+
+### NEW-22 — The boot-failure page and the two pre-boot redirects send no security headers — **LOW** *(found 2026-07-20, slice 8)*
+- **Where:** `installer/admin/bootstrap.php` — the not-installed redirect (`:51-54`), the
+  core-load-failure redirect (`:57-63`), and the boot-failure 500 page (`:85-94`).
+- **What:** slice 8's enforcement point sits immediately after `App::boot()`, and cannot sit
+  earlier: `registerAutoloader()` is **Step 1 of `boot()`** (`app.php:268`), so the `Auth` class
+  does not resolve on any of these three paths. The 500 page echoes an escaped exception message,
+  so `nosniff` there has real if modest value.
+- **Severity reasoning, stated honestly rather than inflated:** all three are degraded paths that
+  do not run on a healthy install; two are bodiless redirects. The exposure is a 500 page with a
+  server-escaped message and no `nosniff`.
+- **Why not fixed by an explicit `require_once core/auth.php`** (the slice-7 precedent for
+  `RateLimiter`): it would make the ONE place headers are decided callable in a state where
+  `klytos_apply_filters()` does not exist and `Helpers` may not be loaded — adding pre-boot
+  fragility to the function every admin request now depends on, to cover a path that only runs when
+  the application is already failing. The `function_exists()` guard on the filter is in place so the
+  option stays open.
+- **Trigger:** the next slice that touches the bootstrap's failure paths, or any slice that
+  introduces `core/bootstrap-minimal.php` (whose absence D-043 already recorded).
+
+### NEW-23 — The public site's CSP cannot use nonces, so it keeps `'unsafe-inline'` — **LOW** *(found 2026-07-20, slice 8)*
+- **Where:** `installer/index.php` (the explicit policy), `installer/core/router.php:303-326`
+  (serves pre-generated HTML), `installer/core/build-engine.php:444` and `:881` (write inline
+  `<script>` into it).
+- **What:** the front controller `readfile()`s static HTML generated at build time, and that HTML
+  contains inline script — the GDPR consent banner's `ConsentManager.init(...)` and a page's
+  `custom_js`. **A file generated once cannot carry a per-request nonce**, so the public policy
+  keeps `script-src 'unsafe-inline'`.
+- **Verified before deciding, not assumed:** failing closed on this call site would have silently
+  disabled the consent banner on every generated page of every site — a compliance regression
+  shipped by a security fix.
+- **Why it is written as an explicit literal policy at the call site:** so the weakening appears in
+  a diff and in review, which is exactly what the implicit fallback slice 8 removed did not do.
+- **Possible fixes, none of them free:** CSP hashes for the emitted inline blocks (they are
+  build-time-known, so this is tractable), or externalizing the init calls into generated `.js`
+  files.
+- **Trigger:** the **theme-package sprint (D-023)**, which owns generated output and is already
+  replacing the template layer that emits these scripts.
+
+### NEW-24 — The two standalone public entry points send no security headers — **LOW–MEDIUM** *(found 2026-07-20, slice 8, by the `security-auditor` pass)*
+- **Where:** `installer/public/comment-submit.php`, `installer/public/x402-gate.php`
+- **What:** neither calls `Auth::sendSecurityHeaders()` and neither sets any security header —
+  verified by grep, not sampled: the only `header()` calls in both files are `Content-Type`,
+  `Allow` and `Retry-After`. `comment-submit.php` answers JSON, so **`X-Content-Type-Options:
+  nosniff` is the one that matters** and it is absent. `x402-gate.php` can serve `format=html`
+  content through `$gate->handle()` with no CSP, no `nosniff` and no `X-Frame-Options`.
+- **Why this is exactly NEW-14 again, one directory over:** both are **anonymous** and sit at
+  **fixed, scannable URLs on every install** — arguably a more exposed position than the admin
+  surfaces slice 8 just covered. NEW-14's lesson was that per-file remembering fails at file N+1;
+  these two are file N+1, and they were outside the tree the new enforcement point governs.
+- **Not fixed in slice 8, and the reason is a real constraint rather than schedule:** neither file
+  requires `admin/bootstrap.php` (that is the whole point of D-043's relocation), so covering them
+  means either a second enforcement point or an explicit pre-boot `require`. `comment-submit.php`
+  answers its **flood ceiling before `App::boot()` by design** (D-043, the `security-auditor`
+  finding that restructured slice 7), so a post-boot call would leave exactly that path uncovered —
+  the NEW-22 shape a second time. Doing it properly wants its own test point.
+- **Stated so the slice does not overclaim:** `docs/reference/security-headers.md` says in its own
+  words that slice 8 covers the admin plus the front controller, **not** these two. Asserting
+  otherwise would be the L-002 defect.
+- **Trigger:** the next slice touching `installer/public/`, or the introduction of
+  `core/bootstrap-minimal.php` (whose absence D-043 already records) — which would give both files
+  a shared pre-boot place to call from.
+
+### NEW-25 — Seven copies of the HTTPS check survive `Helpers::isHttps()` — **LOW** *(found 2026-07-20, slice 8, by the `code-reviewer` pass)*
+- **Where:** `installer/admin/users.php:93`, `installer/admin/partials/ai-panel-users.php:60`,
+  `installer/admin/api/download-identity.php:137`, `installer/core/mcp/tools/user-tools.php:118`,
+  `installer/core/site-health-manager.php:135`, `installer/install.php:841`. (An eighth in
+  `installer/vendor-ai/guzzlehttp/psr7/` is third-party and is never touched.)
+- **What:** slice 8 added `Helpers::isHttps()` as the single TLS check and collapsed **five** call
+  sites into it — the two in `Helpers` itself, the two session-cookie `secure` flags in `Auth`, and
+  `admin/bootstrap.php:195`, which the reviewer correctly flagged as a miss in the very file the
+  slice was editing. The six above are in files slice 8 does not otherwise open.
+- **Severity reasoning, not inflated:** every copy is byte-identical to the helper's body, so this
+  is a consistency and future-drift risk, not a live defect. It matters if the definition ever
+  changes — the obvious future change being trusted-proxy support (**NEW-17**), at which point six
+  forgotten copies would silently keep the old behaviour. Three of them build password-reset URLs,
+  where getting the scheme wrong has real consequences.
+- **Trigger:** the trusted-proxy slice (NEW-17), which must convert them all as part of its own
+  work, or opportunistically whenever one of those files is next opened (the D-025 pattern).
+
+### NEW-26 — The password-reset form has no CSRF protection — **LOW** *(found 2026-07-20, slice 8, by the `security-auditor` pass)*
+- **Where:** `installer/admin/reset-password.php` — the "set new password" form (`:125-140`); no
+  `klytos_csrf_field()` and no `klytos_verify_csrf()` anywhere in the file.
+- **Exploitability, stated honestly rather than inflated:** low. A forged cross-site POST still
+  needs a valid `user_id` + `token` pair, which `validatePasswordResetToken()` checks — and that
+  secret is precisely what CSRF protection would otherwise be substituting for. An attacker who
+  already holds a valid reset token does not need CSRF to use it.
+- **Why it is recorded rather than fixed here:** slice 8 touched this file only to reuse the
+  request's CSP nonce; the defect is pre-existing and belongs to authentication, which is an
+  adjacent subsystem under D-031's narrowing. It is noted because the file was in the diff and a
+  reviewer looked at it — leaving it unrecorded would mean the next reader has to find it again.
+- **Trigger:** the authentication slice that owns **NEW-09**, **NEW-11** and **NEW-13**.
 
 ## A — Accessibility (target: WCAG 2.2 AA + EAA, `references/accessibility.md`)
 

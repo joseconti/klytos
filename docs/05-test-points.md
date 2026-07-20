@@ -1044,6 +1044,161 @@ added to the scanned set at 0/0 after its two pre-existing errors were auto-fixe
 
 Commit: **b4c4c80**.
 
+### Slice 8 — evidence (commands and output, 2026-07-20)
+
+Closes **S-11**, the **CSP fail-open** and **NEW-14** (D-044). Opens NEW-21, NEW-22, NEW-23.
+
+**Re-validation against source, before any code — two of the finding's own numbers were wrong.**
+NEW-14 records "all 24 files in `installer/admin/api/`": there are **23** (slice 7 deleted
+`comment-submit.php`, D-043). It also records that "every admin PAGE gets them, because they all
+include `templates/header.php`" — false for **five** pages, which do not include it. Two of those
+called `sendSecurityHeaders()` themselves; **`login.php` and `logout.php` called nothing**, so the
+login form was served with no CSP, no `nosniff` and no `X-Frame-Options`. The real gap was **25
+surfaces including the login form**, not 24 JSON endpoints.
+
+```
+$ find installer/admin -name "*.php" | wc -l            -> 73
+$ (files not referencing bootstrap.php)                 -> 9  (bootstrap + templates/partials/includes)
+                                                           => 64 entry points, matching keel-verify
+$ ls installer/admin/api/*.php | wc -l                  -> 23   (audit says 24)
+$ grep -rn sendSecurityHeaders installer/               -> 6 call sites, 0 under admin/api/
+$ grep -rn "Strict-Transport" --include=*.php .         -> (no output)  S-11 confirmed
+```
+
+**The placement constraint, probed rather than inferred (L-006).** `Auth` does not resolve before
+`App::boot()`, because `registerAutoloader()` is **Step 1 of boot** (`app.php:268`):
+
+```
+$ php -r 'require "installer/core/app.php";
+          echo class_exists("Klytos\Core\Auth", true) ? "YES" : "NO";'      -> NO
+$ php -r '... App::getInstance(); echo class_exists(...) ? "YES":"NO";'       -> NO
+$ grep -n registerAutoloader installer/core/app.php    -> 268 (inside boot()), 738 (definition)
+```
+
+**The catch that would have broken the public site.** Failing the CSP closed everywhere would have
+disabled the GDPR consent banner on every generated page — `Router::dispatch()` `readfile()`s
+pre-generated HTML (`router.php:303-326`) and `build-engine.php:881` writes
+`<script>ConsentManager.init(...)</script>` into it inline. A build-time file cannot carry a
+per-request nonce. `installer/index.php` therefore states an explicit policy keeping
+`script-src 'unsafe-inline'` (NEW-23), written as a literal so the weakening appears in a diff.
+
+**Every test proven to FAIL against the unfixed code — five probes, each reverted after:**
+
+| Probe (defect reintroduced) | Result |
+|---|---|
+| Enforcement point removed from `admin/bootstrap.php` | **6 of 11 fail** in `SecurityHeadersHttpTest` |
+| HSTS emission line removed | **2 fail** in `SecurityHeadersTest` |
+| CSP fallback restored to `'self' 'unsafe-inline'` | **1 fails** (`testCspFailsClosedWhenNoNonceIsSupplied`) |
+| `login.php` inline `<script>` un-nonced | **1 fails** (response-level *and* source-level) |
+| `login.php` mints its own nonce, diverging from the sent header | **1 fails** |
+
+**Two false passes were caught in this slice's own test infrastructure — L-010, a third time.**
+
+1. The first unit tests drove `sendSecurityHeaders()` and read `headers_list()`. Under the **CLI
+   SAPI `header()` is a no-op and `headers_list()` returns an empty array**, so all three "the
+   header is ABSENT" assertions passed against an empty string and would have passed against code
+   that set no headers at all. Caught only because the *presence* assertions in the same file failed
+   loudly for the same underlying reason. Repaired by splitting `Auth::buildSecurityHeaders()` out
+   as a pure function: the unit tier now asserts the **policy**, the integration tier asserts it
+   **reaches the wire**.
+2. An integration assertion searching the whole response body for the nonce **still passed** with
+   the nonce stripped from the `<script>` tag, because `login.php`'s `<style>` block carries one
+   too. Tightened to match the elements themselves, then re-probed and confirmed failing.
+
+**Headers on REAL responses** (playground on verified-free port 8321; port 8080 was again held by
+the same Docker container — `Server: Apache/2.4.54 (Debian)`, L-011's tell, caught by the step-2
+bind check):
+
+```
+$ curl -s -D - -o /dev/null -b "klytos_session=$SID" .../admin/api/notices.php
+HTTP/1.1 200 OK
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Referrer-Policy: strict-origin-when-cross-origin
+Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com;
+  font-src 'self' fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'nonce-YH0Tei...';
+  frame-src 'self' blob:
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+$ curl ... /admin/login.php          -> 200 + full header set   (sent NOTHING before slice 8)
+$ curl ... /admin/api/plugins.php    -> 401 + nosniff + CSP     (ordering proof: the refusal emits)
+$ curl ... /admin/users.php (viewer) -> 403 + nosniff + DENY    (ordering proof: klytos_deny() emits)
+$ curl ... /admin/index.php | grep -ci strict-transport -> 0    (S-11: correctly absent over http)
+```
+
+**Browser console — the test point's own criterion.** Real headless Chrome on `login.php` (the page
+that gained a CSP): **0 console errors, 0 CSP violations**. For authenticated pages Chrome cannot
+easily carry the HttpOnly session cookie, so a CSP-conformance check was run instead against the
+real response + real header — stated as the substitute it is, not as a browser run. It parses each
+page's actual CSP, then verifies every inline `<script>` is permitted by it and that no inline event
+handler exists:
+
+```
+  index.php      200  mode:nonce          inline:3  clean     pages.php        200  mode:nonce  inline:4  clean
+  page-editor    200  mode:unsafe-inline  inline:7  clean     templates.php    200  mode:nonce  inline:3  clean
+  mcp.php        200  mode:nonce          inline:4  clean     ai-chat.php      200  mode:nonce  inline:3  clean
+  terminal.php   200  mode:nonce          inline:3  clean     translations.php 200  mode:nonce  inline:4  clean
+  updates.php    200  mode:nonce          inline:4  clean     users.php        200  mode:nonce  inline:4  clean
+  security.php   200  mode:nonce          inline:4  clean     plugins.php      200  mode:nonce  inline:3  clean
+  blocks.php     200  mode:nonce          inline:3  clean     logs.php         200  mode:nonce  inline:4  clean
+  profile.php    200  mode:nonce          inline:4  clean     settings.php     200  mode:nonce  inline:5  clean
+  login.php      200  mode:nonce          inline:0  clean     reset-password   200  mode:nonce  inline:0  clean
+
+RESULT: no admin page would log a CSP violation
+```
+
+`page-editor.php` shows `mode:unsafe-inline` because it sets its own `$customCsp` — its 7 inline
+scripts are permitted by its own policy, so no violation is logged. That explicit opt-out is
+recorded as **NEW-21** and deliberately not fixed (user decision).
+
+**Gates:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (138 tests, 603 assertions)                      # was 116 / 541
+
+$ php scripts/keel-verify
+  PASS  authorization gate covers every admin surface (64 files)
+  PASS  the central gate is invoked from admin/bootstrap.php
+OK — 2 check(s) passed.                             # exit 0
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+A TOTAL OF 193 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES     # baseline HELD (193/488)
+$ ... installer/plugins -> 113 ERRORS AND 109 WARNINGS             # baseline HELD (113/109)
+$ ... tests             -> (no output)                            # 0/0
+$ ... installer/public  -> (no output)                            # 0/0
+```
+
+**Review cycle — both subagents, findings verified against source before acting (L-013).**
+
+| Finding | Verdict | Action |
+|---|---|---|
+| `code-reviewer` **BLOCKING**: `PROGRESS.md` not updated | **REFUTED — stale, not wrong.** The file had been updated minutes before the agent finished; the reviews were launched while the docs were still being written. The other reviewer, in the same window, read it after the edit and said nothing | none — verified with one `grep` rather than "fixed" |
+| `security-auditor`: `installer/public/comment-submit.php` and `x402-gate.php` send **no** security headers | **CONFIRMED** by grep — the only `header()` calls in either file are `Content-Type`, `Allow`, `Retry-After`. NEW-14's own shape at file N+1, on anonymous fixed-URL endpoints | recorded as **NEW-24**; the reference doc now states the slice covers admin + front controller and **not** these two, rather than overclaiming |
+| `code-reviewer`: `updates.php:379,554` echo the nonce unescaped | **CONFIRMED** — all 11 other nonce sites use `klytos_esc_attr()` | **fixed** (escape-at-print-time has no exceptions, the D-043 precedent) |
+| `code-reviewer`: `isHttps()` duplicates survive, incl. `bootstrap.php:195` | **CONFIRMED** — 7 copies remain, one in the file the slice was editing | `bootstrap.php:195` **fixed**; the other 6 recorded as **NEW-25** per D-031's narrowing |
+| `code-reviewer`: "12 `<style>` blocks" is wrong | **CONFIRMED, and it was my error in text written this slice.** There are **10** in `installer/admin/`; the audit's 12 counts two `srcdoc`-embedded occurrences that cannot carry a nonce | **corrected** in D-044, the reference doc and the audit |
+| `code-reviewer`: no extension point on anything but HSTS | **CONFIRMED** as an undocumented gap | reference doc now carries the risk paragraph D-032/D-041 use, incl. that `max-age=0` **rolls back** a cached HSTS policy, and why nothing else is filterable |
+| `security-auditor`: `reset-password.php` form has no CSRF | **CONFIRMED**, exploitability genuinely low (a forged POST still needs the valid `user_id`+`token`, the secret CSRF would substitute for) | recorded as **NEW-26**, bound to the authentication slice |
+| Both: ordering, nonce integrity, fail-closed CSP, `X-Forwarded-Proto` refusal | **CONFIRMED SOUND** against source by both | none |
+
+Recorded as **L-015**: a review is a snapshot of the moment it *read*, so a finding can be stale
+rather than wrong — and a number copied from another document is not a measurement.
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit        (after the review fixes)
+OK (138 tests, 603 assertions)
+```
+
+Suite 116 → **138 tests**, 541 → **603 assertions**. All four lint baselines held exactly; the new
+code adds zero violations.
+
+Commit: **TBD**.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1060,6 +1215,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-19 (slice 4 session) | same two commands, verbatim | OK — admin 302, login 200, `config/.encryption_key` 403, MCP 401 unauthenticated, **177 tools** authenticated. Counted with `installed.json`'s own parser, not a `grep -c '"name"'`, which reports 215 because nested schema properties are also named `name` — the looser count was discarded rather than recorded | yes |
 | 2026-07-19 (slice 5 session) | same two commands, verbatim | OK — admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated via the documented `.playground-access` recipe (`docs/playground.md:153-157`, run as written). Identical to the slice-0 baseline on every check; no drift in five sessions | yes |
 | 2026-07-19 (slice 6 session) | documented commands, **but port 8080 was held by an unrelated Docker container** | **The document's own defect, caught here rather than by a user.** `php -S` could not bind, and because it had been backgrounded the failure was invisible — every check then reached the squatter. It reported admin `302` and MCP `302` where `401` is documented, plus a 200-tool count: three "findings" that looked like a slice-4 gate regression and were an unrelated Apache. The tell was `Server: Apache/2.4.54 (Debian)` in `curl -D -`; PHP's built-in server never sends it. Re-run on a **verified-free port (8123)**: admin **302**, MCP **401** unauthenticated, **177 tools** authenticated — identical to the slice-0 baseline, no drift in six sessions. `docs/playground.md` now carries a bind check as step 2 and the diagnostic note, so the next session cannot lose the same time. Recorded as **L-011** | yes |
+| 2026-07-20 (slice 8 session) | documented commands, **port 8080 held by the same unrelated container for the third session running** | Caught in seconds by the step-2 bind check, exactly as L-011 intended; `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Ports 8081, 8082 and 8090 were also taken (the container maps a range). Re-run on verified-free **8321**: the server identified itself as `X-Powered-By: PHP/8.3.12` with no `Server:` header — ours, not the squatter's — admin **302** to login carrying the new `nosniff` header, login **200**, viewer **403** on `users.php`, anonymous API **401**. Test class port **8104** verified free before use | yes |
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
