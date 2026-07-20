@@ -14,10 +14,24 @@
  * own gate, and a reviewer cannot hold 66 files in their head every time one is
  * added.
  *
- * Slice 9 extends this with the remaining Phase 5 §1a checks (version
- * touchpoints in sync, changelog order, docs/api/INDEX.md parity, no
- * placeholder copy in distributable surfaces). Each check is independent and
- * self-reporting: add one, do not restructure.
+ * Slice 9 extends this with the remaining Phase 5 §1a checks that apply to this
+ * project. Each check is independent and self-reporting: add one, do not
+ * restructure.
+ *
+ * Two §1a checks are deliberately absent, so their absence reads as a decision
+ * rather than an oversight:
+ *   - Minified-asset sync — N/A per D-038. All 68 tracked *.min.* files are
+ *     third-party vendor distributions; Klytos ships no minified first-party
+ *     asset, so there is no source↔minified drift that could exist to detect.
+ *   - WordPress i18n sniffs — N/A per D-006. This is not a WordPress project.
+ *     The equivalent real invariant here is catalogue key parity across the 20
+ *     locales, which IS checked below.
+ *
+ * PASS/FAIL vs WARN: a check WARNs when the property is genuinely broken but
+ * fixing it belongs to another phase that already owns it. A WARN prints the
+ * full evidence and does not change the exit code — the point is that the
+ * drift is visible in every run instead of being rediscovered, which is what
+ * sprint-1.md means by "slice 9 makes H-01 detectable now".
  *
  * Usage:  php scripts/keel-verify        (exit 0 = all checks pass)
  *
@@ -36,8 +50,10 @@ declare(strict_types=1);
 $repoRoot  = dirname( __DIR__ );
 $adminPath = $repoRoot . '/installer/admin';
 
-$failures = [];
-$checks   = 0;
+$failures     = [];
+$warnings     = [];
+$warnedChecks = 0;
+$checks       = 0;
 
 /**
  * Report a check's outcome and accumulate its failures.
@@ -63,6 +79,139 @@ function keel_report( string $name, array $problems ): void
         echo "          - {$problem}\n";
         $failures[] = $name . ': ' . $problem;
     }
+}
+
+/**
+ * Report a check whose failure is owned by another phase.
+ *
+ * Prints the full evidence and does NOT affect the exit code. Used only where
+ * a decision already assigns the fix elsewhere; anything else must FAIL.
+ *
+ * @param  string             $name  Check name.
+ * @param  array<int, string> $notes Empty when the check passes.
+ * @return void
+ */
+function keel_warn( string $name, array $notes ): void
+{
+    global $warnings, $warnedChecks, $checks;
+
+    $checks++;
+
+    if ( $notes === [] ) {
+        echo "  PASS  {$name}\n";
+        return;
+    }
+
+    $warnedChecks++;
+
+    echo "  WARN  {$name}\n";
+
+    foreach ( $notes as $note ) {
+        echo "          - {$note}\n";
+        $warnings[] = $name . ': ' . $note;
+    }
+}
+
+/**
+ * Run a git command from the repository root, or return null when git is
+ * unavailable. Every git-dependent check degrades to "skipped" rather than
+ * failing, so keel-verify still works where git is not on PATH.
+ *
+ * @param  string $args Arguments appended to `git`.
+ * @return array<int, string>|null Output lines, or null when git failed.
+ */
+function keel_git( string $args ): ?array
+{
+    global $repoRoot;
+
+    $output = [];
+    $status = 1;
+
+    exec( 'git -C ' . escapeshellarg( $repoRoot ) . ' ' . $args . ' 2>/dev/null', $output, $status );
+
+    return $status === 0 ? $output : null;
+}
+
+/**
+ * Flatten a decoded JSON catalogue into dot-notation keys.
+ *
+ * @param  array<string, mixed> $data   Decoded catalogue.
+ * @param  string               $prefix Accumulated key prefix.
+ * @return array<int, string>
+ */
+function keel_flatten_keys( array $data, string $prefix = '' ): array
+{
+    $keys = [];
+
+    foreach ( $data as $key => $value ) {
+        $path = $prefix === '' ? (string) $key : $prefix . '.' . $key;
+
+        if ( is_array( $value ) ) {
+            $keys = array_merge( $keys, keel_flatten_keys( $value, $path ) );
+            continue;
+        }
+
+        $keys[] = $path;
+    }
+
+    return $keys;
+}
+
+/**
+ * Parse docs/api/INDEX.md into its Summary counts and its per-section rows.
+ *
+ * A markdown table row is a DATA row when it is neither the `|---|` separator
+ * nor the header line immediately above one — which is what makes the row
+ * count independent of how many columns a section happens to carry.
+ *
+ * @param  string $markdown Raw INDEX.md contents.
+ * @return array{summary: array<string, int>, sections: array<string, array<int, array<int, string>>>}
+ */
+function keel_parse_index( string $markdown ): array
+{
+    $lines    = explode( "\n", $markdown );
+    $summary  = [];
+    $sections = [];
+    $section  = '';
+    $total    = count( $lines );
+
+    for ( $i = 0; $i < $total; $i++ ) {
+        $line = trim( $lines[ $i ] );
+
+        if ( str_starts_with( $line, '## ' ) ) {
+            $section = trim( substr( $line, 3 ) );
+            continue;
+        }
+
+        if ( ! str_starts_with( $line, '|' ) ) {
+            continue;
+        }
+
+        // Separator row, or the header sitting directly above one.
+        if ( str_starts_with( $line, '|-' ) || str_starts_with( $line, '| -' ) ) {
+            continue;
+        }
+
+        $next = isset( $lines[ $i + 1 ] ) ? trim( $lines[ $i + 1 ] ) : '';
+
+        if ( str_starts_with( $next, '|-' ) || str_starts_with( $next, '| -' ) ) {
+            continue;
+        }
+
+        $cells = array_map( 'trim', explode( '|', trim( $line, '|' ) ) );
+
+        if ( $section === 'Summary' ) {
+            $label = trim( $cells[0], '* ' );
+            $count = (int) str_replace( [ '*', ',' ], '', $cells[1] ?? '0' );
+
+            $summary[ $label ] = $count;
+            continue;
+        }
+
+        $sections[ $section ][] = $cells;
+    }
+
+    return [ 'summary' => $summary, 'sections' => $sections ];
 }
 
 echo "keel-verify — Klytos CMS\n\n";
@@ -152,12 +301,450 @@ if ( ! str_contains( $bootstrap, 'klytos_enforce_admin_gate(' ) ) {
 keel_report( 'the central gate is invoked from admin/bootstrap.php', $problems );
 
 // ─────────────────────────────────────────────────────────────
+// Check: docs/api/INDEX.md Summary counts match the rows below them.
+// ─────────────────────────────────────────────────────────────
+// The Summary block is hand-maintained, so it drifts silently: a slice adds
+// rows and the totals keep asserting yesterday's number. Nothing else in the
+// project would ever notice.
+
+$indexPath = $repoRoot . '/docs/api/INDEX.md';
+$problems  = [];
+$index     = [ 'summary' => [], 'sections' => [] ];
+
+if ( ! is_file( $indexPath ) ) {
+    $problems[] = 'docs/api/INDEX.md does not exist.';
+} else {
+    $index = keel_parse_index( (string) file_get_contents( $indexPath ) );
+    $sum   = 0;
+
+    foreach ( $index['summary'] as $label => $claimed ) {
+        if ( $label === 'Total' ) {
+            continue;
+        }
+
+        $actual = count( $index['sections'][ $label ] ?? [] );
+        $sum   += $actual;
+
+        if ( ! array_key_exists( $label, $index['sections'] ) ) {
+            $problems[] = "the Summary claims {$claimed} '{$label}' but there is no '## {$label}' "
+                . 'section in the file.';
+            continue;
+        }
+
+        if ( $actual !== $claimed ) {
+            $problems[] = "Summary says {$claimed} for '{$label}'; the section holds {$actual} rows.";
+        }
+    }
+
+    $claimedTotal = $index['summary']['Total'] ?? -1;
+
+    if ( $claimedTotal !== $sum ) {
+        $problems[] = "Summary total says {$claimedTotal}; the sections hold {$sum} rows.";
+    }
+}
+
+keel_report( 'docs/api/INDEX.md summary counts match its rows', $problems );
+
+// ─────────────────────────────────────────────────────────────
+// Check: docs/api/INDEX.md parity — rows and docs agree, both directions.
+// ─────────────────────────────────────────────────────────────
+// Phase 5 §2 calls an INDEX row without its doc, or a doc without its row, a
+// slice defect. Slice 8 added rows by hand and corrected two; this is what
+// stops the next slice forgetting.
+
+$problems   = [];
+$referenced = [];
+
+foreach ( $index['sections'] as $section => $rows ) {
+    foreach ( $rows as $cells ) {
+        // Every surface section carries the same shape:
+        // | Surface | Kind | Code file | Doc | Purpose |
+        $doc = $cells[3] ?? '—';
+
+        if ( $doc === '' || $doc === '—' || $doc === '-' ) {
+            continue;
+        }
+
+        $referenced[ $doc ] = true;
+
+        if ( ! is_file( $repoRoot . '/' . $doc ) ) {
+            $surface = $cells[0] ?? '(unnamed)';
+            $problems[] = "row '{$surface}' in '{$section}' points at {$doc}, which does not exist.";
+        }
+    }
+}
+
+$onDiskDocs = array_merge(
+    glob( $repoRoot . '/docs/api/*.md' ) ?: [],
+    glob( $repoRoot . '/docs/reference/*.md' ) ?: []
+);
+
+foreach ( $onDiskDocs as $docPath ) {
+    $relative = ltrim( str_replace( $repoRoot, '', $docPath ), '/' );
+
+    // INDEX.md is the index itself, not a surface doc it could list.
+    if ( $relative === 'docs/api/INDEX.md' ) {
+        continue;
+    }
+
+    if ( ! isset( $referenced[ $relative ] ) ) {
+        $problems[] = "{$relative} exists but no INDEX row points at it — every doc needs its row.";
+    }
+}
+
+keel_report( 'docs/api/INDEX.md parity: every row has its doc, every doc its row', $problems );
+
+// ─────────────────────────────────────────────────────────────
+// Check: every locale catalogue in a set carries the same key set.
+// ─────────────────────────────────────────────────────────────
+// This is the i18n invariant that actually exists here (D-006: custom
+// key-based JSON, no gettext). Slices 7 and 8 both added keys to all 20
+// catalogues BY HAND — this is what catches the one that gets missed.
+
+$problems      = [];
+$catalogueDirs = array_merge(
+    [ $repoRoot . '/installer/core/lang' ],
+    glob( $repoRoot . '/installer/plugins/*/lang' ) ?: []
+);
+$catalogueCount = 0;
+
+foreach ( $catalogueDirs as $dir ) {
+    $files = glob( $dir . '/*.json' ) ?: [];
+    sort( $files );
+
+    $label     = ltrim( str_replace( $repoRoot, '', $dir ), '/' );
+    $reference = null;
+    $refName   = '';
+
+    foreach ( $files as $file ) {
+        $catalogueCount++;
+
+        $decoded = json_decode( (string) file_get_contents( $file ), true );
+
+        if ( ! is_array( $decoded ) ) {
+            $problems[] = "{$label}/" . basename( $file ) . ' is not valid JSON.';
+            continue;
+        }
+
+        $keys = keel_flatten_keys( $decoded );
+        sort( $keys );
+
+        if ( $reference === null ) {
+            $reference = $keys;
+            $refName   = basename( $file );
+            continue;
+        }
+
+        $missing = array_diff( $reference, $keys );
+        $extra   = array_diff( $keys, $reference );
+
+        foreach ( $missing as $key ) {
+            $problems[] = "{$label}/" . basename( $file ) . " is missing key '{$key}' "
+                . "(present in {$refName}).";
+        }
+
+        foreach ( $extra as $key ) {
+            $problems[] = "{$label}/" . basename( $file ) . " carries key '{$key}' "
+                . "that {$refName} does not.";
+        }
+    }
+}
+
+keel_report(
+    sprintf(
+        'locale catalogues agree on their key set (%d files across %d sets)',
+        $catalogueCount,
+        count( $catalogueDirs )
+    ),
+    $problems
+);
+
+// ─────────────────────────────────────────────────────────────
+// Check: no placeholder copy in distributable surfaces.
+// ─────────────────────────────────────────────────────────────
+// "Distributable" is not a guess: it is whatever `git check-attr export-ignore`
+// says ships, which is the same rule that builds the release archive. Bare
+// TODO/PLACEHOLDER are deliberately NOT matched — `install.php` ships Spanish
+// copy where "TODO" means "all", and a CSS section header reads "CHART
+// PLACEHOLDER". A check that cries wolf on correct content gets ignored, which
+// is the failure mode this whole slice exists to prevent.
+
+$problems = [];
+$tracked  = keel_git( 'ls-files' );
+
+if ( $tracked === null ) {
+    echo "  SKIP  no placeholder copy in distributable surfaces (git unavailable)\n";
+} else {
+    $scannable = [ 'php', 'js', 'css', 'html', 'json', 'txt', 'md', 'sh' ];
+    $candidates = [];
+
+    foreach ( $tracked as $file ) {
+        if ( str_contains( $file, 'installer/vendor-ai/' )
+            || str_contains( $file, 'installer/admin/assets/vendor/' )
+            || str_contains( $file, '.min.' )
+        ) {
+            continue;
+        }
+
+        if ( ! in_array( strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ), $scannable, true ) ) {
+            continue;
+        }
+
+        $candidates[] = $file;
+    }
+
+    // One batched check-attr call; per-file would be hundreds of processes.
+    //
+    // The candidate list goes in through a TEMP FILE rather than a pipe. Writing
+    // the whole list to stdin and only then draining stdout is the classic
+    // proc_open deadlock: once the OS pipe buffer (typically 64KB) fills, the
+    // parent blocks writing while the child blocks writing output nobody is
+    // reading. At ~448 paths it stays under the buffer today, so it would not
+    // fail — it would start HANGING silently as the repo grows, which is worse
+    // than failing. Found by the slice's own code review.
+    $attrFile = tempnam( sys_get_temp_dir(), 'keel-attr-' );
+    file_put_contents( $attrFile, implode( "\n", $candidates ) );
+
+    $attrOut = shell_exec(
+        'git -C ' . escapeshellarg( $repoRoot ) . ' check-attr --stdin export-ignore < '
+        . escapeshellarg( $attrFile ) . ' 2>/dev/null'
+    );
+
+    unlink( $attrFile );
+
+    $distributable = [];
+
+    foreach ( explode( "\n", (string) $attrOut ) as $attrLine ) {
+        if ( ! str_ends_with( $attrLine, ': unspecified' ) ) {
+            continue;
+        }
+
+        $distributable[] = substr( $attrLine, 0, -strlen( ': export-ignore: unspecified' ) );
+    }
+
+    // A check that scanned NOTHING must never report PASS. Without this, a
+    // failed check-attr call (git absent, exec disabled, a resource limit)
+    // leaves $distributable empty and the summary line reads
+    // "PASS ... (0 files)" — indistinguishable from "nothing to flag". That is
+    // the exact failure this whole slice exists to prevent, in the slice's own
+    // code; its sibling keel_git() already SKIPs loudly for the same reason.
+    if ( $candidates !== [] && $distributable === [] ) {
+        keel_report( 'no placeholder copy in distributable surfaces', [
+            sprintf(
+                'git check-attr returned nothing for %d candidate files, so this check scanned '
+                    . 'ZERO files. It has not passed — it did not run.',
+                count( $candidates )
+            ),
+        ] );
+
+        $distributable = null;
+    }
+
+    $markers = '/(TODO:|TODO\(|@todo|FIXME|XXX:|lorem ipsum)/i';
+
+    foreach ( $distributable ?? [] as $file ) {
+        $path = $repoRoot . '/' . $file;
+
+        if ( ! is_file( $path ) ) {
+            continue;
+        }
+
+        foreach ( explode( "\n", (string) file_get_contents( $path ) ) as $number => $text ) {
+            if ( preg_match( $markers, $text, $match ) === 1 ) {
+                $problems[] = sprintf(
+                    '%s:%d carries placeholder marker "%s".',
+                    $file,
+                    $number + 1,
+                    trim( $match[1] )
+                );
+            }
+        }
+    }
+
+    if ( $distributable !== null ) {
+        keel_report(
+            sprintf(
+                'no placeholder copy in distributable surfaces (%d files)',
+                count( $distributable )
+            ),
+            $problems
+        );
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Check: changelog entries run oldest → newest.
+// ─────────────────────────────────────────────────────────────
+
+$changelogPath = $repoRoot . '/changelog.txt';
+$problems      = [];
+$entries       = [];
+
+if ( ! is_file( $changelogPath ) ) {
+    $problems[] = 'changelog.txt does not exist.';
+} else {
+    preg_match_all(
+        '/^(\d{4})\.(\d{2})\.(\d{2})\s*-\s*version\s+(\S+)/mi',
+        (string) file_get_contents( $changelogPath ),
+        $matches,
+        PREG_SET_ORDER
+    );
+
+    foreach ( $matches as $match ) {
+        $entries[] = [ 'date' => $match[1] . $match[2] . $match[3], 'version' => $match[4] ];
+    }
+
+    for ( $i = 1; $i < count( $entries ); $i++ ) {
+        if ( $entries[ $i ]['date'] < $entries[ $i - 1 ]['date'] ) {
+            $problems[] = sprintf(
+                'version %s (%s) is dated before version %s (%s) above it — the file must run '
+                    . 'oldest to newest.',
+                $entries[ $i ]['version'],
+                $entries[ $i ]['date'],
+                $entries[ $i - 1 ]['version'],
+                $entries[ $i - 1 ]['date']
+            );
+        }
+    }
+}
+
+if ( count( $entries ) < 2 ) {
+    // Stated rather than silently passed: with one entry there is no ordering
+    // to verify, so this check has never actually run. Klytos's changelog holds
+    // a single entry (0.4.0) and the project has not yet established whether it
+    // grows oldest-first (Keel §1a) or newest-first (the common convention).
+    // The second entry is when that gets decided — not by this script guessing.
+    $checks++;
+    printf(
+        "  PASS  changelog order oldest → newest (%d entry — ordering not yet exercised)\n",
+        count( $entries )
+    );
+} else {
+    keel_report(
+        sprintf( 'changelog order oldest → newest (%d entries)', count( $entries ) ),
+        $problems
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// WARN: version touchpoints in sync (audit H-01 — Phase 7 owns the fix).
+// ─────────────────────────────────────────────────────────────
+// docs/03-technical-plan.md §5 records these as being in four-way
+// disagreement. sprint-1.md scopes the fix to Phase 7 and this slice to making
+// it detectable, so the drift is reported in full on every run and does not
+// fail the build.
+
+$touchpoints = [];
+$versionFile = $repoRoot . '/installer/VERSION';
+
+if ( is_file( $versionFile ) ) {
+    $touchpoints['installer/VERSION (canonical)'] = trim( (string) file_get_contents( $versionFile ) );
+}
+
+$readme = is_file( $repoRoot . '/README.md' )
+    ? (string) file_get_contents( $repoRoot . '/README.md' )
+    : '';
+
+if ( preg_match( '/\*\*Current version:\*\*\s*(\S+)/', $readme, $match ) === 1 ) {
+    $touchpoints['README.md (Current version)'] = $match[1];
+}
+
+if ( preg_match( '/VERSION\s+#\s*Current version\s*\(([^)]+)\)/', $readme, $match ) === 1 ) {
+    $touchpoints['README.md (structure listing)'] = trim( $match[1] );
+}
+
+if ( $entries !== [] ) {
+    $touchpoints['changelog.txt (newest entry)'] = $entries[ count( $entries ) - 1 ]['version'];
+}
+
+$tags = keel_git( 'tag --sort=-v:refname' );
+
+if ( $tags !== null && $tags !== [] ) {
+    $touchpoints['newest git tag'] = ltrim( $tags[0], 'v' );
+}
+
+$notes  = [];
+$values = array_unique( array_values( $touchpoints ) );
+
+if ( count( $values ) > 1 ) {
+    foreach ( $touchpoints as $where => $value ) {
+        $notes[] = sprintf( '%-32s %s', $where, $value );
+    }
+
+    $notes[] = 'audit H-01 — recorded in docs/03-technical-plan.md §5; the fix belongs to Phase 7.';
+}
+
+keel_warn(
+    sprintf( 'version touchpoints in sync (%d touchpoints)', count( $touchpoints ) ),
+    $notes
+);
+
+// ─────────────────────────────────────────────────────────────
+// WARN: runtime assets survive the release archive (NEW-27).
+// ─────────────────────────────────────────────────────────────
+// Found while defining "distributable" for the placeholder check above: the
+// blanket `*.md export-ignore` strips every file under installer/core/guides/,
+// which is a live PRODUCT surface — klytos_list_guides and klytos_get_guide
+// read that directory at runtime, and several guides are declared REQUIRED by
+// the tools' own descriptions. This is audit H-02's rule reaching further than
+// H-02 recorded. Fixing .gitattributes belongs to Phase 7 (H-02); this makes it
+// impossible to forget in the meantime.
+
+$notes = [];
+$guides = keel_git( 'ls-files installer/core/guides' );
+
+if ( $guides === null ) {
+    echo "  SKIP  runtime assets survive the release archive (git unavailable)\n";
+} else {
+    $stripped = [];
+
+    foreach ( $guides as $guide ) {
+        $attr = keel_git( 'check-attr export-ignore ' . escapeshellarg( $guide ) );
+
+        if ( $attr !== null && str_ends_with( $attr[0] ?? '', ': set' ) ) {
+            $stripped[] = $guide;
+        }
+    }
+
+    if ( $stripped !== [] ) {
+        $notes[] = sprintf(
+            '%d of %d files under installer/core/guides/ are export-ignored, so they do NOT ship.',
+            count( $stripped ),
+            count( $guides )
+        );
+        $notes[] = 'klytos_list_guides / klytos_get_guide read that directory at runtime, so on a '
+            . 'released install those tools return nothing.';
+        $notes[] = 'audit NEW-27 (H-02 family) — the blanket `*.md export-ignore` in .gitattributes; '
+            . 'the fix belongs to Phase 7.';
+    }
+
+    keel_warn(
+        sprintf( 'runtime assets survive the release archive (%d guides)', count( $guides ) ),
+        $notes
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
 
 echo "\n";
 
 if ( $failures !== [] ) {
-    printf( "FAILED — %d problem(s) across %d check(s).\n", count( $failures ), $checks );
+    printf(
+        "FAILED — %d problem(s) across %d check(s).\n",
+        count( $failures ),
+        $checks
+    );
     exit( 1 );
+}
+
+if ( $warnings !== [] ) {
+    printf(
+        "OK — %d check(s) passed, %d warning(s) carrying %d note(s) (owned by another phase).\n",
+        $checks,
+        $warnedChecks,
+        count( $warnings )
+    );
+    exit( 0 );
 }
 
 printf( "OK — %d check(s) passed.\n", $checks );

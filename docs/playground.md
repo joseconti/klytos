@@ -29,15 +29,24 @@ No Docker, no MySQL, no Apache — flat-file storage and PHP's built-in server a
 ## Start
 
 ```bash
-# 1. Seed a fresh installation (once)
+# 1. Seed a fresh installation (once; add --reset to re-seed an existing one)
 php scripts/dev/seed-playground.php
 
-# 2. Check nobody else already owns the port (see the warning below)
-nc -z 127.0.0.1 8080 && echo "PORT 8080 IS TAKEN — pick another or stop the squatter"
+# 2. Pick a port and CHECK IT IS FREE (see the warning below).
+#    Every command in this document uses $KPORT — export it once, here.
+export KPORT=8080
+nc -z 127.0.0.1 $KPORT && echo "PORT $KPORT IS TAKEN — export a different KPORT and re-run step 2"
 
 # 3. Serve it — 127.0.0.1 ONLY, never a routable interface
-php -S 127.0.0.1:8080 -t . scripts/dev/router.php
+php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
 ```
+
+> **`$KPORT` is not decoration — set it.** 8080 is the default and it has been occupied by an
+> unrelated Docker container in **four consecutive sessions** of this project. Every URL below is
+> written `http://127.0.0.1:$KPORT/...` so that changing the port in step 2 is the only edit you
+> ever make. A fresh reader following this document with 8080 busy previously had no path forward,
+> because the rest of the page hardcoded 8080 — found by the sprint-1 playground-QA pass and fixed
+> here.
 
 > **Always run step 2.** `php -S` fails to bind a busy port, prints its error and exits — and if you
 > backgrounded it, you will not see that. Every subsequent `curl` then reaches **whatever else is on
@@ -53,15 +62,15 @@ php -S 127.0.0.1:8080 -t . scripts/dev/router.php
 
 | Surface | URL |
 |---|---|
-| Admin panel | http://127.0.0.1:8080/installer/admin/ |
-| MCP endpoint | http://127.0.0.1:8080/installer/mcp |
+| Admin panel | http://127.0.0.1:$KPORT/installer/admin/ |
+| MCP endpoint | http://127.0.0.1:$KPORT/installer/mcp |
 | Generated static site | **not available in the playground** — see below |
 
 ## Stop and reset
 
 ```bash
 # Stop: Ctrl-C, or if it was backgrounded
-pkill -f "php -S 127.0.0.1:8080"
+pkill -f "php -S 127.0.0.1:$KPORT"
 
 # Wipe all runtime state and seed again from scratch
 php scripts/dev/seed-playground.php --reset
@@ -97,7 +106,7 @@ Everything the playground writes is gitignored — verified with `git check-igno
 
 ### 1. The admin panel and the role system
 
-1. Open http://127.0.0.1:8080/installer/admin/ — you should be redirected to `login.php`.
+1. Open http://127.0.0.1:$KPORT/installer/admin/ — you should be redirected to `login.php`.
 2. Log in as `owner`. You should reach the dashboard.
 
 ### ⚠️ Only `owner` can log in — and that is a product bug, not a playground fault
@@ -130,7 +139,7 @@ echo $sid."\n";' viewer
 The cookie is named **`klytos_session`**, not `PHPSESSID` (`auth.php:61`):
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' -b "klytos_session=<the id>" \
+curl -s -o /dev/null -w '%{http_code}\n' -b "klytos_session=<the id from the 8099 server>" \
   http://127.0.0.1:8099/installer/admin/users.php     # 403 for viewer
 ```
 
@@ -160,13 +169,13 @@ until you add it to `klytos_admin_gate_map()` in `installer/core/admin-gate.php`
 
 ```bash
 # Unauthenticated — must be 401
-curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8080/installer/mcp \
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:$KPORT/installer/mcp \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
 # Authenticated — lists the tools (177 on this seed)
 APPPW=$(grep -A1 "application password" installer/config/.playground-access | tail -1 | tr -d ' ')
-curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:8080/installer/mcp \
+curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:$KPORT/installer/mcp \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
@@ -191,19 +200,19 @@ XDEBUG_MODE=off php -r 'require "installer/core/app.php";
 
 ```bash
 # Anonymous submission — 201, and the comment is stored as "pending".
-curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:8080/comment-submit.php \
+curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:$KPORT/comment-submit.php \
   -d "page_slug=about&author_name=Visitor&content=Hello from nobody in particular."
 
 # The honeypot — answers EXACTLY like a success (201, same shape, a decoy id) and
 # stores nothing. A distinguishable response would teach a bot to skip the field.
-curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:8080/comment-submit.php \
+curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:$KPORT/comment-submit.php \
   -d "page_slug=about&author_name=Bot&content=spam&_honeypot=http://spam.test/"
 
 # The rate limit is IP-keyed and PERSISTENT — 2 per 60s. Send a different session
 # cookie every time: it makes no difference, which is the whole point (S-09).
 for i in 1 2 3 4; do
   curl -s -o /dev/null -w "req $i -> %{http_code}\n" -X POST \
-    http://127.0.0.1:8080/comment-submit.php -b "klytos_session=sess$i" \
+    http://127.0.0.1:$KPORT/comment-submit.php -b "klytos_session=sess$i" \
     -d "page_slug=about&author_name=N&content=msg$i"
 done
 ```
@@ -236,18 +245,18 @@ refusals. Full contract: `docs/reference/security-headers.md`.
 
 ```bash
 # An admin API endpoint. Before slice 8, 0 of the 23 files in admin/api/ sent anything.
-curl -s -D - -o /dev/null -b "klytos_session=<the id>" \
-  http://127.0.0.1:8080/installer/admin/api/notices.php |
+curl -s -D - -o /dev/null -b "klytos_session=<the id from the 8099 server>" \
+  http://127.0.0.1:$KPORT/installer/admin/api/notices.php |
   grep -iE '^X-|^Referrer|^Content-Security|^Permissions|^Strict'
 
 # The login page — it sent NOTHING before slice 8, despite being the most
 # security-sensitive page in the product.
-curl -s -D - -o /dev/null http://127.0.0.1:8080/installer/admin/login.php | grep -i '^content-security'
+curl -s -D - -o /dev/null http://127.0.0.1:$KPORT/installer/admin/login.php | grep -i '^content-security'
 
 # The refusals carry them too. This is the ordering proof: klytos_deny() and the
 # auth guard both write a body and exit, so a header set below them would never
 # reach the client.
-curl -s -D - -o /dev/null http://127.0.0.1:8080/installer/admin/api/plugins.php   # 401 + headers
+curl -s -D - -o /dev/null http://127.0.0.1:$KPORT/installer/admin/api/plugins.php   # 401 + headers
 ```
 
 **HSTS is absent here and that is correct** — it is sent only over HTTPS, and the
@@ -255,7 +264,7 @@ playground speaks plain HTTP. A browser ignores HSTS on a cleartext response, so
 sending it would be a claim the transport cannot back:
 
 ```bash
-curl -s -D - -o /dev/null http://127.0.0.1:8080/installer/admin/index.php |
+curl -s -D - -o /dev/null http://127.0.0.1:$KPORT/installer/admin/index.php |
   grep -ci strict-transport      # expect 0
 ```
 
@@ -294,6 +303,28 @@ CLI path — bypasses the permission checks that the web path `execute()` applie
 authorization over HTTP, always.
 
 ## Running the tests
+
+> **STOP — two things first, if you have been following this document from the top.**
+> Both were found by a fresh-context QA pass at the sprint-1 close, and both make the suite report
+> failures that are **artefacts of the walkthrough, not defects in the product**. A newcomer hitting
+> them would reasonably conclude Klytos is broken, which is L-008's failure mode reproduced by the
+> document that cites it.
+>
+> ```bash
+> # 1. Stop the second server section 1 told you to start and never told you to stop.
+> #    Leaving it up makes AdminGateHttpTest error out: the harness refuses to test a
+> #    server it did not start (correctly — see AdminHttpTestCase), and 16 tests never run.
+> pkill -f "127.0.0.1:8099"
+>
+> # 2. Re-seed. Walking section 4 by hand STORES a real comment, and
+> #    PublicCommentTest::testRateLimitHoldsAcrossSessions counts stored comments.
+> php scripts/dev/seed-playground.php --reset
+> ```
+>
+> The paragraph below is true and is **not** a contradiction of this: the integration tier does not
+> leave the playground mutated, because it snapshots and restores around every test. What it cannot
+> undo is what *you* did by hand before running it.
+
 
 The test harness (Sprint 1 slice 1) is dev-only: `composer.json` declares PHPUnit and PHPCS as
 `require-dev` and nothing of it ships (D-022, D-027).
@@ -386,7 +417,7 @@ installation is somewhere the repository is not. The script refuses to delete an
 own `mktemp` directory.
 
 Port 8099 by default (`PORT=8123 bash scripts/dev/upgrade-test.sh` to change it), so it does not
-collide with the playground on 8080 — you can leave the playground running.
+collide with the playground on `$KPORT` — you can leave the playground running.
 
 ## Auditing the vendored dependencies
 
@@ -424,7 +455,7 @@ entry unless it is on. The seeder turns it **on**, as Keel requires through Phas
 it ships **off**.
 
 - **Read the log in the admin:** Settings → Developer, then the **Logs** page
-  (http://127.0.0.1:8080/installer/admin/logs.php), or `php installer/cli.php logs`.
+  (http://127.0.0.1:$KPORT/installer/admin/logs.php), or `php installer/cli.php logs`.
 - **Flip the switch:** admin Settings → Developer → Developer Mode. It is stored as
   `developer.developer_mode` in the site config.
 - **When something fails, copy the log entries and paste them back.** That is what turns a failure

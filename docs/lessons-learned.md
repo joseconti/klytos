@@ -394,3 +394,49 @@
   because that is exactly the source trusted hardest and checked least. This is L-002's shape
   turned inward: a document asserting a property the code does not have, written by the person who
   had just finished warning about it.
+
+## L-016 — Three measurements lied in one session, and every one of them read as green
+- Problem: slice 9's whole subject is replacing "checked by eye" with "checked by a machine". In the
+  session that built it, **three separate measurements produced a false PASS**, and none would have
+  been caught by reading the code that produced them.
+  1. **A shell fallback invented a clean baseline.** The lint loop used
+     `${t:-0 ERRORS AND 0 WARNINGS}` so that a scope with no matching `grep` line printed
+     "0 ERRORS AND 0 WARNINGS". `installer/core` + `installer/admin` printed exactly that — a
+     *false clean* on the project's largest baseline, which actually stands at 193/488. The default
+     was written to make the table tidy and it made the table wrong.
+  2. **A guard test passed against the guard not firing.** The first SAPI guard for
+     `scripts/dev/router.php` checked `PHP_SAPI !== 'cli-server'`. Under `php -S` a file served
+     *as an ordinary file* also reports `cli-server`, so the guard did not fire — but the probe
+     reported `HTTP 404` and looked green, because the **unguarded** file answers 404 for that path
+     too and its first line is byte-identical to the guard's. Only the body SIZE separated them:
+     468 bytes is the disclosure page, 19 bytes is the guard.
+  3. **An archive test measured HEAD instead of the working tree.** The probe built its fixture with
+     `git archive $(git write-tree)`, which reads the index — and the edits were unstaged. So the
+     "fixed" files under test were the unmodified ones, and `upgrade-assert.php` correctly reported
+     200 while `router.php` reported a 404 that belonged to the old code.
+- Where: the slice-9 session — the lint measurement loop, `scripts/dev/router.php`, and the NEW-28
+  archive probe.
+- What failed, and it is one root: **each measurement had a path that produced "fine" without ever
+  observing the thing it claimed to observe.** A defaulting fallback, a status code two different
+  code paths both emit, and a fixture built from the wrong tree. In all three the *instrument* was
+  broken, not the subject — L-008's rule ("suspect the harness before the product") arriving for the
+  fourth time, now inside the very slice built to stop exactly this.
+- How each was caught: by re-deriving the number a second way rather than by inspection. The lint
+  figure was re-run per scope with no fallback; the guard was re-measured by body size and then the
+  discriminator was **probed** (`SCRIPT_NAME` is the requested path when acting as router, and the
+  script's own path when served as a file); the archive fixture was replaced with an explicit `cp`
+  of the working-tree files, after confirming with `grep -c PHP_SAPI` that the copies were the
+  edited ones.
+- The uncomfortable part: probe (2) is the same shape as the bug it was testing for. NEW-28 exists
+  because a file answered a request it should have refused; the probe passed because a file answered
+  404 for a reason unrelated to the fix. Both are "the right answer for the wrong reason", and only
+  measuring a *second property* — the body size — could tell them apart.
+- Rule for next time: **a measurement needs the same prove-it-fails discipline as a check.** Before
+  trusting a number, ask what it would print if the thing being measured did not exist — and if the
+  honest answer is "the same thing", measure something else as well. Concretely: never give a
+  measurement a default value (an absent result must be visibly absent, never a plausible zero);
+  when asserting that a guard fires, assert on a property only the guard produces, not on a status
+  code the unguarded path also emits; and when building a fixture from git, verify the fixture
+  contains the change under test before drawing any conclusion from it. This generalises L-010 from
+  guards to the instruments that measure them: **a broken check goes quiet, and a broken measurement
+  goes green.**

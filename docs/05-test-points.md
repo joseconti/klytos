@@ -18,8 +18,8 @@
 | 5 — Named escalations, one test each | One NAMED test per finding asserting the refusal (S-01, S-02, S-03, S-05, S-06, S-12), each with its POSITIVE counterpart (a role that SHOULD reach the surface gets through, per L-008); S-12's remaining half closed — state-changing GET and missing CSRF; full suite green | **yes** — session-start freshness boot from `docs/playground.md` verbatim: admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated (counted via the documented `.playground-access` recipe, matching the slice-0 baseline exactly). The escalation tests are themselves real HTTP against a real `php -S` server on the seeded playground | **This slice IS the security proof.** Each of the six findings now fails a named test if it regresses. Two live defects closed: **S-06 residue** — `api/tasks.php` did not re-gate `update`/`complete` at `tasks.manage` while its page twin does (`tasks.php:38`), so an editor was refused via the UI and allowed via the API; and **S-12** — POST + CSRF now required on the RSA private-key export, with the caller retargeted because the old 302 redirect *was* what made it a GET. Three of the new tests were **proven to FAIL against the unfixed code** (200 where 405/403 required; 500 proving the editor's task action executed) before the fixes landed. Independent `code-reviewer` and `security-auditor` passes over the diff | n/a — no new UI. The one markup change is the identity-export form's `action` attribute; the button, label and surrounding structure are untouched | **yes** — no new user-facing strings. The 405/403 bodies on `download-identity.php` are operator-facing plain text on a machine endpoint, consistent with the file's existing 429/404 responses, not UI copy | **yes** — and this drove a real refactor: the HTTP harness was **extracted** from `AdminGateHttpTest` into `tests/AdminHttpTestCase.php` rather than copied for the second HTTP class. Duplicating it would have forked the three defects L-008 records (session cookie name, `proc_open` handle shape, teardown orphan check) so a later fix to one copy would silently miss the other. `klytos_require_permission()` was reused in `api/tasks.php`; **no second authorization decision point was added** (S-04 preserved) | `docs/reference/authorization.md` (API-twin re-gating rule; CSRF and step-up-authentication added to "what this does NOT cover"), `docs/04-adoption-audit.md` (**NEW-13** added; NEW-12's open half resolved), `docs/decisions.md` (D-038, D-039, D-040), `docs/lessons-learned.md` (**L-010**). No new public PHP surface — the changes are two guards, one re-gate and test infrastructure — so no `docs/api/INDEX.md` row | n/a for this slice — no new extension point. The existing `admin.gate_map`, `auth.access_denied` and `auth.capabilities` all still apply unchanged | See the evidence block below | **PASS** | **A harness defect was found and repaired mid-slice, and it is the most consequential thing here: `PlaygroundState::assertConfigNotMutated()` was INERT** — it ran after `restorePlayground()` and re-hashed the already-restored file, so it compared the snapshot against itself and had been checking nothing since slice 3 (D-039, **L-010**). Proven inert with a probe, repaired to compare decrypted content minus `scheduler_last_run`, and pinned by a permanent two-way regression test. It then paid for itself immediately: it fired on the S-12 tests against the unfixed code, independently confirming the GET really did write config, and stopped once the fix landed. Lint baseline **improved** to 199/488 (errors −2). NEW-13 recorded and deliberately NOT fixed (D-040) |
 | 6 — `SafeHttp` + risky call sites | Refusals for `127.0.0.1`, `[::1]`, `169.254.169.254`, a non-HTTP scheme, **and a public URL that 302-redirects to a private one**; full suite green | **yes** — session-start freshness boot (see the freshness row: the documented port was held by an unrelated container, which is itself the session's first finding, **L-011**). The redirect and endpoint tests are real HTTP against real `php -S` servers; the oEmbed tests drive the endpoint as a seeded owner exactly as an editor would | **This slice IS the security fix.** S-08 closed by `SafeHttp`, applied at 5 call sites. The finding was **wider than recorded**: the *discovered* oEmbed endpoint is attacker-controlled too and its response **is** echoed back, and every fetch followed redirects unvalidated. Proven against the unfixed code: **6 of the 8** endpoint tests failed (404 where 400 required — the 404 the endpoint returns *after* fetching), and the old transport was demonstrated following a 302 to `http://169.254.169.254/latest/meta-data/` with `CURLINFO_EFFECTIVE_URL`. Fixed in-path: `HttpClient::requestWithStream()` silently dropped `follow_redirects`. Both review subagents run over the diff | n/a — no UI written in this slice | n/a — no new user-facing strings. The refusal deliberately reuses the endpoint's existing generic `Invalid URL`, so no catalogue key was needed and no internal-network oracle was created | **yes, and it drove the shape** — the validation was **promoted** from `ImportValidator::validateUrl()`, not rewritten, and `ImportValidator` now delegates, so ONE implementation exists where there were about to be two. `SafeHttp` reuses `HttpClient` for transport rather than opening a third cURL call site. `AdminHttpTestCase` was **generalized** with a `routerScript()` hook rather than copied for the fixture server, keeping L-008's three defects in one place | `docs/reference/safe-http.md` **created** (the rule, return shape, all 5 reason codes, redirects, the oracle rule, all 4 extension points, known limits, where it is applied, tests); **6 new rows** in `docs/api/INDEX.md` with counts updated 938 → 944; `docs/04-adoption-audit.md` (S-08 CLOSED + **NEW-15**); `docs/playground.md` (bind check); `docs/decisions.md` (D-041, D-042); `docs/lessons-learned.md` (**L-011**, **L-012**) | **yes** — `http.safe.allowed_schemes` and `http.safe.max_redirects` (filters, both tested), `http.safe.redirect` and `http.safe.blocked` (actions, both tested). `http.safe.blocked` is deliberately an action, not a filter, so it cannot reverse a refusal | See the evidence block below | **PASS** | **A second harness defect found, in the L-010 shape: the integration tier never reset hooks** while the unit tier always had, so a filter registered by one test leaked into every later test in the process (D-042, **L-012**). Nothing was passing for the wrong reason *yet*; the next weakening filter would have been. Caught by asserting on the refusal REASON rather than just the refusal. Lint baselines **improved**: core+admin 199 → **193**, plugins 131 → **129**. **NEW-15 recorded and deliberately NOT fixed:** DNS rebinding survives, because the address is resolved to validate and resolved again to connect — stated plainly in the reference doc rather than implied away |
 | 7 — Public comments, off the admin path | Anonymous submission succeeds; honeypot rejects a bot; rate limit holds **ACROSS sessions**; **no admin-directory name in any frontend-reachable URL** | **yes** — session-start freshness boot (port 8080 held by an unrelated container again, so a verified-free port was used, per L-011); the four criteria were then walked for real with `curl` against the playground, and the accented submission round-tripped intact | **This slice IS the security fix.** S-09 closed by RELOCATION, not by the recorded remediation: the handler left the admin tree entirely rather than being exempted from its auth guard. The D-036 question was asked *before* acting and changed the design — `admin/bootstrap.php` runs cron and the action scheduler on every request (`bootstrap.php:184-196`), so the recorded fix would have handed every anonymous caller a scheduler trigger. Input bounds added to `CommentManager::submit()` because it is now anonymously reachable. Both review subagents run; the `security-auditor` returned a **blocking** finding that restructured the slice (rate limit ran AFTER `App::boot()`, and the honeypot ran BEFORE the rate limit, so a `_honeypot` flood was never counted) | n/a — no UI written in this slice | **yes** — a new `comments` domain with **11 keys** added to **all 20 catalogues**; three hardcoded English validation messages in `submit()` converted to `__()` after the code review flagged that they reach anonymous callers verbatim. The `405`/`500` paths keep literals by necessity — they fire before I18n exists (**NEW-18**) | **yes** — the persistent IP-keyed `MCP\RateLimiter` was **reused**, not forked, even though its fixed 60s window meant expressing the policy as a count rather than the old "1 per 30s" interval; `AdminHttpTestCase::post()` was **generalized** (nullable `$role`) rather than copied for anonymous POSTs; `SiteConfig::setValue()` was written as the counterpart to the existing `getValue()`. The install-root discovery loop IS duplicated with `x402-gate.php` and is recorded as deliberately not extracted, with a trigger | `docs/reference/public-comments.md` **created**; **5 rows** changed/added in `docs/api/INDEX.md` with counts 944 → 948; `docs/04-adoption-audit.md` (S-09 CLOSED + **NEW-16…NEW-20**); `docs/playground.md` (new try-it section); `docs/decisions.md` (**D-043**, amended after its review cycle); `docs/lessons-learned.md` (**L-014**); stale `api/comment-submit.php` row removed from `README.md` | **yes** — `comment.rate_limit` and `comment.notification_recipient` (filters), `comment.honeypot_rejected` and `comment.rate_limited` (actions). Both are actions, not filters, so a listener cannot turn a refusal into an acceptance | See the evidence block below | **PASS** | **The named finding was the shallowest of three.** Underneath it: `SiteConfig::setValue()` **did not exist** although the MCP tool calls it four times, so comments could never be switched on at all (**NEW-16**, fixed in path); and **no comment form exists in the generated output**, which is deliberately still true at the end of this slice (D-023 owns it) and is said plainly in the reference doc. Lint baselines held exactly at 193/488 and 113/109; `installer/public/` was found to be **outside the phpcs scan set entirely** and is now scanned, at 0/0. Recorded and NOT fixed: **NEW-17** (proxy collapses the rate limit into one bucket), **NEW-18** (no `__()` outside the admin bootstrap), **NEW-19**, **NEW-20** (limiter race — carried as *plausible and unproven*, because the concurrency test that would settle it was not run) |
-| 8 — HSTS + CSP fail-open + hardening | | | | | | | | | | pending | |
-| 9 — `keel-verify` + regenerable INDEX | | | | | | | | | | pending | |
+| 8 — HSTS + CSP fail-open + hardening | Headers asserted on a REAL playground response; admin renders with the tightened CSP, browser console clean | **yes** — headers read off real `php -S` responses including the 401 and 403 refusals; headless Chrome on `login.php` reported 0 CSP violations; a CSP-conformance sweep ran clean across 18 admin pages | **This slice IS the security fix.** S-11, the CSP fail-open and NEW-14 closed with ONE enforcement point in `admin/bootstrap.php` covering all 64 entry points. Five named probes proved every new test fails against the unfixed code. Both review subagents run | n/a — no new UI; the nonce attributes are non-visual | n/a — no new user-facing strings | **yes** — `Helpers::isHttps()` became the single TLS check, replacing four duplicated expressions | `docs/reference/security-headers.md` created; 3 rows in `docs/api/INDEX.md`; audit, decisions (**D-044**), lessons (**L-015**) | **yes** — `security.hsts` filter, with its rollback risk stated | See the slice-8 evidence block below | **PASS** | Row filled retrospectively in slice 9 — it was left `pending` when slice 8 closed, although its evidence block was written. The gap is recorded rather than quietly corrected: a table that says `pending` for a closed slice is the L-002 defect in the project's own test log |
+| 9 — `keel-verify` + regenerable INDEX | `scripts/keel-verify` runs and its **FULL OUTPUT** is pasted below; every new check demonstrated to FAIL on an injected violation and pass once reverted | **yes** — the release archive was extracted from a real `git archive` and served over HTTP to test whether shipped dev scripts execute; both guards then re-verified against the edited files, and `router.php` re-verified as still working as the `php -S` router (admin 302) | **This slice found and fixed a live exposure.** `scripts/` is not export-ignored, so it ships to the site root, and the root `.htaccess` serves any existing file (`:23-25`). Verified over HTTP against an extracted archive: `router.php` **executed**, returning an internal 404 page disclosing the admin path, the MCP endpoint and build internals; `upgrade-assert.php` **executed**, HTTP 200 / 1332 bytes. Both now carry SAPI guards (their sibling `seed-playground.php:35` already had one). Recorded as **NEW-28**; the packaging half is Phase 7's | n/a — no UI written in this slice | **yes, as a CHECK rather than as strings** — no new user-facing strings, but the slice adds the catalogue key-parity check across **120 files in 6 sets** (core's 20 + 5 plugins' 20 each), which is the real i18n invariant here (D-006). Proven by injecting both a missing key and an extra one | **yes** — no new product surface. The gate check and the two WARN checks reuse `git check-attr`, which is the same authority that builds the release archive, rather than a second hand-maintained list of what ships | `docs/keel-verify.md` **created** (deliberately at `docs/` root, not `docs/reference/` — it is project tooling like `docs/playground.md`, not a product surface, and INDEX's own scope is `installer/` only); `docs/flows/` **created** with 3 files; `docs/04-adoption-audit.md` (**NEW-27**, **NEW-28**); `docs/decisions.md` (**D-045**); `docs/lessons-learned.md` (**L-016**) | n/a — dev tooling and CI, no product extension points | See the slice-9 evidence block below | **PASS** | **Two findings, both from defining "distributable" honestly rather than assuming it. NEW-27:** all 16 in-product guides under `installer/core/guides/` are stripped from every release archive by the blanket `*.md export-ignore` — verified by extracting the archive, where the directory survives EMPTY and only 2 `.md` files remain repo-wide. They back `klytos_list_guides` / `klytos_get_guide`, whose own tool descriptions declare several REQUIRED before creating content, so on a released install those tools return nothing. **NEW-28:** the dev-script exposure above. Both are H-02's rule reaching further than H-02 recorded; both are made **detectable now** by WARN checks, with the fix left to Phase 7 — the same treatment sprint-1.md scoped for H-01 |
 
 ### Slice 0 — evidence (commands and output, 2026-07-18)
 
@@ -1199,6 +1199,269 @@ code adds zero violations.
 
 Commit: **8c208b7**.
 
+### Slice 9 — evidence (commands and output, 2026-07-20)
+
+The slice's own test point is *"`scripts/keel-verify` runs; its **full output** pasted"*. It is
+pasted verbatim below, unedited, including both warnings.
+
+#### `php scripts/keel-verify` — FULL OUTPUT
+
+```
+keel-verify — Klytos CMS
+
+  PASS  authorization gate covers every admin surface (64 files)
+  PASS  the central gate is invoked from admin/bootstrap.php
+  PASS  docs/api/INDEX.md summary counts match its rows
+  PASS  docs/api/INDEX.md parity: every row has its doc, every doc its row
+  PASS  locale catalogues agree on their key set (120 files across 6 sets)
+  PASS  no placeholder copy in distributable surfaces (448 files)
+  PASS  changelog order oldest → newest (1 entry — ordering not yet exercised)
+  WARN  version touchpoints in sync (5 touchpoints)
+          - installer/VERSION (canonical)    0.31.1-beta.1
+          - README.md (Current version)      0.28.5
+          - README.md (structure listing)    0.28.5
+          - changelog.txt (newest entry)     0.4.0
+          - newest git tag                   0.30.1
+          - audit H-01 — recorded in docs/03-technical-plan.md §5; the fix belongs to Phase 7.
+  WARN  runtime assets survive the release archive (16 guides)
+          - 16 of 16 files under installer/core/guides/ are export-ignored, so they do NOT ship.
+          - klytos_list_guides / klytos_get_guide read that directory at runtime, so on a released install those tools return nothing.
+          - audit NEW-27 (H-02 family) — the blanket `*.md export-ignore` in .gitattributes; the fix belongs to Phase 7.
+
+OK — 9 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+(exit status: 0)
+```
+
+Seven checks are new in this slice. Two are **WARN**: they report a property that is genuinely
+broken while the fix belongs to a phase that already owns it, so they print full evidence on every
+run and do not change the exit code. That is what `docs/sprints/sprint-1.md` means by *"slice 9
+makes H-01 detectable now; fixing it is Phase 7's"*, applied consistently to NEW-27 as well.
+
+Two §1a checks are **deliberately absent**, and their absence is a decision rather than an omission:
+minified-asset sync (N/A per **D-038** — all 68 tracked `*.min.*` are third-party vendor
+distributions, so no source↔minified drift can exist) and WordPress i18n sniffs (N/A per **D-006** —
+this is not a WordPress project; the equivalent real invariant, catalogue key parity, IS checked).
+
+#### Every new check proven to FAIL on an injected violation
+
+A check that has never fired is indistinguishable from one that cannot — the failure mode **L-010**
+records, where a broken check simply goes quiet and lends its credibility to everything downstream.
+So each check was driven with a violation injected, observed failing, and the injection reverted.
+Ten probes, all fired, tree left clean:
+
+| Probe | Injection | Expected | Observed |
+|---|---|---|---|
+| P1 | `\| Filters \| 116 \|` → `115` in INDEX.md | FAIL | `FAIL docs/api/INDEX.md summary counts match its rows` |
+| P2 | an INDEX row retargeted to `docs/reference/ghost.md` | FAIL | `FAIL docs/api/INDEX.md parity` |
+| P3 | created `docs/reference/orphan-probe.md` with no row | FAIL | `orphan-probe.md exists but no INDEX row points at it` |
+| P4 | deleted `common.cancel` from `de.json` | FAIL | `FAIL locale catalogues agree on their key set` |
+| P5 | added `zz_probe_key` to `de.json` | FAIL | `de.json carries key 'zz_probe_key' that ca.json does not` |
+| P6 | appended `// TODO: finish this before release` to a distributable file | FAIL | `FAIL no placeholder copy in distributable surfaces` |
+| P7a | appended a changelog entry dated **earlier** than the one above it | FAIL | `FAIL changelog order oldest → newest` |
+| P7b | appended a correctly-dated second entry | PASS **with 2 entries** | `PASS changelog order oldest → newest (2 entries)` |
+| P8 | aligned VERSION + README + changelog to the tag value | WARN → PASS | `PASS version touchpoints in sync` |
+| P9 | `installer/core/guides/*.md -export-ignore` in `.gitattributes` | WARN → PASS | `PASS runtime assets survive the release archive` |
+
+P7b matters on its own: with a single changelog entry the ordering check cannot run at all, so it
+would have passed vacuously forever. P7b proves it genuinely executes once there are two entries.
+P8 and P9 are the **other** direction required by L-010 — one direction is half a test. Both
+warnings already fire on the real tree, so what needed proving was that they go **quiet** when the
+condition is actually fixed, rather than being unconditional print statements.
+
+After every probe: `git status --porcelain` reported only `M scripts/keel-verify` (the slice's own
+work), and the closing `keel-verify` run matched the opening baseline exactly.
+
+#### The checks are pinned by a permanent test, and that test was proven too
+
+`tests/Unit/KeelVerifyTest.php` (4 tests / 14 assertions) asserts that keel-verify exits 0, that
+**every one of the 9 check names appears in its output**, that the reported count matches the
+expected set, and that the two known warnings are still reported. A throwaway probe script proves
+nothing tomorrow; this is what makes "9 checks passed" a measurement rather than a habit.
+
+Proven in three directions before being trusted:
+
+| Probe | Injection | Observed |
+|---|---|---|
+| A | a check RENAMED | `keel-verify no longer reports the check 'locale catalogues agree on their key set'` — 1 failure |
+| B | a check DELETED | the name assertion AND `keel-verify reported 8 checks; 9 are expected` — 2 failures |
+| C | a WARN forced quiet | `The version touchpoints stopped disagreeing.` — 1 failure |
+
+Restored: `OK (4 tests, 14 assertions)`.
+
+#### NEW-27 — the in-product guides do not ship
+
+Found while defining what "distributable surface" means for the placeholder check, which is the
+honest way to build that check and is why it surfaced at all.
+
+```
+$ git archive HEAD | tar -x -C /tmp/klytos-archive-test
+$ find /tmp/klytos-archive-test -name '*.md' | wc -l
+2                      # PRIVACY.md only — README.md and INSTALL.md are stripped too (H-02)
+$ ls -la /tmp/klytos-archive-test/installer/core/guides/
+total 0                # the directory ships EMPTY; all 16 guides are gone
+```
+
+`installer/core/mcp/tools/guide-tools.php` reads that directory at runtime for
+`klytos_list_guides` and `klytos_get_guide`, and the tool description declares
+`gutenberg-blocks`, `seo-content`, `post-types-and-fields`, `forms` and `design-patterns`
+**REQUIRED** before creating content. Verified this reaches real installs rather than only
+`git archive`: release `v0.30.1` carries **no attached assets**, so `Updater::resolveDownloadUrl()`
+falls back to `$release['zipball_url']` (`updater.php:751-752`) — GitHub's auto-generated zipball,
+which honours `export-ignore`.
+
+Not fixed here. `.gitattributes` packaging is audit **H-02**, which `docs/sprints/sprint-1.md`
+scopes to Phase 7 ("they close by construction in the next full Phase 7").
+
+#### NEW-28 — shipped dev scripts execute over HTTP
+
+`scripts/` is not export-ignored, and the root `.htaccess` serves any existing file directly
+(`.htaccess:23-25` — `REQUEST_FILENAME -f` → `RewriteRule ^ - [L]`). Tested rather than reasoned
+about, against the extracted archive:
+
+```
+$ php -S 127.0.0.1:8321 -t /tmp/klytos-archive-test
+$ curl -D - http://127.0.0.1:8321/scripts/dev/router.php
+HTTP/1.1 404 Not Found          <- its OWN 404 page, 468 bytes, disclosing the admin path,
+                                   the MCP endpoint, BuildEngine internals and audit NEW-04
+$ curl http://127.0.0.1:8321/scripts/dev/upgrade-assert.php
+HTTP 200, 1332 bytes            <- executed
+$ curl http://127.0.0.1:8321/scripts/dev/seed-playground.php
+This script is CLI-only.        <- correctly refused; seed-playground.php:35 already had the guard
+```
+
+Fixed in path per **D-031**'s narrowing — this is the code the slice is already changing and
+testing. Both files now refuse the wrong SAPI.
+
+**The first version of the router guard was wrong, and the test that "confirmed" it was a false
+pass.** `PHP_SAPI !== 'cli-server'` looks right, but `php -S` reports `cli-server` **both** when the
+file is the router **and** when it is served as an ordinary file — so the guard did not fire in the
+second case. The probe reported `HTTP 404` and looked green, because the *unguarded* file answers
+404 for that path too and its first line is byte-identical to the guard's. Only measuring the body
+size separated them: **468 bytes = the disclosure page, 19 bytes = the guard**. The discriminator
+was then probed rather than reasoned about:
+
+```
+case=A (as router)      SAPI=cli-server  SCRIPT_NAME=/installer/admin/
+case=B (served as file) SAPI=cli-server  SCRIPT_NAME=/scripts/dev/router.php
+```
+
+Final state, both directions:
+
+```
+served as plain files:   router.php -> HTTP 404, 19 bytes    (guard fired)
+                 upgrade-assert.php -> HTTP 404, 19 bytes    (guard fired)
+legitimate use:  php -S ... router.php -> /installer/admin/ -> HTTP 302   (still works)
+                 php scripts/dev/upgrade-assert.php -> its own usage message (still works)
+```
+
+#### Full suite, lint and the upgrade path
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (142 tests, 617 assertions)          # 138/603 before this slice; +4 tests from KeelVerifyTest
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+D-025 baselines, each measured in its own scope. **`scripts/` had never been linted at all** — the
+same gap slice 7 found for `installer/public/` — and is now in the scanned set with a fresh
+baseline. `scripts/keel-verify` is named explicitly in `phpcs.xml` because it carries no `.php`
+extension, so a directory entry alone would have silently skipped the one file this slice writes.
+
+| Scope | Before | After | Verdict |
+|---|---|---|---|
+| `installer/core` + `installer/admin` | 193 / 488 | **193 / 488** | held |
+| `installer/plugins` | 113 / 109 | **113 / 109** | held |
+| `tests` | 0 / 0 | **0 / 0** | held |
+| `installer/public` | 0 / 0 | **0 / 0** | held |
+| `scripts` | *never scanned* | **0 / 2** | new baseline recorded |
+
+`keel-verify` itself lints 0/0. The 2 warnings are pre-existing in `upgrade-assert.php`
+(`PSR1.Files.SideEffects` and one long line). One error WAS introduced by this slice's guard — a
+multi-line control structure — and was fixed before the measurement above; new code enters clean.
+
+**A measurement lied three times in this session and each was caught by re-measuring, which is the
+slice's own subject turned on itself.** (1) A `${var:-default}` fallback in the lint loop printed
+"0 ERRORS AND 0 WARNINGS" for core+admin whenever `grep` found nothing — a *false clean* on the
+project's largest baseline. (2) The router-guard probe above. (3) An archive built from
+`git write-tree` extracted the **unmodified** files, so the first guard test measured HEAD rather
+than the working tree. None of the three would have been caught by reading the code.
+
+#### The review cycle changed the slice, and two of its findings were the slice's own subject
+
+Four passes ran on the FINISHED diff, docs included (L-015). Every finding was re-derived against
+source before anything was changed.
+
+| Pass | Result |
+|---|---|
+| `docs-verifier` | no blocking issues; INDEX parity clean. **Caveat recorded:** it declined to count the rows itself ("probably ~308 not 306 — I'll trust the verify script"), which is the L-015 shape. The count stands because it was measured independently with `awk` before any of this was written. |
+| `code-reviewer` | no BLOCKING; 5 non-blocking, **4 confirmed and fixed** |
+| `security-auditor` | **1 BLOCKING**, confirmed and fixed; 3 non-blocking, 2 fixed |
+| playground-QA (fresh context, given ONLY `docs/playground.md`) | **5 instruction defects**, all fixed before the close |
+
+**The BLOCKING finding was mine, and it is the sharpest thing in this slice.**
+`.claude/settings.json` and `.cursor/cli.json` allowed `Bash(curl -D -:*)` and
+`Bash(curl -s -o /dev/null:*)` **unscoped to any host**, three lines below sibling entries that pin
+`php -S` and `nc` to `127.0.0.1`. A committed allow-list grants execution **without a confirmation
+prompt**, in a **public repo with forks** — so that is an exfiltration and SSRF primitive, written
+into the config of the project that spent slice 6 building an SSRF control. Both are now pinned to
+`http://127.0.0.1`.
+
+**A check that scanned nothing reported PASS** — in the slice built to stop exactly that. When
+`git check-attr` returned nothing, `$distributable` stayed empty and the placeholder check printed
+`PASS … (0 files)`, indistinguishable from "nothing to flag", while its sibling `keel_git()` already
+SKIPped loudly for the same cause. Proven by forcing the call to fail:
+
+```
+  FAIL  no placeholder copy in distributable surfaces
+          - git check-attr returned nothing for 632 candidate files, so this check scanned
+            ZERO files. It has not passed — it did not run.
+```
+
+**The guard added earlier in this same slice was bypassable by changing one letter.** Both reviewers
+found it independently and a probe confirmed it: on the case-insensitive filesystems where the
+playground actually runs, `/scripts/dev/Router.php` served the file and MISSED the guard. Now
+lowercased and percent-decoded, and re-measured unambiguously — **19 bytes = guard fired, 468 bytes =
+the disclosure page**:
+
+```
+  /scripts/dev/router.php          HTTP/1.1 404 |  19 bytes
+  /scripts/dev/Router.php          HTTP/1.1 404 |  19 bytes
+  /scripts/dev/ROUTER.PHP          HTTP/1.1 404 |  19 bytes
+  /scripts/dev/upgrade-assert.php  HTTP/1.1 404 |  19 bytes
+  php -S ... router.php -> /installer/admin/ -> HTTP 302   (legitimate use intact)
+```
+
+Also fixed: the `proc_open` write-then-read pattern would have **hung** rather than failed once the
+file list outgrew the pipe buffer (replaced with a temp file); **CI was about to publish a live MCP
+application password** into a public, retained Actions log (`seed-playground.php:327` — redirected,
+because "unreachable" is weaker than "not logged"); my own comments claimed the four allow-lists were
+the "same command set" when two are genuinely narrower (**the L-002 defect in text written to prevent
+it, for the second slice running**); and `KeelVerifyTest` demanded 9 checks while the script
+documented a 7-check no-git path.
+
+**A fifth false measurement occurred while verifying these fixes** — `file_get_contents` returns
+`false` for any non-2xx, so a probe printed `(no response)` for all four paths, which cannot
+distinguish "guard fired" from "server never started". Re-run with `ignore_errors` to get the table
+above. L-016 was written earlier in this same session and still caught nobody in the act.
+
+#### Post-review re-verification
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (142 tests, 617 assertions)
+
+$ php scripts/keel-verify
+OK — 9 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+Lint after the review changes: core+admin **193/488**, plugins **113/109**, tests **0/0**,
+`installer/public` **0/0**, `scripts` **0/2**. All held.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1216,6 +1479,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-19 (slice 5 session) | same two commands, verbatim | OK — admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated, **177 tools** authenticated via the documented `.playground-access` recipe (`docs/playground.md:153-157`, run as written). Identical to the slice-0 baseline on every check; no drift in five sessions | yes |
 | 2026-07-19 (slice 6 session) | documented commands, **but port 8080 was held by an unrelated Docker container** | **The document's own defect, caught here rather than by a user.** `php -S` could not bind, and because it had been backgrounded the failure was invisible — every check then reached the squatter. It reported admin `302` and MCP `302` where `401` is documented, plus a 200-tool count: three "findings" that looked like a slice-4 gate regression and were an unrelated Apache. The tell was `Server: Apache/2.4.54 (Debian)` in `curl -D -`; PHP's built-in server never sends it. Re-run on a **verified-free port (8123)**: admin **302**, MCP **401** unauthenticated, **177 tools** authenticated — identical to the slice-0 baseline, no drift in six sessions. `docs/playground.md` now carries a bind check as step 2 and the diagnostic note, so the next session cannot lose the same time. Recorded as **L-011** | yes |
 | 2026-07-20 (slice 8 session) | documented commands, **port 8080 held by the same unrelated container for the third session running** | Caught in seconds by the step-2 bind check, exactly as L-011 intended; `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Ports 8081, 8082 and 8090 were also taken (the container maps a range). Re-run on verified-free **8321**: the server identified itself as `X-Powered-By: PHP/8.3.12` with no `Server:` header — ours, not the squatter's — admin **302** to login carrying the new `nosniff` header, login **200**, viewer **403** on `users.php`, anonymous API **401**. Test class port **8104** verified free before use | yes |
+| 2026-07-20 (slice 9 session) | documented commands, **port 8080 held by the same unrelated container for the FOURTH consecutive session** — 8081, 8082 and 8090 with it | Caught by the step-2 bind check in seconds, as it has every session since L-011 was written. Re-run on verified-free **8321**, identified as ours by `X-Powered-By: PHP/8.3.12` with no `Server:` header: admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated — identical to the slice-0 baseline, no drift in nine sessions. Additionally `/scripts/dev/router.php` now answers **404** rather than its internal disclosure page (NEW-28, fixed this slice) | yes |
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)

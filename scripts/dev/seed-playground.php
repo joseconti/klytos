@@ -320,7 +320,11 @@ Playground ready.
   Admin:     http://127.0.0.1:8080/installer/admin/
   MCP:       http://127.0.0.1:8080/installer/mcp
 
-  Log in as any of: owner / admin / editor / viewer
+  Log in as: owner   (the ONLY account that can currently log in)
+
+  admin / editor / viewer exist and hold their roles, but Auth::login() validates
+  only against config['admin_user'] and never consults UserManager — audit NEW-11.
+  They are reachable in tests via actingAs(), not through the login form.
   Passwords are in docs/playground.md (throwaway, local only).
 
   MCP application password (user 'owner'):

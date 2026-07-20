@@ -13,6 +13,15 @@
         touch the D-025 baseline, which is measured over core + admin only.
     -->
     <file>tests</file>
+    <!--
+        Sprint 1, slice 9. scripts/ had never been linted at all — the same gap
+        slice 7 found for installer/public/. keel-verify is named explicitly
+        because it carries no .php extension (it is an executable with a
+        shebang), so a directory entry alone would silently skip the one file
+        this slice writes. Baseline recorded fresh: 0 errors / 2 warnings.
+    -->
+    <file>scripts</file>
+    <file>scripts/keel-verify</file>
 
     <!-- Exclude vendor directories -->
     <exclude-pattern>installer/vendor-ai/*</exclude-pattern>

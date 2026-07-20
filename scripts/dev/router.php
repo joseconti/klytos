@@ -30,6 +30,40 @@
 
 declare(strict_types=1);
 
+// ─── This file must only ever be PHP's built-in-server router ───────────────
+// Sprint 1, slice 9. `scripts/` is NOT export-ignored, so this file ships in
+// the release archive to the site root of every install, and the root
+// .htaccess serves any existing file directly (.htaccess:23-25) — it does not
+// deny /scripts/. Verified by extracting a real `git archive` and requesting
+// this path over HTTP: it EXECUTED and returned its 404 page, disclosing the
+// admin path, the MCP endpoint and internal build details to anyone who asked.
+//
+// TWO conditions, because the SAPI alone is not sufficient — and the first
+// version of this guard was wrong for exactly that reason:
+//
+//   1. Apache/FPM report 'apache2handler'/'fpm-fcgi', so the SAPI test covers
+//      a production install.
+//   2. `php -S` reports 'cli-server' BOTH when this file is the router AND
+//      when it is served as an ordinary file, so the SAPI test alone passes in
+//      the second case and the file runs its normal logic. Probed, not
+//      reasoned about: as the router, SCRIPT_NAME is the REQUESTED path
+//      ('/installer/admin/'); served as a file, it points at this script
+//      ('/scripts/dev/router.php'). That is the discriminator.
+//
+// Its sibling seed-playground.php:35 already had a CLI guard; this file and
+// upgrade-assert.php did not. The packaging half — that dev scripts ship at
+// all — is recorded as NEW-28.
+$selfRequest = strtolower( rawurldecode( $_SERVER['SCRIPT_NAME'] ?? '' ) );
+
+if (
+    PHP_SAPI !== 'cli-server'
+    || str_ends_with( $selfRequest, '/scripts/dev/router.php' )
+) {
+    http_response_code( 404 );
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    exit( "404 — not found.\n" );
+}
+
 $repoRoot     = dirname( __DIR__, 2 );
 $klytosRoot   = $repoRoot . '/installer';
 $adminDir     = 'installer';

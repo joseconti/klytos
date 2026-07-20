@@ -17,6 +17,20 @@
 
 declare(strict_types=1);
 
+// ─── CLI only ───────────────────────────────────────────────────────────────
+// Sprint 1, slice 9. `scripts/` is not export-ignored, so this file ships to
+// the site root of every install and the root .htaccess serves it (see the
+// same note in router.php). Verified against a real `git archive`: requesting
+// this path over HTTP returned 200 with 1332 bytes of output. It boots the
+// application and asserts against its internals; nothing about it belongs on a
+// public URL. seed-playground.php:35 already carried this guard — this file
+// and router.php did not. Packaging half recorded as NEW-28.
+if ( PHP_SAPI !== 'cli' ) {
+    http_response_code( 404 );
+    header( 'Content-Type: text/plain; charset=utf-8' );
+    exit( "404 — not found.\n" );
+}
+
 $adminDir = $argv[1] ?? '';
 $phase    = $argv[2] ?? '';
 

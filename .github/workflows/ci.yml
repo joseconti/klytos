@@ -1,0 +1,140 @@
+# Klytos CMS — continuous integration.
+#
+# Sprint 1, slice 9. This workflow runs EXACTLY the commands the Phase 5 test
+# points run, and nothing else — a CI that verifies a different set from the
+# one a slice is signed off against proves the wrong thing. The four commands
+# are the ones recorded in docs/03-technical-plan.md and used in every test
+# point since slice 1:
+#
+#   composer install
+#   php scripts/dev/seed-playground.php     <- see "Why CI seeds" below
+#   XDEBUG_MODE=off vendor/bin/phpunit
+#   vendor/bin/phpcs --standard=phpcs.xml
+#   php scripts/keel-verify
+#
+# Why CI seeds the playground: 91 of the 138 tests are the integration tier,
+# which SKIPS rather than fails when no playground exists (proven in slice 1).
+# Without seeding, CI would quietly run 34% of the suite and report green —
+# omitting every authorization refusal test, which is the entire subject of
+# Sprint 1. A suite that skips two-thirds of itself and says OK is the L-010
+# failure mode wearing a CI badge.
+#
+# PHP version coverage, stated rather than papered over (D-027): PHPUnit 11
+# requires PHP 8.2+, while Klytos declares support for 8.1+ (D-004). The suite
+# therefore CANNOT run on the lowest supported runtime. Rather than pretend 8.1
+# is covered, it gets a syntax-only job — which catches parse errors on the
+# declared floor and is honestly labelled as not running the suite.
+
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Suite + lint (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '8.2', '8.3' ]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          # keel-verify reads `git tag` for the version-touchpoint check, and a
+          # shallow clone carries no tags.
+          fetch-depth: 0
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json, mbstring, openssl, curl
+          coverage: none
+
+      - name: Install dev dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Seed the playground
+        # The integration tier's fixture. Same command as docs/playground.md.
+        #
+        # stdout is redirected on purpose. The seeder prints the freshly-minted
+        # MCP application password (seed-playground.php:327), and a GitHub
+        # Actions log on a public repo is world-readable and RETAINED after the
+        # runner is destroyed. The credential only authenticates against this
+        # job's own ephemeral storage and nothing in this workflow ever listens
+        # on a port — so it is not practically exploitable — but a live
+        # credential does not belong in a public log regardless. Failures still
+        # surface: the log is echoed back if the command exits non-zero.
+        run: |
+          php scripts/dev/seed-playground.php > /tmp/seed.log 2>&1 \
+            || { echo "::error::Playground seeding failed"; cat /tmp/seed.log; exit 1; }
+          echo "Playground seeded (output suppressed: it contains a live app password)."
+
+      - name: Run the test suite
+        # Run ONCE and inspect that run. A green suite that skipped the
+        # integration tier is the exact failure the seeding step above exists to
+        # prevent, and PHPUnit reports a skip as success — so the skip is
+        # promoted to a hard failure here rather than trusted to be noticed.
+        env:
+          XDEBUG_MODE: off
+        run: |
+          set -o pipefail
+          vendor/bin/phpunit | tee phpunit-output.txt
+          if grep -qiE 'skipped|no tests executed' phpunit-output.txt; then
+            echo "::error::A test skipped. If the playground seed did not take, the authorization"
+            echo "::error::tests did not run and this green result would be false. Investigate"
+            echo "::error::before trusting the run."
+            exit 1
+          fi
+
+      - name: Lint
+        run: vendor/bin/phpcs --standard=phpcs.xml
+
+      - name: Run keel-verify
+        run: php scripts/keel-verify
+
+  syntax-8-1:
+    name: Syntax only (PHP 8.1 — declared floor, suite cannot run)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: json, mbstring, openssl, curl
+          coverage: none
+
+      - name: Lint every first-party PHP file for parse errors
+        # This is NOT the suite. PHPUnit 11 needs 8.2+ (D-027), so 8.1 — the
+        # lowest runtime Klytos claims to support — is verified for syntax
+        # only. The gap is real and recorded; this job bounds it rather than
+        # hiding it. D-027's trigger is when the support matrix is next
+        # verified: decide then whether 8.1 support is real enough to warrant a
+        # runner the suite can execute on, or whether the floor should rise.
+        run: |
+          status=0
+          while IFS= read -r file; do
+            php -l "$file" > /dev/null || { echo "PARSE ERROR: $file"; status=1; }
+          done < <(git ls-files '*.php' \
+            | grep -v '^installer/vendor-ai/' \
+            | grep -v '^installer/admin/assets/vendor/')
+          php -l scripts/keel-verify > /dev/null || { echo "PARSE ERROR: scripts/keel-verify"; status=1; }
+          exit $status

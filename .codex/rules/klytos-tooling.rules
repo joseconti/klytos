@@ -1,0 +1,92 @@
+# Klytos CMS — committed permission allow-list for OpenAI Codex
+# (Sprint 1, slice 9).
+#
+# Drawn from the same verified command set as .claude/settings.json and
+# .cursor/cli.json — only the tooling commands recorded in
+# docs/03-technical-plan.md and the playground commands in docs/playground.md.
+#
+# Deliberately the NARROWEST of the four lists: no curl at all, and no
+# XDEBUG_MODE=off variants. Narrower is the safe direction — an omitted command
+# prompts instead of running silently. The four files are NOT identical, and
+# earlier drafts of these headers wrongly said they were.
+#
+# NOTE: Codex applies repository configuration only to projects the user has
+# marked TRUSTED. On an untrusted checkout these rules are ignored and every
+# command prompts, which is the safe direction.
+#
+# Deliberately NOT allowed, and they must stay that way:
+#   installer/install.php   — renames install.php and the whole installer/
+#                             directory and writes into the repo's parent
+#                             (audit NEW-04). Never run in a checkout.
+#   php cli.php build       — writes into the repository root and overwrites
+#                             the tracked .htaccess (audit NEW-04).
+#   git push                — the user has instructed that nothing is pushed
+#                             until the project is stable and error-free.
+
+[[prefix_rule]]
+prefix = ["composer", "install"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["composer", "audit", "-d", "installer"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["vendor/bin/phpunit"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["vendor/bin/phpcs", "--standard=phpcs.xml"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["vendor/bin/phpcbf", "--standard=phpcs.xml"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["php", "scripts/keel-verify"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["php", "scripts/dev/seed-playground.php"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["bash", "scripts/dev/upgrade-test.sh"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["php", "-l"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["php", "-S", "127.0.0.1"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["nc", "-z", "127.0.0.1"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["git", "status"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["git", "diff"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["git", "log"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["git", "ls-files"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["git", "check-attr"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["git", "tag", "--sort"]
+decision = "allow"

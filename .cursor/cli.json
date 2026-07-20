@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "Klytos CMS — committed permission allow-list for Cursor CLI sessions",
+    "(Sprint 1, slice 9). Drawn from the same verified command set as",
+    ".claude/settings.json, but deliberately NARROWER — it omits the",
+    "XDEBUG_MODE=off variants, git show/check-ignore/archive and the",
+    "/dev/null curl form. Narrower is the safe direction: the omitted",
+    "commands prompt instead of running silently. Do not describe these",
+    "four files as identical (they are not) — see D-045.",
+    "the Cursor IDE keeps its permissions at user level, so this governs CLI only.",
+    "installer/install.php, cli.php build (NEW-04) and git push are deliberately",
+    "absent and must stay absent."
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(composer install:*)",
+      "Bash(composer audit -d installer)",
+      "Bash(vendor/bin/phpunit:*)",
+      "Bash(XDEBUG_MODE=off vendor/bin/phpunit:*)",
+      "Bash(vendor/bin/phpcs --standard=phpcs.xml:*)",
+      "Bash(vendor/bin/phpcbf --standard=phpcs.xml:*)",
+      "Bash(php scripts/keel-verify)",
+      "Bash(php scripts/dev/seed-playground.php:*)",
+      "Bash(bash scripts/dev/upgrade-test.sh)",
+      "Bash(XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh)",
+      "Bash(php -l:*)",
+      "Bash(php -S 127.0.0.1:*)",
+      "Bash(nc -z 127.0.0.1:*)",
+      "Bash(curl -D - http://127.0.0.1:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git check-attr:*)",
+      "Bash(git tag --sort:*)"
+    ]
+  }
+}

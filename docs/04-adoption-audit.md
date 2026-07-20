@@ -1353,6 +1353,94 @@ verified test point with a recorded files-updated count.
 - **Fix when taken:** hold one exclusive lock across the whole read-check-write in `check()`.
 - **Trigger:** the same slice that takes NEW-17 or NEW-19 — all three are in this one class.
 
+### NEW-27 — Every in-product guide is stripped from the release archive — **HIGH** *(found 2026-07-20, slice 9)*
+
+- **What:** all **16** files under `installer/core/guides/` are excluded from the distributable by
+  the blanket `*.md export-ignore` in `.gitattributes`. The directory ships, empty.
+- **Why it matters, and why it is not merely cosmetic:** these are not documentation *about* the
+  product, they are a **product surface**. `installer/core/mcp/tools/guide-tools.php:33-37` reads
+  that directory at runtime for `klytos_list_guides`, and `klytos_get_guide` serves the files by
+  name. The tool's own description declares `gutenberg-blocks`, `seo-content`,
+  `post-types-and-fields`, `forms` and `design-patterns` **REQUIRED** reading before creating page
+  content. On a released install, `klytos_list_guides` therefore returns an empty list and every
+  "REQUIRED" guide is unreachable — so the AI-first CMS ships without the instructions it tells the
+  AI to read first. `site-builder-tools.php:44-59` has an explicit "list available guides to help
+  diagnose" branch, which on a real install lists nothing.
+- **Evidence (measured, not inferred):**
+  ```
+  $ git archive HEAD | tar -x -C /tmp/klytos-archive-test
+  $ find /tmp/klytos-archive-test -name '*.md' | wc -l
+  2                     # PRIVACY.md only
+  $ ls /tmp/klytos-archive-test/installer/core/guides/
+                        # empty
+  ```
+  Verified this reaches real installs and not only `git archive`: release `v0.30.1` has **no
+  attached assets**, so `Updater::resolveDownloadUrl()` falls back to `$release['zipball_url']`
+  (`updater.php:751-752`) — GitHub's auto-generated zipball, which honours `export-ignore`.
+- **Relation to H-02:** the same rule, reaching further than H-02 recorded. H-02 notes that the
+  blanket `*.md export-ignore` strips `README.md` and `INSTALL.md`; it did not establish that it
+  also strips a live runtime surface.
+- **Detectable now:** `scripts/keel-verify` WARNs on every run with the file count and the reason
+  (slice 9, D-045).
+- **Fix when taken:** an un-ignore rule for `installer/core/guides/**` (and the H-02 files) in
+  `.gitattributes`, plus a test that the guide tools resolve at least one guide.
+- **Security dimension** (added 2026-07-20 by the slice's `security-auditor` pass, distinct from the
+  functional HIGH above): `guide-tools.php:30` and `:74` are release-controlled MCP tool
+  *descriptions* that instruct any connected AI assistant that several guides — including
+  **`security-architecture`** (encryption, auth, CSP) and **`accessibility`** — are REQUIRED reading
+  before it creates pages, SEO fields, post types or forms. Because every guide is stripped, a real
+  install's MCP surface can never deliver that guidance: the tool tells the assistant to consult
+  security and accessibility rules that provably do not exist on the running system. For a product
+  whose premise is AI-driven authoring, that is a degradation of its one documented safety rail, not
+  a missing help file. **Mitigating factor, checked rather than assumed:** `klytos_get_guide`
+  (`guide-tools.php:89-102`) returns an explicit `error` plus an empty `available_guides` rather than
+  silently returning blank content, so the assistant is not misled into believing it read real
+  guidance — but nothing stops it proceeding without it.
+- **Trigger:** Phase 7 — `docs/sprints/sprint-1.md` scopes the release-hygiene bucket there, and
+  packaging is its subject.
+
+### NEW-28 — Development scripts ship to the web root and execute over HTTP — **MEDIUM** *(found 2026-07-20, slice 9; the SAPI half fixed in the same slice)*
+
+- **What:** `scripts/` carries no `export-ignore`, so `scripts/dev/router.php`,
+  `scripts/dev/upgrade-assert.php`, `scripts/dev/seed-playground.php`, `scripts/dev/upgrade-test.sh`
+  and `scripts/keel-verify` all ship to the site root of every install. The root `.htaccess` serves
+  any existing file directly (`.htaccess:23-25`: `REQUEST_FILENAME -f` → `RewriteRule ^ - [L]`), so
+  they are reachable.
+- **Evidence (tested against an extracted archive, not reasoned about):**
+  ```
+  $ curl -D - http://.../scripts/dev/router.php
+  HTTP/1.1 404 Not Found        <- its OWN 404 page, 468 bytes, disclosing the admin path,
+                                   the MCP endpoint, BuildEngine internals and audit NEW-04
+  $ curl http://.../scripts/dev/upgrade-assert.php
+  HTTP 200, 1332 bytes          <- executed
+  $ curl http://.../scripts/dev/seed-playground.php
+  This script is CLI-only.      <- correctly refused (seed-playground.php:35 already had the guard)
+  ```
+- **Severity, stated honestly rather than inflated:** this is information disclosure and unnecessary
+  attack surface, **not** a demonstrated RCE or authentication bypass. `router.php` carries traversal
+  and dotfile guards, and no exploit beyond disclosure was found. What makes it worth recording is
+  that it is a second, unaudited front controller with file-serving logic sitting at a fixed path on
+  every install — and that `seed-playground.php`, which creates users with known credentials, was
+  protected only by a guard its two siblings happened not to have.
+- **Fixed in this slice (D-031's narrowing — slice 9 was already changing these files):** both files
+  now refuse the wrong SAPI. `upgrade-assert.php` requires `cli`; `router.php` requires `cli-server`
+  **and** that `SCRIPT_NAME` is not its own path, because `php -S` reports `cli-server` both when the
+  file is the router and when it is served as a file — the first version of the guard was wrong for
+  exactly that reason (**L-016**).
+- **Still open — the packaging half, and the SAPI guards fix ZERO of it.** This distinction was
+  raised by the slice's own `security-auditor` pass and is worth stating precisely, because "we
+  added guards" reads as "handled" and it is not: a SAPI check stops **execution**. It does nothing
+  about **disclosure**. `scripts/keel-verify` and `scripts/dev/upgrade-test.sh` carry **no `.php`
+  extension**, so a standard Apache/php-fpm/nginx handler mapping never executes them — but
+  `.htaccess:23-25` still serves any existing file, so both are streamed as **readable source**:
+  - `scripts/keel-verify` contains literal comments naming this project's own tracked findings
+    (`NEW-27`, `NEW-04`, `H-02`), handing an anonymous visitor an index of its known weaknesses.
+  - `scripts/dev/upgrade-test.sh:89` contains the throwaway harness credential
+    `admin_pass=upgrade-test-2026-Aa!`.
+  Dev scripts should not ship at all. One `export-ignore` line removes the entire class — execution
+  AND disclosure — including the two files that now merely fail closed.
+- **Trigger:** Phase 7, with NEW-27 and H-02 — all three are the same `.gitattributes` review.
+
 ---
 
 ## Next step

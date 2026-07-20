@@ -1,5 +1,26 @@
 {
   "context": {
     "fileName": ["AGENTS.md"]
+  },
+  "tools": {
+    "allowed": [
+      "run_shell_command(composer install)",
+      "run_shell_command(composer audit -d installer)",
+      "run_shell_command(vendor/bin/phpunit)",
+      "run_shell_command(XDEBUG_MODE=off vendor/bin/phpunit)",
+      "run_shell_command(vendor/bin/phpcs --standard=phpcs.xml)",
+      "run_shell_command(vendor/bin/phpcbf --standard=phpcs.xml)",
+      "run_shell_command(php scripts/keel-verify)",
+      "run_shell_command(php scripts/dev/seed-playground.php)",
+      "run_shell_command(bash scripts/dev/upgrade-test.sh)",
+      "run_shell_command(XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh)",
+      "run_shell_command(php -l)",
+      "run_shell_command(nc -z 127.0.0.1)",
+      "run_shell_command(git status)",
+      "run_shell_command(git diff)",
+      "run_shell_command(git log)",
+      "run_shell_command(git ls-files)",
+      "run_shell_command(git check-attr)"
+    ]
   }
 }
