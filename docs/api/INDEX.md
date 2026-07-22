@@ -182,7 +182,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\App` | class | installer/core/app.php | — | Singleton application container that boots the CMS and exposes every core service |
 | `Klytos\Core\AssetManager` | class | installer/core/asset-manager.php | — | Manages media uploads, categories, image editing and asset usage tracking |
 | `Klytos\Core\AuditLog` | class | installer/core/audit-log.php | — | Records and queries security-relevant admin activity, pruning old entries |
-| `Klytos\Core\Auth` | class | installer/core/auth.php | docs/reference/security-headers.md | Handles login sessions, CSRF tokens, bearer tokens and application passwords; also decides the response security headers (`sendSecurityHeaders()` / `buildSecurityHeaders()`) |
+| `Klytos\Core\Auth` | class | installer/core/auth.php | docs/reference/security-headers.md | Handles login sessions, CSRF tokens, bearer tokens and application passwords; also decides the response security headers (`sendSecurityHeaders()` / `buildSecurityHeaders()`) and resolves MCP bearer-token roles (`createBearerToken()` role, `getBearerTokenActor()`, `migrateCredentialRoles()` — see docs/reference/mcp-authorization.md) |
 | `Klytos\Core\BlockManager` | class | installer/core/block-manager.php | — | Stores, renders and manages reusable blocks, their slots and global block data |
 | `Klytos\Core\BuildEngine` | class | installer/core/build-engine.php | — | Renders pages and generates the static HTML, CSS and JS output of the site |
 | `Klytos\Core\Cache\ApcuCache` | class | installer/core/cache/apcu-cache.php | — | Cache driver backed by APCu shared memory |
@@ -214,7 +214,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\MCP\OAuthServer` | class | installer/core/mcp/oauth-server.php | — | OAuth client registration, authorization and access-token issuing for MCP |
 | `Klytos\Core\MCP\RateLimiter` | class | installer/core/mcp/rate-limiter.php | — | Throttles MCP requests per client and blocks repeated auth failures |
 | `Klytos\Core\MCP\Server` | class | installer/core/mcp/server.php | — | HTTP entry point handling the MCP GET and POST transport requests |
-| `Klytos\Core\MCP\TokenAuth` | class | installer/core/mcp/token-auth.php | — | Extracts and validates bearer and basic credentials on MCP requests |
+| `Klytos\Core\MCP\TokenAuth` | class | installer/core/mcp/token-auth.php | docs/reference/mcp-authorization.md | Authenticates MCP requests (bearer, OAuth, app password) and resolves the caller's actor {user_id, role} for the gate |
 | `Klytos\Core\MCP\ToolRegistry` | class | installer/core/mcp/tool-registry.php | — | Registers all MCP tools and dispatches tool calls to their handlers |
 | `Klytos\Core\MenuManager` | class | installer/core/menu-manager.php | — | Stores navigation menus and their items and renders them as HTML |
 | `Klytos\Core\MetaManager` | class | installer/core/meta-manager.php | — | Stores free-form key/value metadata attached to entities |

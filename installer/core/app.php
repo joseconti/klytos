@@ -400,6 +400,26 @@ class App
             }
         }
 
+        // Step 10b-2: Stamp pre-Sprint-2 MCP bearer tokens with a role (D-047).
+        // Bearer tokens carry no user, so their role lives on the token record;
+        // tokens minted before Sprint 2 have none. Backfilling them to 'owner'
+        // records that they already operated with owner-equivalent power (NEW-02) —
+        // it widens nothing, it lets the new MCP gate (D-046) read a role. Idempotent:
+        // it writes only when it stamps something, so it is a no-op on an already
+        // migrated store, and application passwords / OAuth tokens are resolved from
+        // their user at validation time, so they need no stamp here. Wrapped for the
+        // same reason as Step 10b — a storage failure here must not white-screen the
+        // whole application on a released install.
+        try {
+            $this->auth->migrateCredentialRoles();
+        } catch (\Throwable $e) {
+            error_log(
+                'Klytos: MCP credential-role migration failed — pre-Sprint-2 bearer tokens '
+                . 'may resolve to no role and be denied until stamped. Underlying error: '
+                . $e->getMessage()
+            );
+        }
+
         // Step 10c: Initialize Options and Meta API managers.
         // These must be ready BEFORE plugins load so they can use
         // klytos_get_option() / klytos_set_meta() in their init.php.

@@ -34,6 +34,9 @@ class TokenAuth
     /** @var string Identifier for rate limiting (e.g. 'token:abc123', 'apppass:ap_xyz') */
     private string $authIdentifier = '';
 
+    /** @var array|null The resolved actor {user_id, role} for the current request, or null. */
+    private ?array $actor = null;
+
     public function __construct(Auth $auth, ?App $app = null)
     {
         $this->auth = $auth;
@@ -111,6 +114,7 @@ class TokenAuth
     {
         $this->authMethod     = '';
         $this->authIdentifier = '';
+        $this->actor          = null;
 
         // 1. Try Bearer token (existing tokens.json.enc)
         $bearerToken = $this->extractToken();
@@ -118,6 +122,8 @@ class TokenAuth
             if ($this->auth->validateBearerToken($bearerToken)) {
                 $this->authMethod     = 'bearer';
                 $this->authIdentifier = 'token:' . substr(hash('sha256', $bearerToken), 0, 16);
+                // Bearer tokens carry no user — the role lives on the token record (D-047).
+                $this->actor          = $this->auth->getBearerTokenActor($bearerToken);
                 return true;
             }
 
@@ -126,7 +132,9 @@ class TokenAuth
                 $oauthResult = $this->validateOAuthToken($bearerToken);
                 if ($oauthResult !== null) {
                     $this->authMethod     = 'oauth';
-                    $this->authIdentifier = 'oauth:' . $oauthResult;
+                    $this->authIdentifier = 'oauth:' . ($oauthResult['token_id'] ?? '');
+                    // OAuth tokens carry a username — resolve its role from the user store.
+                    $this->actor          = $this->resolveUserActor($oauthResult['user'] ?? null);
                     return true;
                 }
             }
@@ -142,6 +150,8 @@ class TokenAuth
             if ($appPassId !== null) {
                 $this->authMethod     = 'app_password';
                 $this->authIdentifier = 'apppass:' . $appPassId;
+                // App passwords are pinned to the admin user — resolve its role from the store.
+                $this->actor          = $this->resolveUserActor($basicAuth['username']);
                 return true;
             }
         }
@@ -183,6 +193,60 @@ class TokenAuth
     }
 
     /**
+     * Get the resolved actor {user_id, role} for the current authenticated request.
+     *
+     * The MCP path builds identity from the CREDENTIAL, not a session: there is no
+     * session here (Auth::startSession() runs only in the admin path), so
+     * klytos_current_user() returns null on this path. The MCP authorization gate
+     * (D-046) reads this actor's role. A null actor — or a null role inside it —
+     * means the request could not be attributed to a usable role and MUST be denied.
+     *
+     * @return array|null ['user_id' => int|string|null, 'role' => string|null], or null.
+     */
+    public function getActor(): ?array
+    {
+        return $this->actor;
+    }
+
+    /**
+     * Resolve the actor for a credential that carries a username (application
+     * password or OAuth token) by reading the user's role from the single user
+     * store. DRY and forward-compatible with per-user credentials (NEW-11): the
+     * role follows the user record rather than a copy stamped on the credential.
+     *
+     * An empty username, a username that no longer resolves to a user, or any
+     * storage error yields null — the fail-closed direction the gate treats as
+     * deny (this is the NEW-08 link: a valid credential whose owner record is gone
+     * denies rather than escalating).
+     *
+     * @param  string|null $username
+     * @return array|null  ['user_id' => int|string|null, 'role' => string|null], or null.
+     */
+    private function resolveUserActor(?string $username): ?array
+    {
+        if ($username === null || $username === '' || $this->app === null) {
+            return null;
+        }
+
+        try {
+            $user = $this->app->getUserManager()->getByUsername($username);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($user === null) {
+            return null;
+        }
+
+        $role = $user['role'] ?? null;
+
+        return [
+            'user_id' => $user['id'] ?? null,
+            'role'    => ( is_string( $role ) && $role !== '' ) ? $role : null,
+        ];
+    }
+
+    /**
      * Get the Authorization header from various sources.
      *
      * @return string
@@ -210,9 +274,11 @@ class TokenAuth
      * Validate a Bearer token as an OAuth 2.0 access token.
      *
      * @param  string $token Raw Bearer token.
-     * @return string|null   OAuth token ID if valid, null if not.
+     * @return array|null    ['token_id' => string, 'client_id' => string, 'user' => string|null]
+     *                       if valid, null if not. The 'user' subject is what the actor
+     *                       resolver reads to attribute the request to a role (D-047).
      */
-    private function validateOAuthToken(string $token): ?string
+    private function validateOAuthToken(string $token): ?array
     {
         try {
             require_once dirname(__FILE__) . '/oauth-server.php';
@@ -225,7 +291,7 @@ class TokenAuth
 
             $result = $oauthServer->validateAccessToken($token);
             if ($result !== null) {
-                return $result['token_id'] ?? null;
+                return $result;
             }
         } catch (\Throwable $e) {
             // OAuth server not available or error — fall through

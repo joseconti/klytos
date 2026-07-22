@@ -64,7 +64,7 @@ mirroring the `:103-108` 401 block). `klytos_deny()` is **not** on the MCP path 
 
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
-| 1 | MCP actor resolution (credential → `{user_id, role}`; role on records; idempotent boot migration) | prerequisite for NEW-02 | **planned** | — | The novel work. `token-auth.php` surfaces the actor; `auth.php` gives records a role (`createBearerToken()` optional role); migration existing app-pw + bearer → owner, OAuth → stored username's role (D-021 shape). Proven to FAIL against unfixed code; upgrade from real v0.30.1 passes |
+| 1 | MCP actor resolution (credential → `{user_id, role}`; role on records; idempotent boot migration) | prerequisite for NEW-02 | **closed 2026-07-22** | **PASS** — 156 tests/643 assertions; 3 fail-closed tests + the OAuth positive test proven to FAIL against wrong behaviour; upgrade from real v0.30.1 stamps a v0.30.1 bearer token to owner (D-047 on a real install); keel-verify 9/2; all lint baselines held; evidence in `docs/05-test-points.md` | The novel work. `TokenAuth` surfaces the actor + `getActor()`; `createBearerToken()` gains an optional role; **D-047 amended** — app-pw/OAuth resolve their role from the user record (DRY, NEW-11-ready), only bearer tokens are stamped, so `migrateCredentialRoles()` touches bearer only. A `?? []`-by-reference footgun in the first migration returned a count while persisting nothing — caught by asserting the persisted role (**L-017**); same footgun pre-exists in `validateAppPassword()` (**NEW-29**, not fixed). **Reviews done** (finished diff, L-015): security — no blocking findings; code-review — one blocking (OAuth branch untested) **fixed** with 2 OAuth tests; non-blocking follow-ups recorded below |
 | 2 | The gate + capability map + `tools/list` filter + keel-verify check 10 | **NEW-02** (core) | **planned** | — | `installer/core/mcp/tool-capabilities.php` (absent = deny, `mcp.tool_capabilities` filter); `PermissionDeniedException`; gate in `call()` above `:164`; `setActor()`; `listTools()` filter; `server.php` catch→403; `chat-engine` catch→tool error. Check 10 → keel-verify 9→**10** |
 | 3 | Coverage completeness | NEW-02 tail; L-007 | **planned** | — | Loader silent fall-through → **hard failure**; wire `integrity-tools.php` in gated; `klytos-forms` (16) + `klytos-importer` (10) declare capabilities via `mcp.tool_capabilities`; `chat-engine` `getAvailableTools()` default-denies unknown roles + closes the `function_exists`/null fail-opens |
 | 4 | Reconciliation + D-035 + docs/skills/i18n + count truth | NEW-02 closure; D-035 revisit | **planned** | — | NEW `docs/reference/mcp-authorization.md`; close the `authorization.md:217-221` forward reference; count truth (177 served / 169 live / 3 dead); refusal i18n keys × 20 catalogues; `playground.md` `tools/call` curl + per-role table; 4 skill updates; **D-035 widening of `ai.use` to editor — CONFIRM with the user** |
@@ -85,6 +85,33 @@ Full per-slice files, reuse targets and test points are in the approved plan
   role gets an empty AI tool list (default-deny). Each proven.
 - **4** — INDEX + audit + skills + all 20 catalogues consistent; `keel-verify` + `docs-verifier` clean;
   the `tools/call` curl in `playground.md` runs; `ai.use` widening confirmed and its test updated.
+
+### Slice 1 review follow-ups (recorded 2026-07-22, not fixed — both reviewers ran on the finished diff)
+
+The `security-auditor` returned **no blocking findings** — every fail-closed path was traced and
+confirmed in code, not on the diff. The `code-reviewer`'s one **blocking** finding — the OAuth actor
+branch had no test — was **fixed**: two OAuth tests were added and the `validateOAuthToken()` return-type
+change proven load-bearing (the positive test fails against the old `?string` return). Non-blocking
+items, deferred with reasons:
+
+- **`createBearerToken()` does not validate `$role` against the known roles** (both reviewers). Safe
+  direction — an unknown role fails every `hasPermission()` check — but a typo mints a silently-dead
+  token with no error signal. Deferred to the slice that adds a role picker to the admin MCP UI;
+  validating here would couple `Auth` to `UserManager::VALID_ROLES` for a caller that does not exist yet.
+- **`oauth-server.php` issues tokens with a `?? 'admin'` subject fallback** (`security-auditor`).
+  Unreachable today (the subject is always the trusted admin session), but now that the subject flows
+  into a role it is a latent trap once **NEW-11** brings real usernames. Fix (`?? null`, fail-closed)
+  bound to the NEW-11 slice, which owns that file's auth.
+- **`migrateCredentialRoles()` is a read-modify-write without `FileStorage::transaction()`**
+  (`security-auditor`). It writes only on the first post-upgrade boot (idempotent), so the lost-update
+  window is a one-time narrow race whose worst case is a dropped token write, not an escalation — and it
+  matches the file's existing pattern. A storage-transaction pass is its own hardening item.
+- **Doubled token-store scan** — `validateBearerToken()` then `getBearerTokenActor()` each read
+  `config/tokens` (both reviewers). Perf only; folding them is complicated by `validateBearerToken()`'s
+  `last_used` write. Left for the next slice touching the bearer path.
+- **Style:** the new methods' parens are internally mixed, matching the surrounding files' own mixed
+  idiom; `phpcs --standard=phpcs.xml` is clean (0 errors) and does not enforce inner-paren spacing. Left
+  as-is rather than reformat tested, lint-clean code.
 
 ## Explicitly out of scope (named, so it is not mistaken for oversight)
 

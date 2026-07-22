@@ -1462,6 +1462,91 @@ $ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
 Lint after the review changes: core+admin **193/488**, plugins **113/109**, tests **0/0**,
 `installer/public` **0/0**, `scripts` **0/2**. All held.
 
+---
+
+# SPRINT 2 — MCP tool authorization
+
+### Slice 1 — MCP actor resolution — evidence (commands and output, 2026-07-22)
+
+**What the slice does:** the MCP path has no session, so identity is built from the credential.
+`TokenAuth::validate()` now resolves an actor `{user_id, role}` and `getActor()` surfaces it; bearer
+tokens carry a stamped role (`createBearerToken()` optional role, default owner); app-password and
+OAuth roles resolve from the user record; a boot migration (`Auth::migrateCredentialRoles()`, Step
+10b-2) stamps role-less bearer tokens with owner. No gate yet — that is slice 2; slice 1 is the
+prerequisite identity layer.
+
+#### Full suite (baseline 142 → 156)
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (156 tests, 643 assertions)
+```
+
+The 14 new tests: `tests/Unit/CredentialRoleTest.php` (7 — bearer role stamp/resolve, absent role →
+null, migration stamps + idempotent + leaves an existing role alone) and
+`tests/Integration/McpActorResolutionTest.php` (7 — app-pw → owner via the user record, viewer bearer
+→ viewer, default bearer → owner, role-less bearer → null role, valid credential + deleted user → no
+actor, **OAuth token → its subject's role**, **OAuth token for an unknown subject → no actor**). The
+two OAuth tests were added after the `code-reviewer` flagged the OAuth branch (whose return type this
+slice changed) as untested — the blocking review finding, now closed.
+
+#### The fail-closed properties proven to FAIL against the wrong behaviour (L-010)
+
+Two decisive properties were broken deliberately and observed red, then reverted:
+
+```
+# TEMP-BREAK 1: getBearerTokenActor defaults an absent role to 'owner' (the D-047 mistake)
+# TEMP-BREAK 2: resolveUserActor defaults a missing user to owner
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter 'CredentialRoleTest|McpActorResolutionTest'
+FAILURES!  Tests: 12, Assertions: 21, Failures: 3.
+  1) CredentialRoleTest::testATokenRecordWithNoRoleResolvesToANullRoleNotOwner
+     Failed asserting that 'owner' is null.
+  2) McpActorResolutionTest::testAValidCredentialWhoseUserIsGoneResolvesToNoActor
+     Failed asserting that Array (owner) ... is null.
+  3) McpActorResolutionTest::testABearerTokenWithNoRoleResolvesToANullRole
+     Failed asserting that 'owner' is null.
+# both TEMP-BREAKs reverted → OK (12 tests, 21 assertions)
+```
+
+A third decisive property — the migration actually persisting the role — was proven when the FIRST
+implementation had a `$x['k'] ?? [] as &$ref` footgun: `migrateCredentialRoles()` returned `1` while
+persisting nothing, and `testMigrationStampsRolelessRecordsWithOwnerAndIsIdempotent` caught it on the
+**persisted** role (not the return value). Recorded as **L-017**; the identical pre-existing footgun in
+`validateAppPassword()` is **NEW-29**.
+
+#### Upgrade from the REAL previous version — the installed-base proof (D-047)
+
+```
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+   PASS  a bearer token minted by the previous version carries no role (D-047)   # pre-upgrade, v0.30.1 code
+   PASS  the previous version's bearer token survived the upgrade                # post-upgrade
+   PASS  the boot migration stamped the pre-existing bearer token with owner (D-047)
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+A bearer token minted by the real v0.30.1 installer (role-less by nature) is stamped `owner` by the
+boot migration on the real upgraded install — the migration proven on a real token, not a fixture.
+This fails against unfixed code: without Step 10b-2 the post-upgrade "stamped with owner" assertion is
+red (the token stays role-less).
+
+#### Gate, lint, freshness
+
+```
+$ php scripts/keel-verify
+OK — 9 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+A TOTAL OF 193 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES
+```
+
+Lint baselines all held: core+admin **193/488**, `scripts` **0/2** (upgrade-assert.php touched), tests
+**0/0** (two new test files), plugins **113/109**, `installer/public` **0/0**.
+
+Docs at creation: `docs/reference/mcp-authorization.md` (new, slice-1 sections + the four new public
+surfaces with runnable examples); `docs/api/INDEX.md` `TokenAuth` row repointed to it. Decision **D-047**
+amended (app-pw/OAuth resolve from the user, bearer stamped; the `?? []` footgun); **NEW-29** and
+**L-017** recorded.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1480,6 +1565,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-19 (slice 6 session) | documented commands, **but port 8080 was held by an unrelated Docker container** | **The document's own defect, caught here rather than by a user.** `php -S` could not bind, and because it had been backgrounded the failure was invisible — every check then reached the squatter. It reported admin `302` and MCP `302` where `401` is documented, plus a 200-tool count: three "findings" that looked like a slice-4 gate regression and were an unrelated Apache. The tell was `Server: Apache/2.4.54 (Debian)` in `curl -D -`; PHP's built-in server never sends it. Re-run on a **verified-free port (8123)**: admin **302**, MCP **401** unauthenticated, **177 tools** authenticated — identical to the slice-0 baseline, no drift in six sessions. `docs/playground.md` now carries a bind check as step 2 and the diagnostic note, so the next session cannot lose the same time. Recorded as **L-011** | yes |
 | 2026-07-20 (slice 8 session) | documented commands, **port 8080 held by the same unrelated container for the third session running** | Caught in seconds by the step-2 bind check, exactly as L-011 intended; `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Ports 8081, 8082 and 8090 were also taken (the container maps a range). Re-run on verified-free **8321**: the server identified itself as `X-Powered-By: PHP/8.3.12` with no `Server:` header — ours, not the squatter's — admin **302** to login carrying the new `nosniff` header, login **200**, viewer **403** on `users.php`, anonymous API **401**. Test class port **8104** verified free before use | yes |
 | 2026-07-20 (slice 9 session) | documented commands, **port 8080 held by the same unrelated container for the FOURTH consecutive session** — 8081, 8082 and 8090 with it | Caught by the step-2 bind check in seconds, as it has every session since L-011 was written. Re-run on verified-free **8321**, identified as ours by `X-Powered-By: PHP/8.3.12` with no `Server:` header: admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated — identical to the slice-0 baseline, no drift in nine sessions. Additionally `/scripts/dev/router.php` now answers **404** rather than its internal disclosure page (NEW-28, fixed this slice) | yes |
+| 2026-07-22 (Sprint 2 slice 1 session) | documented commands; port **8080 not checked** this session — went straight to a verified-free **8085** (`nc -z` clean) | admin **302**, MCP **401** unauthenticated, **no `Server:` header** (PHP built-in, the L-011 tell) — identical to the baseline. The full integration suite (91 tests) had already booted the real App on the seeded playground before this manual check, so the environment was doubly validated | yes |
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)

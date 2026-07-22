@@ -440,3 +440,29 @@
   contains the change under test before drawing any conclusion from it. This generalises L-010 from
   guards to the instruments that measure them: **a broken check goes quiet, and a broken measurement
   goes green.**
+
+## L-017 — A migration returned a count of what it stamped and persisted none of it
+- Problem: `Auth::migrateCredentialRoles()` (Sprint 2, slice 1) iterated `$tokensData['tokens'] ?? [] as
+  &$stored`, set `$stored['role'] = 'owner'`, counted the stamp, and wrote `$tokensData`. It returned 1
+  and wrote a file in which the role was still absent — every bearer token it "migrated" stayed
+  role-less on disk. A role-less bearer resolves to a null role, i.e. DENY, so the unfixed migration
+  would have locked out every pre-Sprint-2 bearer token rather than preserving it.
+- Where: `installer/core/auth.php::migrateCredentialRoles()`.
+- What failed: iterating the result of the null-coalescing operator BY REFERENCE. `$x['k'] ?? []` is an
+  expression, not a variable, so it evaluates to a temporary; `foreach ( … as &$ref )` binds `$ref` to
+  elements of that temporary and the writes never reach `$x['k']`. The `?? []` was there to be safe
+  against a missing key — and it silently disabled the write-back it was wrapped around. The identical
+  pattern sits in the pre-existing `validateAppPassword()` (recorded as **NEW-29**), where it drops the
+  `last_used` update — proof the footgun is real in this codebase, not hypothetical.
+- How it was caught, which is the whole point: the test asserted the **persisted role after migration**
+  (`getBearerTokenActor()` returns `'owner'`), not the method's **return value**. Against the buggy code
+  the return value was a truthful-looking `1`, and only the persisted state was wrong. A test that had
+  asserted `assertSame( 1, migrateCredentialRoles() )` alone would have passed against a migration that
+  did nothing — L-016's shape (a measurement that goes green) arriving one sprint later, in a migration.
+- Working solution: guard the key and iterate the real array — `if ( ! isset( $t['tokens'] ) || ! is_array( $t['tokens'] ) ) { return 0; }`
+  then `foreach ( $t['tokens'] as &$stored )`. A comment states why `?? []` cannot be used here so it is
+  not "simplified" back.
+- Rule for next time: **never iterate `$x['k'] ?? [] as &$ref` — the reference binds to a temporary and
+  the writes vanish.** Assign to a variable first (`$list = $x['k'] ?? []`) or guard the key. And the
+  L-016 rule applied to migrations: assert the PERSISTED effect, never the return value — a migration
+  that reports how much it changed is not evidence that anything changed.

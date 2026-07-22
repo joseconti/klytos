@@ -1441,6 +1441,28 @@ verified test point with a recorded files-updated count.
   AND disclosure — including the two files that now merely fail closed.
 - **Trigger:** Phase 7, with NEW-27 and H-02 — all three are the same `.gitattributes` review.
 
+### NEW-29 — App-password `last_used` is never persisted (a `?? []`-by-reference footgun) — **LOW** *(found 2026-07-22, Sprint 2 slice 1)*
+- **Where:** `installer/core/auth.php::validateAppPassword()`.
+- **What:** the method iterates `foreach ( $data['passwords'] ?? [] as &$stored )`, sets
+  `$stored['last_used'] = Helpers::now()` on a successful match, and writes `$data`. Iterating the
+  result of `??` **by reference** binds `&$stored` to a throwaway temporary, so the update never reaches
+  `$data['passwords']` and the write persists nothing. Application-password `last_used` has therefore
+  never updated in production — the admin UI's "last used" column for app passwords has always shown the
+  creation-time value (`null`).
+- **Verified, not inferred:** a probe minted an app password, validated it successfully, and read the
+  record back — `last_used` was still `null`. This is the same footgun **L-017** records in the slice's
+  own migration, here in pre-existing code.
+- **Impact:** cosmetic. `last_used` is a display/audit convenience; it is read by no authorization or
+  authentication decision, so nothing is weakened. Bearer-token `last_used` uses a different path
+  (`updateTokenLastUsed()`) and is unaffected.
+- **Fails:** correctness (a silent no-op write); L-017's rule against `?? []`-by-reference.
+- **NOT fixed here, on purpose:** it is adjacent to slice 1 (the app-password path) but the slice does
+  not change `validateAppPassword()`'s `last_used` logic, and the sprint's subject is authorization, not
+  app-password display metadata — the D-025/D-026/D-031 narrowing. The fix is one line (assign the list
+  to a variable, or guard the key, then write back).
+- **Trigger:** the **NEW-11** authentication slice, which already opens the credential/app-password
+  code, or the next slice touching `validateAppPassword()`.
+
 ---
 
 ## Next step

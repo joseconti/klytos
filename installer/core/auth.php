@@ -449,12 +449,60 @@ class Auth
     }
 
     /**
+     * Resolve the actor {user_id, role} carried by a bearer token.
+     *
+     * Bearer tokens are not tied to a user record — they carry no username — so
+     * the role lives on the token record itself, stamped by createBearerToken()
+     * and backfilled to 'owner' for pre-Sprint-2 tokens by migrateCredentialRoles().
+     * A record with no usable role resolves to a null role, which the MCP gate
+     * (D-046) treats as deny — the fail-closed direction UserManager::hasPermission()
+     * already takes for a record with no role. Read-only: it does NOT update
+     * last_used (validateBearerToken() already did).
+     *
+     * @param  string $token Raw bearer token.
+     * @return array|null    ['user_id' => null, 'role' => string|null], or null if the token is unknown.
+     */
+    public function getBearerTokenActor(string $token): ?array
+    {
+        if (empty($token)) {
+            return null;
+        }
+
+        $tokenHash = Helpers::hashToken($token);
+
+        try {
+            $tokensData = $this->storage->read('config', 'tokens');
+        } catch (\RuntimeException $e) {
+            return null;
+        }
+
+        foreach ($tokensData['tokens'] ?? [] as $stored) {
+            if (hash_equals($stored['hash'] ?? '', $tokenHash)) {
+                $role = $stored['role'] ?? null;
+                return [
+                    'user_id' => $stored['user_id'] ?? null,
+                    'role'    => ( is_string( $role ) && $role !== '' ) ? $role : null,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Create a new MCP bearer token.
      *
      * @param  string $label Optional label for the token.
+     * @param  string $role  Role the token operates as (D-047). Defaults to 'owner',
+     *                       which reproduces the pre-Sprint-2 behaviour where every
+     *                       bearer token held owner-equivalent power (NEW-02). A lower
+     *                       role (e.g. 'viewer') mints a genuinely reduced credential —
+     *                       the only credential type mintable below owner today, since
+     *                       application passwords are pinned to the admin user until
+     *                       NEW-11.
      * @return array  ['token' => string (raw), 'id' => string]
      */
-    public function createBearerToken(string $label = ''): array
+    public function createBearerToken(string $label = '', string $role = 'owner'): array
     {
         $rawToken  = Helpers::generateBearerToken();
         $tokenHash = Helpers::hashToken($rawToken);
@@ -470,6 +518,8 @@ class Auth
             'id'         => $tokenId,
             'hash'       => $tokenHash,
             'label'      => $label ?: 'Token ' . klytos_gmdate( 'Y-m-d' ),
+            'role'       => $role,
+            'user_id'    => null,
             'created_at' => Helpers::now(),
             'last_used'  => null,
         ];
@@ -527,10 +577,66 @@ class Auth
             return [
                 'id'         => $t['id'] ?? '',
                 'label'      => $t['label'] ?? '',
+                'role'       => $t['role'] ?? null,
                 'created_at' => $t['created_at'] ?? '',
                 'last_used'  => $t['last_used'] ?? null,
             ];
         }, $tokensData['tokens'] ?? []);
+    }
+
+    /**
+     * Idempotent migration (D-047): stamp bearer-token records that carry no role
+     * with 'owner'.
+     *
+     * This records what is already true rather than widening anything — every
+     * bearer token minted before Sprint 2 operated with owner-equivalent power,
+     * because the MCP tool layer had no authorization at all (NEW-02). Stamping
+     * them 'owner' lets the new gate (D-046) read a role without changing what any
+     * existing token can do.
+     *
+     * Bearer tokens only. Application passwords and OAuth tokens carry a username,
+     * so their role is resolved from the user record at validation time (D-047 as
+     * amended in slice 1) — there is nothing to stamp.
+     *
+     * Safe on every boot: it writes only when it actually stamps something, so a
+     * migrated store is a no-op. Called from App::boot() and directly by tests.
+     *
+     * @return int Number of token records stamped (0 when already migrated or none exist).
+     */
+    public function migrateCredentialRoles(): int
+    {
+        try {
+            $tokensData = $this->storage->read('config', 'tokens');
+        } catch (\RuntimeException $e) {
+            // No tokens store yet (fresh install) — nothing to migrate.
+            return 0;
+        }
+
+        // Guard rather than `?? []` in the foreach: iterating `$x['k'] ?? []` BY
+        // REFERENCE binds &$stored to a throwaway temporary produced by `??`, so the
+        // stamps never write back to $tokensData — a silent no-op that returns a
+        // non-zero count. Caught by the migration test before it was trusted.
+        if (!isset($tokensData['tokens']) || !is_array($tokensData['tokens'])) {
+            return 0;
+        }
+
+        $stamped = 0;
+
+        foreach ($tokensData['tokens'] as &$stored) {
+            $role = $stored['role'] ?? null;
+            if (!is_string($role) || $role === '') {
+                $stored['role']    = 'owner';
+                $stored['user_id'] = $stored['user_id'] ?? null;
+                $stamped++;
+            }
+        }
+        unset($stored);
+
+        if ($stamped > 0) {
+            $this->storage->write('config', 'tokens', $tokensData);
+        }
+
+        return $stamped;
     }
 
     // ─── Application Passwords ──────────────────────────────────

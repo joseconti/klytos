@@ -158,6 +158,19 @@ $ownerCount = count(
 check( $ownerCount === 1, "exactly one owner exists (found {$ownerCount})" );
 
 if ( $phase === 'pre-upgrade' ) {
+    // D-047: mint a bearer token with the PREVIOUS version's code — it carries no
+    // role — so post-upgrade can prove the boot migration stamps it 'owner' on a
+    // REAL upgraded install rather than a fixture. This is the installed-base half
+    // of the credential-role migration, tested from the real previous version.
+    $app->getAuth()->createBearerToken( 'upgrade bearer' );
+
+    $tokens = $storage->read( 'config', 'tokens' )['tokens'] ?? [];
+    $last   = is_array( $tokens ) && $tokens !== [] ? end( $tokens ) : false;
+    check(
+        is_array( $last ) && ! array_key_exists( 'role', $last ),
+        'a bearer token minted by the previous version carries no role (D-047)'
+    );
+
     echo "   -- pre-upgrade state verified on VERSION " . ( $app->getConfig()['version'] ?? 'n/a' ) . "\n";
     ob_end_flush();
     exit( $failures === 0 ? 0 : 1 );
@@ -204,6 +217,25 @@ $_SESSION = [
 check( klytos_current_user() === null, 'a session without klytos_user_id is DENIED, not promoted (NEW-01)' );
 check( ! klytos_has_permission( 'users.manage' ), 'that session holds no owner permission' );
 check( ! klytos_has_permission( 'pages.view' ), 'that session holds no permission at all' );
+
+// D-047 on a REAL upgraded install: the role-less bearer token minted by the
+// previous version (pre-upgrade phase) must have been stamped 'owner' by the boot
+// migration (Step 10b-2) — recording the owner-equivalent power it already had
+// (NEW-02), so the new MCP gate can read a role. This is the installed-base proof
+// that a clean-install-only test cannot give.
+$tokens     = $storage->read( 'config', 'tokens' )['tokens'] ?? [];
+$upgradeTok = null;
+foreach ( $tokens as $token ) {
+    if ( ( $token['label'] ?? '' ) === 'upgrade bearer' ) {
+        $upgradeTok = $token;
+        break;
+    }
+}
+check( $upgradeTok !== null, 'the previous version\'s bearer token survived the upgrade' );
+check(
+    ( $upgradeTok['role'] ?? null ) === 'owner',
+    'the boot migration stamped the pre-existing bearer token with owner (D-047)'
+);
 
 echo "\n   " . ( $failures === 0 ? 'all post-upgrade assertions passed' : "{$failures} assertion(s) FAILED" ) . "\n";
 

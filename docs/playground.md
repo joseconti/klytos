@@ -4,7 +4,7 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-20**
+> **last verified: 2026-07-22**
 
 ---
 
