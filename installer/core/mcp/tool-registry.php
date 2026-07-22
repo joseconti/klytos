@@ -26,9 +26,50 @@ class ToolRegistry
     private array $tools = [];
     private App $app;
 
+    /**
+     * The role of the credential/session that owns THIS request, or null when
+     * none has been resolved. Load-bearing: the authorization gate (D-046) reads
+     * it. Null — no actor set, or an actor with no usable role — means deny.
+     *
+     * @var string|null
+     */
+    private ?string $actorRole = null;
+
+    /**
+     * The acting user id, for audit only. Null for bearer tokens, which name no
+     * user (D-047). The gate never decides on this — only on $actorRole.
+     *
+     * @var int|string|null
+     */
+    private int|string|null $actorUserId = null;
+
     public function __construct(App $app)
     {
         $this->app = $app;
+
+        // The tool→capability map (D-048). A plain function file, not a class,
+        // so the autoloader cannot reach it — require it here, once per registry.
+        require_once __DIR__ . '/tool-capabilities.php';
+    }
+
+    /**
+     * Set the actor that owns this request, from the resolved MCP credential
+     * (server.php, after TokenAuth) or the admin session (chat-engine).
+     *
+     * The registry is built fresh per request (server.php:40) and the chat
+     * engine's is refreshed on every processMessage(), so this carries identity
+     * WITHOUT a global. call() and listTools() read the actor set here; a
+     * registry whose actor was never set denies every tool by default.
+     *
+     * @param  int|string|null $userId Acting user id (null for bearer tokens).
+     * @param  string|null      $role   Acting role; an empty or null role is
+     *                                   normalized to null and denies.
+     * @return void
+     */
+    public function setActor( int|string|null $userId, ?string $role ): void
+    {
+        $this->actorUserId = $userId;
+        $this->actorRole   = ( $role !== null && $role !== '' ) ? $role : null;
     }
 
     /**
@@ -110,6 +151,18 @@ class ToolRegistry
         }
         unset( $entry );
 
+        // Filter by the actor's capabilities (D-048), AFTER the mcp.tools_list
+        // plugin filter above so plugin-added tools are filtered too, and BEFORE
+        // the return. The advertised surface equals the usable one, so an agent
+        // does not plan around tools it will be refused. This is a courtesy, not
+        // the control: call() gates independently (denialReason), so a tool the
+        // list omitted is still refused if named directly. Hiding is not access
+        // control; the gate is.
+        $list = array_values( array_filter( $list, function ( array $entry ): bool {
+            $name = $entry['name'] ?? '';
+            return is_string( $name ) && $name !== '' && $this->denialReason( $name ) === null;
+        } ) );
+
         return $list;
     }
 
@@ -149,15 +202,81 @@ class ToolRegistry
     }
 
     /**
+     * Decide whether the current actor may call a tool, and why not.
+     *
+     * The single source of truth for the authorization decision, used by both
+     * call() (which throws on a non-null reason) and listTools() (which drops
+     * tools whose reason is non-null). It never decides here: the capability
+     * question goes to UserManager::hasPermission() — the ONE matrix (S-04) —
+     * because the MCP path has no session, so klytos_require_permission(), which
+     * resolves identity from the session, cannot be reused (D-046).
+     *
+     * @param  string $name Tool name.
+     * @return string|null  The refusal reason (for the log), or null if allowed.
+     */
+    private function denialReason(string $name): ?string
+    {
+        // 1. A usable actor is required. No actor, or an actor whose role could
+        //    not be resolved (a credential whose user record is gone — NEW-08 —
+        //    or an unstamped token), denies: the fail-closed direction D-021 and
+        //    D-047 set for identity on this codebase.
+        if ($this->actorRole === null) {
+            return 'no actor resolved for this MCP request';
+        }
+
+        // 2. The tool must be mapped. An absent entry denies by default — the
+        //    S-07 inversion applied to the MCP surface (D-048). keel-verify
+        //    check 10 fails the build if a registered tool has no entry, so this
+        //    branch is reached only by a plugin tool with no declared capability.
+        $map = klytos_mcp_tool_capabilities();
+        if (!array_key_exists($name, $map)) {
+            return "tool '{$name}' is not in the capability map";
+        }
+
+        // 3. A null capability is the audited "no capability required" exception
+        //    (mirrors admin-gate.php): the actor is authenticated with a usable
+        //    role and the tool needs nothing more.
+        $capability = $map[$name];
+        if ($capability === null) {
+            return null;
+        }
+
+        // 4. The matrix decides. An unknown role holds nothing, so it is denied
+        //    every capability — the fail-open case NEW-02 required be closed.
+        if (!$this->app->getUserManager()->hasPermission(['role' => $this->actorRole], $capability)) {
+            return "role '{$this->actorRole}' lacks the required capability '{$capability}'";
+        }
+
+        return null;
+    }
+
+    /**
      * Call a registered tool.
      *
      * @param  string $name   Tool name.
      * @param  array  $params Tool input parameters.
      * @return array  MCP tool result.
-     * @throws \RuntimeException If tool not found.
+     * @throws PermissionDeniedException If the actor may not call the tool.
+     * @throws \RuntimeException         If tool not found.
      */
     public function call(string $name, array $params): array
     {
+        // Authorization gate (D-046). ABOVE the mcp.handle_tool filter below, so
+        // it covers plugin-handled tools too — a gate placed after that filter
+        // would leave every plugin tool ungated, the by-omission failure S-07
+        // exists to close. Default-deny: no actor, an unmapped tool, or a role
+        // that lacks the tool's capability all throw. tools/list filtering
+        // (listTools) is a courtesy on top of this, never a substitute — a tool
+        // named directly is gated here regardless of what tools/list returned.
+        $denial = $this->denialReason($name);
+        if ($denial !== null) {
+            // Audit hook: log/alert/count refusals. Fires before the throw and
+            // cannot reverse it (there is no return value the gate reads).
+            klytos_do_action('mcp.access_denied', $name, $this->actorRole, $denial);
+
+            throw new PermissionDeniedException($name, $this->actorRole, $denial);
+        }
+
         // Hook: allow plugins to handle MCP tool calls.
         // If a plugin handles the tool, it returns a non-null result.
         // This allows plugins to register tools dynamically.

@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
  *
  * So the check names are asserted explicitly, one row per check. Deleting a
  * check, renaming it, or letting it throw before it reports now fails the
- * suite — which is the only way "9 checks passed" stays a measurement instead
+ * suite — which is the only way "10 checks passed" stays a measurement instead
  * of a habit.
  *
  * Extends TestCase directly rather than UnitTestCase: this shells out to a
@@ -36,7 +36,7 @@ use PHPUnit\Framework\TestCase;
  * throwaway storage the base case builds would be setup cost with no consumer.
  *
  * Requires git. Two checks depend on `git check-attr` and SKIP (uncounted) when
- * git is absent, which would make the script report 7 checks rather than 9 — so
+ * git is absent, which would make the script report 8 checks rather than 10 — so
  * in that environment this test fails by design rather than by accident. That is
  * the right trade here: git is a hard prerequisite of the whole Keel workflow,
  * and a suite that cannot see the repository has nothing useful to say. Flagged
@@ -65,6 +65,7 @@ final class KeelVerifyTest extends TestCase
         'locale catalogues agree on their key set',
         'no placeholder copy in distributable surfaces',
         'changelog order oldest',
+        'every registered MCP tool has a capability-map entry',
         'version touchpoints in sync',
         'runtime assets survive the release archive',
     ];

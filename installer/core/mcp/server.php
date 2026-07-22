@@ -108,6 +108,18 @@ class Server
             );
         }
 
+        // Carry the authenticated credential's identity onto the per-request
+        // registry so the authorization gate (D-046) can read the actor's role.
+        // A null actor — a valid credential whose user record is gone (NEW-08),
+        // or an unstamped token — leaves the registry actorless, and the gate
+        // denies by default. Set here, right after authentication, so it is in
+        // place before tools/list or tools/call runs.
+        $actor = $this->tokenAuth->getActor() ?? [];
+        $this->registry->setActor(
+            $actor['user_id'] ?? null,
+            $actor['role'] ?? null
+        );
+
         // Rate limit authenticated requests
         $authId = $this->tokenAuth->getAuthIdentifier();
         if (!$rateLimiter->check($authId)) {
@@ -222,7 +234,29 @@ class Server
             return JsonRpc::invalidParams("Unknown tool: {$toolName}", $id);
         }
 
-        $result = $this->registry->call($toolName, $toolArgs);
+        try {
+            $result = $this->registry->call($toolName, $toolArgs);
+        } catch (PermissionDeniedException $e) {
+            // The refusal shape is dictated by the transport, not chosen: a
+            // JSON-RPC error OBJECT with an EXPLICIT 403. The normal dispatch
+            // emits via jsonResponse() with no status arg, which defaults to
+            // HTTP 200 (handlePost), so a denial merely RETURNED as an error
+            // array would ship as 200 — this block sets the status on the wire,
+            // mirroring the 401 auth-failure block above and keeping the id
+            // correlation. The client-facing message names the tool (which the
+            // caller already supplied) but not the internal role or capability;
+            // the full reason went to the audit log via mcp.access_denied.
+            http_response_code(403);
+            Helpers::jsonResponse(
+                JsonRpc::error(
+                    -32000,
+                    "Permission denied: not authorized to call the tool '{$toolName}'.",
+                    null,
+                    $id
+                ),
+                403
+            );
+        }
 
         return JsonRpc::success($result, $id);
     }

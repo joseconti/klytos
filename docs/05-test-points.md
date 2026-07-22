@@ -1547,6 +1547,135 @@ surfaces with runnable examples); `docs/api/INDEX.md` `TokenAuth` row repointed 
 amended (app-pw/OAuth resolve from the user, bearer stamped; the `?? []` footgun); **NEW-29** and
 **L-017** recorded.
 
+### Slice 2 — the gate + capability map + tools/list filter + keel-verify check 10 — evidence (commands and output, 2026-07-22)
+
+**What the slice does:** closes **NEW-02**. `installer/core/mcp/tool-capabilities.php` maps the **169
+live core tools** to capabilities (absent = deny, `null` = audited exception, `mcp.tool_capabilities`
+filter); a typed `PermissionDeniedException`; ONE `denialReason()` gate inside `ToolRegistry::call()`
+**above** the `mcp.handle_tool` filter, default-deny; `setActor()` carries the credential's identity
+onto the per-request registry (set by `server.php` after auth and by `chat-engine` from the session);
+`listTools()` filtered by the same decision; `server.php` catches the exception → JSON-RPC error object
++ **HTTP 403**; a `mcp.access_denied` audit action; `keel-verify` check 10.
+
+#### Full suite (baseline 156 → 169)
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+OK (169 tests, 671 assertions)
+```
+
+The 13 new tests: `tests/Integration/McpToolGateTest.php` (9 — no-actor denies, viewer denied a
+destructive tool with the exception's tool/role, viewer allowed a read tool, owner allowed the
+destructive tool, unknown role denied even a read, an unmapped tool denied even for owner, `tools/list`
+filtered for viewer + owner, empty list with no actor) and `tests/Integration/McpGateHttpTest.php` (4,
+real HTTP :8105 — viewer bearer → `klytos_delete_page` **403** + JSON-RPC error object with `-32000` and
+the id kept; owner bearer allowed the same tool; unknown-role bearer denied; viewer `tools/list` omits
+destructive tools and keeps reads).
+
+#### Every denial proven to FAIL against the ungated code (L-016)
+
+`denialReason()` was made to `return null` unconditionally (the ungated shape), the two new test
+classes run, and exactly the **9 denial tests failed while the 4 positive controls stayed green** — the
+HTTP ones failing on `200 is identical to 403`, i.e. the tool actually RAN and shipped 200, which is the
+property only the gate produces. Reverted → green.
+
+```
+$ # denialReason() TEMP-BROKEN to `return null;`
+$ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/McpToolGateTest.php tests/Integration/McpGateHttpTest.php
+FAILURES!  Tests: 13, Assertions: 20, Failures: 9.
+  ...
+  9) McpGateHttpTest::testViewerBearerIsDeniedADestructiveToolWith403
+     the refusal must ship as HTTP 403 on the wire
+     Failed asserting that 200 is identical to 403.
+$ # TEMP-BREAK reverted → OK (13 tests, 27 assertions)
+```
+
+#### keel-verify check 10 — proven to fail both directions, then reverted (L-010)
+
+```
+$ php scripts/keel-verify        # after the check was added
+  PASS  every registered MCP tool has a capability-map entry (169 tools)
+OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+
+$ # inject a typo: rename one map key 'klytos_get_page' -> 'klytos_get_page_TYPO'
+$ php scripts/keel-verify
+  FAIL  every registered MCP tool has a capability-map entry (169 tools)
+          - MCP tool 'klytos_get_page' is registered but has no entry ...
+          - the capability map names MCP tool 'klytos_get_page_TYPO', which is not registered ...
+FAILED — 2 problem(s) across 10 check(s).
+$ # typo reverted → 10 checks pass
+```
+
+The registered set is parsed from the loader's own `$toolFiles` list, so `integrity-tools.php` (dead
+until slice 3) is correctly excluded; the check refuses to PASS if it enumerates fewer than 100 tools
+(L-016 — a scan of nothing must not read as green).
+
+#### Real HTTP + a live playground `tools/call` (the sprint's end-to-end proof)
+
+Playground booted on a verified-free port; MCP endpoint answers 401 unauthenticated (freshness); a
+`role=viewer` bearer and an `owner` bearer minted through the real App:
+
+```
+1. unauth tools/list                                              -> HTTP 401
+2. viewer bearer  tools/call klytos_delete_page                  -> HTTP 403
+   {"jsonrpc":"2.0","error":{"code":-32000,
+     "message":"Permission denied: not authorized to call the tool 'klytos_delete_page'."},"id":7}
+3. owner  bearer  tools/call klytos_delete_page (nonexistent)    -> HTTP 200, result envelope (past the gate)
+4. viewer bearer  tools/list  -> 19 tools; klytos_delete_page: no, klytos_get_page: YES
+5. owner  bearer  tools/list  -> 169 tools; klytos_delete_page: YES
+```
+
+#### Upgrade, gate, lint
+
+```
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ php scripts/keel-verify
+OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary        # whole configured scope
+A TOTAL OF 306 ERRORS AND 599 WARNINGS WERE FOUND IN 130 FILES
+```
+
+The whole-scope **306/599** is the exact sum of every recorded per-scope baseline (core+admin 193/488,
+plugins 113/109, tests 0/0, `installer/public` 0/0, `scripts` 0/2), so every D-025 baseline held and the
+change added zero net lint. The two new core files (`tool-capabilities.php`, `permission-denied-exception.php`)
+lint clean.
+
+Docs at creation: `docs/reference/mcp-authorization.md` (the gate, the map, the refusal shape, `tools/list`
+filtering, +5 public surfaces); `docs/api/INDEX.md` (+4 rows, Summary 949→**953**, `ToolRegistry` row
+repointed); `docs/keel-verify.md` (check 10 as row 8, WARNs renumbered 9/10); `docs/flows/mcp-tool-call.md`
+(the authorization step now exists); **D-046** amended. Skills deferred to slice 4 per the sprint plan.
+
+#### Review cycle — one blocking finding, fixed (L-015)
+
+Both `code-reviewer` and `security-auditor` ran on the finished diff, docs included. The
+`security-auditor` returned **no blocking findings** (traced every degenerate actor to a DENY against
+source). The `code-reviewer` returned **one BLOCKING finding**: the map omitted the 8 `klytos_x402_*`
+tools, which the **core** x402 module injects through `mcp.tools_list`/`mcp.handle_tool` — so
+default-deny made them unusable by every role including owner (the reason owner's `tools/list` had
+dropped 177→169). This was a gap in the plan, not just the implementation — the plan named only the two
+optional plugins as filter-injected, missing that x402 is unconditional core. Fixed by declaring x402's
+capabilities through `mcp.tool_capabilities` in `x402-mcp-tools.php` (reads → `x402.view`, writes →
+`x402.manage`); the static core map stays at 169 so keel-verify check 10 is unaffected. Two x402 tests
+added (`McpToolGateTest`), both proven to FAIL against the un-declared code:
+
+```
+$ # x402 mcp.tool_capabilities filter TEMP-BROKEN to `return $map;`
+$ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/McpToolGateTest.php --filter X402
+  1) testX402ToolsAreGatedByTheirDeclaredCapability
+     PermissionDeniedException: MCP tool 'klytos_x402_get_config' denied: ... not in the capability map
+  2) testX402IsDeniedToViewerAndAdvertisedToOwner
+     owner must still see x402 tools / Failed asserting that an array contains 'klytos_x402_get_config'.
+$ # reverted → OK
+```
+
+The `code-reviewer`'s non-blocking finding is **NEW-30** (filter-injected tools unreachable via the HTTP
+`exists()` path — pre-existing, fails closed, slice-3 reconciliation). A minor docblock nit in
+`KeelVerifyTest` (stale "9 checks"/"7 not 9" → 10/8) and a `server.php` `getActor() ?? []` clarity tweak
+were also applied.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1566,6 +1695,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-20 (slice 8 session) | documented commands, **port 8080 held by the same unrelated container for the third session running** | Caught in seconds by the step-2 bind check, exactly as L-011 intended; `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Ports 8081, 8082 and 8090 were also taken (the container maps a range). Re-run on verified-free **8321**: the server identified itself as `X-Powered-By: PHP/8.3.12` with no `Server:` header — ours, not the squatter's — admin **302** to login carrying the new `nosniff` header, login **200**, viewer **403** on `users.php`, anonymous API **401**. Test class port **8104** verified free before use | yes |
 | 2026-07-20 (slice 9 session) | documented commands, **port 8080 held by the same unrelated container for the FOURTH consecutive session** — 8081, 8082 and 8090 with it | Caught by the step-2 bind check in seconds, as it has every session since L-011 was written. Re-run on verified-free **8321**, identified as ours by `X-Powered-By: PHP/8.3.12` with no `Server:` header: admin **302**, login **200**, `config/.encryption_key` **403**, MCP **401** unauthenticated — identical to the slice-0 baseline, no drift in nine sessions. Additionally `/scripts/dev/router.php` now answers **404** rather than its internal disclosure page (NEW-28, fixed this slice) | yes |
 | 2026-07-22 (Sprint 2 slice 1 session) | documented commands; port **8080 not checked** this session — went straight to a verified-free **8085** (`nc -z` clean) | admin **302**, MCP **401** unauthenticated, **no `Server:` header** (PHP built-in, the L-011 tell) — identical to the baseline. The full integration suite (91 tests) had already booted the real App on the seeded playground before this manual check, so the environment was doubly validated | yes |
+| 2026-07-22 (Sprint 2 slice 2 session) | documented commands on a verified-free **8106** (`nc -z` clean; 8080 not touched) | MCP **401** unauthenticated (freshness); then a live slice-2 walk on the same boot — viewer bearer `tools/call klytos_delete_page` → **403** JSON-RPC error, owner bearer allowed (**200**), viewer `tools/list` = **19 tools** (no destructive), owner = **169**. The 95-test integration tier had already booted the real App on the seeded playground first | yes |
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)

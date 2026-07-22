@@ -5,9 +5,10 @@
 >
 > **Sprint 2 is landing in slices.** This document grows with them:
 > - **Slice 1 (done):** identity — resolving an **actor** `{user_id, role}` from the credential, plus
->   the credential-role model and its boot migration. *That is what this file currently covers.*
-> - **Slice 2:** the gate itself — the central capability map, the default-deny enforcement point in
->   `ToolRegistry::call()`, the JSON-RPC refusal, and the `tools/list` filter.
+>   the credential-role model and its boot migration.
+> - **Slice 2 (done):** the gate itself — the central capability map, the default-deny enforcement
+>   point in `ToolRegistry::call()`, the JSON-RPC refusal, and the `tools/list` filter. *Everything
+>   through "tools/list is filtered too" below.*
 > - **Slice 3:** coverage — the loader fails loudly, `integrity-tools.php` is wired in, plugins declare
 >   their tools' capabilities, and the AI-chat tool list default-denies unknown roles.
 > - **Slice 4:** the full "Adding a new MCP tool — the checklist", the count reconciliation, and the
@@ -119,7 +120,127 @@ without touching NEW-11, so a `role=viewer` bearer token is the sprint's honest 
 is denied a destructive tool over real HTTP in slice 2). Per-role **application passwords** stay behind
 the NEW-11 authentication slice.
 
-## Public surfaces (this slice)
+## The gate (slice 2)
+
+There is exactly **one** enforcement point for the whole MCP surface:
+`ToolRegistry::call()` (`installer/core/mcp/tool-registry.php`), placed **above** the
+`mcp.handle_tool` plugin filter so it covers plugin-handled tools as well as the built-in table. A
+gate below that filter would leave every plugin tool ungated — the by-omission failure S-07 exists
+to close. `call()` is reached by exactly two callers repo-wide (the MCP server and the AI chat
+engine), so one gate covers everything.
+
+```
+ToolRegistry::call( $name )
+        └─ denialReason( $name )              ← the ONE decision, reused by listTools()
+                ├─ no usable actor?            → deny
+                ├─ tool absent from the map?   → deny  (default-deny, D-048)
+                ├─ capability is null?         → allow (audited exception)
+                └─ UserManager::hasPermission( [role], capability )   ← the ONE matrix (S-04)
+```
+
+The registry has **no session** — the MCP path never starts one — so it cannot reuse
+`klytos_require_permission()`, which resolves identity from the session. Instead the actor is set on
+the per-request registry (`ToolRegistry::setActor( $userId, $role )`) by whichever transport
+authenticated it, and the gate asks `UserManager::hasPermission()` directly with the actor's role.
+It **does not** add a second decision point; the matrix decides, the gate only asks.
+
+Default-deny, in three ways, each fail-closed:
+
+- **No actor** — `setActor()` was never called, or the credential resolved to no usable role
+  (NEW-08). A registry with no actor refuses every tool.
+- **An unmapped tool** — a tool with no entry in the capability map is refused, so a new tool is
+  denied until it is mapped deliberately. `scripts/keel-verify` check 10 fails the build when a
+  registered core tool has no entry, so this only ever fires for a plugin tool with no declared
+  capability.
+- **A role that lacks the capability** — including an **unrecognized** role, which holds nothing in
+  the matrix and so is denied everything. This is the fail-open that NEW-02 required be closed.
+
+## The capability map (slice 2)
+
+`installer/core/mcp/tool-capabilities.php` holds the tool→capability map behind
+`klytos_mcp_tool_capabilities()`, mirroring `admin-gate.php`'s gate map exactly:
+
+| Value | Meaning |
+|---|---|
+| a capability string | Require it (passed to the matrix). |
+| `null` | No capability required — the audited exception list; every `null` carries its reason in a comment. It still requires a usable role. |
+| *absent* | **Denied.** |
+
+It covers the **169 live core tools**. Notable choices, recorded so they are not mistaken for
+oversights:
+
+- **Reads follow the content flow.** A read a viewer/editor genuinely needs to *create content* —
+  `klytos_get_post_type`, `klytos_list_custom_fields`, `klytos_list_post_statuses`, which
+  `klytos_create_page`'s own description tells the model to call first — is mapped at `pages.view` so
+  an editor can make it. A read that only concerns site administration follows its domain's manage
+  capability. Where in doubt, the higher tier: over-restriction fails safe.
+- **Destructive-capable tools take the destructive capability.** `klytos_bulk_update_pages` can
+  `trash`/`delete` permanently, so it is `pages.delete`, not `pages.edit`. The whole trash lifecycle
+  (delete, restore, permanent delete, empty) is `pages.delete`.
+- **Tasks match the admin split (S-06).** create/list at `tasks.create`; update/complete at
+  `tasks.manage`, because MCP cannot establish task ownership — a bearer token has no user at all —
+  so the higher, fail-closed bar is used.
+- **Guides are the one `null` exception.** `klytos_list_guides` / `klytos_get_guide` read the
+  instructional markdown the AI relies on to operate; no user data, config, or secrets, and no
+  mutation, so any authenticated caller with a usable role may read them.
+
+Plugins declare capabilities for their own tools through the **`mcp.tool_capabilities`** filter (the
+`admin.gate_map` precedent). Stated honestly: like `admin.gate_map` and `auth.capabilities` this
+filter **can weaken** a shipped capability, and plugins already run as first-party code — but it
+cannot open a hole by omission, because an absent entry denies.
+
+**Filter-injected core tools declare through the same filter.** Not every core tool goes through the
+loader: the **x402** micropayments module (core, loaded unconditionally at boot) registers its 8
+`klytos_x402_*` tools through `mcp.tools_list`/`mcp.handle_tool` rather than `register()`, exactly as a
+plugin does. It therefore declares their capabilities through `mcp.tool_capabilities` in
+`installer/core/x402-mcp-tools.php` — reads at `x402.view` (owner/admin/editor), writes at
+`x402.manage` (owner/admin), the capabilities x402 already defines in the matrix. Without that
+declaration the gate's default-deny would make every x402 tool unusable by every role, **including
+owner** — the regression this slice's code review caught. `scripts/keel-verify` check 10 covers only
+the **static** core map against the loader's 33 files, so filter-injected tool sets (x402, and the
+shipped plugins in slice 3) are outside its static scope by design; each is covered by its own tests
+instead.
+
+## The refusal shape is dictated by the transport (slice 2)
+
+The refusal is not chosen; the transport dictates it. `ToolRegistry::call()` throws a typed
+`Klytos\Core\MCP\PermissionDeniedException`, and each caller catches it and shapes it for its own
+protocol:
+
+- **The MCP server** (`server.php::handleToolsCall()`) emits a JSON-RPC **error object** with an
+  **explicit HTTP 403** — `http_response_code(403)` plus `Helpers::jsonResponse( JsonRpc::error(
+  -32000, …, $id ), 403 )`, mirroring the existing 401 auth-failure block and keeping the id
+  correlation. This explicit-status step is **mandatory, not cosmetic**: the normal dispatch emits
+  with no status arg, which defaults to **HTTP 200**, so a denial merely *returned* as an error
+  array would ship as 200. The client-facing message names the tool (which the caller already
+  supplied) but not the internal role or capability; the full reason went to the audit log.
+- **The AI chat engine** turns it into a model-visible tool error through the tool callback's
+  existing `catch`, so the model sees the refusal and can adapt.
+
+`klytos_deny('mcp')` is **not** reused — its `{error, code}` body is not a JSON-RPC error object, so
+an MCP client cannot parse it as one.
+
+An audit action fires before the throw:
+
+```php
+klytos_add_action( 'mcp.access_denied', function ( string $tool, ?string $role, string $reason ): void {
+    klytos_log_warning( "MCP refused {$tool} for role " . ( $role ?? 'none' ) . ": {$reason}", [], 'security' );
+}, 10 );
+```
+
+Like `auth.access_denied`, it **cannot reverse the decision** — it fires for logging/alerting only.
+
+## tools/list is filtered too (slice 2)
+
+`ToolRegistry::listTools()` filters the advertised list by the actor's capabilities — using the same
+`denialReason()` decision — **after** the `mcp.tools_list` plugin filter (so plugin tools are
+filtered too) and **before** the return. The advertised surface equals the usable one, so an agent
+does not plan around tools it will be refused. This is a **courtesy, not the control**: `tools/call`
+gates independently, so a tool the list omitted is still refused if named directly. Hiding is not
+access control; the gate is. A registry with no actor advertises an **empty** list — the same
+fail-closed default the call gate applies.
+
+## Public surfaces (slices 1–2)
 
 | Surface | What it does |
 |---|---|
@@ -127,8 +248,14 @@ the NEW-11 authentication slice.
 | `Auth::getBearerTokenActor( string $token ): ?array` | Resolve a bearer token's `{user_id, role}`; null if unknown; null role if unstamped. |
 | `Auth::migrateCredentialRoles(): int` | Idempotently stamp role-less bearer tokens with `owner`; returns the number stamped. |
 | `Klytos\Core\MCP\TokenAuth::getActor(): ?array` | The actor resolved for the current authenticated MCP request, or null. |
+| `Klytos\Core\MCP\ToolRegistry::setActor( int\|string\|null $userId, ?string $role ): void` | Carry the request's identity onto the per-request registry; the gate reads its role. |
+| `klytos_mcp_tool_capabilities(): array` | The MCP tool→capability map (absent = deny; `null` = audited exception); filterable via `mcp.tool_capabilities`. |
+| `Klytos\Core\MCP\PermissionDeniedException` | Thrown by `ToolRegistry::call()` on refusal; each transport catches it and shapes its own error. |
+| `mcp.tool_capabilities` *(filter)* | Lets a plugin declare capabilities for its own MCP tools; cannot open a hole by omission. |
+| `mcp.access_denied` *(action)* | Fires before an MCP refusal; audit hook, cannot reverse the decision. |
 
 ## Related
 
-`docs/reference/authorization.md` (the admin gate, whose helpers slice 2 reuses) · D-020 · D-046 ·
-D-047 · D-049 · NEW-02 · NEW-08 · NEW-11
+`docs/reference/authorization.md` (the admin gate, whose matrix and default-deny shape slice 2
+reuses) · `docs/keel-verify.md` (check 10) · D-020 · D-046 · D-047 · D-048 · D-049 · NEW-02 ·
+NEW-08 · NEW-11

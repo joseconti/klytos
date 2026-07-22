@@ -34,6 +34,26 @@ klytos_add_filter( 'mcp.tools_list', function ( array $tools ): array {
     return array_merge( $tools, $x402Tools );
 } );
 
+// Declare each x402 tool's capability for the MCP authorization gate (D-046/D-048).
+// The gate in ToolRegistry::call() default-denies any tool with no entry in
+// klytos_mcp_tool_capabilities(); x402 registers its tools through the filters
+// above rather than the core loader, so — like a plugin — it declares their
+// capabilities through this filter. Reads take x402.view (owner/admin/editor) and
+// writes take x402.manage (owner/admin), the capabilities x402 already defines in
+// the matrix (x402-bootstrap.php). x402 is core and loaded unconditionally, so
+// without this every x402 tool would be denied to every role, including owner.
+klytos_add_filter( 'mcp.tool_capabilities', function ( array $map ): array {
+    $map['klytos_x402_get_config']        = 'x402.view';
+    $map['klytos_x402_set_config']        = 'x402.manage';
+    $map['klytos_x402_get_page_status']   = 'x402.view';
+    $map['klytos_x402_set_page_status']   = 'x402.manage';
+    $map['klytos_x402_bulk_set_status']   = 'x402.manage';
+    $map['klytos_x402_get_stats']         = 'x402.view';
+    $map['klytos_x402_list_transactions'] = 'x402.view';
+    $map['klytos_x402_list_providers']    = 'x402.view';
+    return $map;
+}, 10 );
+
 klytos_add_filter( 'mcp.handle_tool', function ( mixed $result, string $toolName, array $params ): mixed {
     if ( !str_starts_with( $toolName, 'klytos_x402_' ) ) return $result;
 

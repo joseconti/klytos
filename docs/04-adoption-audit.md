@@ -1463,6 +1463,29 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the **NEW-11** authentication slice, which already opens the credential/app-password
   code, or the next slice touching `validateAppPassword()`.
 
+### NEW-30 — Filter-injected MCP tools are unreachable over the HTTP transport (advertised but not callable) — **MEDIUM (functional)** *(found 2026-07-22, Sprint 2 slice 2 `code-reviewer` pass)*
+- **Where:** `installer/core/mcp/server.php::handleToolsCall()` → `ToolRegistry::exists()`.
+- **What:** `handleToolsCall()` rejects a call with `!$this->registry->exists($toolName)` **before**
+  `call()`, and `exists()` checks only the `register()`-populated `$this->tools` table. A tool that
+  exists solely through the `mcp.handle_tool` filter — the 8 `klytos_x402_*` tools today, and any
+  shipped-plugin tool — hits `JsonRpc::invalidParams("Unknown tool: …")` over real JSON-RPC and never
+  reaches `call()` (or the gate) at all. `tools/list` **does** advertise these tools (via
+  `mcp.tools_list`), so the HTTP surface advertises tools it then refuses as "unknown".
+- **Pre-existing, not introduced by slice 2:** `exists()` has always been register-only. Slice 2 makes
+  it visible because it is the first slice to reason about "the gate covers plugin-handled tools" — which
+  is true on the **AI-chat** path (`chat-engine` calls `call()` directly, so filter-injected tools ARE
+  gated and usable there), but moot on the HTTP path, which rejects them earlier.
+- **Impact:** functional, fails **closed** (a refusal, never an escalation). x402/plugin tools are
+  usable via AI chat but not via a direct MCP HTTP client. No security regression.
+- **NOT fixed here, on purpose:** reconciling `exists()`/`handleToolsCall()` with filter-injected tools
+  is the same "make filter-injected tool sets first-class" work **slice 3** already owns (wiring
+  `integrity-tools.php`, the two plugins' declarations). Doing it in slice 2 would widen the slice past
+  its subject.
+- **Fix shape:** teach `exists()`/`handleToolsCall()` to also probe `mcp.handle_tool` (e.g. a
+  dry-run/`can_handle` signal) before rejecting, OR narrow the "covers plugin tools" claim in
+  `docs/reference/mcp-authorization.md` to the chat path and accept HTTP as register-only.
+- **Trigger:** **slice 3** (filter-injected tool reconciliation), where it is in scope by construction.
+
 ---
 
 ## Next step

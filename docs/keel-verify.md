@@ -29,8 +29,9 @@ filters it into, which is the right subject for a release gate.
 | 5 | locale catalogues agree on their key set | any catalogue in a set is missing a key, or carries one its siblings do not |
 | 6 | no placeholder copy in distributable surfaces | a `TODO:`, `TODO(`, `@todo`, `FIXME`, `XXX:` or `lorem ipsum` appears in a file that actually ships |
 | 7 | changelog order oldest → newest | an entry is dated before the entry above it |
-| 8 | version touchpoints in sync — **WARN** | the touchpoints disagree (they do today: audit **H-01**) |
-| 9 | runtime assets survive the release archive — **WARN** | `installer/core/guides/` is export-ignored (it is today: audit **NEW-27**) |
+| 8 | every registered MCP tool has a capability-map entry | a tool registered by a loaded tool file has no entry in `klytos_mcp_tool_capabilities()`, or the map names a tool no loaded file registers (audit **NEW-02**, decision **D-048**) |
+| 9 | version touchpoints in sync — **WARN** | the touchpoints disagree (they do today: audit **H-01**) |
+| 10 | runtime assets survive the release archive — **WARN** | `installer/core/guides/` is export-ignored (it is today: audit **NEW-27**) |
 
 ## PASS, FAIL and WARN
 

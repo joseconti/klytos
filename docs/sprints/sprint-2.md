@@ -65,7 +65,7 @@ mirroring the `:103-108` 401 block). `klytos_deny()` is **not** on the MCP path 
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
 | 1 | MCP actor resolution (credential → `{user_id, role}`; role on records; idempotent boot migration) | prerequisite for NEW-02 | **closed 2026-07-22** | **PASS** — 156 tests/643 assertions; 3 fail-closed tests + the OAuth positive test proven to FAIL against wrong behaviour; upgrade from real v0.30.1 stamps a v0.30.1 bearer token to owner (D-047 on a real install); keel-verify 9/2; all lint baselines held; evidence in `docs/05-test-points.md` | The novel work. `TokenAuth` surfaces the actor + `getActor()`; `createBearerToken()` gains an optional role; **D-047 amended** — app-pw/OAuth resolve their role from the user record (DRY, NEW-11-ready), only bearer tokens are stamped, so `migrateCredentialRoles()` touches bearer only. A `?? []`-by-reference footgun in the first migration returned a count while persisting nothing — caught by asserting the persisted role (**L-017**); same footgun pre-exists in `validateAppPassword()` (**NEW-29**, not fixed). **Reviews done** (finished diff, L-015): security — no blocking findings; code-review — one blocking (OAuth branch untested) **fixed** with 2 OAuth tests; non-blocking follow-ups recorded below |
-| 2 | The gate + capability map + `tools/list` filter + keel-verify check 10 | **NEW-02** (core) | **planned** | — | `installer/core/mcp/tool-capabilities.php` (absent = deny, `mcp.tool_capabilities` filter); `PermissionDeniedException`; gate in `call()` above `:164`; `setActor()`; `listTools()` filter; `server.php` catch→403; `chat-engine` catch→tool error. Check 10 → keel-verify 9→**10** |
+| 2 | The gate + capability map + `tools/list` filter + keel-verify check 10 | **NEW-02** (core) | **closed 2026-07-22** | **PASS** — full suite **169 tests/671 assertions**; every denial (viewer→destructive 403, unmapped tool, unknown role, no-actor, filtered list) proven to FAIL against ungated code (9 failures on the TEMP-BREAK, 4 positive controls still green); real HTTP :8105 + a live playground `tools/call` (viewer `klytos_delete_page` → JSON-RPC error + **403**; owner allowed; viewer `tools/list` = 19 tools, no destructive; owner = 169); keel-verify **10 checks**, check 10 proven to FAIL both directions on an injected typo then reverted; upgrade from real v0.30.1 still passes; all D-025 baselines held (whole-scope 306/599 = exact sum of the recorded baselines) | `installer/core/mcp/tool-capabilities.php` (169 core tools, absent = deny, `mcp.tool_capabilities` filter); `PermissionDeniedException`; ONE `denialReason()` gate in `call()` above `:164` + `setActor()` + `listTools()` filter; `server.php` catch→403; `chat-engine` setActor + existing catch→tool error; `mcp.access_denied` audit action. keel-verify 9→**10** |
 | 3 | Coverage completeness | NEW-02 tail; L-007 | **planned** | — | Loader silent fall-through → **hard failure**; wire `integrity-tools.php` in gated; `klytos-forms` (16) + `klytos-importer` (10) declare capabilities via `mcp.tool_capabilities`; `chat-engine` `getAvailableTools()` default-denies unknown roles + closes the `function_exists`/null fail-opens |
 | 4 | Reconciliation + D-035 + docs/skills/i18n + count truth | NEW-02 closure; D-035 revisit | **planned** | — | NEW `docs/reference/mcp-authorization.md`; close the `authorization.md:217-221` forward reference; count truth (177 served / 169 live / 3 dead); refusal i18n keys × 20 catalogues; `playground.md` `tools/call` curl + per-role table; 4 skill updates; **D-035 widening of `ai.use` to editor — CONFIRM with the user** |
 
@@ -112,6 +112,33 @@ items, deferred with reasons:
 - **Style:** the new methods' parens are internally mixed, matching the surrounding files' own mixed
   idiom; `phpcs --standard=phpcs.xml` is clean (0 errors) and does not enforce inner-paren spacing. Left
   as-is rather than reformat tested, lint-clean code.
+
+### Slice 2 review follow-ups (recorded 2026-07-22 — both reviewers ran on the finished diff, docs included, L-015)
+
+The `security-auditor` returned **no blocking findings** — it traced every degenerate actor (null
+actor, unmapped tool, unknown role, NEW-08 deleted user) to a DENY against source, confirmed the gate
+is above `mcp.handle_tool` by line order, verified every destructive core tool sits at a privileged
+capability, and confirmed no disclosure in the 403 body and no secrets/PII. Three non-blocking notes,
+all deferred: the AI-chat error surfaces the reason (role/capability, not a secret) to the model by
+design; `getAvailableTools()`'s annotation filter is now dead-weight (slice 3 removes it); the
+`exists()`-before-gate HTTP path (see below).
+
+The `code-reviewer` returned **one BLOCKING finding, now FIXED**: the new default-deny map omitted the
+**8 `klytos_x402_*` MCP tools**, which `x402-mcp-tools.php` injects through `mcp.tools_list`/`mcp.handle_tool`.
+x402 is **core, loaded unconditionally at boot** — not one of the two plugins the plan deferred to
+slice 3 — so default-deny made all 8 x402 tools unusable by **every role, including owner** the moment
+the slice landed (this is why owner's `tools/list` had dropped from 177 to 169). Fixed by having
+`x402-mcp-tools.php` declare its tools' capabilities through `mcp.tool_capabilities` (reads → `x402.view`,
+writes → `x402.manage`, the capabilities x402 already defines in the matrix) — the same mechanism the
+plugins will use, and it keeps the static core map (and keel-verify check 10) at exactly 169. Two new
+tests (`McpToolGateTest`) prove x402 tools are gated by role, and both were proven to FAIL against the
+un-declared code (editor denied `klytos_x402_get_config`, owner's list missing it). The plan's omission
+of x402 is recorded here so it is not read as an implementation slip — it was a gap in the plan.
+
+The `code-reviewer`'s non-blocking finding is recorded as **NEW-30**: `server.php`'s `exists()` check
+rejects filter-injected tools (x402, plugins) before the gate, so over the HTTP transport they are
+advertised by `tools/list` but answered "Unknown tool" on `tools/call`. Pre-existing, fails closed,
+and the same filter-injected-tool reconciliation **slice 3** already owns.
 
 ## Explicitly out of scope (named, so it is not mistaken for oversight)
 

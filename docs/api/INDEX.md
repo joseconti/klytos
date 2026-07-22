@@ -7,15 +7,15 @@
 ## Summary
 | Kind | Count |
 |------|-------|
-| Global helper functions | 145 |
-| Classes and interfaces | 97 |
-| Actions | 306 |
-| Filters | 116 |
+| Global helper functions | 146 |
+| Classes and interfaces | 98 |
+| Actions | 307 |
+| Filters | 117 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **949** |
+| **Total** | **953** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -112,6 +112,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_log_info() | function | installer/core/helpers-global.php | — | Write an info-level entry to the debug log |
 | klytos_log_notice() | function | installer/core/helpers-global.php | — | Write a notice-level entry to the debug log |
 | klytos_log_warning() | function | installer/core/helpers-global.php | — | Write a warning-level entry to the debug log |
+| klytos_mcp_tool_capabilities() | function | installer/core/mcp/tool-capabilities.php | docs/reference/mcp-authorization.md | The MCP tool→capability map for the authorization gate; an absent entry means denied |
 | klytos_next_scheduled_action() | function | installer/core/helpers-global.php | — | Return when the next pending action for a hook is due, as a Unix timestamp |
 | klytos_now_local() | function | installer/core/helpers-time.php | — | Return the current moment in site time as an ISO 8601 string, for display only |
 | klytos_now_utc() | function | installer/core/helpers-time.php | — | Return the current moment in UTC as ISO 8601, the canonical form for storage |
@@ -212,10 +213,11 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\Mailer` | class | installer/core/mailer.php | — | Sends plain-text, HTML and button-templated emails from the CMS |
 | `Klytos\Core\MCP\JsonRpc` | class | installer/core/mcp/json-rpc.php | — | Parses JSON-RPC requests and builds the success and error response envelopes |
 | `Klytos\Core\MCP\OAuthServer` | class | installer/core/mcp/oauth-server.php | — | OAuth client registration, authorization and access-token issuing for MCP |
+| `Klytos\Core\MCP\PermissionDeniedException` | class | installer/core/mcp/permission-denied-exception.php | docs/reference/mcp-authorization.md | Thrown by ToolRegistry::call() when the authorization gate refuses a tool; each transport catches and shapes it |
 | `Klytos\Core\MCP\RateLimiter` | class | installer/core/mcp/rate-limiter.php | — | Throttles MCP requests per client and blocks repeated auth failures |
 | `Klytos\Core\MCP\Server` | class | installer/core/mcp/server.php | — | HTTP entry point handling the MCP GET and POST transport requests |
 | `Klytos\Core\MCP\TokenAuth` | class | installer/core/mcp/token-auth.php | docs/reference/mcp-authorization.md | Authenticates MCP requests (bearer, OAuth, app password) and resolves the caller's actor {user_id, role} for the gate |
-| `Klytos\Core\MCP\ToolRegistry` | class | installer/core/mcp/tool-registry.php | — | Registers all MCP tools and dispatches tool calls to their handlers |
+| `Klytos\Core\MCP\ToolRegistry` | class | installer/core/mcp/tool-registry.php | docs/reference/mcp-authorization.md | Registers all MCP tools, carries the request actor (setActor), and default-denies tool calls at the authorization gate |
 | `Klytos\Core\MenuManager` | class | installer/core/menu-manager.php | — | Stores navigation menus and their items and renders them as HTML |
 | `Klytos\Core\MetaManager` | class | installer/core/meta-manager.php | — | Stores free-form key/value metadata attached to entities |
 | `Klytos\Core\NoticeManager` | class | installer/core/notice-manager.php | — | Creates, renders and dismisses admin notices, including transient flash messages |
@@ -475,6 +477,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | mailer.before_send | action | installer/core/mailer.php | — | Emitted before a mail is dispatched, for logging or analytics; gets recipients and subject |
 | maintenance.disabled | action | installer/core/build-engine.php +2 more | — | Emitted when the site leaves maintenance mode; no payload |
 | maintenance.enabled | action | installer/core/build-engine.php +2 more | — | Emitted when the site is put into maintenance mode; no payload |
+| mcp.access_denied | action | installer/core/mcp/tool-registry.php | docs/reference/mcp-authorization.md | Fires before an MCP tool call is refused by the authorization gate; audit hook, cannot reverse it |
 | mcp.tool_called | action | installer/core/mcp/tool-registry.php | — | Emitted when an MCP tool is invoked, for auditing; gets the tool name and its params |
 | meta.after_delete | action | installer/core/meta-manager.php | — | Emitted once a meta key is removed; receives collection, entity ID and key |
 | meta.after_set | action | installer/core/meta-manager.php | — | Emitted once a meta value is stored; gets collection, entity ID, key and value |
@@ -660,6 +663,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | mailer.html_template | filter | installer/core/mailer.php | — | Filters the base HTML email template used to wrap message content |
 | mailer.send | filter | installer/core/mailer.php | — | Short-circuits sending: return true to have a plugin transport deliver the email |
 | mcp.handle_tool | filter | installer/core/mcp/tool-registry.php | — | Lets plugins handle an unknown MCP tool call by returning a non-null result |
+| mcp.tool_capabilities | filter | installer/core/mcp/tool-capabilities.php | docs/reference/mcp-authorization.md | Lets a plugin declare capabilities for its own MCP tools; cannot open a hole by omission |
 | mcp.tool_response | filter | installer/core/mcp/tool-registry.php | — | Filters an MCP tool response before it is sent back to the client |
 | mcp.tools_list | filter | installer/core/mcp/tool-registry.php | — | Filters the advertised MCP tool list so plugins can register their own tools |
 | meta.get | filter | installer/core/meta-manager.php | — | Filters a metadata value when it is read for an entity |

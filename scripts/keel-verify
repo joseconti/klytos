@@ -627,6 +627,90 @@ if ( count( $entries ) < 2 ) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Check: every registered MCP tool has a capability-map entry (NEW-02).
+// ─────────────────────────────────────────────────────────────
+// The MCP counterpart of the admin-gate check above (D-048). The gate in
+// ToolRegistry::call() default-denies any tool with no entry in
+// installer/core/mcp/tool-capabilities.php, so a registered tool that nobody
+// mapped is silently unreachable in production with no build-time signal —
+// exactly the rot the map exists to prevent. This fails the build in BOTH
+// directions: a registered tool with no map entry, and a map entry naming a
+// tool that does not register (which is how mapping integrity-tools.php, still
+// dead until slice 3, or a renamed tool, is caught).
+//
+// The registered set is derived from the loader's OWN file list
+// (ToolRegistry::registerAllTools()), so integrity-tools.php — present on disk
+// but absent from that list, hence dead — is correctly excluded until slice 3
+// wires it in. The stub above makes klytos_mcp_tool_capabilities() readable
+// without booting the app, so this reads the SHIPPED map, not a plugin-filtered
+// one — the right subject for a release gate.
+
+require_once $repoRoot . '/installer/core/mcp/tool-capabilities.php';
+
+$problems  = [];
+$toolsDir  = $repoRoot . '/installer/core/mcp/tools';
+$registry  = (string) file_get_contents( $repoRoot . '/installer/core/mcp/tool-registry.php' );
+
+// The loader's hardcoded $toolFiles = [ ... ]; list — the authority on which
+// files actually register, so a file on disk but off the list does not count.
+$loaderFiles = [];
+if ( preg_match( '/\$toolFiles\s*=\s*\[(.*?)\];/s', $registry, $listMatch ) === 1 ) {
+    preg_match_all( "/'([a-z0-9-]+\\.php)'/", $listMatch[1], $fileMatch );
+    $loaderFiles = $fileMatch[1];
+}
+
+$registered = [];
+foreach ( $loaderFiles as $file ) {
+    $path = $toolsDir . '/' . $file;
+
+    if ( ! is_file( $path ) ) {
+        continue;
+    }
+
+    // The first quoted argument to each ->register( call is the tool name.
+    if ( preg_match_all( "/->register\\(\\s*'([a-zA-Z0-9_]+)'/", (string) file_get_contents( $path ), $toolMatch ) ) {
+        $registered = array_merge( $registered, $toolMatch[1] );
+    }
+}
+
+$map = klytos_mcp_tool_capabilities();
+
+// A check that enumerated NOTHING must never PASS (L-016): a broken loader-list
+// parse or an empty tools dir would leave $registered empty and this check would
+// report "0 tools, all mapped" — green while verifying nothing. The live count
+// is 169; anything far below that means the extraction, not the coverage, broke.
+if ( count( $registered ) < 100 ) {
+    $problems[] = sprintf(
+        'only %d registered MCP tools were found by parsing the loader list — the '
+            . 'extraction failed, so this check verified nothing rather than passing.',
+        count( $registered )
+    );
+} else {
+    foreach ( $registered as $tool ) {
+        if ( ! array_key_exists( $tool, $map ) ) {
+            $problems[] = "MCP tool '{$tool}' is registered but has no entry in "
+                . 'klytos_mcp_tool_capabilities() — it is denied to everyone by default. Map it '
+                . 'in installer/core/mcp/tool-capabilities.php.';
+        }
+    }
+
+    foreach ( array_keys( $map ) as $tool ) {
+        if ( ! in_array( $tool, $registered, true ) ) {
+            $problems[] = "the capability map names MCP tool '{$tool}', which is not registered by "
+                . 'any loaded tool file — remove it or wire its tool in.';
+        }
+    }
+}
+
+keel_report(
+    sprintf(
+        'every registered MCP tool has a capability-map entry (%d tools)',
+        count( $registered )
+    ),
+    $problems
+);
+
+// ─────────────────────────────────────────────────────────────
 // WARN: version touchpoints in sync (audit H-01 — Phase 7 owns the fix).
 // ─────────────────────────────────────────────────────────────
 // docs/03-technical-plan.md §5 records these as being in four-way

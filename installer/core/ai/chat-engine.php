@@ -109,6 +109,19 @@ class ChatEngine
     {
         $result = new ChatResult();
 
+        // Carry the acting user's identity onto the tool registry so the
+        // authorization gate (D-046) applies to every tool the AI executes,
+        // exactly as it does to a direct MCP call — call() denies by default
+        // when no actor is set. The role is resolved from the session, the same
+        // source getAvailableTools() filters the advertised list by; a missing
+        // one resolves to null, which the gate treats as deny (fail-closed).
+        $actorRole = null;
+        if (function_exists('klytos_current_user')) {
+            $current   = klytos_current_user();
+            $actorRole = $current['role'] ?? null;
+        }
+        $this->toolRegistry->setActor($userId, $actorRole);
+
         // Determine provider and model.
         $providerId = $options['provider'] ?? null;
         $modelId    = $options['model'] ?? null;
