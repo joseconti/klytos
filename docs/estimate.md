@@ -108,3 +108,91 @@ calibrates future estimates and because the payment mode can change.
   hygiene (H-01/02/03/07 — Phase 7); Phase 6 documentation; Phase 8 website.
 - **Not estimated on purpose:** anything past Sprint 1. Sprint 2 gets its own estimate version once
   Sprint 1's enforcement helper exists and its real shape is known.
+
+---
+
+## Estimate v2 — Phase 5, Sprint 2 scope (MCP tool authorization, NEW-02 / D-020) — 2026-07-22
+
+Trigger fired: Sprint 2 is planned (`docs/sprints/sprint-2.md`, approved 2026-07-22). Sprint 1's
+enforcement helper now exists (`klytos_require_permission()` + the ONE matrix), so the shape v1 said
+could not be estimated is known. This version covers **Sprint 2 only**; the theme-package sprint
+(D-023) and the vendor-ai CVE re-vendor (D-029) still get their own versions when planned.
+
+### Scope basis
+
+4 slices in `docs/sprints/sprint-2.md`, derived from audit **NEW-02** and the five source-verified
+corrections to the recorded plan (D-046…D-049). Concrete counts the numbers are computed from:
+**172 registered / 169 live** MCP tools to map to capabilities, **1** central map file mirroring
+`admin-gate.php`, **1** enforcement point (`ToolRegistry::call()`) reached by **2** callers, **3**
+credential types (app-password, bearer, OAuth) whose identity must be surfaced and migrated,
+**2** shipped MCP plugins (16 + 10 tools) to bring under the map, **1** new keel-verify check (→10),
+**20** i18n catalogues for the refusal keys, **4** skills to update, and a new HTTP test port (:8105).
+
+### AI working hours (itemized)
+
+| Segment (AI does) | Hours (low–high) | Basis |
+|---|---|---|
+| Planning (sessions 13 + 14) — kickoff re-validation, 4 decisions, artifacts | 3.0–5.0 | Two sessions; three Explore sweeps + self-verification (L-013) dominated |
+| Slice 1 — actor resolution: `token-auth`/`auth`/`oauth-server`, role on records, idempotent boot migration, upgrade-tested | 3.5–6.0 | The novel work; migration must be idempotent and proven on real v0.30.1 |
+| Slice 2 — gate + `tool-capabilities.php` map + `PermissionDeniedException` + `setActor()` + `listTools()` filter + both transport catches + keel-verify check 10 + HTTP :8105 tests | 5.0–8.0 | **Widest band.** The core; 172 tools mapped, refusal proven on the wire |
+| Slice 3 — loader fail-loud, wire `integrity-tools`, 2 plugins declare caps, `chat-engine` default-deny | 3.0–5.0 | Mostly wiring, but each behaviour proven against unfixed code |
+| Slice 4 — reference doc, count truth across 4 surfaces, refusal i18n × 20, playground, 4 skills, D-035 widen | 3.5–5.5 | Documentation-heavy; the count reconciliation touches INDEX/audit/skills/reference |
+| Sprint close-out — docs-verifier, playground-QA, state, continuation prompt | 1.5–2.5 | Phase 5 §5, mandatory |
+| **Total AI** | **19.5–32.0 h** | |
+
+Below Sprint 1's 30.5–51.0 h band, and the reason is structural: Sprint 1 built the harness, the
+playground, the matrix, the admin gate and `keel-verify` from nothing; Sprint 2 **reuses** all of
+them (the matrix, `klytos_require_permission()`'s intent, `AdminHttpTestCase`, the gate-map pattern,
+the keel-verify framework). The novelty is concentrated in slice 1 (identity from a credential) and
+the enforcement point in slice 2.
+
+### Vibe coder hours (itemized)
+
+| Segment | What the developer does | Hours (low–high) |
+|---|---|---|
+| Sprint kickoff | Take the 4 decisions, approve the plan (done — 2026-07-21/22) | 0.5–1.0 |
+| During the build | Open sessions, read summaries, approve gates, unblock (20–45 min/day) | 4.0–7.0 |
+| Slice 4 decision | Confirm the D-035 `ai.use` widening to editor | 0.25–0.5 |
+| Test points | Walk `tools/call` in the playground across roles, incl. a viewer bearer token | 1.5–3.0 |
+| Sprint close | Follow the numbered try-it script, return the verdict either way | 1.0–1.5 |
+| Commits | Repo operations the AI does not perform unattended | 0.5–1.0 |
+| **Total developer** | | **7.75–14.0 h → plan for ~14 h with margin** |
+
+### Contingency: +30% (same basis as v1, carried)
+
+Justified by slice 1's migration reaching a released installed base, and slice 2's 172-tool map that
+must be exercised for real over HTTP rather than reasoned about.
+
+| | Base | With +30% |
+|---|---|---|
+| AI hours | 19.5–32.0 h | **25–42 h** |
+| Developer hours | 7.75–14.0 h | **10–18 h** |
+
+### Estimated calendar delivery
+
+At the stated **5–10 h/week** supervision and 10–18 h of developer time, Sprint 2 lands over roughly
+**2–4 calendar weeks**. Estimate, not commitment — calendar time tracks supervision availability, not
+AI hours.
+
+### AI cost
+
+**Mode: subscription** — marginal token cost **≈ 0**, recorded as the mode, not billed. Rows keep
+accumulating in `docs/token-ledger.md`.
+
+### Assumptions & risks
+
+- **Assumed:** the environment stays as verified — PHP 8.3.x, Composer 2.9.x, phpcs 3.13.x, PHPUnit
+  11.5.x. No Docker/MySQL tier; storage tests run against file storage.
+- **Risk — the MCP rate limit (60/min per identity) bites the test matrix.** A 4-role × N-tool HTTP
+  walk will trip it; mitigated by batching or filtering the limit via `addTemporaryFilter`. Costed
+  into slice 2.
+- **Risk — the migration reaches a released installed base.** Existing app-password/bearer/OAuth
+  records get a role on upgrade; an incorrect migration would change who can do what. Mitigated by the
+  real-previous-version upgrade test (mandatory, `Installed base: yes`). Costed into slice 1.
+- **Risk — latent capability (L-014).** Every credential that exists resolves to owner today, so only
+  a `role=viewer` bearer token exercises a real denial. Not a schedule risk but an honesty one — the
+  reference doc states it plainly; no extra hours, but no green-over-dead test point either.
+- **Excluded, and costed nowhere here:** NEW-11 authentication (per-role app-password login); the
+  theme-package redesign (D-023); the vendor-ai CVE re-vendor (D-029, its own Estimate version); the
+  349 inline `style=` attributes (S-10); the accessibility sprint (A-01…A-07); Phase 6 docs; Phase 8.
+- **Not estimated on purpose:** anything past Sprint 2.

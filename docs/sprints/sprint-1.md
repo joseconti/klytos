@@ -142,7 +142,7 @@ each slice closes.
 | `docs-verifier` over everything the sprint touched | run at the close — findings recorded below |
 | Playground-QA fresh-context pass | run at the close — findings recorded below |
 | Numbered try-it script handed to the user, debug log ON | **yes** — handed in the closing message |
-| **User's recorded verdict** | **PENDING — this is the user's, and the sprint does not close without it** |
+| **User's recorded verdict** | **NOT TESTED YET (recorded 2026-07-21).** The user has not walked the try-it script; the verdict is neither PASS nor a reported failure. Recorded honestly rather than left implied-green. Sprint 2 proceeds; this row reopens if the user later reports a failure (fix + regression test before anything new), per Phase 5 §5.4 |
 | `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **yes** |
 | Continuation prompt produced unprompted | **yes** |
 | Finished docs archived to `docs/old/sprint-1/` | **nothing qualified — stated rather than skipped.** Phase 5 §5.7 moves docs that are finished AND no longer consulted. Every `docs/` file is still live: `04-adoption-audit.md` gained NEW-27/NEW-28 today, `theme-package-model.md` specifies an upcoming sprint, `estimate.md` awaits v2, and `sprint-1.md` is the precedent Sprint 2 reads for reuse targets. The state files, specs, technical plan, flows and api/reference docs never move while the project is alive. `docs/old/` is deliberately not created empty |
