@@ -56,12 +56,15 @@ declare(strict_types=1);
  * restrictive) tier is chosen — over-restriction fails safe, under-restriction
  * fails open.
  *
- * Scope note: this covers ONLY the 169 live core tools (the 33 files in
- * ToolRegistry::registerAllTools()). integrity-tools.php (3 tools) is wired in
- * and mapped in slice 3, and the two shipped MCP plugins declare their tools'
- * capabilities through the mcp.tool_capabilities filter in slice 3 — mapping
- * either here now would make keel-verify check 10 fail against what actually
- * registers today.
+ * Scope note: this covers the 172 live core tools (the 34 files in
+ * ToolRegistry::registerAllTools(), including integrity-tools.php, wired in and
+ * mapped here in slice 3 — D-049). The two shipped MCP plugins (klytos-forms,
+ * klytos-importer) and the core x402 module do NOT register through the loader —
+ * they inject their tools through mcp.tools_list / mcp.handle_tool and so declare
+ * their own tools' capabilities through the mcp.tool_capabilities filter (below).
+ * keel-verify check 10 covers only this static core map against the loader's 34
+ * files; filter-injected tool sets are outside its static scope by design and are
+ * verified by their own tests.
  *
  * @return array<string, string|null>
  */
@@ -389,6 +392,18 @@ function klytos_mcp_tool_capabilities(): array
         // Reading the available shortcodes; needed by the editor content
         // flow, so pages.view.
         'klytos_list_shortcodes' => 'pages.view',
+
+        // ── File integrity (integrity-tools.php) ──────────────────
+        // System-operations diagnostics: run/read file-hash verification
+        // against signed manifests, including per-plugin. These expose
+        // system internals (which files differ from the signed release) and
+        // trigger manifest re-downloads, so they are owner/admin — mirroring
+        // admin system-integrity.php / api/integrity.php → site.configure.
+        // All three are read-only (no repair action exists), but even reading
+        // an integrity report is an operations concern, not editor content.
+        'klytos_integrity_check'        => 'site.configure',
+        'klytos_integrity_status'       => 'site.configure',
+        'klytos_integrity_check_plugin' => 'site.configure',
     ];
 
     /**

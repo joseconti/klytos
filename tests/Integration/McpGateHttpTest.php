@@ -122,6 +122,69 @@ final class McpGateHttpTest extends AdminHttpTestCase
     }
 
     /**
+     * NEW-30: a filter-injected tool — x402 (core, registered through
+     * mcp.tools_list / mcp.handle_tool, not the loader) — is now CALLABLE over
+     * the HTTP transport. Before this slice, server.php rejected it with a
+     * JSON-RPC "Unknown tool" (invalidParams) BEFORE the gate, because exists()
+     * consulted only the register-populated table. An owner reaches a JSON-RPC
+     * success; the un-fixed code returned an error object for the same call.
+     */
+    public function testFilterInjectedToolIsCallableOverHttpForOwner(): void
+    {
+        $token    = $this->auth()->createBearerToken( 'new30-owner', 'owner' )['token'];
+        $response = $this->mcpCall( $token, 'tools/call', [
+            'name'      => 'klytos_x402_get_config',
+            'arguments' => [],
+        ] );
+
+        self::assertSame( 200, $response['status'], 'a filter-injected tool must be callable over HTTP (NEW-30)' );
+        self::assertArrayHasKey( 'result', $response['json'] );
+        self::assertArrayNotHasKey( 'error', $response['json'] );
+    }
+
+    /**
+     * The same filter-injected tool is still GATED over HTTP: a viewer holds
+     * neither x402 capability, so it is refused with 403 — the gate runs on the
+     * call path exactly as for a loader-registered tool.
+     */
+    public function testFilterInjectedToolIsGatedOverHttpForViewer(): void
+    {
+        $token    = $this->auth()->createBearerToken( 'new30-viewer', 'viewer' )['token'];
+        $response = $this->mcpCall( $token, 'tools/call', [
+            'name'      => 'klytos_x402_get_config',
+            'arguments' => [],
+        ] );
+
+        self::assertSame( 403, $response['status'], 'a filter-injected tool must still be gated over HTTP' );
+        self::assertArrayHasKey( 'error', $response['json'] );
+    }
+
+    /**
+     * A shipped plugin's tool (klytos-forms, active in the playground) is
+     * likewise callable over HTTP for an owner and gated for a lower role — the
+     * plugin's mcp.tool_capabilities declaration reaching the gate end to end,
+     * over the wire.
+     */
+    public function testPluginToolIsCallableAndGatedOverHttp(): void
+    {
+        $owner = $this->auth()->createBearerToken( 'new30-forms-owner', 'owner' )['token'];
+        $ok    = $this->mcpCall( $owner, 'tools/call', [
+            'name'      => 'klytos_forms_list',
+            'arguments' => [],
+        ] );
+        self::assertSame( 200, $ok['status'], 'owner must be able to call a plugin tool over HTTP' );
+        self::assertArrayHasKey( 'result', $ok['json'] );
+
+        $editor  = $this->auth()->createBearerToken( 'new30-forms-editor', 'editor' )['token'];
+        $denied  = $this->mcpCall( $editor, 'tools/call', [
+            'name'      => 'klytos_forms_create',
+            'arguments' => [ 'title' => 'gate probe' ],
+        ] );
+        self::assertSame( 403, $denied['status'], 'an editor lacks forms.manage — denied over HTTP' );
+        self::assertArrayHasKey( 'error', $denied['json'] );
+    }
+
+    /**
      * POST a JSON-RPC request to the MCP endpoint with a Bearer token.
      *
      * The base harness speaks admin sessions (cookie + CSRF); MCP speaks neither

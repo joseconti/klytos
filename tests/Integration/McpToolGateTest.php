@@ -21,6 +21,7 @@ declare(strict_types=1);
 namespace Klytos\Tests\Integration;
 
 use Klytos\Core\MCP\PermissionDeniedException;
+use Klytos\Core\MCP\ToolNotFoundException;
 use Klytos\Core\MCP\ToolRegistry;
 use Klytos\Tests\IntegrationTestCase;
 
@@ -229,5 +230,116 @@ final class McpToolGateTest extends IntegrationTestCase
         $names = array_column( $registry->listTools(), 'name' );
         self::assertContains( 'klytos_x402_get_config', $names, 'owner must still see x402 tools' );
         self::assertContains( 'klytos_x402_set_config', $names );
+    }
+
+    /**
+     * integrity-tools.php is wired into the loader this slice (D-049) and mapped
+     * at site.configure (owner/admin). Its 3 tools were DEAD before — never
+     * registered, never mapped — so all three assertions below fail against the
+     * unfixed code: the map has no entry, and an owner's list does not contain
+     * them.
+     */
+    public function testIntegrityToolsAreGatedAtSiteConfigure(): void
+    {
+        $map = klytos_mcp_tool_capabilities();
+        self::assertSame( 'site.configure', $map['klytos_integrity_check'] ?? null );
+        self::assertSame( 'site.configure', $map['klytos_integrity_status'] ?? null );
+        self::assertSame( 'site.configure', $map['klytos_integrity_check_plugin'] ?? null );
+
+        $registry = $this->registry();
+
+        // An editor lacks site.configure — denied before the checker runs.
+        $registry->setActor( 1, 'editor' );
+        try {
+            $registry->call( 'klytos_integrity_check', [] );
+            self::fail( 'An editor was allowed klytos_integrity_check (site.configure).' );
+        } catch ( PermissionDeniedException $e ) {
+            self::assertSame( 'klytos_integrity_check', $e->getToolName() );
+        }
+
+        // The owner holds it: the tools are advertised. Membership is the
+        // positive control — calling verify() would hit the network.
+        $registry->setActor( 1, 'owner' );
+        $names = array_column( $registry->listTools(), 'name' );
+        self::assertContains( 'klytos_integrity_check', $names );
+        self::assertContains( 'klytos_integrity_status', $names );
+        self::assertContains( 'klytos_integrity_check_plugin', $names );
+    }
+
+    /**
+     * klytos-forms declares its 16 MCP tools at forms.manage (owner/admin)
+     * through mcp.tool_capabilities (it is filter-injected, not loader-registered,
+     * so keel-verify check 10 does not cover it — this test does). An editor,
+     * lacking forms.manage, is denied; the owner sees the tool advertised. Both
+     * the map value and the owner membership fail against the un-declared code.
+     */
+    public function testFormsPluginToolsAreGatedByFormsManage(): void
+    {
+        $map = klytos_mcp_tool_capabilities();
+        self::assertSame( 'forms.manage', $map['klytos_forms_create'] ?? null, 'the forms plugin must declare forms.manage' );
+        self::assertSame( 'forms.manage', $map['klytos_forms_stats'] ?? null );
+
+        $registry = $this->registry();
+
+        $registry->setActor( 1, 'editor' );
+        try {
+            $registry->call( 'klytos_forms_create', [ 'title' => 'gate probe' ] );
+            self::fail( 'An editor was allowed klytos_forms_create (forms.manage).' );
+        } catch ( PermissionDeniedException $e ) {
+            self::assertSame( 'klytos_forms_create', $e->getToolName() );
+        }
+
+        $registry->setActor( 1, 'owner' );
+        $names = array_column( $registry->listTools(), 'name' );
+        self::assertContains( 'klytos_forms_create', $names, 'owner must see the forms plugin tools' );
+    }
+
+    /**
+     * klytos-importer declares its 10 MCP tools at site.configure (owner/admin) —
+     * a whole-site migration is an operations privilege, the mirror of
+     * klytos_export_site. An editor is denied; the owner sees them advertised.
+     */
+    public function testImporterPluginToolsAreGatedBySiteConfigure(): void
+    {
+        $map = klytos_mcp_tool_capabilities();
+        self::assertSame( 'site.configure', $map['klytos_import_execute_batch'] ?? null, 'the importer plugin must declare site.configure' );
+        self::assertSame( 'site.configure', $map['klytos_import_analyze_style'] ?? null );
+
+        $registry = $this->registry();
+
+        $registry->setActor( 1, 'editor' );
+        try {
+            $registry->call( 'klytos_import_execute_batch', [ 'session_id' => 'x', 'pages' => [] ] );
+            self::fail( 'An editor was allowed klytos_import_execute_batch (site.configure).' );
+        } catch ( PermissionDeniedException $e ) {
+            self::assertSame( 'klytos_import_execute_batch', $e->getToolName() );
+        }
+
+        $registry->setActor( 1, 'owner' );
+        $names = array_column( $registry->listTools(), 'name' );
+        self::assertContains( 'klytos_import_execute_batch', $names );
+    }
+
+    /**
+     * A tool that is mapped (so the gate passes for a holder) but that nothing
+     * registers or handles raises the typed `ToolNotFoundException` — NOT a plain
+     * error and NOT a permission denial. This is the mapped-but-unhandled case
+     * NEW-30 introduced (a typo or orphaned declaration reaching `call()` now
+     * that `exists()` admits mapped names); the transport answers "Unknown tool"
+     * on exactly this, without masking an unrelated `RuntimeException` (D-050).
+     * The gate runs first, so this is reached only AFTER the owner is authorised.
+     */
+    public function testAMappedButUnhandledToolThrowsToolNotFound(): void
+    {
+        $this->addTemporaryFilter( 'mcp.tool_capabilities', static function ( array $map ): array {
+            $map['klytos_ghost_unhandled'] = 'pages.view';
+            return $map;
+        } );
+
+        $registry = $this->registry();
+        $registry->setActor( 1, 'owner' );
+
+        $this->expectException( ToolNotFoundException::class );
+        $registry->call( 'klytos_ghost_unhandled', [] );
     }
 }

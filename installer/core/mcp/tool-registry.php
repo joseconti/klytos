@@ -288,7 +288,12 @@ class ToolRegistry
         }
 
         if (!isset($this->tools[$name])) {
-            throw new \RuntimeException("Tool not found: {$name}");
+            // A name that passed the gate and exists() (it is registered OR in
+            // the capability map — NEW-30) but no mcp.handle_tool listener
+            // produced a result: a mapped-but-unhandled entry. Typed so the
+            // transport can answer "Unknown tool" for THIS case only, never
+            // masking an unrelated RuntimeException from a handler (D-050).
+            throw new ToolNotFoundException("Tool not found: {$name}");
         }
 
         // Fire action: a tool is being called (for logging/auditing).
@@ -341,14 +346,35 @@ class ToolRegistry
     }
 
     /**
-     * Check if a tool exists.
+     * Check if a tool name is known to the registry.
      *
-     * @param  string $name
+     * A tool is "known" when it is registered through the loader OR when it has a
+     * declared capability in the map — because a filter-injected tool (x402, and
+     * the shipped MCP plugins) never enters $this->tools; it is served entirely
+     * through mcp.tools_list / mcp.handle_tool, and its declared capability in
+     * klytos_mcp_tool_capabilities() is what marks it a first-class tool.
+     *
+     * This is what makes filter-injected tools callable over the HTTP transport
+     * (NEW-30): server.php's handleToolsCall() rejects a name that does not exist
+     * BEFORE reaching call(), so a register-only exists() left every x402/plugin
+     * tool advertised by tools/list yet answered "Unknown tool" on tools/call.
+     * Widening exists() to the declared set lets those calls reach call(), which
+     * gates them (denialReason) and dispatches them via mcp.handle_tool exactly as
+     * the AI-chat path already did. A name that is neither registered nor declared
+     * is still unknown — an undeclared plugin tool fails closed, as default-deny
+     * intends. This is the only caller-visible effect: server.php:exists() is the
+     * method's sole caller repo-wide.
+     *
+     * @param  string $name Tool name.
      * @return bool
      */
     public function exists(string $name): bool
     {
-        return isset($this->tools[$name]);
+        if (isset($this->tools[$name])) {
+            return true;
+        }
+
+        return array_key_exists($name, klytos_mcp_tool_capabilities());
     }
 
     /**
@@ -398,30 +424,72 @@ class ToolRegistry
             'maintenance-tools.php',
             'bulk-tools.php',
             'shortcode-tools.php',
+            // File integrity verification (was on disk but never listed, hence
+            // dead — D-049 wires it in, gated in tool-capabilities.php).
+            'integrity-tools.php',
         ];
 
         foreach ($toolFiles as $file) {
-            $path = $toolsDir . '/' . $file;
-            if (file_exists($path)) {
-                require_once $path;
-
-                $suffix = $this->fileToFunctionSuffix($file);
-
-                // Try namespaced function first (v1.0 tools).
-                $namespacedFunc = 'Klytos\\Core\\MCP\\Tools\\register' . $suffix;
-                if (function_exists($namespacedFunc)) {
-                    $namespacedFunc($this);
-                    continue;
-                }
-
-                // Try global function (v2.0 tools that accept $app).
-                $globalFunc = 'register' . $suffix;
-                if (function_exists($globalFunc)) {
-                    $globalFunc($this, $this->app);
-                    continue;
-                }
-            }
+            $this->registerToolFile($toolsDir, $file);
         }
+    }
+
+    /**
+     * Register the tools declared by ONE loader file, failing loudly (D-049,
+     * L-007) if it declares none.
+     *
+     * A listed file that is missing, or present but defining neither its
+     * namespaced nor its global register function, is an unfinished or misnamed
+     * registration — evidence, not something to skip. The old silent
+     * fall-through here is exactly what kept integrity-tools.php dead and
+     * unnoticed for its whole life: the loader could not tell "this file
+     * registers nothing" from "this file is fine". Throwing surfaces it at
+     * boot/CI, the S-07 default-deny lesson applied to the loader — omission is
+     * never silently tolerated.
+     *
+     * Extracted from registerAllTools() so the fail-loud contract is exercised
+     * per file by a test, without mutating the hardcoded $toolFiles list that
+     * keel-verify check 10 parses.
+     *
+     * @param  string $toolsDir Directory holding the tool files.
+     * @param  string $file     File name within $toolsDir (e.g. 'page-tools.php').
+     * @return void
+     * @throws ToolRegistrationException When the file is missing or registers no tools.
+     */
+    public function registerToolFile(string $toolsDir, string $file): void
+    {
+        $path = $toolsDir . '/' . $file;
+
+        if (!file_exists($path)) {
+            throw new ToolRegistrationException(
+                "MCP tool file '{$file}' is listed in the loader but does not exist at {$path}."
+            );
+        }
+
+        require_once $path;
+
+        $suffix = $this->fileToFunctionSuffix($file);
+
+        // Try namespaced function first (v1.0 tools).
+        $namespacedFunc = 'Klytos\\Core\\MCP\\Tools\\register' . $suffix;
+        if (function_exists($namespacedFunc)) {
+            $namespacedFunc($this);
+            return;
+        }
+
+        // Try global function (v2.0 tools that accept $app).
+        $globalFunc = 'register' . $suffix;
+        if (function_exists($globalFunc)) {
+            $globalFunc($this, $this->app);
+            return;
+        }
+
+        // The file was required but defined neither register function.
+        throw new ToolRegistrationException(
+            "MCP tool file '{$file}' registers no tools: neither {$namespacedFunc}() nor "
+            . "{$globalFunc}() is defined after requiring it. A listed file must register its "
+            . 'tools, or be removed from the loader list.'
+        );
     }
 
     /**

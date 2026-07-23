@@ -1463,7 +1463,16 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the **NEW-11** authentication slice, which already opens the credential/app-password
   code, or the next slice touching `validateAppPassword()`.
 
-### NEW-30 — Filter-injected MCP tools are unreachable over the HTTP transport (advertised but not callable) — **MEDIUM (functional)** *(found 2026-07-22, Sprint 2 slice 2 `code-reviewer` pass)*
+### NEW-30 — Filter-injected MCP tools are unreachable over the HTTP transport (advertised but not callable) — **RESOLVED 2026-07-23, Sprint 2 slice 3** *(found 2026-07-22, Sprint 2 slice 2 `code-reviewer` pass)*
+- **RESOLUTION (slice 3, user-confirmed — D-050):** the "make callable over HTTP" option was chosen over
+  narrowing the doc claim. `ToolRegistry::exists()` now returns true when a tool is registered **or**
+  declared in the capability map, so `handleToolsCall()` lets a filter-injected tool reach `call()`,
+  which gates it (`denialReason`) and dispatches it via `mcp.handle_tool`. `handleToolsCall()` catches a
+  typed `ToolNotFoundException` from `call()` (a mapped-but-unhandled tool) and answers "Unknown tool"
+  rather than a 500 — a narrow catch (added on the code-reviewer's note) that never masks an unrelated
+  handler error. Proven over real HTTP (`McpGateHttpTest`: owner calls x402/`klytos_forms_list` → 200; viewer/editor
+  → 403) and live in the playground (owner `klytos_forms_list` → HTTP 200, was "Unknown tool"). x402 and
+  the two shipped plugins are now first-class over both transports. Original finding follows.
 - **Where:** `installer/core/mcp/server.php::handleToolsCall()` → `ToolRegistry::exists()`.
 - **What:** `handleToolsCall()` rejects a call with `!$this->registry->exists($toolName)` **before**
   `call()`, and `exists()` checks only the `register()`-populated `$this->tools` table. A tool that

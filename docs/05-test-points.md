@@ -1676,6 +1676,91 @@ The `code-reviewer`'s non-blocking finding is **NEW-30** (filter-injected tools 
 `KeelVerifyTest` (stale "9 checks"/"7 not 9" → 10/8) and a `server.php` `getActor() ?? []` clarity tweak
 were also applied.
 
+### Slice 3 — coverage completeness (loader fail-loud, integrity + plugins gated, chat-engine default-deny, NEW-30) — evidence (commands and output, 2026-07-23)
+
+Five things landed: the tool loader **fails loudly** (D-049) via an extracted `registerToolFile()` + typed
+`ToolRegistrationException`; `integrity-tools.php` is the 34th loader file and its 3 tools are mapped
+`site.configure`; the two shipped MCP plugins declare their tools' capabilities (`klytos-forms` 16 →
+`forms.manage`, `klytos-importer` 10 → `site.configure`) and are activated in the seed; `chat-engine`
+`getAvailableTools()` default-denies an unknown role to an empty list; and **NEW-30 is resolved**
+(user-confirmed, D-050) — `exists()` = registered OR mapped, so filter-injected tools are callable over HTTP
+and still gated.
+
+#### Full suite (baseline 171 → 184) and keel-verify check 10 (169 → 172)
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (185 tests, 805 assertions)          # +14: 4 loader, 3 gate, 3 chat-engine, 3 HTTP, +1 review pin
+$ php scripts/keel-verify | grep 'capability-map entry'
+  PASS  every registered MCP tool has a capability-map entry (172 tools)
+$ php scripts/keel-verify ; echo exit=$?
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+  exit=0
+```
+
+#### Every new behaviour proven to FAIL against the unfixed code (L-016)
+
+Source + seed stashed to HEAD, playground reseeded to the unfixed state (plugins inactive), the new tests
+run against it:
+
+```
+$ git stash push -- installer/core installer/plugins scripts/
+$ php scripts/dev/seed-playground.php --reset          # plugins inactive (unfixed)
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter 'McpToolLoaderTest|ChatEngineToolListTest|McpToolGateTest|McpGateHttpTest'
+  Tests: 28, Assertions: 123, Errors: 2, Failures: 9.
+    - registerToolFile() undefined (loader not extracted)          # fail-loud gone
+    - testTheRealLoaderWiresInIntegrityTools: false is true        # integrity dead
+    - ChatEngineToolListTest: unknown role returns the full list   # advisory fail-open
+    - map assertions null / owner list membership / NEW-30 HTTP    # 9 failures
+$ git stash pop ; php scripts/dev/seed-playground.php --reset      # restored, plugins active
+$ XDEBUG_MODE=off vendor/bin/phpunit ; # OK (185 tests, 805 assertions)
+```
+
+The tests that stayed green under the stash are the shared existing tests and the legitimate positive
+controls (owner gets a non-empty list; a viewer gets read-only tools; the slice-2 x402 tests).
+
+#### Upgrade, baselines, live walk
+
+```
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)        # boot survives, migration idempotent, fails closed
+$ # D-025 baselines — all held exactly
+  core+admin 193/488 · plugins 113/109 · tests 0/0 · scripts 0/2 · installer/public 0/0
+$ # live playground, owner over HTTP
+  owner tools/list = 206  (172 core + 8 x402 + 16 forms + 10 importer; integrity now visible)
+  owner tools/call klytos_forms_list  → HTTP 200   # NEW-30: was "Unknown tool" before this slice
+```
+
+The new/touched files (`tool-registration-exception.php`, the seed, and all four test files) lint clean
+under `phpcs --standard=phpcs.xml` (0/0). Skills updates and the full count-truth reconciliation
+(177/206 served vs live vs dead) are **slice 4** per the plan.
+
+#### Review cycle — both clean, one narrowing applied (L-015)
+
+Both subagents ran on the finished diff, docs included. The **`security-auditor`** returned **no
+blocking findings**: it traced the default-deny invariant end to end and confirmed the gate
+(`denialReason`) runs before any dispatch for a newly-callable filter-injected tool, that the
+`PermissionDeniedException` catch precedes the fallback catch (so a 403 never degrades to "Unknown
+tool"), and that a null/unknown actor still denies; capability assignments all err toward the safe
+tier; no secrets in the diff or the seed (only gitignored encrypted state is written). The
+**`code-reviewer`** returned **no blocking findings** and one substantive note: the fallback
+`catch (\RuntimeException)` in `handleToolsCall()` was broader than needed — a future handler's plain
+`RuntimeException` would be masked as "Unknown tool". Fixed by a typed
+`Klytos\Core\MCP\ToolNotFoundException` (thrown by `call()` only for the mapped-but-unhandled case),
+caught exactly; a plain `RuntimeException` now propagates. Pinned by a new test:
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter testAMappedButUnhandledToolThrowsToolNotFound
+  OK (1 test, 1 assertion)          # owner (authorised) + a mapped tool nothing handles → ToolNotFoundException
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (185 tests, 805 assertions)
+$ php scripts/keel-verify   # 10 checks, INDEX parity green (Classes 100 / Total 955), check 10 = 172
+```
+
+Two stale `scripts/keel-verify` comments ("integrity-tools.php … dead until slice 3", "live count is
+169") were corrected to the 34-file/172-tool reality. Inner-paren style left as-is (file precedent;
+phpcs.xml clean).
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1697,6 +1782,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-22 (Sprint 2 slice 1 session) | documented commands; port **8080 not checked** this session — went straight to a verified-free **8085** (`nc -z` clean) | admin **302**, MCP **401** unauthenticated, **no `Server:` header** (PHP built-in, the L-011 tell) — identical to the baseline. The full integration suite (91 tests) had already booted the real App on the seeded playground before this manual check, so the environment was doubly validated | yes |
 | 2026-07-22 (Sprint 2 slice 2 session) | documented commands on a verified-free **8106** (`nc -z` clean; 8080 not touched) | MCP **401** unauthenticated (freshness); then a live slice-2 walk on the same boot — viewer bearer `tools/call klytos_delete_page` → **403** JSON-RPC error, owner bearer allowed (**200**), viewer `tools/list` = **19 tools** (no destructive), owner = **169**. The 95-test integration tier had already booted the real App on the seeded playground first | yes |
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
+| 2026-07-23 (Sprint 2 slice 3 session) | port 8080/8090 skipped (known-held, L-011); booted on a `nc -z`-verified-free **8091** | MCP **401** unauthenticated, **no `Server:` header** (PHP built-in). Then a live slice-3 walk on a verified-free **8092**: owner `tools/list` = **206** (172 core + 8 x402 + 16 forms + 10 importer — integrity and both shipped plugins now live), owner `tools/call klytos_forms_list` → **HTTP 200** (NEW-30: was "Unknown tool" pre-slice). The 100+-test integration tier had booted the real App on the seeded playground first | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

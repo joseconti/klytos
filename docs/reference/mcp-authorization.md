@@ -9,8 +9,11 @@
 > - **Slice 2 (done):** the gate itself — the central capability map, the default-deny enforcement
 >   point in `ToolRegistry::call()`, the JSON-RPC refusal, and the `tools/list` filter. *Everything
 >   through "tools/list is filtered too" below.*
-> - **Slice 3:** coverage — the loader fails loudly, `integrity-tools.php` is wired in, plugins declare
->   their tools' capabilities, and the AI-chat tool list default-denies unknown roles.
+> - **Slice 3 (done):** coverage — the tool loader **fails loudly** (D-049), `integrity-tools.php` is
+>   wired in and gated, the two shipped MCP plugins (`klytos-forms`, `klytos-importer`) declare their
+>   tools' capabilities, the AI-chat advisory tool list default-denies unknown roles, and a
+>   filter-injected tool is now **callable over the HTTP transport** (NEW-30). *See "The loader fails
+>   loudly", "coverage completeness" and the filter-injected notes below.*
 > - **Slice 4:** the full "Adding a new MCP tool — the checklist", the count reconciliation, and the
 >   forward reference from `docs/reference/authorization.md:217` is closed here.
 
@@ -166,8 +169,8 @@ Default-deny, in three ways, each fail-closed:
 | `null` | No capability required — the audited exception list; every `null` carries its reason in a comment. It still requires a usable role. |
 | *absent* | **Denied.** |
 
-It covers the **169 live core tools**. Notable choices, recorded so they are not mistaken for
-oversights:
+It covers the **172 live core tools** (the 34 loader files, `integrity-tools.php` among them since
+slice 3). Notable choices, recorded so they are not mistaken for oversights:
 
 - **Reads follow the content flow.** A read a viewer/editor genuinely needs to *create content* —
   `klytos_get_post_type`, `klytos_list_custom_fields`, `klytos_list_post_statuses`, which
@@ -183,11 +186,22 @@ oversights:
 - **Guides are the one `null` exception.** `klytos_list_guides` / `klytos_get_guide` read the
   instructional markdown the AI relies on to operate; no user data, config, or secrets, and no
   mutation, so any authenticated caller with a usable role may read them.
+- **File integrity is `site.configure` (slice 3).** `klytos_integrity_check`,
+  `klytos_integrity_status` and `klytos_integrity_check_plugin` run and read file-hash verification
+  against signed manifests. Even reading an integrity report exposes system internals (which files
+  differ from the signed release), so they sit at owner/admin, mirroring admin `system-integrity.php`
+  / `api/integrity.php` → `site.configure`. They were **dead** before slice 3 (`integrity-tools.php`
+  was on disk but absent from the loader list); the loader wires them in and the map gates them.
 
 Plugins declare capabilities for their own tools through the **`mcp.tool_capabilities`** filter (the
 `admin.gate_map` precedent). Stated honestly: like `admin.gate_map` and `auth.capabilities` this
 filter **can weaken** a shipped capability, and plugins already run as first-party code — but it
-cannot open a hole by omission, because an absent entry denies.
+cannot open a hole by omission, because an absent entry denies. The two shipped MCP plugins declare
+theirs this way (slice 3): **`klytos-forms`** maps its 16 tools at `forms.manage` (owner/admin — forms
+carry submitted data, and the matrix has no `forms.view`, so the whole domain sits at the manage bar);
+**`klytos-importer`** maps its 10 tools at `site.configure` (a whole-site migration that fetches
+arbitrary external URLs and bulk-creates pages is an operations privilege, the mirror of
+`klytos_export_site`).
 
 **Filter-injected core tools declare through the same filter.** Not every core tool goes through the
 loader: the **x402** micropayments module (core, loaded unconditionally at boot) registers its 8
@@ -196,10 +210,39 @@ plugin does. It therefore declares their capabilities through `mcp.tool_capabili
 `installer/core/x402-mcp-tools.php` — reads at `x402.view` (owner/admin/editor), writes at
 `x402.manage` (owner/admin), the capabilities x402 already defines in the matrix. Without that
 declaration the gate's default-deny would make every x402 tool unusable by every role, **including
-owner** — the regression this slice's code review caught. `scripts/keel-verify` check 10 covers only
-the **static** core map against the loader's 33 files, so filter-injected tool sets (x402, and the
-shipped plugins in slice 3) are outside its static scope by design; each is covered by its own tests
-instead.
+owner** — the regression slice 2's code review caught. `scripts/keel-verify` check 10 covers only
+the **static** core map against the loader's 34 files (172 tools), so filter-injected tool sets (x402
+and the shipped plugins) are outside its static scope by design; each is covered by its own tests
+instead (`McpToolGateTest`, `McpGateHttpTest`).
+
+## The loader fails loudly (slice 3)
+
+`ToolRegistry::registerAllTools()` walks a hardcoded `$toolFiles` list and, per file, calls
+`registerToolFile()`. That method now **throws `Klytos\Core\MCP\ToolRegistrationException`** when a
+listed file is missing, or is present but defines neither its namespaced nor its global register
+function. Before slice 3 it skipped such a file by silent fall-through — which is exactly how
+`integrity-tools.php` (present on disk, off the list) stayed dead and unnoticed for its whole life: the
+loader could not tell "this file registers nothing" from "this file is fine". Failing loudly surfaces
+an unfinished or misnamed registration at boot/CI, the S-07 default-deny lesson (D-049, L-007) applied
+to the loader. `registerToolFile()` is extracted from the loop so the contract is exercised per file by
+a test (`McpToolLoaderTest`) without mutating the `$toolFiles` literal that keel-verify check 10 parses.
+
+## Filter-injected tools are callable over HTTP (slice 3 — NEW-30)
+
+`ToolRegistry::exists()` treats a tool name as known when it is either registered through the loader
+**or** declared in the capability map. A filter-injected tool (x402, and the shipped plugins) never
+enters the register table — it is served entirely through `mcp.tools_list`/`mcp.handle_tool` — so a
+register-only `exists()` left `server.php::handleToolsCall()` rejecting it with a JSON-RPC "Unknown
+tool" **before** the gate, even though `tools/list` advertised it. Widening `exists()` to the declared
+set lets those calls reach `call()`, which gates them (`denialReason`) and dispatches them via
+`mcp.handle_tool` exactly as the AI-chat path already did. A name that is neither registered nor
+declared is still unknown — an undeclared plugin tool fails closed, as default-deny intends; and
+`handleToolsCall()` catches a **`ToolNotFoundException`** from `call()` (a mapped-but-unhandled tool —
+a typo or orphaned declaration) and answers "Unknown tool" rather than leaking a 500. That catch is
+deliberately narrow — a typed exception, not every `RuntimeException` — so a plain `RuntimeException`
+from a handler surfaces as a real error instead of being masked, and a `PermissionDeniedException`
+(also a `RuntimeException`) is caught earlier and shipped as the 403. Before this, filter-injected
+tools worked only on the AI-chat path; now they are first-class over both transports.
 
 ## The refusal shape is dictated by the transport (slice 2)
 
@@ -240,7 +283,7 @@ gates independently, so a tool the list omitted is still refused if named direct
 access control; the gate is. A registry with no actor advertises an **empty** list — the same
 fail-closed default the call gate applies.
 
-## Public surfaces (slices 1–2)
+## Public surfaces (slices 1–3)
 
 | Surface | What it does |
 |---|---|
@@ -249,9 +292,13 @@ fail-closed default the call gate applies.
 | `Auth::migrateCredentialRoles(): int` | Idempotently stamp role-less bearer tokens with `owner`; returns the number stamped. |
 | `Klytos\Core\MCP\TokenAuth::getActor(): ?array` | The actor resolved for the current authenticated MCP request, or null. |
 | `Klytos\Core\MCP\ToolRegistry::setActor( int\|string\|null $userId, ?string $role ): void` | Carry the request's identity onto the per-request registry; the gate reads its role. |
+| `Klytos\Core\MCP\ToolRegistry::registerToolFile( string $toolsDir, string $file ): void` | Register one loader file's tools, throwing `ToolRegistrationException` if it is missing or registers none (slice 3, D-049). |
+| `Klytos\Core\MCP\ToolRegistry::exists( string $name ): bool` | True when a tool is registered OR declared in the capability map — so filter-injected tools are callable over HTTP (slice 3, NEW-30). |
 | `klytos_mcp_tool_capabilities(): array` | The MCP tool→capability map (absent = deny; `null` = audited exception); filterable via `mcp.tool_capabilities`. |
 | `Klytos\Core\MCP\PermissionDeniedException` | Thrown by `ToolRegistry::call()` on refusal; each transport catches it and shapes its own error. |
-| `mcp.tool_capabilities` *(filter)* | Lets a plugin declare capabilities for its own MCP tools; cannot open a hole by omission. |
+| `Klytos\Core\MCP\ToolRegistrationException` | Thrown by the loader (`registerToolFile`) when a listed file is missing or registers no tools (slice 3, D-049). |
+| `Klytos\Core\MCP\ToolNotFoundException` | Thrown by `ToolRegistry::call()` for a mapped-but-unhandled tool (post-gate); the transport answers "Unknown tool" without masking other errors (slice 3, NEW-30). |
+| `mcp.tool_capabilities` *(filter)* | Lets a plugin (or a filter-injected core module) declare capabilities for its own MCP tools; cannot open a hole by omission. |
 | `mcp.access_denied` *(action)* | Fires before an MCP refusal; audit hook, cannot reverse the decision. |
 
 ## Related

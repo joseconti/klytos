@@ -413,23 +413,55 @@ PROMPT;
      */
     private function getAvailableTools(int $userId): array
     {
+        // listTools() is ALREADY filtered by the actor's capabilities (D-048):
+        // processMessage() set the actor on this registry (:123), so this list is
+        // the authoritative, capability-gated surface, and call() gates every
+        // dispatch regardless. The role switch below is an ADVISORY refinement on
+        // top of that — using the model-facing readOnlyHint / destructiveHint
+        // annotations, never as the access control. Slice 2 neutralized the teeth
+        // of the old fail-opens here; slice 3 makes this advisory list HONEST so
+        // it is never wider than what the gate will actually allow.
         $allTools = $this->toolRegistry->listTools();
 
+        // Resolve the acting role, fail-closed. If the identity helper is somehow
+        // absent, or the user carries no role, treat the caller as the least
+        // privileged real role (viewer) rather than skipping the filter and
+        // returning the full list — the fail-OPEN this used to have when
+        // klytos_current_user() was undefined.
+        $role = 'viewer';
         if (function_exists('klytos_current_user')) {
             $user = klytos_current_user();
             $role = $user['role'] ?? 'viewer';
+        }
 
-            if ($role === 'viewer') {
-                $allTools = array_values(array_filter($allTools, function (array $tool): bool {
-                    $annotations = (array) ($tool['annotations'] ?? []);
-                    return ($annotations['readOnlyHint'] ?? false) === true;
-                }));
-            } elseif ($role === 'editor') {
+        switch ($role) {
+            case 'owner':
+            case 'admin':
+                // The full capability-gated list; the gate authorizes each call.
+                break;
+
+            case 'editor':
                 $allTools = array_values(array_filter($allTools, function (array $tool): bool {
                     $annotations = (array) ($tool['annotations'] ?? []);
                     return ($annotations['destructiveHint'] ?? false) !== true;
                 }));
-            }
+                break;
+
+            case 'viewer':
+                $allTools = array_values(array_filter($allTools, function (array $tool): bool {
+                    $annotations = (array) ($tool['annotations'] ?? []);
+                    return ($annotations['readOnlyHint'] ?? false) === true;
+                }));
+                break;
+
+            default:
+                // An unrecognized role holds nothing in the matrix, so the gate
+                // (denialReason) refuses it every capability-gated tool. The
+                // advisory list must match that: default-deny to an empty set
+                // rather than fall through to the full list, which is the
+                // fail-open NEW-02 required be closed.
+                $allTools = [];
+                break;
         }
 
         return klytos_apply_filters('ai.tools_for_chat', $allTools, $userId);

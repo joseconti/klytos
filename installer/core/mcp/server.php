@@ -256,6 +256,16 @@ class Server
                 ),
                 403
             );
+        } catch (ToolNotFoundException $e) {
+            // call() throws ToolNotFoundException only when a name that passed
+            // exists() (i.e. it is in the capability map — NEW-30) reaches neither
+            // a registered handler nor the mcp.handle_tool filter: a tool mapped
+            // but not actually handled. Report it as unknown to the client rather
+            // than leaking a 500. The catch is deliberately narrow — a plain
+            // RuntimeException from a handler must surface as a real error, never
+            // be masked as "Unknown tool" — and PermissionDeniedException (also a
+            // RuntimeException) is caught above, so a denial never reaches here.
+            return JsonRpc::invalidParams("Unknown tool: {$toolName}", $id);
         }
 
         return JsonRpc::success($result, $id);

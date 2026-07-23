@@ -287,6 +287,23 @@ foreach ( $seedPages as $page ) {
     echo "  page {$page['slug']} created\n";
 }
 
+// ─── Activate the shipped MCP plugins (Sprint 2, slice 3) ────────────────
+// klytos-forms and klytos-importer register their MCP tools through the
+// mcp.tools_list / mcp.handle_tool filters and declare their capabilities
+// through mcp.tool_capabilities. They must be ACTIVE for the app to load those
+// filters at boot, so the MCP authorization gate can see their tools — a
+// playground that verifies MCP tool authorization but never loads the shipped
+// MCP plugins would not exercise the real surface. The state is written
+// directly rather than through PluginLoader::activate() to keep the seeder
+// side-effect-free (no install.php, no asset rebuild); loadPlugin() requires
+// the entry point at boot regardless of the state's provenance.
+$storage->write( 'plugins.json.enc', [
+    'active'       => [ 'klytos-forms' => true, 'klytos-importer' => true ],
+    'activated_at' => [ 'klytos-forms' => Helpers::now(), 'klytos-importer' => Helpers::now() ],
+    'logs_enabled' => [],
+] );
+echo "  plugins klytos-forms + klytos-importer activated (MCP tool surface)\n";
+
 // ─── Access details, for docs/playground.md and the user ─────────────────
 // Written to a gitignored file because the application password is generated
 // and cannot be documented statically.

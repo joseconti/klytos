@@ -635,15 +635,16 @@ if ( count( $entries ) < 2 ) {
 // mapped is silently unreachable in production with no build-time signal —
 // exactly the rot the map exists to prevent. This fails the build in BOTH
 // directions: a registered tool with no map entry, and a map entry naming a
-// tool that does not register (which is how mapping integrity-tools.php, still
-// dead until slice 3, or a renamed tool, is caught).
+// tool that does not register (which is how a renamed tool, or one dropped from
+// the loader list, is caught).
 //
 // The registered set is derived from the loader's OWN file list
-// (ToolRegistry::registerAllTools()), so integrity-tools.php — present on disk
-// but absent from that list, hence dead — is correctly excluded until slice 3
-// wires it in. The stub above makes klytos_mcp_tool_capabilities() readable
-// without booting the app, so this reads the SHIPPED map, not a plugin-filtered
-// one — the right subject for a release gate.
+// (ToolRegistry::registerAllTools()), the authority on which files actually
+// register — a file on disk but off the list does not count. integrity-tools.php
+// joined that list in slice 3 (D-049), so its 3 tools are now IN scope here and
+// must be mapped; the stub above makes klytos_mcp_tool_capabilities() readable
+// without booting the app, so this reads the SHIPPED map (the loader's 34 files,
+// not the plugin-filtered set) — the right subject for a release gate.
 
 require_once $repoRoot . '/installer/core/mcp/tool-capabilities.php';
 
@@ -678,7 +679,8 @@ $map = klytos_mcp_tool_capabilities();
 // A check that enumerated NOTHING must never PASS (L-016): a broken loader-list
 // parse or an empty tools dir would leave $registered empty and this check would
 // report "0 tools, all mapped" — green while verifying nothing. The live count
-// is 169; anything far below that means the extraction, not the coverage, broke.
+// is 172 (since slice 3 wired in integrity-tools.php); anything far below that
+// means the extraction, not the coverage, broke.
 if ( count( $registered ) < 100 ) {
     $problems[] = sprintf(
         'only %d registered MCP tools were found by parsing the loader list — the '

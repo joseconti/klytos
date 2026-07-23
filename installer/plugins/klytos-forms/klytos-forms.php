@@ -144,6 +144,37 @@ klytos_add_filter( 'mcp.tools_list', function ( array $tools ): array {
     return array_merge( $tools, $formTools );
 } );
 
+// ─── MCP tool capabilities (Sprint 2, slice 3 — NEW-02 / D-048) ──────────────
+// The gate in ToolRegistry::call() default-denies any tool with no entry in the
+// capability map, so a filter-injected tool (this plugin registers through
+// mcp.tools_list / mcp.handle_tool, not the core loader) MUST declare its tools'
+// capabilities here or every role — including owner — is refused them. Forms are
+// an owner/admin domain: the matrix already defines forms.manage (owner/admin),
+// so all 16 tools take it. Reading and exporting entries carries submitted data,
+// so it sits at the same owner/admin bar rather than a lower read tier — there is
+// no forms.view in the matrix and over-restriction fails safe. keel-verify
+// check 10 covers only the static core map, so these are verified by this
+// plugin's own MCP-gate test instead.
+klytos_add_filter( 'mcp.tool_capabilities', function ( array $map ): array {
+    $map['klytos_forms_create']              = 'forms.manage';
+    $map['klytos_forms_get']                 = 'forms.manage';
+    $map['klytos_forms_list']                = 'forms.manage';
+    $map['klytos_forms_update']              = 'forms.manage';
+    $map['klytos_forms_delete']              = 'forms.manage';
+    $map['klytos_forms_duplicate']           = 'forms.manage';
+    $map['klytos_forms_add_field']           = 'forms.manage';
+    $map['klytos_forms_update_field']        = 'forms.manage';
+    $map['klytos_forms_remove_field']        = 'forms.manage';
+    $map['klytos_forms_reorder_fields']      = 'forms.manage';
+    $map['klytos_forms_list_entries']        = 'forms.manage';
+    $map['klytos_forms_get_entry']           = 'forms.manage';
+    $map['klytos_forms_update_entry_status'] = 'forms.manage';
+    $map['klytos_forms_delete_entry']        = 'forms.manage';
+    $map['klytos_forms_export_entries']      = 'forms.manage';
+    $map['klytos_forms_stats']               = 'forms.manage';
+    return $map;
+}, 10 );
+
 // ─── MCP Tool Handler ───────────────────────────────────────
 klytos_add_filter( 'mcp.handle_tool', function ( mixed $result, string $toolName, array $params ): mixed {
     $fm = $GLOBALS['klytos_forms_manager'] ?? null;

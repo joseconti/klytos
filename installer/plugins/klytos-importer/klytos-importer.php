@@ -358,6 +358,33 @@ klytos_add_filter( 'mcp.tools_list', function ( array $tools ): array {
     return array_merge( $tools, $importerTools );
 } );
 
+// ─── MCP tool capabilities (Sprint 2, slice 3 — NEW-02 / D-048) ──────────────
+// The gate in ToolRegistry::call() default-denies any tool with no entry in the
+// capability map, so a filter-injected tool (this plugin registers through
+// mcp.tools_list / mcp.handle_tool, not the core loader) MUST declare its tools'
+// capabilities here or every role — including owner — is refused them. A site
+// import is a whole-site migration: it fetches arbitrary EXTERNAL URLs (an SSRF
+// surface, even guarded), downloads external media, and bulk-creates pages. That
+// is an operations privilege, the mirror image of klytos_export_site (also
+// site.configure — an editor should not egress, nor ingest, the entire site), so
+// all 10 tools take site.configure (owner/admin). The matrix has no import
+// capability and none is needed; over-restriction fails safe. keel-verify
+// check 10 covers only the static core map, so these are verified by this
+// plugin's own MCP-gate test instead.
+klytos_add_filter( 'mcp.tool_capabilities', function ( array $map ): array {
+    $map['klytos_import_analyze_wp_xml']  = 'site.configure';
+    $map['klytos_import_fetch_wp_page']   = 'site.configure';
+    $map['klytos_import_convert_content'] = 'site.configure';
+    $map['klytos_import_execute_batch']   = 'site.configure';
+    $map['klytos_import_session_status']  = 'site.configure';
+    $map['klytos_import_analyze_sitemap'] = 'site.configure';
+    $map['klytos_import_fetch_page']      = 'site.configure';
+    $map['klytos_import_discover_site']   = 'site.configure';
+    $map['klytos_import_analyze_style']   = 'site.configure';
+    $map['klytos_import_download_media']  = 'site.configure';
+    return $map;
+}, 10 );
+
 // ─── MCP Tool Handler ───────────────────────────────────────
 klytos_add_filter( 'mcp.handle_tool', function ( mixed $result, string $toolName, array $params ): mixed {
     if ( !str_starts_with( $toolName, 'klytos_import_' ) ) {

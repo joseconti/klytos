@@ -27,7 +27,9 @@ application password, talking JSON-RPC to `/<admin-dir>/mcp`.
 | Bad credentials | 401 |
 | Rate limited | `MCP\RateLimiter` refuses, persistent and IP-keyed |
 | **Caller lacks the capability the tool needs** | **Denied (slice 2).** The gate throws `PermissionDeniedException`; the MCP server emits a JSON-RPC error object with **HTTP 403** the client can act on, and the AI chat surfaces a model-visible tool error. The capability comes from `klytos_mcp_tool_capabilities()`; the decision from `UserManager::hasPermission()` (the ONE matrix). |
-| Caller's role is unrecognized | **Denied.** An unknown role holds nothing in the matrix, so the gate refuses it every capability-gated tool. (`chat-engine`'s advertised-list fail-open is neutralized because `call()` gates regardless; the list filter itself is tightened in slice 3.) |
+| Caller's role is unrecognized | **Denied.** An unknown role holds nothing in the matrix, so the gate refuses it every capability-gated tool. Slice 3 also default-denies an unknown role in `chat-engine`'s advisory tool list (previously it fell through to the full list), so the advertised list is now honest as well as the gate. |
+| Tool is filter-injected (x402, a shipped plugin) over HTTP | **Callable and gated (slice 3, NEW-30).** `exists()` treats a tool declared in the capability map as known, so `server.php` no longer answers "Unknown tool" before the gate; `call()` gates and dispatches it via `mcp.handle_tool`. |
+| A listed loader file registers nothing | **Boot/CI fails loudly (slice 3, D-049).** `registerToolFile()` throws `ToolRegistrationException` rather than skipping a dead file silently. |
 | Tool not in the capability map | **Denied by default** — a registered core tool without an entry fails `keel-verify` check 10, so in production this only fires for a plugin tool with no declared capability. |
 
 ## The recovery branch that matters

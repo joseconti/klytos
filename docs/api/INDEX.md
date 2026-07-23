@@ -8,14 +8,14 @@
 | Kind | Count |
 |------|-------|
 | Global helper functions | 146 |
-| Classes and interfaces | 98 |
+| Classes and interfaces | 100 |
 | Actions | 307 |
 | Filters | 117 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **953** |
+| **Total** | **955** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -217,7 +217,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\MCP\RateLimiter` | class | installer/core/mcp/rate-limiter.php | — | Throttles MCP requests per client and blocks repeated auth failures |
 | `Klytos\Core\MCP\Server` | class | installer/core/mcp/server.php | — | HTTP entry point handling the MCP GET and POST transport requests |
 | `Klytos\Core\MCP\TokenAuth` | class | installer/core/mcp/token-auth.php | docs/reference/mcp-authorization.md | Authenticates MCP requests (bearer, OAuth, app password) and resolves the caller's actor {user_id, role} for the gate |
-| `Klytos\Core\MCP\ToolRegistry` | class | installer/core/mcp/tool-registry.php | docs/reference/mcp-authorization.md | Registers all MCP tools, carries the request actor (setActor), and default-denies tool calls at the authorization gate |
+| `Klytos\Core\MCP\ToolNotFoundException` | class | installer/core/mcp/tool-not-found-exception.php | docs/reference/mcp-authorization.md | Thrown by ToolRegistry::call() for a mapped-but-unhandled tool (post-gate); the transport answers "Unknown tool" without masking other errors (NEW-30, D-050) |
+| `Klytos\Core\MCP\ToolRegistrationException` | class | installer/core/mcp/tool-registration-exception.php | docs/reference/mcp-authorization.md | Thrown by the tool loader (registerToolFile) when a listed file is missing or registers no tools — fail-loud (D-049) |
+| `Klytos\Core\MCP\ToolRegistry` | class | installer/core/mcp/tool-registry.php | docs/reference/mcp-authorization.md | Registers all MCP tools (loader fails loudly on a dead file — registerToolFile), carries the request actor (setActor), default-denies tool calls at the gate, and treats a mapped filter-injected tool as existing (exists) so it is callable over HTTP |
 | `Klytos\Core\MenuManager` | class | installer/core/menu-manager.php | — | Stores navigation menus and their items and renders them as HTML |
 | `Klytos\Core\MetaManager` | class | installer/core/meta-manager.php | — | Stores free-form key/value metadata attached to entities |
 | `Klytos\Core\NoticeManager` | class | installer/core/notice-manager.php | — | Creates, renders and dismisses admin notices, including transient flash messages |
