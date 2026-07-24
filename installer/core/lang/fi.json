@@ -233,7 +233,8 @@
     "confirm_revoke": "Haluatko varmasti peruuttaa tämän?",
     "show_raw_credentials": "Näytä tunnistetiedot",
     "last_activity": "Viimeisin toiminta",
-    "requests_today": "Pyynnöt tänään"
+    "requests_today": "Pyynnöt tänään",
+    "permission_denied": "Käyttö evätty: tällä yhteydellä ei ole oikeutta kutsua työkalua \"{tool}\". Pyydä sivuston omistajaa myöntämään yhteydelle tarvittava oikeus."
   },
   "plugin_license": {
     "title": "Liitännäisen lisenssi",

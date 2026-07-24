@@ -126,10 +126,38 @@ file has no entry.
 Full reference, including the matrix and the "adding a new admin page" checklist:
 `docs/reference/authorization.md`.
 
-> **Known gap, stated rather than implied:** all 172 MCP tools still have **zero** permission checks
-> (audit NEW-02) until Sprint 2. The admin surface is gated; the product's primary interface is not.
-> Separately, `Auth::login()` validates only against `config['admin_user']`, so `admin`, `editor` and
-> `viewer` accounts cannot log in through the form at all (audit NEW-11).
+## Authorization — MCP (Sprint 2, audit NEW-02 CLOSED)
+
+The MCP interface has its own enforcement point, and it must: the MCP path **never starts a
+session**, so `klytos_require_permission()` — which resolves identity from the session — would deny
+100% of MCP traffic if reused there. What the two systems share is the part that matters: **one
+capability matrix** (`UserManager::hasPermission()`) and one default-deny shape.
+
+- **Identity comes from the credential.** `TokenAuth::validate()` resolves an actor
+  `{user_id, role}`: application passwords and OAuth tokens take the role from the **user record**,
+  bearer tokens from a **stamped role** on the token (they name no user). No usable role → deny.
+- **One gate, above the plugin filter.** `ToolRegistry::call()` runs `denialReason()` *before* the
+  `mcp.handle_tool` filter, so plugin-handled tools are covered too. Refusal is a typed
+  `PermissionDeniedException`.
+- **The map is the authority, and an absent entry DENIES.** `installer/core/mcp/tool-capabilities.php`
+  maps the 172 core tools; `null` is an audited "no capability" exception with its reason in a
+  comment. Plugins and filter-injected core modules (x402) declare theirs through the
+  **`mcp.tool_capabilities`** filter. `scripts/keel-verify` check 10 fails the build when a
+  registered core tool has no entry.
+- **The refusal is a JSON-RPC error object with an explicit HTTP 403**, translated
+  (`mcp.permission_denied`, 20 locales), naming the tool but never the role or capability — the full
+  reason fires on the `mcp.access_denied` action, for the audit log.
+- **`tools/list` is filtered by the same decision**, so the advertised surface equals the usable one.
+  It is a courtesy: `tools/call` gates independently. Hiding is not access control.
+
+Full reference: `docs/reference/mcp-authorization.md`, including "Adding a new MCP tool — the
+checklist". **A new tool you do not map is denied to everyone, including the owner.**
+
+> **Known gap, stated rather than implied:** `Auth::login()` validates only against
+> `config['admin_user']`, so `admin`, `editor` and `viewer` accounts cannot log in through the form
+> at all (audit NEW-11). Both gates are correct regardless; those roles simply have no interactive
+> way to reach the admin panel yet. The MCP surface is not affected — a bearer token can be minted
+> at any role today.
 
 ## Authentication Methods (MCP)
 

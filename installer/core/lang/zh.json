@@ -233,7 +233,8 @@
     "confirm_revoke": "确定要撤销此项吗？",
     "show_raw_credentials": "显示原始凭据",
     "last_activity": "最近活动",
-    "requests_today": "今日请求数"
+    "requests_today": "今日请求数",
+    "permission_denied": "权限被拒绝：此连接无权调用工具 \"{tool}\"。请让站点所有者为此连接授予所需权限。"
   },
   "plugin_license": {
     "title": "插件许可证",

@@ -9,6 +9,23 @@ description: Guide for adding MCP (Model Context Protocol) tools to Klytos CMS �
 
 **Everything added to Klytos MUST be configurable via MCP.** MCP is the PRIMARY interface of this AI-First CMS. The admin panel is secondary. If a feature cannot be controlled by an AI via MCP, it is incomplete.
 
+## SECOND RULE — every tool declares a capability, or it is dead
+
+Since Sprint 2 (audit NEW-02) **every** `tools/call` passes a default-deny authorization gate. A tool
+with no capability entry is **refused to everyone, including the owner** — it will list as missing
+and answer 403, and that is deliberate, not a bug to work around. Registering a tool is half the
+job; mapping it is the other half:
+
+- **Core tool** (registered through `$registry->register()` in one of the 34 files under
+  `core/mcp/tools/`) → add an entry to `installer/core/mcp/tool-capabilities.php`.
+  `php scripts/keel-verify` (check 10) **fails the build** if you forget.
+- **Plugin tool, or any tool injected through `mcp.tools_list`** → declare it through the
+  **`mcp.tool_capabilities`** filter (see "Authorization" below). keel-verify cannot see these, so
+  the test is on you.
+
+Pick the capability from the ONE matrix in `UserManager::hasPermission()` — never invent one here,
+never add a second matrix. In doubt, take the higher tier: over-restriction fails safe.
+
 ---
 
 ## When to Use This Skill
@@ -217,6 +234,43 @@ return [
 | `mcp.handle_tool` | filter | `mixed $result, string $toolName, array $params` | Handle tool calls |
 | `mcp.tool_response` | filter | `array $response, string $toolName` | Modify responses before sending |
 | `mcp.tool_called` | action | `string $toolName, array $params` | Audit: tool was called |
+| `mcp.tool_capabilities` | filter | `array $map` | **Declare the capability a tool requires.** The only way a plugin or filter-injected tool becomes callable at all |
+| `mcp.access_denied` | action | `string $tool, ?string $role, string $reason` | Audit: a call was refused. Fires before the throw and **cannot reverse it** |
+
+---
+
+## Authorization — the gate every tool passes (Sprint 2)
+
+```
+ToolRegistry::call( $name )
+        └─ denialReason( $name )                    ← ONE decision, shared with listTools()
+                ├─ no usable actor?                  → deny
+                ├─ tool absent from the map?         → deny   (default-deny)
+                ├─ capability is null?               → allow  (audited exception)
+                └─ UserManager::hasPermission( role, capability )   ← the ONE matrix
+```
+
+- The gate sits **above** the `mcp.handle_tool` filter, so plugin-handled tools are gated too.
+- Identity comes from the **credential**, not a session — the MCP path never starts one. A bearer
+  token carries a stamped role; an app password or OAuth token takes the role of its user record.
+- A refusal is a JSON-RPC error object with an explicit **HTTP 403**, translated
+  (`mcp.permission_denied`, 20 locales). It names the tool, never the role or the capability.
+- `tools/list` is filtered by the same decision, so a role only sees what it can call. That is a
+  **courtesy, not the control** — `tools/call` gates independently.
+
+Declaring capabilities for a plugin's tools:
+
+```php
+klytos_add_filter( 'mcp.tool_capabilities', function ( array $map ): array {
+    $map['klytos_myplugin_list']   = 'analytics.view';   // read
+    $map['klytos_myplugin_delete'] = 'site.configure';   // write/destructive
+    return $map;
+} );
+```
+
+The filter **can weaken** a shipped capability — plugins run as first-party code here — but it
+cannot open a hole by omission: an absent entry denies. Full reference (including "Adding a new MCP
+tool — the checklist"): `docs/reference/mcp-authorization.md`.
 
 ---
 
@@ -387,7 +441,10 @@ klytos_add_filter('admin.sidebar_items', function (array $items): array {
 
 - [ ] Sanitize ALL input parameters
 - [ ] Validate required fields
-- [ ] Check permissions where appropriate
+- [ ] **Map the tool to a capability** — `tool-capabilities.php` for a core tool, the
+      `mcp.tool_capabilities` filter for a plugin/filter-injected one. Unmapped = denied to everyone
+- [ ] **Run `php scripts/keel-verify`** — check 10 fails on an unmapped registered core tool
+- [ ] **Add a gate test in both directions** — one role that may call it, one that may not
 - [ ] Return proper error messages (no stack traces)
 - [ ] Use appropriate annotations (readOnly, destructive, idempotent)
 - [ ] Declare tool in `klytos-plugin.json` under `mcp_tools`
@@ -402,4 +459,7 @@ klytos_add_filter('admin.sidebar_items', function (array $items): array {
 - JSON-RPC parser: `core/mcp/json-rpc.php`
 - Auth for MCP: `core/mcp/token-auth.php`
 - Rate limiter: `core/mcp/rate-limiter.php`
-- All tool definitions: `core/mcp/tools/` (21 files)
+- **Capability map: `core/mcp/tool-capabilities.php`** — absent entry = denied
+- All tool definitions: `core/mcp/tools/` (**34 files, 172 core tools**). Plus 8 x402 tools injected
+  by `core/x402-mcp-tools.php`, and 26 from the two shipped MCP plugins when active — 206 on disk,
+  **180 served by a default install**. Breakdown: `docs/reference/mcp-authorization.md`

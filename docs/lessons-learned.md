@@ -466,3 +466,68 @@
   the writes vanish.** Assign to a variable first (`$list = $x['k'] ?? []`) or guard the key. And the
   L-016 rule applied to migrations: assert the PERSISTED effect, never the return value — a migration
   that reports how much it changed is not evidence that anything changed.
+
+## L-018 — A "does not disclose" assertion written as a word blocklist measured the wrong property
+- Problem: slice 4 translated the client-facing MCP refusal into 20 locales, and the property worth
+  pinning is the one D-046 recorded: the message names the tool, never the caller's role or the
+  required capability (the full reason goes to the audit log through `mcp.access_denied`). The first
+  version of that test asserted the message contains none of `owner`, `admin`, `editor`, `viewer`,
+  `pages.delete`, `capability`. It failed immediately — on **English**, on the word *owner*, because
+  the message deliberately says "ask the site **owner** to grant this connection the permission it
+  requires". That clause is the half of the message that names the FIX, which is exactly what the
+  shape was designed to do.
+- Where: `tests/Unit/McpRefusalI18nTest.php`, first version, this session.
+- What failed: the test asserted on **words that could appear for a legitimate reason** instead of on
+  the thing that constitutes the disclosure. "owner" in "the site owner" is a person to contact;
+  "owner" in "role 'owner' lacks…" is the internal reason. A blocklist cannot tell them apart, and
+  the failure it produced was a **false accusation against correct content** — the noisy twin of
+  L-016's false pass. Worse, it would have gone on being wrong in the other direction later: a
+  translator writing "administrador del sitio" would have tripped it, and someone would have
+  "fixed" the translation to satisfy the test.
+- Working solution: assert on the **identifier shape** that is the disclosure — no
+  `[a-z]+\.[a-z_]+` capability token anywhere in the message, plus no use of the internal word
+  *capability* — and state in the docblock why "site owner" is not a leak, so the narrowing does not
+  read as a weakened assertion.
+- Rule for next time: **when pinning a negative security property, assert on what the leak would
+  literally look like, not on words associated with it.** Ask "could this string appear in a correct
+  message?" before adding it to a blocklist; if the answer is yes, the blocklist is measuring
+  something other than the property. This is L-016's family reached from the opposite side — that
+  lesson was about measurements that go green without observing anything, this is about one that
+  goes red without observing anything — and both have the same root: the instrument was never
+  checked against the thing it claims to detect.
+
+## L-019 — "It goes to the audit log" was true of the hook and false of the system: a seam is not a sink
+- Problem: two of this project's documents — `installer/core/mcp/server.php`'s refusal comment and
+  `docs/reference/mcp-authorization.md` — said the full reason for an MCP permission denial "went to
+  the audit log via `mcp.access_denied`". The action does fire, with the role, the capability and the
+  tool. **Nothing subscribes to it.** Neither `mcp.access_denied` nor its admin twin
+  `auth.access_denied` has a single listener anywhere in core, so on a default install every 403 and
+  every MCP refusal writes exactly nothing to `installer/data/logs-*/`, Developer Mode on or off.
+- Where: `installer/core/mcp/tool-registry.php:275`, `installer/core/helpers-global.php:507`; the
+  claim, in `server.php` and `reference/mcp-authorization.md`. Recorded as audit **NEW-32**.
+- What failed: the sentence described the **mechanism** (a hook exists, it carries the reason) and
+  was read — including by me, writing it — as describing the **outcome** (an operator can go and read
+  why a call was refused). Both halves of the sprint's own story leaned on it: the client-facing
+  message is deliberately vague *because* "the full reason went to the audit log", which is the
+  justification for not telling the caller. Take the log away and that trade is one-sided — nobody
+  learns the reason, not the caller and not the operator.
+- How it was caught, and this is the part worth keeping: **not by a reviewer reading the code, but by
+  a fresh-context checker following the documentation and finding nothing at the end of it.** Two
+  review subagents had read this exact code path across three slices without noticing, because the
+  hook is right there and reads like plumbing that works. The playground-QA pass was handed "the
+  debug log is ON, paste it when something fails", walked a session full of refusals, and came back
+  with an empty log — reporting the document as defective. The document was defective, and so was
+  the belief behind it.
+- Working solution: the wording is corrected everywhere to say the reason goes to the
+  `mcp.access_denied` **action** — the audit *seam* — with the plain statement that no core listener
+  subscribes and a one-line snippet for operators who want it logged. The gap itself is recorded as
+  NEW-32 with a trigger rather than fixed at sprint close, because "log every refusal by default"
+  carries real volume and content decisions that belong to a slice, not to a close-out.
+- Rule for next time: **when a document claims something is logged, recorded, audited, notified or
+  persisted, follow it to the code that WRITES it — a hook, an event, a callback or an interface is a
+  seam, and a seam with no subscriber produces nothing.** Grep for the listener, not for the emitter.
+  This is L-002 ("do not assert what the code does not do") narrowed to the specific shape that keeps
+  slipping past code review: an extension point mistaken for an implementation. And a second, cheaper
+  rule from the same finding: **the fresh-context pass is not a formality.** It is the only check in
+  this project's process that reads the docs as promises rather than as description, which is exactly
+  what a user does.

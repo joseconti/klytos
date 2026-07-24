@@ -1761,6 +1761,169 @@ Two stale `scripts/keel-verify` comments ("integrity-tools.php … dead until sl
 169") were corrected to the 34-file/172-tool reality. Inner-paren style left as-is (file precedent;
 phpcs.xml clean).
 
+### Slice 4 — reconciliation, count truth, refusal i18n, skills, and the `ai.use` widening — evidence (commands and output, 2026-07-24)
+
+The sprint-closing slice. Five things landed: the **count truth** across every surface; the
+`authorization.md` forward reference **closed** and "Adding a new MCP tool — the checklist" written;
+the client-facing refusal **translated into all 20 locales**; **eight** skills brought level with
+slices 2–3; and **`ai.use` widened to `editor`** (D-051, user-confirmed, superseding D-035 at its own
+recorded trigger).
+
+#### The counts, measured live rather than carried forward (L-015)
+
+Every figure was re-derived on a booted playground — an owner `tools/list` grouped by prefix — because
+the plan's own numbers (177 served / 169 live / 3 dead) were all stale after slice 3.
+
+```
+$ curl -s -X POST http://127.0.0.1:8083/installer/mcp -H "Authorization: Bearer $TOK_OWNER" \
+    -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | python3 -c ...
+  TOTAL served to owner: 206
+    x402    : 8
+    forms   : 16
+    importer: 10
+    core loader (rest): 172
+```
+
+So: **172** core + **8** x402 = **180 on a default install** (neither MCP plugin is active —
+`$state['active'][$id] ?? false`), **206** with both plugins active (the playground, and the figure
+`docs/api/INDEX.md` records for tools on disk), **0** dead. Corrected across `04-adoption-audit.md`,
+`01-discovery.md`, `03-technical-plan.md`, `playground.md`, `reference/mcp-authorization.md` and the
+skills; the historical 177/169 figures are annotated as superseded, not rewritten.
+
+#### Per-role × per-tool matrix, on the wire (the table now in `docs/playground.md` §3a)
+
+Four bearer tokens, one per role; HTTP status of `tools/call`:
+
+```
+tool                    owner  admin editor viewer
+klytos_get_page           200    200    200    200
+klytos_delete_page        200    200    403    403
+klytos_x402_get_config    200    200    200    403
+klytos_forms_list         200    200    403    403
+klytos_integrity_status   200    200    403    403
+tools/list size           206    197     56     19
+```
+
+The refusal body, live — from the catalogue, not a literal:
+
+```
+{"jsonrpc":"2.0","error":{"code":-32000,"message":"Permission denied: not authorized to call the
+tool 'klytos_delete_page'. Ask the site owner to grant this connection the permission it requires."},"id":1}   403
+```
+
+An unmapped name is a **protocol** error, not a refusal — `-32602` with **HTTP 200** — which is why
+the two are worth distinguishing in the document:
+
+```
+$ ... "params":{"name":"klytos_not_a_tool"}
+  {"jsonrpc":"2.0","error":{"code":-32602,"message":"Invalid params: Unknown tool: klytos_not_a_tool"},"id":1}
+  200
+```
+
+#### Full suite (185 → 190) and the gates
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (190 tests, 951 assertions)      # +5: 4 refusal-i18n unit, 1 HTTP catalogue assertion
+$ php scripts/keel-verify ; echo exit=$?
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+  exit=0
+  PASS  locale catalogues agree on their key set (120 files across 6 sets)   # 20 × mcp.permission_denied
+  PASS  every registered MCP tool has a capability-map entry (172 tools)
+  PASS  docs/api/INDEX.md summary counts match its rows                      # Classes 100 / Total 955
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+Lint (D-025) held **exactly**, measured per scope with no default value (L-016): core+admin
+**193/488**, plugins **113/109**, tests **0/0**, installer/public **0/0**, scripts **0/2**.
+
+#### Proven to FAIL against the unfixed code, both changes (L-016)
+
+The i18n change, with the 20 catalogue edits reverted (`git checkout -- installer/core/lang`):
+
+```
+FAILURES!  Tests: 4, Assertions: 5, Failures: 4
+  - ca.json must carry mcp.permission_denied …
+  - the ca refusal must name the tool the caller asked for  (I18n echoed the key back)
+  - the es refusal is byte-identical to English — it was not translated
+  - the ca refusal contains a capability identifier …
+```
+
+The widening, with `ai.use` reverted to `['owner','admin']`:
+
+```
+FAILURES!  Tests: 17, Assertions: 66, Failures: 2
+  1) AdminGateHttpTest — installer/admin/ai-chat.php as editor: expected 200, got 403
+  2) AdminGateMapTest  — Role editor must hold ai.use …
+```
+
+Both restored and re-run green. The HTTP failure is the one that matters: the widening is asserted
+on the wire, not by re-reading the matrix.
+
+#### One instrument caught, recorded as L-018
+
+The first version of the non-disclosure test blocked the word *owner* and failed on the **English**
+message, which deliberately says "ask the site **owner**" — the person to contact, not the caller's
+role. A word blocklist could not tell a legitimate use from the internal reason, so the assertion was
+narrowed to the capability-identifier shape (`[a-z]+\.[a-z_]+`). A false accusation against correct
+content: L-016's failure mode from the opposite side.
+
+#### The four independent passes at the sprint close (the part that changed the slice)
+
+```
+code-reviewer    : no blocking. One stale why-comment (admin-gate.php: "Owner+admin only
+                   while NEW-02 is open") — fixed.
+security-auditor : THREE blocking. Two real → NEW-31, fixed in path. One verified and
+                   deliberately retained (chat-engine surfaces the denial reason to the
+                   operator's own session; reasoning recorded in D-051).
+docs-verifier    : clean. INDEX parity, every Sprint-2 symbol resolves, examples correct,
+                   counts consistent. Out-of-scope catch: README "33 tool modules" → 34.
+playground-QA    : "qualified yes". §3a FLAWLESS — every cell of the per-role matrix matched.
+                   8 defects elsewhere in playground.md, all fixed before the close.
+```
+
+**NEW-31, proven both directions after the fix:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter "testAiChatPanels|testAiChatApiDoesNotDisclose"
+  # against the UNFIXED code:
+  FAILURES!  Tests: 2, Assertions: 3, Failures: 2
+    - An editor holds ai.use but not users.manage, so ?panel=users must refuse
+      Failed asserting that 200 is identical to 403.      ← editor reached USER MANAGEMENT
+    - An editor must not enumerate provider keys
+      Failed asserting that 200 is identical to 403.      ← editor read 6+4 chars of every API key
+  # after the fix:
+  OK (12 tests, 47 assertions)
+```
+
+**The playground-QA pass's own headline finding, reproduced and fixed:** its section-1 server ran on
+**8099**, which is `upgrade-test.sh`'s default port, so the upgrade test talked to the router instead
+of the release installer and failed with `the installer did not produce an admin directory` —
+a fabricated failure with no mention of a port. Section 1 now runs on its own `$RPORT`, and the
+corrected flow was walked end to end (`viewer → users.php` **403**, `viewer → api/plugins.php`
+**403** on `$RPORT=8093`).
+
+**And the finding that reached the code:** the debug-log section promised entries that nothing
+writes. `mcp.access_denied` and `auth.access_denied` have **no core listener** (grep, whole tree
+minus vendor), so a refusal writes nothing. Recorded as **NEW-32**; the "went to the audit log"
+wording corrected in `installer/core/mcp/server.php` and `docs/reference/mcp-authorization.md`;
+lesson **L-019**.
+
+#### Final gate state at the close
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (192 tests, 961 assertions)          # sprint start: 142/617
+$ php scripts/keel-verify ; echo exit=$?
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+  exit=0
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+$ vendor/bin/phpcs --standard=phpcs.xml …   # per scope, no default value (L-016)
+  core+admin 193/488 · plugins 113/109 · tests 0/0 · installer/public 0/0 · scripts 0/2
+```
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1783,6 +1946,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-22 (Sprint 2 slice 2 session) | documented commands on a verified-free **8106** (`nc -z` clean; 8080 not touched) | MCP **401** unauthenticated (freshness); then a live slice-2 walk on the same boot — viewer bearer `tools/call klytos_delete_page` → **403** JSON-RPC error, owner bearer allowed (**200**), viewer `tools/list` = **19 tools** (no destructive), owner = **169**. The 95-test integration tier had already booted the real App on the seeded playground first | yes |
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 | 2026-07-23 (Sprint 2 slice 3 session) | port 8080/8090 skipped (known-held, L-011); booted on a `nc -z`-verified-free **8091** | MCP **401** unauthenticated, **no `Server:` header** (PHP built-in). Then a live slice-3 walk on a verified-free **8092**: owner `tools/list` = **206** (172 core + 8 x402 + 16 forms + 10 importer — integrity and both shipped plugins now live), owner `tools/call klytos_forms_list` → **HTTP 200** (NEW-30: was "Unknown tool" pre-slice). The 100+-test integration tier had booted the real App on the seeded playground first | yes |
+| 2026-07-24 (Sprint 2 slice 4 session) | documented commands; 8080/8081/8082/8090 skipped (known-held, L-011), booted on an `nc -z`-verified-free **8083** | MCP **401** unauthenticated (freshness). Then the whole of `docs/playground.md` §3a run for real on the same boot: four per-role bearer tokens minted with the documented one-liner, the full 5-tool × 4-role `tools/call` matrix (206/197/56/19 on `tools/list`), the translated 403 body, and the unmapped-tool protocol error. **Two commands in the newly-written §3a were wrong when first drafted and were corrected against the real output before the document was saved**: `grep -c '"name"'` counts 1 (the response is one line — and tool schemas carry `name` too), and the unmapped-tool call answers **200** with `-32602`, not a non-200 | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

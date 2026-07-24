@@ -92,6 +92,20 @@ try {
             Helpers::jsonResponse(['success' => true, 'chats' => $chats]);
 
         } elseif ($action === 'get_providers') {
+            // Requires site.configure like every other key-management action in
+            // this file, because listProviders() includes masked_key — the first
+            // 6 and last 4 characters of each configured API key
+            // (AiKeyManager::getMasked()). This file is gated at ai.use, which
+            // was the same owner+admin set as site.configure until D-051 widened
+            // ai.use to editor; the omission was invisible while the two sets
+            // coincided and became a real disclosure the moment they diverged
+            // (audit NEW-31). The chat itself never needs this action — it has
+            // no caller in the product, and ai-chat.php renders the provider
+            // list server-side from the same manager without the masked key.
+            if (!klytos_has_permission('site.configure')) {
+                Helpers::jsonResponse(['error' => 'Permission denied'], 403);
+            }
+
             Helpers::jsonResponse([
                 'success'   => true,
                 'providers' => $keys->listProviders(),

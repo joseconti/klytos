@@ -155,18 +155,23 @@ final class AdminGateMapTest extends IntegrationTestCase
             }
         }
 
-        // ai.use is deliberately owner+admin while NEW-02 is open: the chat
-        // executes MCP tools, and the tool layer has no permission checks yet.
-        $this->actingAs( 'owner' );
-        self::assertTrue( klytos_has_permission( 'ai.use' ) );
-        $this->actingAs( 'admin' );
-        self::assertTrue( klytos_has_permission( 'ai.use' ) );
-        $this->actingAs( 'editor' );
-        self::assertFalse(
-            klytos_has_permission( 'ai.use' ),
-            'An editor must NOT hold ai.use while NEW-02 is open — reaching the AI chat is '
-            . 'owner-equivalent power until Sprint 2 gates the MCP tool layer.'
-        );
+        // ai.use includes editor since Sprint 2 slice 4 (D-051, superseding
+        // D-035 on its own recorded trigger). D-035 excluded editor for ONE
+        // stated reason — NEW-02 left the MCP tool layer ungated, so the chat
+        // amplified any role to owner. Sprint 2 closed that: the chat's tool
+        // calls go through the same default-deny gate carrying the caller's own
+        // role, so an editor in the chat can do exactly what an editor may do.
+        foreach ( [ 'owner', 'admin', 'editor' ] as $role ) {
+            $this->actingAs( $role );
+            self::assertTrue(
+                klytos_has_permission( 'ai.use' ),
+                "Role {$role} must hold ai.use — the AI chat no longer amplifies a role, "
+                . 'because ToolRegistry::call() gates every tool with the caller\'s own role (D-051).'
+            );
+        }
+
+        // Viewer stays out: a read-only role has no authoring work for an agent
+        // to do, and the gate would refuse nearly everything it asked for.
         $this->actingAs( 'viewer' );
         self::assertFalse( klytos_has_permission( 'ai.use' ) );
 

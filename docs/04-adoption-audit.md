@@ -45,9 +45,16 @@ Each finding's own section carries its closure note and the test that pins it; t
 | **S-11** no HSTS + the CSP fail-open | **CLOSED** | slice 8 (HSTS added, HTTPS-only and without `includeSubDomains` per D-044; the CSP now fails closed to `script-src 'self'`) |
 | **NEW-14** no admin API endpoint sends security headers | **CLOSED** | slice 8 (ONE enforcement point in `admin/bootstrap.php`; the gap was **25** surfaces, not 24 — see the corrected entry below; **NEW-21**/**NEW-22**/**NEW-23** recorded) |
 
-Stated plainly so the closures are not read as more than they are: **the admin surface is gated and
-the product's primary interface is not.** All 172 MCP tools still have zero permission checks
-(**NEW-02**, Sprint 2 per D-020), and only `config['admin_user']` can actually log in (**NEW-11**).
+| **NEW-02** MCP tools have zero authorization | **CLOSED** | Sprint 2 (slices 1–4): actor from the credential, ONE default-deny gate in `ToolRegistry::call()`, central capability map, `tools/list` filtered, keel-verify check 10, the loader fails loudly, both shipped MCP plugins + x402 + integrity gated, **NEW-30** resolved, the refusal translated in 20 locales |
+| **NEW-30** filter-injected tools uncallable over HTTP | **CLOSED** | Sprint 2 slice 3 (D-050) |
+
+Stated plainly so the closures are not read as more than they are. **The admin surface and the
+product's primary interface are now both gated** — that sentence used to end "and the primary
+interface is not", and Sprint 2 is what changed it. What is still true: only `config['admin_user']`
+can actually log in (**NEW-11**), so the multi-role system the two gates enforce has, in production,
+exactly one role that can reach the admin panel interactively. The MCP surface does not share that
+limit — a bearer token can be minted at any role today, which is why the sprint's end-to-end proof
+is a `role=viewer` bearer token refused a destructive tool over real HTTP.
 
 ### Re-validation, 2026-07-18 (Phase 5 Sprint 1 kickoff) — three claims corrected, two findings added
 
@@ -450,7 +457,7 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   (`tests/Integration/V1MigrationTest.php`). Side effect exposed by the fix and recorded rather than
   absorbed: **NEW-08**.
 
-### NEW-02 — MCP tools have zero authorization: 172 tools, 0 permission checks — **CRITICAL** *(found 2026-07-18, Sprint 1 kickoff re-validation)*
+### NEW-02 — MCP tools have zero authorization: 172 tools, 0 permission checks — **CRITICAL** — **CLOSED 2026-07-24 (Sprint 2, slices 1–4)** *(found 2026-07-18, Sprint 1 kickoff re-validation)*
 - **Where:** `installer/core/mcp/tools/` — all 34 files, 172 registered tools.
   `klytos_has_permission` appears **zero** times across the entire directory.
 - **What:** MCP authentication (`token-auth.php` — Bearer, OAuth access token, or HTTP Basic app
@@ -484,6 +491,40 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   session to the **least**-privileged role. The unrecognized-role hole is untouched and belongs to
   Sprint 2's enforcement point, which must default-deny on any role it does not know rather than
   filter by exception.
+- **CLOSED 2026-07-24 — Sprint 2, four slices.** What actually closes it, in the order it was built:
+  1. **Identity (slice 1, D-047).** There is no session on the MCP path, so the recorded one-line
+     remediation ("reuse `klytos_require_permission()` at the ToolRegistry enforcement point") would
+     have **denied 100% of MCP traffic**. `TokenAuth::validate()` now resolves an actor
+     `{user_id, role}` from the credential itself; an idempotent boot migration stamps the installed
+     base's role-less bearer tokens `owner`, proven on a real v0.30.1 upgrade.
+  2. **The gate (slice 2, D-046/D-048).** ONE default-deny decision (`denialReason()`) in
+     `ToolRegistry::call()`, **above** the `mcp.handle_tool` filter so plugin-handled tools are
+     covered, asking `UserManager::hasPermission()` — the ONE matrix (S-04), not a second one. A
+     central `tool-capabilities.php` map where an **absent entry denies**; `tools/list` filtered by
+     the same decision; a JSON-RPC error object with an explicit **HTTP 403**; a `mcp.access_denied`
+     audit action; **keel-verify check 10** failing the build when a registered core tool has no
+     entry.
+  3. **Coverage (slice 3, D-049/D-050).** The loader fails loudly instead of skipping a file that
+     registers nothing; the 3 dead integrity tools wired in and gated; x402 and both shipped MCP
+     plugins declare their capabilities through `mcp.tool_capabilities`; filter-injected tools made
+     callable over HTTP so they are gated rather than merely unreachable (**NEW-30**); the AI-chat
+     advisory list default-denies an unknown role — the fail-open sharpened above.
+  4. **Reconciliation (slice 4, D-051).** The count truth (172 core + 8 x402 = **180** on a default
+     install, **206** with both MCP plugins active, **0** dead), the refusal message translated into
+     all 20 locales, the "adding a new MCP tool" checklist, and `ai.use` widened to `editor` —
+     because *this* finding is what kept the editor out of the AI chat (D-035).
+  - **The evidence, not the claim:** a `role=viewer` bearer token refused `klytos_delete_page` with a
+    JSON-RPC error object and HTTP 403 on the wire, an owner allowed the same tool, an editor refused
+    a `forms.manage` plugin tool and allowed an `x402.view` read, `tools/list` = 206/197/56/19 for
+    owner/admin/editor/viewer. Every refusal test was proven to FAIL against the ungated code before
+    being trusted. Full reference: `docs/reference/mcp-authorization.md`.
+  - **The honest residue, recorded rather than implied away:** the gate's power-*reducing* effect is
+    latent for credentials that already exist, because every one of them resolves to `owner` (an app
+    password is pinned to the admin user, and pre-Sprint-2 bearer tokens migrate to owner — which
+    records what was already true). Reducing power requires minting a credential at a lower role, and
+    today that means a bearer token; per-role application passwords wait on **NEW-11**. A bearer
+    token also names no user, so an owner bearer is an **unattributed** owner credential in the audit
+    log.
 
 ### NEW-03 — By-reference action listeners are silently broken; every page create warns — **HIGH** *(found 2026-07-18, Sprint 1 slice 0, by booting the playground)*
 - **Where:** `installer/core/hooks.php:124` (`doAction( string $hook, mixed ...$args )`) and `:145`
@@ -573,6 +614,19 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   just the obvious one.
 
 ### NEW-05 — Five CVEs in the vendored HTTP stack — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2, by the first `composer audit` this project has ever been able to run)*
+- **Advisory count re-measured 2026-07-24 (Sprint 2 close): it has grown from 5 to 11.** `composer audit -d installer`
+  now reports **11 advisories across the same 2 packages** — 7 in `guzzlehttp/guzzle` 7.10.0 and 4 in
+  `guzzlehttp/psr7` 2.9.0, all medium, same pinned versions. New since the 2026-07-19 triage:
+  **CVE-2026-59882** (psr7, *Host Confusion via Weak URI Host Validation* — worth a second look
+  against **NEW-15**/`SafeHttp`, since host confusion is the family SSRF validation depends on),
+  **CVE-2026-59883** (guzzle, cookie disclosure/injection via IP-address domains), plus guzzle
+  advisories for Proxy-Authorization headers reaching origin servers, unbounded response cookies,
+  host-only cookie scope, and URI fragments leaking in `Referer`. **D-029's scope is NOT re-opened
+  here** — the remediation is still "bump guzzle ≥ 7.12.1 and psr7 ≥ 2.12.1, re-audit to zero", which
+  these additions do not change. What changes is the reachability assessment that slice must redo:
+  the original one turned on "no cookie jar, no user-controllable URL in the AI module", and two of
+  the new advisories are about URI/host parsing rather than cookies. Recorded so the queued slice
+  starts from today's list, not from the 5 it was triaged with.
 - **Where:** `installer/vendor-ai/guzzlehttp/guzzle` 7.10.0 and `installer/vendor-ai/guzzlehttp/psr7` 2.9.0
 - **What:** `composer audit` against the reconstructed manifest (D-028) reports **5 advisories across
   2 packages**, all severity *medium*. Full output in `docs/05-test-points.md` (slice 2 evidence).
@@ -1158,6 +1212,27 @@ documentation sprint now.
 strong — extensibility — the project undersells itself by more than five times on hooks. Same root
 cause as H-01/H-03: nothing reconciles the docs with reality at release.
 
+**Sharpened 2026-07-24 (Sprint 2 slice 4, surfaced by the sprint-close `docs-verifier`), and
+deliberately only half-fixed.** "33 tool modules" was **false** (there are 34 loader files since
+slice 3 wired `integrity-tools.php` in) and was corrected in the three places it appears —
+a one-word factual count this sprint is directly responsible for. The rest is **not** fixed and is
+recorded here rather than half-done: README's per-module table has 34 rows summing to **177**, a
+figure that describes the pre-slice-3 world, and its row labels no longer map one-to-one onto the
+loader's files (e.g. one "Template Tools" row covers both `template-tools.php` and `part-tools.php`).
+Regenerating it is an editorial pass on the public README, which belongs with the D-017 repositioning
+in Phase 6, not inside a security sprint. "160+ tools" is left alone because it is **true** (206 ≥
+160) — understated marketing copy, not a false claim.
+
+To spare Phase 6 the re-derivation, the measured per-file counts (2026-07-24, `$registry->register(`
+per file, summing to exactly the 172 that keel-verify check 10 independently reports) are:
+`asset` 13 · `template` 15 · `post-type` 12 · `custom-field` 11 · `page` 11 · `page-template` 9 ·
+`block` 8 · `build` 6 · `comment` 6 · `consent` 6 · `part` 6 · `scheduler` 5 · `task` 5 ·
+`theme` 5 · `user` 5 · `webhook` 5 · `menu` 4 · `option` 4 · `post-status` 4 · `translation` 4 ·
+`version` 4 · `ai` 3 · `integrity` 3 · `plugin` 3 · `ai-image` 2 · `analytics` 2 · `guide` 2 ·
+`maintenance` 2 · `site` 2 · `bulk` 1 · `export` 1 · `shortcode` 1 · `site-builder` 1 ·
+`site-health` 1. Plus **8** x402 tools injected by filter, so a default install serves **180** and
+a install with both shipped MCP plugins active serves **206**.
+
 ### D-02 — Docs describe intent more accurately than the code implements it — **MEDIUM**
 The systemic pattern behind A-07 and S-04: 31 `klytos-*` skills assert properties (WCAG compliance,
 an enforced role matrix) the code does not have. Recorded as L-002 with the rule for next time.
@@ -1494,6 +1569,106 @@ verified test point with a recorded files-updated count.
   dry-run/`can_handle` signal) before rejecting, OR narrow the "covers plugin tools" claim in
   `docs/reference/mcp-authorization.md` to the chat path and accept HTTP as register-only.
 - **Trigger:** **slice 3** (filter-injected tool reconciliation), where it is in scope by construction.
+
+### NEW-31 — The AI chat's panels carry no permission check of their own: `ai.use` reached user management and site settings — **HIGH** — **FIXED 2026-07-24 (Sprint 2 slice 4, in path)** *(found 2026-07-24 by the sprint-close `security-auditor` pass on D-051)*
+- **Where:** `installer/admin/ai-chat.php` (panel routing), `installer/admin/partials/ai-panel-users.php`,
+  `ai-panel-settings.php`, `ai-panel-dashboard.php`, `ai-panel-profile.php` (**zero**
+  `klytos_has_permission` calls between them, verified by count), and
+  `installer/admin/api/ai-chat.php` (`get_providers`).
+- **What:** `admin/ai-chat.php` is gated at `ai.use` by the gate map, and then `require_once`s
+  `partials/ai-panel-{$panel}.php` for a caller-supplied `?panel=`. The partials are privileged
+  surfaces reached through a different door: `ai-panel-users.php` runs `create`, `update_user`,
+  `suspend`, `activate`, `send_password_reset` and `force_logout` behind **CSRF alone** — work
+  `admin/users.php` reserves to `users.manage` (**owner-only**) — and `update_user` passes
+  `$_POST['password']` to `changePassword()` for an arbitrary `user_id`. `ai-panel-settings.php`
+  writes site, email and SMTP settings that `admin/settings.php` reserves to `site.configure`.
+  Separately, `api/ai-chat.php`'s `get_providers` returns `masked_key` (the first 6 and last 4
+  characters of every configured AI provider key) with no check, while the four sibling
+  key-management actions in the same file all require `site.configure`.
+- **The escalation, stated precisely rather than dramatically.** Two of the auditor's routes do not
+  exist: `UserManager::create()` refuses a second owner (`user-manager.php:111`) and `update()`
+  refuses `role = owner` outright (`:209`), so *becoming* owner directly is blocked. What is real:
+  a holder of `ai.use` could **create an `admin` account** and could **set any existing account's
+  password**, including the owner's — which is account takeover by a longer path. That is a genuine
+  escalation for `admin` **today**, before any of this sprint's work: admin holds `ai.use` and does
+  not hold `users.manage`.
+- **Why it was invisible:** `ai.use` and the capabilities these panels need were the *same set*
+  (owner+admin) from the moment `ai.use` was created (D-035), so no request could observe the
+  difference. **D-051 split the sets**, and the gap became reachable one tier lower. This is the
+  S-07 family — a privileged surface trusting the file that included it — one door further in, and
+  it is the third time in this project that a capability check was missing precisely where two
+  capabilities happened to coincide.
+- **Fixed in path (D-031's narrowing; the slice's own subject is authorization).** Panel routing in
+  `ai-chat.php` now carries a **panel → capability map** mirroring each panel's standalone twin in
+  the gate map (`users` → `users.manage`, `settings` → `site.configure`, `dashboard` →
+  `pages.view`, `profile` → `profile.edit`), with an **absent entry denying**, so a fifth panel is
+  refused until it is mapped. It runs **before** `templates/header.php`, so a refusal is a clean 403
+  document and not a denial appended to half-rendered HTML. `get_providers` now requires
+  `site.configure` like its four siblings; it has **no caller in the product**, and `ai-chat.php`
+  renders the provider list server-side from the same manager without ever using `masked_key`, so
+  nothing breaks.
+- **Proven, both directions:** `AdminGateHttpTest::testAiChatPanelsRequireTheirOwnTierNotJustAiUse`
+  and `::testAiChatApiDoesNotDiscloseProviderKeysBelowSiteConfigure`. Against the unfixed code an
+  editor received **200** on `?panel=users` and **200** on `get_providers`; both now 403, while the
+  owner still gets 200 and an editor still reaches the chat itself and the two unprivileged panels.
+- **Not exploitable on a current install** — NEW-11 means no `admin` or `editor` account can log in
+  at all — which is why it survived: the roles that could reach it have no way in. Recorded here so
+  the NEW-11 slice does not open the door with this behind it.
+- **Related and NOT fixed:** `klytos_ai_list_providers`'s tool description claims it "Does NOT
+  expose API keys" while `listProviders()` returns `masked_key`. The tool is mapped `mcp.manage`
+  (owner/admin), so the claim is wrong but the exposure is contained. L-002 shape; bound to the next
+  slice touching `ai-tools.php`.
+
+### NEW-32 — The authorization audit hooks are a seam with no sink: refusals write nothing to the log — **MEDIUM** *(found 2026-07-24 by the Sprint 2 sprint-close playground-QA pass)*
+- **Where:** `installer/core/mcp/tool-registry.php:275` fires `mcp.access_denied`;
+  `installer/core/helpers-global.php:507` fires `auth.access_denied`. **Neither has a single listener
+  anywhere in core** (verified by grep across `installer/`, excluding vendor).
+- **What:** both gates hand the full refusal reason — the role, the capability, the surface or tool —
+  to an action hook, and nothing subscribes. So on a default install every admin 403 and every MCP
+  permission denial leaves **no trace at all** in `installer/data/logs-*/`. Developer Mode being ON
+  changes nothing: `Logger::write()` only records what some code asks it to record, and no code asks.
+- **How it was found, which is the point:** the sprint-close playground-QA pass was told the debug log
+  is ON and asked to paste it after a walkthrough that produced 401s, 403s, MCP denials and 429s. It
+  came back with an empty log and reported the *document* as defective. The document was defective —
+  it promised a log — but so was the mental model behind it: two of this project's own reference
+  documents said the refusal reason "went to the audit log", which is a claim the code does not make
+  good on by itself. That wording is corrected in `installer/core/mcp/server.php` and
+  `docs/reference/mcp-authorization.md`; the gap itself is recorded here.
+- **Why it matters beyond documentation:** an authorization system that refuses silently cannot be
+  operated. Nobody can answer "is something probing us?" or "which capability is my integration
+  missing?" without a record, and the sprint's own hand-to-the-user step ("copy the debug log when
+  something fails") returns nothing for exactly the failures the sprint built.
+- **Fix shape (a decision, not an obvious yes):** subscribe a core listener that logs both actions at
+  warning level. It is ~10 lines and reuses `klytos_log_warning()`. What makes it a *decision* rather
+  than a chore is volume and content: every refusal writes a line, refusals can be driven by an
+  anonymous caller (rate-limited, but still), and the entry names a role and a capability — so it
+  needs a deliberate answer on retention and on whether the reason belongs in a file an operator
+  might share. Default-on with the reason included is the likely right answer; it is not mine to
+  assume.
+- **NOT fixed in slice 4** — it is a behaviour change to logging discovered at the sprint close, with
+  a real design question attached, and inventing an answer at close time is how a sprint acquires
+  unreviewed behaviour. **Trigger:** the next slice touching logging or the audit trail, or the
+  NEW-11 authentication slice (which will add refusals of its own).
+
+### NEW-33 — The terminal/CLI's own strings are hardcoded Spanish — **LOW** *(found 2026-07-24 by the Sprint 2 sprint-close playground-QA pass)*
+- **Where:** `installer/core/terminal-executor.php` (e.g. `:656` `"Comandos disponibles:\n\n"`), and
+  the same file's other operator-facing literals.
+- **What:** `php installer/cli.php help` answers *"Comandos disponibles:"*, and `logs` answers *"No
+  hay archivos de log."*, regardless of the site's configured language. The project's recorded base
+  language is **English** with every user-facing string coming from the 20 catalogues (D-006); these
+  bypass the catalogues entirely and are the wrong language into the bargain.
+- **Why it survived:** the terminal is a developer surface, and the one developer who used it reads
+  Spanish. It is the mirror image of **NEW-18** (the global `__()` is unavailable outside `admin/`,
+  so public entry points hardcoded **English**): the same missing i18n reachability, resolved by
+  whichever language the author was thinking in.
+- **Severity LOW and honest about it:** nothing is insecure and nothing is broken; it is a
+  correctness and consistency defect in a surface real operators do read. It also makes a
+  playground-QA pass hesitate — a fresh reader matching documented English output against Spanish
+  output cannot tell a translation gap from a wrong install.
+- **Fix shape:** route those strings through the I18n **service** (the `installer/public/comment-submit.php`
+  pattern — the global `__()` is not available in `cli.php` either) and add the keys to all 20
+  catalogues. **Trigger:** the next slice touching `terminal-executor.php`, or the NEW-18 resolution,
+  which owns the underlying `__()` reachability problem.
 
 ---
 

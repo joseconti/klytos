@@ -233,7 +233,8 @@
     "confirm_revoke": "Er du sikker pa at du vil trekke dette tilbake?",
     "show_raw_credentials": "Vis ralegitimering",
     "last_activity": "Siste aktivitet",
-    "requests_today": "Foresporsler i dag"
+    "requests_today": "Foresporsler i dag",
+    "permission_denied": "Tilgang nektet: denne tilkoblingen har ikke tillatelse til å kalle verktøyet «{tool}». Be nettstedets eier om å gi tilkoblingen den nødvendige rettigheten."
   },
   "plugin_license": {
     "title": "Plugin-lisens",

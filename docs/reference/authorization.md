@@ -52,16 +52,21 @@ Roles: `owner` (holds everything, by shortcut), `admin`, `editor`, `viewer`.
 | `security.self` *(slice 4)* | ✓ | ✓ | ✓ | ✓ |
 | `ui.preferences` *(slice 4)* | ✓ | ✓ | ✓ | ✓ |
 | `setup.run` *(slice 4)* | ✓ | | | |
-| `ai.use` *(slice 4)* | ✓ | ✓ | | |
+| `ai.use` *(Sprint 1 slice 4; widened Sprint 2 slice 4)* | ✓ | ✓ | ✓ | |
 
 **Unknown keys deny.** A permission the matrix does not define resolves to an empty allow-list, so a
 typo denies rather than grants — for every role except `owner`, whose shortcut returns before the
 matrix is consulted.
 
-**`ai.use` is deliberately narrow.** The AI chat executes MCP tools, and the MCP tool layer has no
-permission checks at all until Sprint 2 (audit **NEW-02**, decision **D-020**). Until then, reaching
-that surface is owner-equivalent power regardless of the caller's role, so `editor` is excluded.
-Revisit at Sprint 2 close.
+**`ai.use` was narrow for one reason, and that reason expired.** D-035 excluded `editor` because the
+AI chat executes MCP tools and the MCP tool layer had **no** permission checks (NEW-02), so reaching
+that surface was owner-equivalent power whatever the caller's role. Sprint 2 closed NEW-02: every
+tool call the chat makes now passes the default-deny gate carrying the **caller's own** role, so an
+editor in the chat can do exactly what an editor may do. Widened to `editor` at Sprint 2 close on
+D-035's own recorded trigger — **D-051**, which supersedes it. `viewer` stays out: a read-only role
+has no authoring work for an agent to do, and the gate would refuse nearly everything it asked for.
+Asserted on the wire, not in the matrix: `AdminGateHttpTest` expects `ai-chat.php` → 200 for editor,
+403 for viewer.
 
 ## The central gate
 
@@ -216,9 +221,22 @@ klytos_add_filter( 'auth.capabilities', function ( array $caps ): array {
 
 ## What this does NOT cover
 
-- **MCP tools.** All 172 of them still have zero permission checks (**NEW-02**, Sprint 2 per
-  **D-020**). When Sprint 1 closes, the admin surface is gated and the product's primary interface is
-  not. Sprint 2 reuses `klytos_require_permission()` at the `ToolRegistry` enforcement point.
+- **MCP tools — no longer a gap, and NOT gated by this system.** Sprint 2 closed **NEW-02**: every
+  MCP `tools/call` passes a default-deny gate in `ToolRegistry::call()`, and `tools/list` is
+  filtered by the same decision. See **`docs/reference/mcp-authorization.md`**, which owns that
+  surface end to end (the actor, the capability map, the refusal shape, the checklist for adding a
+  tool).
+
+  It is a **separate enforcement point on purpose**, and the reason is worth keeping: the MCP path
+  never starts a session, so `klytos_require_permission()` — which resolves identity from the
+  session — would deny 100% of MCP traffic if reused there. What the two systems **do** share is
+  the thing that matters: one capability matrix (`UserManager::hasPermission()`, S-04) and one
+  default-deny shape (an absent map entry refuses). Two gates, one decision.
+
+  This paragraph previously read "all 172 of them still have zero permission checks", with Sprint 2
+  planned as "reuse `klytos_require_permission()` at the `ToolRegistry` enforcement point". Both
+  halves are now false — the second was refuted at the sprint's kickoff re-validation before any
+  code was written (D-046).
 - **Authentication.** `Auth::login()` validates only against `config['admin_user']`, so `admin`,
   `editor` and `viewer` accounts cannot log in through the form at all (**NEW-11**). The gate is
   correct regardless; the roles simply have no way to reach it interactively yet.

@@ -233,7 +233,8 @@
     "confirm_revoke": "Esteu segur que voleu revocar-ho?",
     "show_raw_credentials": "Mostra les credencials",
     "last_activity": "Última activitat",
-    "requests_today": "Peticions avui"
+    "requests_today": "Peticions avui",
+    "permission_denied": "Permís denegat: aquesta connexió no està autoritzada a cridar l'eina «{tool}». Demana al propietari del lloc que li concedeixi el permís necessari."
   },
   "plugin_license": {
     "title": "Llicència del connector",

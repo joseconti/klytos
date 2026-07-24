@@ -233,7 +233,8 @@
     "confirm_revoke": "本当に取り消しますか？",
     "show_raw_credentials": "認証情報を表示",
     "last_activity": "最終アクティビティ",
-    "requests_today": "本日のリクエスト数"
+    "requests_today": "本日のリクエスト数",
+    "permission_denied": "アクセスが拒否されました: この接続にはツール「{tool}」を呼び出す権限がありません。サイト所有者に必要な権限の付与を依頼してください。"
   },
   "plugin_license": {
     "title": "プラグインライセンス",

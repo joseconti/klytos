@@ -233,7 +233,8 @@
     "confirm_revoke": "Sind Sie sicher, dass Sie dies widerrufen möchten?",
     "show_raw_credentials": "Anmeldedaten anzeigen",
     "last_activity": "Letzte Aktivität",
-    "requests_today": "Anfragen heute"
+    "requests_today": "Anfragen heute",
+    "permission_denied": "Zugriff verweigert: Diese Verbindung ist nicht berechtigt, das Werkzeug „{tool}“ aufzurufen. Bitten Sie den Websitebesitzer, ihr die erforderliche Berechtigung zu erteilen."
   },
   "plugin_license": {
     "title": "Plugin-Lizenz",

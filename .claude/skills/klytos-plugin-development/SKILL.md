@@ -131,6 +131,18 @@ klytos_add_filter('mcp.tools_list', function (array $tools): array {
     return $tools;
 });
 
+// 2b. Declare the capability each tool requires — MANDATORY since Sprint 2.
+//     Every tools/call passes a default-deny gate. A tool with no declared
+//     capability is refused to EVERY role, including the owner: it will not
+//     appear in tools/list and tools/call answers 403. This filter is the only
+//     way a plugin tool becomes callable at all.
+//     Pick from the ONE matrix (UserManager::hasPermission) — never invent a
+//     capability here. In doubt, take the higher tier: over-restriction fails safe.
+klytos_add_filter('mcp.tool_capabilities', function (array $map): array {
+    $map['my_plugin_do_something'] = 'site.configure';
+    return $map;
+});
+
 // 3. Handle MCP tool calls
 klytos_add_filter('mcp.handle_tool', function (mixed $result, string $toolName, array $params): mixed {
     if ($toolName !== 'my_plugin_do_something') {

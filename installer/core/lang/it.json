@@ -233,7 +233,8 @@
     "confirm_revoke": "Sei sicuro di voler revocare questo?",
     "show_raw_credentials": "Mostra le credenziali",
     "last_activity": "Ultima attività",
-    "requests_today": "Richieste oggi"
+    "requests_today": "Richieste oggi",
+    "permission_denied": "Autorizzazione negata: questa connessione non è autorizzata a chiamare lo strumento «{tool}». Chiedi al proprietario del sito di concederle l'autorizzazione richiesta."
   },
   "plugin_license": {
     "title": "Licenza del plugin",

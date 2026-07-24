@@ -103,6 +103,90 @@ final class AdminGateHttpTest extends AdminHttpTestCase
     }
 
     /**
+     * The AI chat's PANELS require their own tier, not merely `ai.use`.
+     *
+     * Found by the sprint-close `security-auditor` pass on D-051 (audit
+     * NEW-31), and it is the S-07 shape one door later: `ai-chat.php` is gated
+     * at `ai.use`, and it `require_once`s `partials/ai-panel-{$panel}.php` for
+     * a caller-supplied `?panel=`. Those partials had **zero** permission
+     * checks — `ai-panel-users.php` creates users and changes ANY account's
+     * password behind a CSRF token alone, work `users.php` reserves to
+     * `users.manage` (owner-only), and `ai-panel-settings.php` writes site and
+     * SMTP settings that `settings.php` reserves to `site.configure`.
+     *
+     * It was already wrong for `admin` before this sprint; D-051's widening of
+     * `ai.use` to `editor` is what would have made it a two-tier jump. Asserted
+     * on the wire per role, in BOTH directions, because a check that refused
+     * everyone would pass a refusal-only test (L-008).
+     *
+     * @return void
+     */
+    public function testAiChatPanelsRequireTheirOwnTierNotJustAiUse(): void
+    {
+        // The chat itself: ai.use, held by editor since D-051.
+        self::assertSame(
+            200,
+            $this->request( 'installer/admin/ai-chat.php', 'editor' )['status'],
+            'An editor must reach the AI chat — that is what D-051 widened.'
+        );
+
+        // The privileged panels behind it: NOT held by editor.
+        foreach ( [ 'users' => 'users.manage', 'settings' => 'site.configure' ] as $panel => $capability ) {
+            self::assertSame(
+                403,
+                $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'editor' )['status'],
+                "An editor holds ai.use but not {$capability}, so ?panel={$panel} must refuse — "
+                . 'reaching it would be a privilege escalation through the chat door.'
+            );
+
+            self::assertSame(
+                200,
+                $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'owner' )['status'],
+                "The owner holds {$capability} and must still reach ?panel={$panel}."
+            );
+        }
+
+        // The unprivileged panels stay reachable: the fix must not turn the
+        // whole feature off for the role it was just opened to.
+        foreach ( [ 'dashboard', 'profile' ] as $panel ) {
+            self::assertSame(
+                200,
+                $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'editor' )['status'],
+                "?panel={$panel} sits at a tier an editor holds and must remain reachable."
+            );
+        }
+    }
+
+    /**
+     * `api/ai-chat.php?action=get_providers` does not hand partial API keys to
+     * a role below `site.configure` (audit NEW-31).
+     *
+     * `AiKeyManager::listProviders()` includes `masked_key` — the first 6 and
+     * last 4 characters of each configured provider key. Every other
+     * key-management action in that file checks `site.configure`; this one did
+     * not. The omission was invisible while `ai.use` and `site.configure` were
+     * the same owner+admin set, and became a real disclosure the moment D-051
+     * split them.
+     *
+     * @return void
+     */
+    public function testAiChatApiDoesNotDiscloseProviderKeysBelowSiteConfigure(): void
+    {
+        $editor = $this->request( 'installer/admin/api/ai-chat.php?action=get_providers', 'editor' );
+
+        self::assertSame( 403, $editor['status'], 'An editor must not enumerate provider keys.' );
+        self::assertStringNotContainsString(
+            'masked_key',
+            $editor['body'],
+            'The refusal must not carry the payload it is refusing.'
+        );
+
+        $owner = $this->request( 'installer/admin/api/ai-chat.php?action=get_providers', 'owner' );
+
+        self::assertSame( 200, $owner['status'], 'The owner holds site.configure and must still be served.' );
+    }
+
+    /**
      * An unauthenticated PAGE request still redirects to login.
      *
      * The page half of the shape split: a browser navigating to an admin page
@@ -141,10 +225,16 @@ final class AdminGateHttpTest extends AdminHttpTestCase
             'installer/admin/settings.php' => [ 200, 200, 403, 403 ],
             'installer/admin/mcp.php'      => [ 200, 200, 403, 403 ],
             'installer/admin/theme.php'    => [ 200, 200, 403, 403 ],
-            'installer/admin/ai-chat.php'  => [ 200, 200, 403, 403 ],
 
             // Owner + admin + editor.
             'installer/admin/analytics.php' => [ 200, 200, 200, 403 ],
+
+            // ai-chat.php moved up a tier in Sprint 2 slice 4 (D-051): an
+            // editor now reaches the AI chat, because the MCP tool layer the
+            // chat drives gates every call with the caller's own role. Asserted
+            // on the wire rather than in the matrix — the widening is only real
+            // if the editor's request actually returns 200.
+            'installer/admin/ai-chat.php'  => [ 200, 200, 200, 403 ],
 
             // The four files whose redundant redirect-style gates were removed
             // in this slice. Covered explicitly: nothing else proves the

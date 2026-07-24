@@ -669,15 +669,19 @@ class UserManager
             // account that exists at that point.
             'setup.run'        => ['owner'],
 
-            // ── AI chat (Sprint 1, slice 4) ────────────────────────
-            // Deliberately owner+admin only, and deliberately NOT
-            // granted to editor, while NEW-02 is open: the chat
-            // executes MCP tools and the tool layer has zero
-            // permission checks until Sprint 2 (D-020), so reaching
-            // this surface is effectively owner-equivalent power over
-            // the CMS regardless of the caller's role.
-            // Trigger to revisit (and widen to editor): Sprint 2 close.
-            'ai.use'           => ['owner', 'admin'],
+            // ── AI chat (Sprint 1 slice 4; widened Sprint 2 slice 4) ──
+            // Editor was excluded by D-035 for ONE reason: the chat
+            // executes MCP tools and the tool layer had zero permission
+            // checks (NEW-02), so reaching this surface was owner-
+            // equivalent power whatever the caller's role. Sprint 2
+            // closed that — every tools/call now passes the default-deny
+            // gate in ToolRegistry::call() carrying the caller's OWN
+            // role — so an editor in the chat can do exactly what an
+            // editor may do, and no more. Widened per D-051, which
+            // supersedes D-035 on the strength of its own recorded
+            // trigger ("Sprint 2 close"). Viewer stays out: a read-only
+            // role has no authoring work for an agent to do.
+            'ai.use'           => ['owner', 'admin', 'editor'],
         ];
 
         // Allow plugins to extend capabilities.

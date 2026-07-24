@@ -111,9 +111,15 @@ function klytos_admin_gate_map(): array
         'x402-settings.php'     => 'site.configure',
 
         // ── AI ────────────────────────────────────────────────────
-        // Owner+admin only while NEW-02 is open — the chat executes MCP
-        // tools and the tool layer has no permission checks until
-        // Sprint 2 (D-020), so this surface is owner-equivalent power.
+        // owner + admin + EDITOR since Sprint 2 slice 4 (D-051). This
+        // comment used to read "owner+admin only while NEW-02 is open",
+        // which was true and is now not: the chat executes MCP tools,
+        // and until Sprint 2 the tool layer had no permission checks, so
+        // reaching this surface was owner-equivalent power whatever the
+        // caller's role (D-035). ToolRegistry::call() now gates every one
+        // of those calls with the caller's OWN role, so the amplification
+        // the exclusion existed to prevent is gone. The roles live in the
+        // ONE matrix (UserManager::hasPermission), not here.
         'ai-chat.php' => 'ai.use',
 
         // ── Self-service ──────────────────────────────────────────

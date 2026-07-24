@@ -233,7 +233,8 @@
     "confirm_revoke": "Bunu iptal etmek istediğinizden emin misiniz?",
     "show_raw_credentials": "Ham kimlik bilgilerini göster",
     "last_activity": "Son etkinlik",
-    "requests_today": "Bugünkü istekler"
+    "requests_today": "Bugünkü istekler",
+    "permission_denied": "Erişim reddedildi: bu bağlantının \"{tool}\" aracını çağırma yetkisi yok. Site sahibinden bu bağlantıya gerekli yetkiyi vermesini isteyin."
   },
   "plugin_license": {
     "title": "Eklenti Lisansı",

@@ -233,7 +233,8 @@
     "confirm_revoke": "Êtes-vous sûr de vouloir révoquer ceci ?",
     "show_raw_credentials": "Afficher les identifiants",
     "last_activity": "Dernière activité",
-    "requests_today": "Requêtes aujourd'hui"
+    "requests_today": "Requêtes aujourd'hui",
+    "permission_denied": "Autorisation refusée : cette connexion n'est pas autorisée à appeler l'outil « {tool} ». Demandez au propriétaire du site de lui accorder l'autorisation requise."
   },
   "plugin_license": {
     "title": "Licence du plugin",

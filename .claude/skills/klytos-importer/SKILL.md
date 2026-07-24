@@ -45,7 +45,18 @@ plugins/klytos-importer/
 2. **Sitemap-guided** — Fetch sitemap.xml, classify URLs, crawl each page. Works with any site that has a sitemap.
 3. **AI-driven crawl** — BFS from homepage, discover pages by following internal links. Last resort for sites without sitemap or export.
 
-## MCP Tools (10 tools, all phases)
+## MCP Tools (10 tools, all phases) — all gated at `site.configure` (owner/admin)
+
+Since Sprint 2 every `tools/call` passes a default-deny gate, and the plugin declares its own
+capabilities through the `mcp.tool_capabilities` filter in `klytos-importer.php`. **All 10 sit at
+`site.configure`**: a whole-site migration that fetches arbitrary external URLs and bulk-creates
+pages is an operations privilege, the mirror of `klytos_export_site` — not a content-authoring one.
+An editor or viewer is refused with a JSON-RPC error object and **HTTP 403**, and does not see these
+tools in `tools/list` at all.
+
+Deliberately NOT split into per-phase capabilities (e.g. analysis at `pages.create`): the fetch
+phase is the SSRF-relevant one and mixing tiers inside one workflow means the low-tier caller starts
+a job it cannot finish. See `docs/reference/mcp-authorization.md`.
 
 ### Analysis Phase
 - **`klytos_import_analyze_wp_xml`** — Parse WXR file → summary (pages, posts, media, menus, authors). Creates an import session.

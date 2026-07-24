@@ -1,8 +1,9 @@
 # Flow — MCP tool call
 
-> Created in Sprint 1 slice 9. **Sprint 2's subject.** The authorization step described here as
-> missing was built in Sprint 2 slice 2 (audit **NEW-02**, decisions **D-046**/**D-048**). Read
-> `docs/reference/mcp-authorization.md` for the full gate.
+> Created in Sprint 1 slice 9. **Sprint 2's subject, and Sprint 2 is closed.** The authorization
+> step described here as missing was built across slices 1–4 (audit **NEW-02**, now CLOSED;
+> decisions **D-046**…**D-051**). Read `docs/reference/mcp-authorization.md` for the full gate,
+> the tool counts, and the checklist for adding a tool.
 
 ## Actors
 An MCP client (Claude, or any MCP-capable agent) holding a bearer token, OAuth access token, or
@@ -34,10 +35,19 @@ application password, talking JSON-RPC to `/<admin-dir>/mcp`.
 
 ## The recovery branch that matters
 The caller adapts to the JSON-RPC 403: a lower-role credential is told, per tool, that it is not
-authorized, and can fall back to tools it may call (which `tools/list` already scoped to its role).
-MCP authentication proves *who* the caller is; the gate now proves *what they may do*, so an
-application-password or bearer holder no longer has owner-equivalent power by default.
+authorized — in the site's language (slice 4: `mcp.permission_denied`, 20 locales), naming the tool
+and the fix but never the role or capability — and can fall back to tools it may call (which
+`tools/list` already scoped to its role). MCP authentication proves *who* the caller is; the gate
+now proves *what they may do*, so an application-password or bearer holder no longer has
+owner-equivalent power by default.
+
+## The same flow from the AI chat
+`chat-engine` is `call()`'s only other caller, with the actor taken from the session. Every step
+above is identical from step 4 on, which is what let `ai.use` widen to `editor` at Sprint 2 close
+(**D-051**): the chat can no longer amplify a role, because it executes each tool with the caller's
+own one. The chat's advertised tool list is advisory; the gate is the control.
 
 ## Related
-`docs/reference/mcp-authorization.md` · `docs/reference/authorization.md` · D-020 · D-046 · D-048 ·
-D-035 (`ai.use` revisited at Sprint 2 close) · NEW-02
+`docs/reference/mcp-authorization.md` · `docs/reference/authorization.md` · `docs/playground.md`
+(the runnable per-role table) · D-020 · D-046 · D-048 · D-050 · D-051 (`ai.use` widened, superseding
+D-035) · NEW-02 (closed) · NEW-30 (closed)

@@ -4,7 +4,8 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-22**
+> **last verified: 2026-07-24** — booted on `KPORT=8083` (8080/8081/8082/8090 were squatted again),
+> anonymous MCP → 401, and every command in §3a run for real, including the full per-role matrix.
 
 ---
 
@@ -29,8 +30,11 @@ No Docker, no MySQL, no Apache — flat-file storage and PHP's built-in server a
 ## Start
 
 ```bash
-# 1. Seed a fresh installation (once; add --reset to re-seed an existing one)
-php scripts/dev/seed-playground.php
+# 1. Seed a fresh installation (once; add --reset to re-seed an existing one).
+#    XDEBUG_MODE=off is not optional comfort: with Xdebug loaded, the known NEW-03
+#    warning prints ~35 KB of stack traces here and the seed LOOKS like a crash
+#    when it succeeded. Use it on every php command in this document.
+XDEBUG_MODE=off php scripts/dev/seed-playground.php
 
 # 2. Pick a port and CHECK IT IS FREE (see the warning below).
 #    Every command in this document uses $KPORT — export it once, here.
@@ -119,11 +123,23 @@ calls `UserManager::authenticate()`, which is fully implemented one layer below.
 
 To exercise the role system, drive it the way the tests do — write the session directly:
 
+> **This section runs a SECOND server, on its own port `$RPORT`.** It needs a private session
+> store, which the `$KPORT` server from "Start" does not have — a session minted here is unknown to
+> that server, so every cookie-bearing command below must target **`$RPORT`**, not `$KPORT`. And
+> `$RPORT` must not be **8099**: that is `upgrade-test.sh`'s default port, and a server left running
+> on it makes the upgrade test fail with `the installer did not produce an admin directory` — it
+> silently talks to this router instead of the release installer. Found by the sprint-2 playground-QA
+> pass, which hit exactly that.
+
 ```bash
+# Pick a free port for the role-system server — NOT 8099 (upgrade-test.sh owns that).
+export RPORT=8093
+nc -z 127.0.0.1 $RPORT && echo "PORT $RPORT IS TAKEN — export a different RPORT"
+
 # Start a server with a private, inspectable session store.
 SP=/tmp/klytos-sessions; mkdir -p $SP
 php -d session.save_path=$SP -d session.serialize_handler=php_serialize \
-    -S 127.0.0.1:8099 -t . scripts/dev/router.php &
+    -S 127.0.0.1:$RPORT -t . scripts/dev/router.php &
 
 # Mint a session for any seeded role and print its cookie value.
 XDEBUG_MODE=off php -r '
@@ -139,11 +155,23 @@ echo $sid."\n";' viewer
 The cookie is named **`klytos_session`**, not `PHPSESSID` (`auth.php:61`):
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' -b "klytos_session=<the id from the 8099 server>" \
-  http://127.0.0.1:8099/installer/admin/users.php     # 403 for viewer
+curl -s -o /dev/null -w '%{http_code}\n' -b "klytos_session=<the id printed above>" \
+  http://127.0.0.1:$RPORT/installer/admin/users.php     # 403 for viewer
+```
+
+**When you are done with this section, stop that server** — leaving it up is what breaks the upgrade
+test if you ever set `RPORT=8099`, and it costs nothing to be tidy:
+
+```bash
+pkill -f "php -S 127.0.0.1:$RPORT"
 ```
 
 ### 2. Authorization — what each role may reach (Sprint 1 slice 4)
+
+> **Send these to `$RPORT`, the server from section 1.** The session cookie is stored in that
+> server's private save path and is *anonymous everywhere else* — on `$KPORT` the same requests
+> answer 302/401 (correctly, for a caller with no session), which reads like a broken gate and is
+> not one.
 
 Since slice 4 every admin surface is gated centrally and **denies by default**. A `viewer` gets:
 
@@ -165,6 +193,14 @@ If you add a new file under `installer/admin/`, it is **denied to everyone, incl
 until you add it to `klytos_admin_gate_map()` in `installer/core/admin-gate.php`. That is deliberate.
 `php scripts/keel-verify` tells you which files are missing an entry.
 
+**Read that precisely: the guarantee is include-time, not directory-level.** The gate runs from
+`admin/bootstrap.php`, so it protects a file that `require_once`s bootstrap — which every real admin
+file does. A file that does *not* include bootstrap executes with no gate at all (a
+sprint-2 playground-QA probe confirmed it: a two-line file under `installer/admin/` answered **200
+anonymously**). Nothing about the directory refuses it; what catches it is `keel-verify`, which
+failed on that same probe for having no map entry, and CI runs keel-verify. So: add the file, add
+its map entry, include bootstrap — and let the build tell you if you forgot.
+
 ### 3. The MCP endpoint
 
 ```bash
@@ -173,7 +209,7 @@ curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:$KPORT/install
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
-# Authenticated — lists the tools (177 on this seed)
+# Authenticated — lists the tools (206 on this seed; see the count table below)
 APPPW=$(grep -A1 "application password" installer/config/.playground-access | tail -1 | tr -d ' ')
 curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:$KPORT/installer/mcp \
   -H 'Content-Type: application/json' \
@@ -181,7 +217,87 @@ curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:$KPORT/installer/mcp \
 ```
 
 MCP rate limiting is 60 requests/minute per identity, plus per-IP blocking on auth failures
-(`core/mcp/server.php:84-126`) — expect it to bite in a tight loop.
+(`core/mcp/server.php:84-126`) — expect it to bite in a tight loop. Each bearer token is its own
+identity, so the four tokens minted below get 60/minute each.
+
+**How many tools you should see, and why it is not one number.** The seed activates both shipped MCP
+plugins, so this playground serves **206**: 172 core (the 34 loader files) + 8 x402 (core, injected
+through `mcp.tools_list`) + 16 `klytos-forms` + 10 `klytos-importer`. A **default install** activates
+neither plugin and therefore serves **180**. `docs/api/INDEX.md` records 206 — every tool that exists
+in the repository. Full breakdown: `docs/reference/mcp-authorization.md` ("How many MCP tools there
+are").
+
+### 3a. MCP authorization — `tools/call` per role (Sprint 2)
+
+Every tool call passes a default-deny gate carrying the **credential's** role, and `tools/list` is
+filtered by the same decision. Bearer tokens are the one credential mintable below owner today
+(application passwords are pinned to the admin user until **NEW-11**), so mint one per role:
+
+```bash
+# Mint four bearer tokens, one per role. Prints role=token lines.
+XDEBUG_MODE=off php -r 'require "installer/core/app.php";
+  $a=\Klytos\Core\App::getInstance(); $a->boot();
+  foreach ( ["owner","admin","editor","viewer"] as $r ) {
+      echo $r, "=", $a->getAuth()->createBearerToken( "walk-".$r, $r )["token"], "\n";
+  }'
+
+# Export them (paste the values the command above printed)
+export TOK_OWNER=…  TOK_ADMIN=…  TOK_EDITOR=…  TOK_VIEWER=…
+
+# A refusal, on the wire: a viewer asking for a destructive tool.
+curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:$KPORT/installer/mcp \
+  -H "Authorization: Bearer $TOK_VIEWER" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"klytos_delete_page","arguments":{"slug":"index"}}}'
+```
+
+Expected — a JSON-RPC **error object** and **HTTP 403**, never a 200 carrying an error (the body is
+one line on the wire; it is wrapped here to fit the page):
+
+```json
+{"jsonrpc":"2.0","error":{"code":-32000,"message":"Permission denied: not authorized to call the
+tool 'klytos_delete_page'. Ask the site owner to grant this connection the permission it requires."},"id":1}
+```
+
+The message comes from the locale catalogues (`mcp.permission_denied`, 20 locales), so a site whose
+admin language is Spanish gets it in Spanish. It names the tool and the fix, never the role or the
+capability — that detail goes to the audit log (`mcp.access_denied`).
+
+**The per-role expectation table.** Every cell below was measured on this playground on 2026-07-24
+(`tools/call` with the four tokens; HTTP status shown). Swap `$TOK_*` and repeat:
+
+| Tool | Capability | owner | admin | editor | viewer |
+|---|---|---|---|---|---|
+| `klytos_get_page` (read) | `pages.view` | 200 | 200 | 200 | 200 |
+| `klytos_delete_page` (destructive) | `pages.delete` | 200 | 200 | **403** | **403** |
+| `klytos_x402_get_config` (filter-injected core) | `x402.view` | 200 | 200 | 200 | **403** |
+| `klytos_forms_list` (shipped plugin) | `forms.manage` | 200 | 200 | **403** | **403** |
+| `klytos_integrity_status` (core, admin-tier) | `site.configure` | 200 | 200 | **403** | **403** |
+| `tools/list` size | — | 206 | 197 | 56 | 19 |
+
+A 200 with `"isError":true` in the body is the tool reporting a domain error (a missing slug, say) —
+that is the tool running, i.e. the gate **allowed** it. The gate's refusal is always a 403 with a
+JSON-RPC `error` object and no `result`.
+
+Two things worth trying, because they are the properties that were actually hard to get right:
+
+```bash
+# A name that is neither registered nor declared in the capability map is unknown
+# even to the owner. Note the status: this is HTTP 200 with a JSON-RPC error
+# (-32602, invalid params) — a PROTOCOL error, not a refusal. The gate's refusal
+# is the 403 above. Two different failures, deliberately distinguishable.
+curl -s -w '\n%{http_code}\n' -X POST http://127.0.0.1:$KPORT/installer/mcp \
+  -H "Authorization: Bearer $TOK_OWNER" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"klytos_not_a_tool","arguments":{}}}'
+# → {"jsonrpc":"2.0","error":{"code":-32602,"message":"Invalid params: Unknown tool: klytos_not_a_tool"},"id":1}  200
+
+# tools/list for a viewer: 19 tools, and none of them destructive.
+# (Count the array, not the string "name" — tool SCHEMAS contain that key too.)
+curl -s -X POST http://127.0.0.1:$KPORT/installer/mcp \
+  -H "Authorization: Bearer $TOK_VIEWER" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+  | python3 -c "import sys,json;print(len(json.load(sys.stdin)['result']['tools']))"
+```
 
 ### 4. Public comments — the one anonymous write surface (Sprint 1 slice 7)
 
@@ -245,8 +361,11 @@ refusals. Full contract: `docs/reference/security-headers.md`.
 
 ```bash
 # An admin API endpoint. Before slice 8, 0 of the 23 files in admin/api/ sent anything.
-curl -s -D - -o /dev/null -b "klytos_session=<the id from the 8099 server>" \
-  http://127.0.0.1:$KPORT/installer/admin/api/notices.php |
+# NOTE: the cookie only works on $RPORT (section 1's server, private session store).
+# Sent to $KPORT it arrives anonymous and you measure the 401's headers instead —
+# which is a real case, but not this one.
+curl -s -D - -o /dev/null -b "klytos_session=<the id from the $RPORT server>" \
+  http://127.0.0.1:$RPORT/installer/admin/api/notices.php |
   grep -iE '^X-|^Referrer|^Content-Security|^Permissions|^Strict'
 
 # The login page — it sent NOTHING before slice 8, despite being the most
@@ -284,11 +403,18 @@ quietly allowed.
 ### 6. The CLI
 
 ```bash
-php installer/cli.php help        # 26 commands
-php installer/cli.php status
-php installer/cli.php pages
-php installer/cli.php logs
+XDEBUG_MODE=off php installer/cli.php help        # 26 commands
+XDEBUG_MODE=off php installer/cli.php status
+XDEBUG_MODE=off php installer/cli.php pages
+XDEBUG_MODE=off php installer/cli.php logs
 ```
+
+> **The CLI answers in Spanish, and that is a defect, not a locale setting.** `help` prints
+> *"Comandos disponibles:"* whatever the site's language is, because the strings are hardcoded
+> Spanish literals in `installer/core/terminal-executor.php` — the product's base language is
+> English and every user-facing string is supposed to come from the catalogues (D-006). Recorded as
+> audit **NEW-33**; do not read it as your install being misconfigured. Everything the CLI *does* is
+> unaffected.
 
 > **Do NOT run `php installer/cli.php build` in the repository.** The build engine writes to
 > `dirname( rootPath )` (`build-engine.php:57`) — correct in production, the **repository root** in a
@@ -416,8 +542,12 @@ a checkout (the warning at the top of this document), so the only safe place to 
 installation is somewhere the repository is not. The script refuses to delete anything outside its
 own `mktemp` directory.
 
-Port 8099 by default (`PORT=8123 bash scripts/dev/upgrade-test.sh` to change it), so it does not
-collide with the playground on `$KPORT` — you can leave the playground running.
+Port **8099** by default (`PORT=8123 bash scripts/dev/upgrade-test.sh` to change it). It does not
+collide with the playground on `$KPORT`, so you can leave *that* running — but **nothing else may be
+listening on 8099**. If something is, the script's own `curl` reaches the squatter, the install it
+believes it made never happened, and it fails with `the installer did not produce an admin directory`
+without ever mentioning the port. That is the L-008 trap this document warns about, arriving through
+the back door; section 1's server is the likely culprit, which is why it now runs on `$RPORT`.
 
 ## Auditing the vendored dependencies
 
@@ -429,10 +559,16 @@ has a reconstructed manifest at `installer/composer.json`, pinned to exactly wha
 composer audit -d installer
 ```
 
-Exit code 1 means advisories were found; the table it prints is the full report. **As of 2026-07-19
-this reports 5 medium CVEs in `guzzlehttp/guzzle` 7.10.0 and `guzzlehttp/psr7` 2.9.0** — known,
-triaged, and recorded as audit finding NEW-05. Seeing them is the current expected output, not a new
-discovery.
+Exit code 1 means advisories were found; the table it prints is the full report. **As of 2026-07-24
+this reports 11 advisories affecting 2 packages** — 7 in `guzzlehttp/guzzle` 7.10.0 and 4 in
+`guzzlehttp/psr7` 2.9.0, all medium. Seeing them is the current expected output, not a new discovery:
+they are recorded as audit finding **NEW-05** and triaged to their own slice (D-029).
+
+**The number grows over time and that is expected** — it was **5** when NEW-05 was triaged on
+2026-07-19 and is 11 today, because advisories keep being published against versions that are not
+being updated. Do not read a higher number as a regression; read it as the reason the remediation
+slice is queued. Check it against the count recorded in `docs/04-adoption-audit.md` NEW-05 rather
+than against this sentence, which is a snapshot.
 
 The manifest also regenerates the tree reproducibly, but **do not run that in a checkout you care
 about** — it rewrites 482 tracked files:
@@ -460,6 +596,25 @@ it ships **off**.
   `developer.developer_mode` in the site config.
 - **When something fails, copy the log entries and paste them back.** That is what turns a failure
   report into a one-round-trip diagnosis instead of twenty questions.
+
+**What the log does NOT contain, so an empty log is not a surprise (found by the sprint-2
+playground-QA pass).** Klytos writes a log entry when some code *asks* it to. Authorization refusals
+do not: they fire the audit **actions** `auth.access_denied` and `mcp.access_denied`, and **no core
+listener subscribes to either** — the hooks are the seam, not the sink (recorded as audit
+**NEW-32**). So a walkthrough full of 401s, 403s and MCP permission denials can legitimately leave
+`installer/data/logs-*/` empty. To make refusals self-log while you test, subscribe one line from a
+plugin:
+
+```php
+klytos_add_action( 'mcp.access_denied', function ( string $tool, ?string $role, string $reason ): void {
+    klytos_log_warning( "MCP refused {$tool} for role " . ( $role ?? 'none' ) . ": {$reason}", [], 'security' );
+}, 10 );
+```
+
+Also note the log directory name is **randomized per install** (`data/logs-<12 hex>/`), and a reset
+creates a new one while leaving the old ones behind — so `ls data/logs-*/` showing several empty
+directories is normal. `php installer/cli.php logs` reads the current one; trust it over the
+directory listing.
 
 ## What the router protects, and why it exists
 

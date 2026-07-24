@@ -233,7 +233,8 @@
     "confirm_revoke": "Czy na pewno chcesz to odwołać?",
     "show_raw_credentials": "Pokaż surowe dane uwierzytelniające",
     "last_activity": "Ostatnia aktywność",
-    "requests_today": "Żądania dzisiaj"
+    "requests_today": "Żądania dzisiaj",
+    "permission_denied": "Odmowa dostępu: to połączenie nie ma uprawnień do wywołania narzędzia „{tool}”. Poproś właściciela witryny o przyznanie mu wymaganego uprawnienia."
   },
   "plugin_license": {
     "title": "Licencja wtyczki",

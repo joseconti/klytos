@@ -42,7 +42,7 @@ Klytos is well past a v1. The feature set below is the **as-built reality**, not
 
 | Area | What exists | Why it is in the product |
 |------|-------------|--------------------------|
-| MCP control plane | ~180 core tools + 8 x402 + 27 from bundled plugins; JSON-RPC 2.0 at `/mcp`; OAuth 2.0 (authorize/token/metadata discovery); bearer-token auth; per-token rate limiting | The thesis of the product |
+| MCP control plane | **172** core tools + **8** x402 + **26** from the two bundled MCP plugins (206 on disk; a default install serves 180 — neither plugin is active); JSON-RPC 2.0 at `/mcp`; OAuth 2.0 (authorize/token/metadata discovery); bearer-token auth; per-token rate limiting; **per-tool authorization since Sprint 2** | The thesis of the product |
 | Content model | Pages with hierarchy, trash/restore, locks, scheduling, versions/diff/restore; custom post types, taxonomies, terms, custom post statuses; 27 typed custom field types; free-form meta | Table stakes for a CMS |
 | Templates & rendering | Template resolver, page templates with approval flow, reusable blocks with slots, template parts, Gutenberg-compatible block markup | Needed for AI to compose layouts deterministically |
 | Build | Static site generation, per-page build, sitemap.xml, robots.txt, **llms.txt / llms-full.txt**, JSON-LD, hreflang, search index | Static output + AI-discoverability differentiator |

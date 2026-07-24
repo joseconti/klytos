@@ -103,8 +103,18 @@ require_once __DIR__ . '/templates/sidebar.php';
 ### Request Flow
 
 ```
-AI Client → /mcp endpoint → JSON-RPC → Token Auth → Rate Limit → Tool Registry → Handler → JSON Response
+AI Client → /mcp endpoint → JSON-RPC → Token Auth → Rate Limit → Tool Registry
+          → AUTHORIZATION GATE (default-deny, the caller's role vs the tool's capability)
+          → Handler → JSON Response
 ```
+
+The gate is the MCP equivalent of the admin panel's `klytos_has_permission()` call, and it is where
+the two interfaces converge: **both ask the same capability matrix**
+(`UserManager::hasPermission()`). They differ only in where identity comes from — the admin path
+reads the session, the MCP path resolves an actor from the **credential**, because it never starts a
+session. A tool with no capability entry is refused to everyone, including the owner. Refusal is a
+JSON-RPC error object with HTTP **403** (the admin equivalent is `klytos_deny()`'s 403 document or
+401 JSON). See `docs/reference/mcp-authorization.md`.
 
 ### Implementation Template
 

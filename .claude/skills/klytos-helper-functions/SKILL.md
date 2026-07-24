@@ -235,13 +235,15 @@ Check if the current user has a specific permission. Owner role has ALL permissi
 | `security.self` | owner, admin, editor, viewer |
 | `ui.preferences` | owner, admin, editor, viewer |
 | `setup.run` | owner |
-| `ai.use` | owner, admin |
+| `ai.use` | owner, admin, editor |
 
 An **unknown** permission key denies for every role except `owner`, whose shortcut returns before
 the matrix is consulted. A typo therefore fails closed — and silently, so verify the key exists.
 
-> `ai.use` deliberately excludes `editor` for now: the AI chat executes MCP tools, and the MCP tool
-> layer has no permission checks until Sprint 2, so reaching that surface is owner-equivalent power.
+> `ai.use` includes `editor` since Sprint 2 (D-051, superseding D-035). It was owner+admin only for
+> one reason — the AI chat executes MCP tools and the tool layer had no permission checks, so the
+> chat amplified any role to owner. Every MCP tool call is now gated with the **caller's own** role,
+> so an editor in the chat can do exactly what an editor may do. `viewer` stays out.
 
 ### Enforcing a permission — `klytos_require_permission()`
 

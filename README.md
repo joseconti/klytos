@@ -9,7 +9,7 @@ Build, manage and publish websites entirely through conversation with any AI ass
 ## Key Features
 
 ### AI-Native CMS
-- **Full MCP Server** — 33 tool modules with 160+ tools for complete site management via AI conversation.
+- **Full MCP Server** — 34 tool modules with 160+ tools for complete site management via AI conversation.
 - **Streamable HTTP** — JSON-RPC 2.0 protocol with rate limiting and dual authentication (Application Passwords + OAuth 2.0/2.1 with PKCE).
 - **AI Chat** — Built-in AI chat interface supporting multiple providers (Anthropic Claude, OpenAI GPT, Google Gemini, OpenRouter).
 - **AI Image Generation** — Generate images via Gemini/Imagen directly from the admin panel or MCP.
@@ -247,7 +247,7 @@ PKCE (S256) is required for all clients. Create OAuth clients from the admin pan
 | Translation Tools | 4 | Multi-language content, AI translation |
 | x402 Tools | 8 | Micropayment config, page status, transactions, stats |
 
-**Total: 33 modules, 160+ tools**
+**Total: 34 modules, 160+ tools**
 
 ## Admin Panel
 
@@ -537,7 +537,7 @@ klytos/
       guides/              # 16 built-in AI development guides
       lang/                # i18n translations (en, es — 492+ keys each)
       mcp/                 # MCP server (JSON-RPC 2.0, OAuth, rate limiting)
-        tools/             # 33 tool modules (160+ tools)
+        tools/             # 34 tool modules (160+ tools)
       x402/                # x402 micropayment protocol
     config/                # Encrypted configuration (.htaccess protected)
       .encryption_key    # AES-256 master key (32 bytes, 0600 perms)

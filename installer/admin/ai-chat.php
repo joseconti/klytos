@@ -45,11 +45,36 @@ $username     = (!empty($currentUser['display_name']) && ($currentUser['display_
     : $app->getAuth()->getUsername();
 $userInitial  = mb_strtoupper(mb_substr($username, 0, 1));
 
-// Panel routing (dashboard, settings, users)
+// Panel routing (dashboard, settings, users, profile).
+//
+// Each panel requires the capability its STANDALONE twin requires in the gate
+// map — users.php => users.manage, settings.php => site.configure,
+// index.php => pages.view, profile.php => profile.edit — because the partials
+// they include are the same privileged surfaces reached through a different
+// door. The file-level gate gets this page as far as ai.use and no further,
+// and ai.use is a lower bar than two of these four (audit NEW-31): without
+// this map, holding ai.use meant reaching user management, including changing
+// any account's password. This is the "page mixes tiers → require the
+// capability inline on the privileged branch" step of the admin checklist in
+// docs/reference/authorization.md.
+//
+// Absent from the map = denied, the same inversion as the gate map itself
+// (D-032), so a fifth panel added later is refused until it is mapped here.
+// The check runs BEFORE templates/header.php so a refusal is a clean 403
+// document rather than a denial appended to half-rendered HTML.
+$panelCapabilities = [
+    'dashboard' => 'pages.view',
+    'settings'  => 'site.configure',
+    'users'     => 'users.manage',
+    'profile'   => 'profile.edit',
+];
+
 $panel = $_GET['panel'] ?? null;
-$validPanels = ['dashboard', 'settings', 'users', 'profile'];
-if ($panel && !in_array($panel, $validPanels, true)) {
+if ($panel !== null && !array_key_exists($panel, $panelCapabilities)) {
     $panel = null;
+}
+if ($panel !== null) {
+    klytos_require_permission($panelCapabilities[$panel], 'ai-chat.php?panel=' . $panel);
 }
 
 require_once __DIR__ . '/templates/header.php';

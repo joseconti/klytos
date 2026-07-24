@@ -14,8 +14,11 @@
 >   tools' capabilities, the AI-chat advisory tool list default-denies unknown roles, and a
 >   filter-injected tool is now **callable over the HTTP transport** (NEW-30). *See "The loader fails
 >   loudly", "coverage completeness" and the filter-injected notes below.*
-> - **Slice 4:** the full "Adding a new MCP tool — the checklist", the count reconciliation, and the
->   forward reference from `docs/reference/authorization.md:217` is closed here.
+> - **Slice 4 (done):** the count reconciliation ("How many MCP tools there are"), the translated
+>   refusal, "Adding a new MCP tool — the checklist", and the `ai.use` widening (**D-051**). The
+>   forward reference in `docs/reference/authorization.md` is closed and now points here.
+>
+> **Sprint 2 is CLOSED.** NEW-02 is closed with it.
 
 ## Why identity has to be rebuilt on the MCP path
 
@@ -215,6 +218,75 @@ the **static** core map against the loader's 34 files (172 tools), so filter-inj
 and the shipped plugins) are outside its static scope by design; each is covered by its own tests
 instead (`McpToolGateTest`, `McpGateHttpTest`).
 
+## How many MCP tools there are (slice 4 — the count reconciliation)
+
+Every figure below was **measured** on the live playground for this document (an owner `tools/list`
+grouped by prefix), not copied from an earlier document — the L-015 rule, because this project's own
+records are exactly the source that gets trusted hardest and checked least. There is **no single
+number**, and pretending there is one is what produced the stale 172/177/206 spread that this slice
+reconciled: the served count depends on which plugins are active.
+
+| Set | Count | Where it comes from | Gated by |
+|---|---|---|---|
+| Core, loader-registered | **172** | the 34 files in `installer/core/mcp/tools/`, listed in `ToolRegistry::registerAllTools()` | the static map in `tool-capabilities.php`; **keel-verify check 10** |
+| Core, filter-injected (x402) | **8** | `installer/core/x402-mcp-tools.php`, loaded unconditionally at boot | `mcp.tool_capabilities` declaration + `McpToolGateTest` |
+| **Default install serves** | **180** | 172 + 8 — neither shipped MCP plugin is active on a fresh install (`$state['active'][$id] ?? false`) | — |
+| `klytos-forms` (when active) | **16** | the plugin's `mcp.tools_list` | `forms.manage`, declared via `mcp.tool_capabilities` |
+| `klytos-importer` (when active) | **10** | the plugin's `mcp.tools_list` | `site.configure`, declared via `mcp.tool_capabilities` |
+| **All tools on disk / the playground serves** | **206** | 172 + 8 + 16 + 10; the seed activates both plugins | — |
+| Dead tools | **0** | the 3 integrity tools were the only dead set; slice 3 wired them in | — |
+
+`docs/api/INDEX.md` records **206** — every tool that exists in the repository, which is the right
+figure for an API index and stays correct. Historical documents saying "177 served" or "169 live"
+described a real state at a real moment (177 = the pre-gate served count with x402 but with the
+integrity tools still dead; 169 = the live core count before slice 3 wired them in); they were not
+wrong when written, they were superseded. Anywhere those numbers describe *today*, they are corrected.
+
+**The one number a new tool must not change silently is 172.** keel-verify check 10 parses the
+loader's `$toolFiles` literal and fails the build when a registered core tool has no capability-map
+entry, so the static core set cannot grow past its map. Filter-injected sets (x402, the plugins) are
+outside that static scope **by design** — a filter's contents are not knowable without booting the
+app — and each is covered by its own test instead.
+
+## Adding a new MCP tool — the checklist
+
+The mirror of "Adding a new admin page" in `docs/reference/authorization.md`. Step 2 is the one that
+matters: **until you do it, the tool is denied to everyone, including the owner.**
+
+1. Write the tool in the right domain file under `installer/core/mcp/tools/`, registering it with
+   `$registry->register( 'klytos_your_tool', … )`. A brand-new file must also be added to the
+   `$toolFiles` list in `ToolRegistry::registerAllTools()` — a file that is on disk but off the list
+   registers nothing, which is exactly how `integrity-tools.php` stayed dead for its whole life
+   (D-049). A file on the list that registers nothing now **throws** at boot rather than being
+   skipped.
+2. Map it in `installer/core/mcp/tool-capabilities.php`: a capability string from the ONE matrix, or
+   `null` **with a comment stating why** if it genuinely needs no capability (the audited exception
+   list — currently only the two guide readers). **An absent entry denies.** Pick from the matrix in
+   `UserManager::hasPermission()`; do not invent a capability here, and do not add a second matrix.
+   Where in doubt, take the higher tier — over-restriction fails safe and is a one-line change to
+   loosen later; the opposite is a security incident.
+3. For a **filter-injected** tool — a plugin's, or a core module that registers through
+   `mcp.tools_list`/`mcp.handle_tool` rather than `register()` — declare its capability through the
+   **`mcp.tool_capabilities`** filter instead of the static map:
+
+   ```php
+   klytos_add_filter( 'mcp.tool_capabilities', function ( array $map ): array {
+       $map['klytos_myplugin_list']   = 'analytics.view';
+       $map['klytos_myplugin_delete'] = 'site.configure';
+       return $map;
+   } );
+   ```
+
+   Without this the tool is advertised to nobody and refused to everybody — including the owner.
+4. Run `php scripts/keel-verify`. Check 10 fails the build when a registered core tool has no map
+   entry. It does **not** cover filter-injected tools, so step 5 is not optional for those.
+5. Add a test. A capability-gated tool gets at least one role that may call it and one that may not
+   (`tests/Integration/McpToolGateTest.php` for the in-process gate,
+   `tests/Integration/McpGateHttpTest.php` when the tool's reachability over the wire is the point).
+   Asserting both directions is the rule: a filter that dropped everything and a filter that dropped
+   nothing both pass a one-directional test (L-008).
+6. Document it — `docs/api/` entry plus its row in `docs/api/INDEX.md`, in the same slice.
+
 ## The loader fails loudly (slice 3)
 
 `ToolRegistry::registerAllTools()` walks a hardcoded `$toolFiles` list and, per file, calls
@@ -256,7 +328,21 @@ protocol:
   correlation. This explicit-status step is **mandatory, not cosmetic**: the normal dispatch emits
   with no status arg, which defaults to **HTTP 200**, so a denial merely *returned* as an error
   array would ship as 200. The client-facing message names the tool (which the caller already
-  supplied) but not the internal role or capability; the full reason went to the audit log.
+  supplied) but not the internal role or capability; the full reason goes to the
+  `mcp.access_denied` action instead.
+
+  **It is translated (slice 4).** This is the one MCP string a *person* reads — an MCP client
+  surfaces the refusal to whoever is driving the agent — so it comes from the locale catalogues
+  like every other user-facing string in the product: `mcp.permission_denied`, present in all
+  **20** locales, resolved through the I18n **service** (`$app->getI18n()->get( 'mcp.permission_denied', [ 'tool' => $name ] )`),
+  not the global `__()`, which is declared only in `admin/bootstrap.php` and does not exist on the
+  MCP path (**NEW-18** — the same reason `installer/public/comment-submit.php` calls the service).
+  The message states the refusal and names the fix ("ask the site owner to grant this connection
+  the permission it requires") while disclosing neither the caller's role nor the required
+  capability. The internal `denialReason()` strings stay **English on purpose**: their reader is
+  the operator's security log, not a client. Pinned by `tests/Unit/McpRefusalI18nTest.php` (per
+  locale, including that the translations are not English copies) and by an assertion in
+  `McpGateHttpTest` that the wire message equals the catalogue entry.
 - **The AI chat engine** turns it into a model-visible tool error through the tool callback's
   existing `catch`, so the model sees the refusal and can adapt.
 
@@ -273,6 +359,14 @@ klytos_add_action( 'mcp.access_denied', function ( string $tool, ?string $role, 
 
 Like `auth.access_denied`, it **cannot reverse the decision** — it fires for logging/alerting only.
 
+**It is a seam, not a sink — say this plainly rather than implying a log exists.** No core listener
+subscribes to `mcp.access_denied` (or to `auth.access_denied`), so out of the box a refusal writes
+**nothing** to `installer/data/logs-*/`: the reason is offered to whoever wants it, and by default
+nobody does. Subscribing the snippet above is what turns refusals into log entries. Recorded as
+audit **NEW-32**, found by the Sprint-2 playground-QA pass, which followed this documentation to a
+log that was legitimately empty. Wording elsewhere that said the reason "went to the audit log" is
+corrected to this.
+
 ## tools/list is filtered too (slice 2)
 
 `ToolRegistry::listTools()` filters the advertised list by the actor's capabilities — using the same
@@ -283,7 +377,24 @@ gates independently, so a tool the list omitted is still refused if named direct
 access control; the gate is. A registry with no actor advertises an **empty** list — the same
 fail-closed default the call gate applies.
 
-## Public surfaces (slices 1–3)
+## The AI chat is the same gate (slice 4 — `ai.use` widened)
+
+The admin AI chat calls the same `ToolRegistry::call()`, with the actor taken from the session
+instead of a credential — so a tool call the chat makes is gated exactly like one arriving over
+HTTP, with the **caller's own** role. That is what made the `ai.use` widening safe: `editor` was
+excluded from the AI chat (D-035) purely because, while NEW-02 was open, the tool layer would have
+executed anything the chat asked for regardless of who asked. Now it will not, so `editor` holds
+`ai.use` (**D-051**, superseding D-035 at its own recorded trigger). `viewer` stays out.
+
+Two honest limits, so this is not read as more than it is:
+
+- The chat's advertised tool list (`chat-engine::getAvailableTools()`) is **advisory**. It
+  default-denies an unknown role since slice 3, but it is not the control — `call()` is. A model
+  that names a tool the list omitted is refused by the gate, not by the list.
+- An editor in the chat can still ask for anything; what changed is that the answer is now "no" for
+  everything an editor may not do, per tool, with the refusal visible to the model so it can adapt.
+
+## Public surfaces (slices 1–4)
 
 | Surface | What it does |
 |---|---|
@@ -300,9 +411,11 @@ fail-closed default the call gate applies.
 | `Klytos\Core\MCP\ToolNotFoundException` | Thrown by `ToolRegistry::call()` for a mapped-but-unhandled tool (post-gate); the transport answers "Unknown tool" without masking other errors (slice 3, NEW-30). |
 | `mcp.tool_capabilities` *(filter)* | Lets a plugin (or a filter-injected core module) declare capabilities for its own MCP tools; cannot open a hole by omission. |
 | `mcp.access_denied` *(action)* | Fires before an MCP refusal; audit hook, cannot reverse the decision. |
+| `mcp.permission_denied` *(locale key, slice 4)* | The client-facing 403 message, in all 20 catalogues; `{tool}` is substituted with the requested tool name. |
 
 ## Related
 
 `docs/reference/authorization.md` (the admin gate, whose matrix and default-deny shape slice 2
-reuses) · `docs/keel-verify.md` (check 10) · D-020 · D-046 · D-047 · D-048 · D-049 · NEW-02 ·
-NEW-08 · NEW-11
+reuses) · `docs/keel-verify.md` (check 10) · `docs/flows/mcp-tool-call.md` (the journey, including
+every failure branch) · `docs/playground.md` (the per-role `tools/call` table you can run) ·
+D-020 · D-046 · D-047 · D-048 · D-049 · D-050 · D-051 · NEW-02 (closed) · NEW-08 · NEW-11 · NEW-18

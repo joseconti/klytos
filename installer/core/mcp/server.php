@@ -244,13 +244,27 @@ class Server
             // array would ship as 200 — this block sets the status on the wire,
             // mirroring the 401 auth-failure block above and keeping the id
             // correlation. The client-facing message names the tool (which the
-            // caller already supplied) but not the internal role or capability;
-            // the full reason went to the audit log via mcp.access_denied.
+            // caller already supplied) but not the internal role or capability.
+            // The full reason is handed to the mcp.access_denied action instead
+            // — the audit SEAM, not a sink: no core listener subscribes today,
+            // so it reaches a log only where an operator or plugin subscribes
+            // (audit NEW-32). Stated this way because "went to the audit log"
+            // would be a claim the code does not make good on by itself.
+            //
+            // It is TRANSLATED (slice 4): this is the one MCP string a person
+            // reads — an MCP client surfaces the refusal to whoever is driving
+            // the agent — so it comes from the locale catalogues like every
+            // other user-facing string in the product, in all 20 locales. The
+            // I18n SERVICE is called directly rather than the global __(): that
+            // shim is declared only in admin/bootstrap.php (NEW-18), and the MCP
+            // path never loads it — the same reason installer/public/comment-submit.php
+            // calls the service. The internal denialReason() strings stay English:
+            // they are audit-log material, never sent to a client.
             http_response_code(403);
             Helpers::jsonResponse(
                 JsonRpc::error(
                     -32000,
-                    "Permission denied: not authorized to call the tool '{$toolName}'.",
+                    $this->app->getI18n()->get('mcp.permission_denied', ['tool' => $toolName]),
                     null,
                     $id
                 ),

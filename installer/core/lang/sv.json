@@ -233,7 +233,8 @@
     "confirm_revoke": "Är du säker på att du vill återkalla detta?",
     "show_raw_credentials": "Visa råa inloggningsuppgifter",
     "last_activity": "Senaste aktivitet",
-    "requests_today": "Förfrågningar idag"
+    "requests_today": "Förfrågningar idag",
+    "permission_denied": "Åtkomst nekad: den här anslutningen har inte behörighet att anropa verktyget ”{tool}”. Be webbplatsens ägare att ge anslutningen den behörighet som krävs."
   },
   "plugin_license": {
     "title": "Pluginlicens",

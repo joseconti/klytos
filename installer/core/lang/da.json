@@ -233,7 +233,8 @@
     "confirm_revoke": "Er du sikker på, at du vil tilbagekalde dette?",
     "show_raw_credentials": "Vis rå legitimationsoplysninger",
     "last_activity": "Seneste aktivitet",
-    "requests_today": "Forespørgsler i dag"
+    "requests_today": "Forespørgsler i dag",
+    "permission_denied": "Adgang nægtet: denne forbindelse har ikke tilladelse til at kalde værktøjet \"{tool}\". Bed webstedets ejer om at give forbindelsen den nødvendige rettighed."
   },
   "plugin_license": {
     "title": "Plugin-licens",

@@ -233,7 +233,8 @@
     "confirm_revoke": "Ziur hau errebokatu nahi duzula?",
     "show_raw_credentials": "Kredentzialak erakutsi",
     "last_activity": "Azken jarduera",
-    "requests_today": "Gaurko eskaerak"
+    "requests_today": "Gaurko eskaerak",
+    "permission_denied": "Baimena ukatuta: konexio hau ez dago «{tool}» tresnari deitzeko baimenduta. Eskatu gunearen jabeari beharrezko baimena emateko."
   },
   "plugin_license": {
     "title": "Pluginaren lizentzia",

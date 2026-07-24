@@ -233,7 +233,8 @@
     "confirm_revoke": "Weet u zeker dat u dit wilt intrekken?",
     "show_raw_credentials": "Onbewerkte inloggegevens tonen",
     "last_activity": "Laatste activiteit",
-    "requests_today": "Verzoeken vandaag"
+    "requests_today": "Verzoeken vandaag",
+    "permission_denied": "Toegang geweigerd: deze verbinding mag de tool \"{tool}\" niet aanroepen. Vraag de site-eigenaar om deze verbinding de vereiste bevoegdheid te geven."
   },
   "plugin_license": {
     "title": "Pluginlicentie",

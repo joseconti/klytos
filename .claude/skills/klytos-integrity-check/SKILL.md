@@ -165,6 +165,20 @@ klytos_integrity_status()                        — Last report (no new check)
 klytos_integrity_check_plugin(plugin_id, force)  — Single plugin check
 ```
 
+**All three require `site.configure` (owner/admin), and they only started working in Sprint 2.**
+
+- **They were dead until 2026-07-23.** `integrity-tools.php` was on disk but absent from the tool
+  loader's file list, so `registerIntegrityTools()` was never called and every one of these tools
+  answered "Unknown tool". Slice 3 added the file to the list as its 34th entry; the loader now
+  **throws** (`ToolRegistrationException`) instead of silently skipping a listed file that registers
+  nothing, which is what hid this for the file's whole life.
+- **`site.configure`, including the read.** They mirror the admin surfaces `system-integrity.php` and
+  `api/integrity.php`. Even `klytos_integrity_status` exposes system internals — which files differ
+  from the signed release — so it sits at the admin bar rather than a view-tier capability. An editor
+  or viewer calling any of them gets a JSON-RPC error object and **HTTP 403**.
+
+See `docs/reference/mcp-authorization.md`.
+
 ---
 
 ## Global Helper Functions

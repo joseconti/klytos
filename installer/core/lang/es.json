@@ -233,7 +233,8 @@
     "confirm_revoke": "¿Estás seguro de que quieres revocar esto?",
     "show_raw_credentials": "Mostrar credenciales por separado",
     "last_activity": "Última actividad",
-    "requests_today": "Peticiones hoy"
+    "requests_today": "Peticiones hoy",
+    "permission_denied": "Permiso denegado: esta conexión no está autorizada a llamar a la herramienta «{tool}». Pide al propietario del sitio que le conceda el permiso necesario."
   },
   "plugin_license": {
     "title": "Licencia de plugin",

@@ -2,7 +2,7 @@
 
 - **Planned:** 2026-07-22 (plan mode, approved by the user). Kickoff re-validation ran 2026-07-21
   (session 13) + a freshness re-confirmation 2026-07-22 (this session).
-- **Status:** **IN PROGRESS** — planning artifacts first, then slices 1–4.
+- **Status:** **CLOSED 2026-07-24** — all 4 slices. Audit **NEW-02 CLOSED**. Close-out table at the foot of this file; the user's own test verdict is the one row still open.
 - **Scope basis:** audit **NEW-02** (172 registered / 169 live MCP tools, zero permission checks),
   triaged to a dedicated sprint by **D-020**. It reuses `klytos_require_permission()`'s intent and the
   ONE matrix (`UserManager::hasPermission()`, S-04) that Sprint 1 built.
@@ -67,7 +67,7 @@ mirroring the `:103-108` 401 block). `klytos_deny()` is **not** on the MCP path 
 | 1 | MCP actor resolution (credential → `{user_id, role}`; role on records; idempotent boot migration) | prerequisite for NEW-02 | **closed 2026-07-22** | **PASS** — 156 tests/643 assertions; 3 fail-closed tests + the OAuth positive test proven to FAIL against wrong behaviour; upgrade from real v0.30.1 stamps a v0.30.1 bearer token to owner (D-047 on a real install); keel-verify 9/2; all lint baselines held; evidence in `docs/05-test-points.md` | The novel work. `TokenAuth` surfaces the actor + `getActor()`; `createBearerToken()` gains an optional role; **D-047 amended** — app-pw/OAuth resolve their role from the user record (DRY, NEW-11-ready), only bearer tokens are stamped, so `migrateCredentialRoles()` touches bearer only. A `?? []`-by-reference footgun in the first migration returned a count while persisting nothing — caught by asserting the persisted role (**L-017**); same footgun pre-exists in `validateAppPassword()` (**NEW-29**, not fixed). **Reviews done** (finished diff, L-015): security — no blocking findings; code-review — one blocking (OAuth branch untested) **fixed** with 2 OAuth tests; non-blocking follow-ups recorded below |
 | 2 | The gate + capability map + `tools/list` filter + keel-verify check 10 | **NEW-02** (core) | **closed 2026-07-22** | **PASS** — full suite **169 tests/671 assertions**; every denial (viewer→destructive 403, unmapped tool, unknown role, no-actor, filtered list) proven to FAIL against ungated code (9 failures on the TEMP-BREAK, 4 positive controls still green); real HTTP :8105 + a live playground `tools/call` (viewer `klytos_delete_page` → JSON-RPC error + **403**; owner allowed; viewer `tools/list` = 19 tools, no destructive; owner = 169); keel-verify **10 checks**, check 10 proven to FAIL both directions on an injected typo then reverted; upgrade from real v0.30.1 still passes; all D-025 baselines held (whole-scope 306/599 = exact sum of the recorded baselines) | `installer/core/mcp/tool-capabilities.php` (169 core tools, absent = deny, `mcp.tool_capabilities` filter); `PermissionDeniedException`; ONE `denialReason()` gate in `call()` above `:164` + `setActor()` + `listTools()` filter; `server.php` catch→403; `chat-engine` setActor + existing catch→tool error; `mcp.access_denied` audit action. keel-verify 9→**10** |
 | 3 | Coverage completeness | NEW-02 tail; L-007; NEW-30 | **closed 2026-07-23** | **PASS** — full suite **185 tests/805 assertions** (+14); every new test proven to FAIL against unfixed code (stash+reseed: 2 errors + 9 failures); keel-verify **10 checks, check 10 = 172**; upgrade from real v0.30.1 PASS; all D-025 baselines held exactly (193/488, 113/109, 0/0, 0/2, 0/0); live playground owner `tools/list` = **206** (172 core + 8 x402 + 16 forms + 10 importer), NEW-30 live: owner `klytos_forms_list` over HTTP → 200 | Loader fails loudly via extracted `registerToolFile()` + typed `ToolRegistrationException`; `integrity-tools.php` wired in (34th file) + 3 tools mapped `site.configure`; `klytos-forms` (16 → `forms.manage`) + `klytos-importer` (10 → `site.configure`) declare via `mcp.tool_capabilities`, activated in the seed; `chat-engine` `getAvailableTools()` default-denies unknown roles + closes the fail-opens; **NEW-30 resolved** (user-confirmed, D-050) — `exists()` = registered OR mapped, filter-injected tools callable over HTTP + gated. **Reviews:** both subagents ran on the finished diff (L-015), NO blocking; the `code-reviewer` note (broad `RuntimeException` catch) fixed — narrowed to a typed `ToolNotFoundException` + pin test; keel-verify stale comments corrected |
-| 4 | Reconciliation + D-035 + docs/skills/i18n + count truth | NEW-02 closure; D-035 revisit | **planned** | — | NEW `docs/reference/mcp-authorization.md`; close the `authorization.md:217-221` forward reference; count truth (177 served / 169 live / 3 dead); refusal i18n keys × 20 catalogues; `playground.md` `tools/call` curl + per-role table; 4 skill updates; **D-035 widening of `ai.use` to editor — CONFIRM with the user** |
+| 4 | Reconciliation + D-051 + docs/skills/i18n + count truth | **NEW-02 CLOSED**; D-035 revisited and superseded | **closed 2026-07-24** | **PASS** — full suite **190 tests/951 assertions** (+5); both behaviour changes proven to FAIL against unfixed code (4/4 i18n tests against the reverted catalogues; 2 widening assertions against the un-widened matrix, one of them **on the wire**: "ai-chat.php as editor: expected 200, got 403"); keel-verify **10 checks**, locale parity green across 120 files, check 10 = 172, INDEX 100/955; upgrade from real v0.30.1 PASS; all five D-025 baselines held **exactly**; live playground walk of the full 5-tool × 4-role matrix | The plan's counts were all stale after slice 3 and were **re-measured, not carried forward** (L-015): **172** core + **8** x402 = **180 on a default install**, **206** with both MCP plugins active, **0** dead. `authorization.md`'s forward reference closed (it claimed 172 ungated tools and a reuse of `klytos_require_permission()` — both false); "Adding a new MCP tool — the checklist" written; refusal translated in **all 20** catalogues (`mcp.permission_denied`, via the I18n **service** — the global `__()` does not exist on the MCP path, NEW-18); `playground.md` §3a with a runnable `tools/call` curl + the measured per-role table; **8** skills updated (4 planned + integrity/forms/importer/desktop-vs-mcp); **D-051** widens `ai.use` to editor, user-confirmed. **L-018** — a non-disclosure test written as a word blocklist failed on correct English ("ask the site **owner**"), narrowed to the capability-identifier shape |
 
 Full per-slice files, reuse targets and test points are in the approved plan
 (`~/.claude/plans/floofy-nibbling-ullman.md`); authoritative per-slice evidence lands in
@@ -85,6 +85,9 @@ Full per-slice files, reuse targets and test points are in the approved plan
   role gets an empty AI tool list (default-deny). Each proven.
 - **4** — INDEX + audit + skills + all 20 catalogues consistent; `keel-verify` + `docs-verifier` clean;
   the `tools/call` curl in `playground.md` runs; `ai.use` widening confirmed and its test updated.
+  **Met.** The one thing the plan got wrong here was its own numbers: "count truth (177 served / 169
+  live / 3 dead)" was already superseded by slice 3 when slice 4 opened it. Re-measured live rather
+  than carried forward, which is exactly the L-015 discipline the plan itself demands.
 
 ### Slice 1 review follow-ups (recorded 2026-07-22, not fixed — both reviewers ran on the finished diff)
 
@@ -167,19 +170,57 @@ and the same filter-injected-tool reconciliation **slice 3** already owns.
 5. **Never run the web installer or `cli.php build` in-tree** (NEW-04). Held; documented in
    `docs/playground.md`.
 
-## Close-out — (filled at sprint close)
+## Close-out — filled 2026-07-24
 
 | Requirement | Status |
 |---|---|
-| Full suite green (every test, not only this sprint's) | — |
-| `keel-verify` output pasted (now 10 checks) | — |
-| Upgrade tested from the REAL previous version | — |
-| Lint baselines held | — |
-| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | — |
-| `docs-verifier` over everything the sprint touched | — |
-| Playground-QA fresh-context pass | — |
-| Numbered try-it script handed to the user, debug log ON | — |
-| **User's recorded verdict** | — |
-| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | — |
-| Continuation prompt produced unprompted | — |
-| Finished docs archived to `docs/old/sprint-2/` (or "nothing qualified", stated) | — |
+| Full suite green (every test, not only this sprint's) | **PASS** — `XDEBUG_MODE=off vendor/bin/phpunit` → **192 tests / 961 assertions**, 0 failures, 0 skips (sprint start: 142/617). Unit 62, integration 130 |
+| `keel-verify` output pasted (now 10 checks) | **PASS** — 10 checks, exit 0, 2 WARNs owned by Phase 7 (H-01 version touchpoints, NEW-27 guides). Check 10 = **172 tools**; locale parity green across **120 files in 6 sets**; INDEX 100 classes / 955 total. Full output in `docs/05-test-points.md` |
+| Upgrade tested from the REAL previous version | **PASS** — `XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh` → `UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)`, including the D-047 credential-role migration on a real v0.30.1 install and the fail-closed broken-migration branch |
+| Lint baselines held | **PASS**, all five, exactly: core+admin **193/488**, plugins **113/109**, tests **0/0**, installer/public **0/0**, scripts **0/2**. Measured per scope with no default value (L-016) |
+| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | **DONE, 4/4 slices.** Slice 4: `code-reviewer` **no blocking** (one stale why-comment in `admin-gate.php`, fixed); `security-auditor` **THREE blocking**, two real → **NEW-31** found and **fixed in path** (see below), one verified and deliberately retained with its reasoning recorded in D-051 |
+| `docs-verifier` over everything the sprint touched | **PASS** — INDEX parity clean, every Sprint-2 symbol resolves in source, all examples correct, counts consistent across every current-state document. One out-of-scope catch: `README.md` said "33 tool modules" (fixed to 34); its per-module table sums to the pre-slice-3 177 and is left to Phase 6/D-017 with the measured per-file counts recorded in the audit so it need not be re-derived |
+| Playground-QA fresh-context pass | **DONE — verdict "qualified yes", and it earned its keep.** §3a (this slice's new MCP authorization section) came back **flawless — every cell of the per-role matrix matched, byte for byte**. Elsewhere it found **8 defects in the document**, all fixed before this close: the section-1 server collided with `upgrade-test.sh`'s port 8099 and fabricated an upgrade failure (it now runs on its own `$RPORT`); two sections used a session cookie against the wrong server, making the authorization table unreproducible; "denied to everyone including the owner" was imprecise (the guarantee is include-time — a probe file without `bootstrap.php` answered **200 anonymously**, and keel-verify is what catches it); `composer audit` says **11** advisories, not the documented 5; the first command drowned in 35 KB of Xdebug traces; and the debug-log section promised entries that **nothing writes** → **NEW-32** |
+| Numbered try-it script handed to the user, debug log ON | **DONE** — handed with this close, with the honest caveat that refusals do not self-log (NEW-32) and the one-line subscriber that makes them |
+| **User's recorded verdict** | **PENDING** — awaiting the user's own walk of the try-it script. A reported failure reopens the sprint |
+| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **DONE** — PROGRESS rewritten for the close; **L-018** (a non-disclosure test written as a word blocklist failed on correct English) and **L-019** (a seam is not a sink: "it goes to the audit log" was true of the hook and false of the system); token-ledger row **17** |
+| Continuation prompt produced unprompted | **DONE** — handed with this close |
+| Finished docs archived to `docs/old/sprint-2/` (or "nothing qualified", stated) | **Nothing qualified — stated, not skipped.** Phase 5 §5.7 moves docs that are finished AND no longer consulted. `sprint-1.md` is still read as precedent (this sprint read it four times); `theme-package-model.md` specifies an upcoming sprint; `estimate.md` awaits v3; `04-adoption-audit.md` gained NEW-31/32/33 today. The state files, specs, technical plan, flows and api/reference docs never move while the project is alive. `docs/old/` is deliberately not created empty |
+
+### Slice 4 review follow-ups — the audit found a hole this sprint would otherwise have widened
+
+The `security-auditor` pass on **D-051** did what a green suite could not: it asked what `ai.use`
+actually *bounds*, rather than what it is documented to bound. Answer: nothing beyond the file.
+`admin/ai-chat.php` `require_once`s `partials/ai-panel-{$panel}.php` for a caller-supplied `?panel=`,
+and those four partials carried **zero** permission checks between them —
+`ai-panel-users.php` creates users and changes **any** account's password behind CSRF alone (work
+`users.php` reserves to `users.manage`, owner-only) and `ai-panel-settings.php` writes site/email/SMTP
+settings (`site.configure`). `api/ai-chat.php`'s `get_providers` returned `masked_key` (6+4 characters
+of every configured AI provider key) with no check while its four sibling actions all require
+`site.configure`.
+
+Recorded as **NEW-31** and **fixed in this slice**: a panel→capability map in `ai-chat.php` mirroring
+each panel's standalone twin, **absent = deny**, running before `header.php`; `get_providers` gated
+like its siblings. Proven both directions — against the unfixed code an editor got **200** on
+`?panel=users` and **200** on `get_providers`.
+
+Three things about it are worth carrying forward:
+
+1. **It is not caused by D-051.** It has been true since `ai.use` existed, and it is live for
+   **`admin`** today — one tier above the role this sprint added. `ai.use` and the panels'
+   capabilities were the same owner+admin set until now, so no request could observe the difference.
+   A missing check exactly where two capabilities coincide, for the third time in this project.
+2. **The decision's own justification would have been false without it.** D-051 says "an editor in
+   the chat can do exactly what an editor may do, and no more." Shipping the widening over an
+   unchecked user-management panel would have made that the L-002 defect inside a security decision.
+3. **Two of the auditor's three escalation routes did not exist** — `UserManager::create()` refuses a
+   second owner and `update()` refuses `role = owner` outright — and were re-derived against source
+   before anything was changed (L-013). The real path is create-an-`admin` plus `changePassword` on
+   the owner's id: worse in effect, different in mechanism. A reviewer's accusation is a hypothesis
+   too.
+
+The third blocking finding — `chat-engine`'s generic catch surfacing the internal denial reason to
+the chat UI and the model — is **verified and deliberately retained**, with the reasoning in D-051:
+the HTTP transport answers an arbitrary MCP client, the chat answers the operator's own authenticated
+session, and the capability identifiers are published documentation in an open-source product. This
+matches the position already recorded in the slice-2 follow-ups and is not re-opened.

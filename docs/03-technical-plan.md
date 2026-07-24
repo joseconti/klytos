@@ -46,7 +46,7 @@ One line per path. `installer/` is the entire application; everything above it i
 | `installer/core/app.php` | Service container + bootstrap; owns every manager |
 | `installer/core/*.php` | ~60 manager classes — see `docs/api/INDEX.md` for the full list |
 | `installer/core/mcp/` | MCP server: `server.php`, `json-rpc.php`, `tool-registry.php`, `token-auth.php`, `oauth-server.php`, `rate-limiter.php` |
-| `installer/core/mcp/tools/` | 34 files registering ~180 MCP tools, grouped by domain |
+| `installer/core/mcp/tools/` | 34 files registering **172** core MCP tools, grouped by domain; 8 more are injected by core x402 through `mcp.tools_list`. Counts and what "served" means: `docs/reference/mcp-authorization.md` |
 | `installer/core/ai/` | `ai-key-manager.php`, `chat-manager.php`, `chat-engine.php` — provider keys and the tool-calling loop |
 | `installer/core/x402/` | Micropayment gating: config, gate, bot detector, htaccess writer, stats, transaction log, provider registry |
 | `installer/core/cache/` | Cache drivers: apcu, file, memcached, null, redis |

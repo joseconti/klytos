@@ -185,6 +185,40 @@ final class McpGateHttpTest extends AdminHttpTestCase
     }
 
     /**
+     * The 403's message comes from the locale catalogue, not from a literal in
+     * server.php (slice 4).
+     *
+     * Honest about what this proves and what it does not: it pins that the wire
+     * message equals the ENGLISH catalogue entry with the tool substituted, so
+     * it fails the moment the catalogue and the code disagree — which is what
+     * it is for, and it does fail against the pre-slice-4 tree, where the key
+     * does not exist and I18n echoes it back while the server sends its old
+     * hardcoded sentence. What a same-language assertion cannot show is that a
+     * TRANSLATION is served for a non-English site, because the locale comes
+     * from encrypted core config and writing it here would trip the D-039
+     * mutation guard. That half is proven in McpRefusalI18nTest, per locale.
+     */
+    public function testTheRefusalMessageComesFromTheLocaleCatalogue(): void
+    {
+        $token    = $this->auth()->createBearerToken( 'gate-test-i18n', 'viewer' )['token'];
+        $response = $this->mcpCall( $token, 'tools/call', [
+            'name'      => self::DESTRUCTIVE_TOOL,
+            'arguments' => [ 'slug' => 'index' ],
+        ] );
+
+        self::assertSame( 403, $response['status'] );
+
+        $expected = ( new \Klytos\Core\I18n( 'en', dirname( __DIR__, 2 ) . '/installer/core/lang' ) )
+            ->get( 'mcp.permission_denied', [ 'tool' => self::DESTRUCTIVE_TOOL ] );
+
+        self::assertSame(
+            $expected,
+            $response['json']['error']['message'] ?? null,
+            'the client-facing refusal must be served from the catalogue, not hardcoded'
+        );
+    }
+
+    /**
      * POST a JSON-RPC request to the MCP endpoint with a Bearer token.
      *
      * The base harness speaks admin sessions (cookie + CSRF); MCP speaks neither

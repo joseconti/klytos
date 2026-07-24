@@ -233,7 +233,8 @@
     "confirm_revoke": "Tem a certeza de que pretende revogar isto?",
     "show_raw_credentials": "Mostrar credenciais em bruto",
     "last_activity": "Última atividade",
-    "requests_today": "Pedidos hoje"
+    "requests_today": "Pedidos hoje",
+    "permission_denied": "Permissão negada: esta ligação não está autorizada a chamar a ferramenta «{tool}». Peça ao proprietário do site que lhe conceda a permissão necessária."
   },
   "plugin_license": {
     "title": "Licença do Plugin",
