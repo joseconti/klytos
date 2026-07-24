@@ -8,14 +8,14 @@
 | Kind | Count |
 |------|-------|
 | Global helper functions | 146 |
-| Classes and interfaces | 100 |
-| Actions | 307 |
+| Classes and interfaces | 101 |
+| Actions | 308 |
 | Filters | 117 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **955** |
+| **Total** | **957** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -178,6 +178,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\Ai\ChatEngine` | class | installer/core/ai/chat-engine.php | — | Runs AI chat loops via the php-llm SDK, executing MCP tools between turns |
 | `Klytos\Core\Ai\ChatManager` | class | installer/core/ai/chat-manager.php | — | Persists chat conversations, their messages, token usage and search |
 | `Klytos\Core\Ai\ChatResult` | class | installer/core/ai/chat-engine.php | — | Value object holding the outcome of a chat across AI and tool iterations |
+| `Klytos\Core\Ai\UnsupportedRuntimeException` | class | installer/core/ai/unsupported-runtime-exception.php | docs/reference/ai-runtime.md | Thrown by App::getChatEngine() when this PHP is older than the vendored AI stack requires, instead of fataling inside vendor-ai (NEW-06, D-053) |
 | `Klytos\Core\AiImageGenerator` | class | installer/core/ai-image-generator.php | — | Generates images through configured AI providers and keeps a generation history |
 | `Klytos\Core\AnalyticsManager` | class | installer/core/analytics-manager.php | — | Records page views and reports traffic summaries and top pages |
 | `Klytos\Core\App` | class | installer/core/app.php | — | Singleton application container that boots the CMS and exposes every core service |
@@ -401,6 +402,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | asset_category.after_delete | action | installer/core/asset-manager.php | — | Emitted once a media category is removed; receives the deleted category ID |
 | asset_category.before_create | action | installer/core/asset-manager.php | — | Emitted before a media category is stored; receives the proposed name and slug |
 | asset_category.before_delete | action | installer/core/asset-manager.php | — | Emitted before a media category is removed; receives the category ID |
+| ai.runtime_unsupported | action | installer/core/app.php | docs/reference/ai-runtime.md | Fires before AI chat is refused on a PHP older than the vendored stack requires; audit seam with no core listener, cannot reverse the decision |
 | auth.access_denied | action | installer/core/helpers-global.php | docs/reference/authorization.md | Fires immediately before a request is refused; audit hook, cannot reverse the decision |
 | auth.after_login | action | installer/core/auth.php | — | Emitted on successful sign-in (also after 2FA); receives the username and user ID |
 | auth.before_login | action | installer/core/auth.php | — | Emitted before credentials are validated; receives the submitted username |

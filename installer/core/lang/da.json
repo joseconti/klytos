@@ -541,6 +541,9 @@
     "missing_extension": "Manglende udvidelse: {ext}",
     "directory_not_writable": "Mappen er ikke skrivbar: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "AI-funktioner kræver PHP {required} eller nyere. Dette websted kører PHP {running}, så AI-motoren er deaktiveret. Resten af Klytos er upåvirket — bed din hostingudbyder om at opgradere PHP."
+  },
   "ai_chat": {
     "title": "AI-chat",
     "new_conversation": "Ny samtale",

@@ -1,7 +1,7 @@
 # Sprint 3 — `vendor-ai/` CVE remediation, and the AI stack fails safe
 
 - **Planned:** 2026-07-25 (plan mode, approved by the user). Kickoff re-validation ran the same session.
-- **Status:** IN PROGRESS — slice 1 next.
+- **Status:** both slices closed 2026-07-25; sprint close-out in progress. Audit **NEW-05** and **NEW-06** CLOSED.
 - **Scope basis:** audit **NEW-05** (CVEs in the vendored HTTP stack), triaged to a dedicated post-Sprint-1
   slice by **D-029**, plus audit **NEW-06** (the vendored AI stack needs PHP 8.3 while the product declares
   8.1+, with no guard), whose recorded natural home is this slice.
@@ -93,8 +93,11 @@ the subagent reported it (**L-013** — a subagent report is a hypothesis):
   `chat-engine.php`'s `default => throw` pins the provider enum.
 - **One residue found by the trace, and it is not a CVE hit:** `$input['model']` at
   `installer/admin/api/ai-chat.php:168` is never validated against `AiKeyManager::PROVIDERS` and reaches the
-  Gemini URL's **path** segment. Percent-encoded by psr7, so no CRLF and no authority relocation; worst case
-  is an authenticated-admin denial-of-function. Verified independently and recorded as its own audit finding
+  Gemini URL's **path** segment. Percent-encoded by psr7, so no CRLF and no authority relocation; the host
+  never moves in any spelling. Measured rather than reasoned about: a `#` pushes `key={apiKey}` into the URI
+  **fragment**, so the request leaves with **no API key** (401), and a `?` truncates the path. It is a
+  denial-of-function, and the population is **editor and above** (`ai.use`, widened by D-051) — not
+  "authenticated admin", a framing the slice-1 `security-auditor` corrected. Recorded as audit **NEW-34**
   with a trigger — **not fixed here** (adjacent subsystem, D-031's narrowing).
 
 **Standing detection was missing and that is why the growth went unseen.** `composer audit -d installer`
@@ -121,7 +124,7 @@ close, five days late. Closed in slice 2 (user decision 2026-07-25).
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
 | 1 | The re-vendor to zero advisories | **NEW-05** | **closed 2026-07-25** | **PASS** — `composer audit -d installer` **11 → 0**, measured both sides; full suite **195 tests / 986 assertions** (+3/+25); keel-verify 10 checks, exit 0, same 2 Phase-7 WARNs; upgrade from real v0.30.1 PASS; all five D-025 baselines held **exactly** (193/488, 113/109, 0/0, 0/0, 0/2). Evidence in `docs/05-test-points.md` | guzzle 7.10.0→**7.15.1**, psr7 2.9.0→**2.13.0**, promises 2.3.0→**2.5.1**, + **`symfony/polyfill-php80` v1.37.0** (16→**17** packages, 482→**509** tracked files). **The diff is 95 files, not the 482 D-029 implied** — that was the tree size, not the change size. `VendorAiManifestTest` was observed **RED on all three methods** against the half-updated records before it went green — no injected fault needed. It also exposed **L-020**: its root-package skip was hardcoded to `'__root__'` and had never been exercised, because the guard was built against a tree vendored elsewhere and never regenerated here. `installer/composer.json` gains `"version": "1.0.0"` so the tracked generated `installed.php` stops embedding the branch name and commit sha. New `VendorAiCompatibilityTest` (3 tests), proven to fail in three directions |
-| 2 | NEW-06 fail-safe guard + standing advisory detection | **NEW-06** | pending | — | Typed `UnsupportedRuntimeException` before the vendor `require_once`; pure testable policy split out (D-044 precedent); message via `__()` in all 20 catalogues; an audit **action**, not a filter. Plus the non-blocking `composer audit` CI job. |
+| 2 | NEW-06 fail-safe guard + standing advisory detection | **NEW-06** | **closed 2026-07-25** | **PASS** — full suite **206 tests / 1007 assertions** (+10/+17); three probes proven (constant drift, off-by-one, guard relocated below the require) and reverted; keel-verify 10 checks exit 0, INDEX parity green after +2 rows; upgrade from real v0.30.1 PASS; `composer audit` still zero; all five D-025 baselines held exactly; live per-role walk 200/200/200/403. Evidence in `docs/05-test-points.md` | Typed `Klytos\Core\Ai\UnsupportedRuntimeException` thrown **above** the vendor `require_once` — pinned by a source-order test, the only way to reach that property on a supported host. Pure `App::aiRuntimeUnsupportedReason( int )` (D-044 split) because PHP cannot be downgraded in the suite. `ai.unsupported_runtime` in all 20 catalogues; `ai.runtime_unsupported` is an **action** with no core listener, said in those words (L-019). Non-blocking `vendor-advisories` CI job, both branches proven. **L-021** — the first per-role walk was answered by a leftover server from the previous session that every L-011 tell agreed with; two `docs/playground.md` defects fixed as a result, including a bind check that could not fire |
 
 ## Explicitly out of scope (named, so it is not mistaken for oversight)
 

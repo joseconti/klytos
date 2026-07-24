@@ -541,6 +541,9 @@
     "missing_extension": "Extensió mancant: {ext}",
     "directory_not_writable": "El directori no té permisos d'escriptura: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "Les funcions d'IA necessiten PHP {required} o superior. Aquest lloc executa PHP {running}, de manera que el motor d'IA està desactivat. La resta de Klytos no es veu afectada: demana al teu proveïdor d'allotjament que actualitzi el PHP."
+  },
   "ai_chat": {
     "title": "Xat IA",
     "new_conversation": "Nova conversa",

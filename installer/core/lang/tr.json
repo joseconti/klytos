@@ -541,6 +541,9 @@
     "missing_extension": "Eksik eklenti: {ext}",
     "directory_not_writable": "Dizin yazılabilir değil: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "Yapay zekâ özellikleri PHP {required} veya daha yenisini gerektirir. Bu site PHP {running} çalıştırıyor, bu nedenle yapay zekâ motoru devre dışı. Klytos'un geri kalanı etkilenmez — barındırma sağlayıcınızdan PHP'yi güncellemesini isteyin."
+  },
   "ai_chat": {
     "title": "Yapay Zeka Sohbeti",
     "new_conversation": "Yeni sohbet",

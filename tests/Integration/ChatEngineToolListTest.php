@@ -29,8 +29,17 @@ namespace Klytos\Tests\Integration;
 
 use Klytos\Core\Ai\ChatEngine;
 use Klytos\Core\MCP\ToolRegistry;
+use PHPUnit\Framework\Attributes\Group;
 use Klytos\Tests\IntegrationTestCase;
 
+/**
+ * Grouped so CI's PHP 8.2 leg can EXCLUDE these explicitly rather than let them
+ * skip. Klytos declares PHP 8.1+ and CI verifies 8.2, but the vendored AI stack
+ * needs 8.3 (NEW-06 / D-053), so these tests cannot run there. Excluding a named
+ * group keeps D-045's 'a skip is a hard failure' rule intact and meaningful — a
+ * silently skipped integration tier is exactly what that rule exists to catch.
+ */
+#[Group( 'ai-runtime' )]
 final class ChatEngineToolListTest extends IntegrationTestCase
 {
     /**
@@ -40,6 +49,16 @@ final class ChatEngineToolListTest extends IntegrationTestCase
      */
     private function engineWithFullBaseList(): ChatEngine
     {
+        // getChatEngine() below loads the vendored AI stack, which needs PHP 8.3
+        // while Klytos declares 8.1+ and CI runs the suite on 8.2 too. Below the
+        // floor the guard refuses (NEW-06 / D-053) — correct there, and these
+        // tests have nothing to say about it. Pre-dates Sprint 3: this class has
+        // called getChatEngine() unconditionally since Sprint 2 slice 3, so the
+        // 8.2 leg would have broken here first. It was never observed because
+        // CI has never actually run — every commit since the workflow was written
+        // is still unpushed.
+        $this->requireAiRuntime();
+
         $registry = new ToolRegistry( $this->app );
         $registry->registerAllTools();
         $registry->setActor( 1, 'owner' );

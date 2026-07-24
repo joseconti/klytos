@@ -171,23 +171,34 @@ The **runtime has no Composer dependencies**. Two manifests exist, and they are 
 | Manifest | Scope | Ships? |
 |---|---|---|
 | `composer.json` (repo root) | Dev toolchain only — PHPUnit + PHPCS, plus `autoload-dev` for the test tiers | no (`export-ignore`) |
-| `installer/composer.json` | Reconstructed record of the 16 packages vendored in `installer/vendor-ai/`, pinned to exactly what ships (`vendor-dir: vendor-ai`) | no (`export-ignore`) |
+| `installer/composer.json` | Reconstructed record of the 17 packages vendored in `installer/vendor-ai/`, pinned to exactly what ships (`vendor-dir: vendor-ai`). Carries `"version": "1.0.0"` so the generated `installed.php` does not embed the git branch and commit | no (`export-ignore`) |
 
 ```bash
 composer audit:vendor     # alias for: composer audit -d installer
 ```
 
 - `installer/vendor-ai/` is the AI-chat stack (`soukicz/llm` + Guzzle + PSR-7 + friends). It is
-  **loaded lazily from exactly one place** — `App::getChatEngine()` (`core/app.php:1009`). A site that
-  never opens AI chat never loads it.
-- **Never run `composer install -d installer`** casually: it rewrites 482 tracked files. Use
-  `composer update --no-install -d installer` to refresh the lock alone.
+  **loaded lazily from exactly one place** — `App::getChatEngine()`. A site that never opens AI chat
+  never loads it.
+- **The AI stack needs PHP 8.3 while Klytos itself declares 8.1+.** `App::getChatEngine()` refuses
+  below `App::AI_MIN_PHP_VERSION_ID` and throws `Klytos\Core\Ai\UnsupportedRuntimeException` **before**
+  requiring the vendored autoloader — below that line Composer's `platform_check.php` has already sent
+  HTTP 500 and thrown from inside vendored code. Never move that check below the `require_once`; a test
+  reads the source order and fails if you do. Full contract: `docs/reference/ai-runtime.md`.
+- **Never run `composer install -d installer`** casually: it reinstalls whatever the lock already says.
+  To change a pinned version, edit the exact pin in `installer/composer.json` first, then
+  `composer update <package> -W -d installer`. Pins must stay exact versions with **no operator**
+  (`7.15.1`, never `^7.15`) — `VendorAiManifestTest` compares them literally.
 - `tests/Unit/VendorAiManifestTest.php` fails the suite if the manifest, the lock,
   `vendor-ai/composer/installed.php` and `LICENSE-THIRD-PARTY.md` stop agreeing. If you change what
-  is vendored, update all four in the same slice.
+  is vendored, update all four in the same slice — including adding a section to the licence notice
+  for any package Composer pulls in transitively.
+- `tests/Integration/VendorAiCompatibilityTest.php` fails if a bump removes a symbol the AI stack
+  imports. Its list is regenerated with the grep in its own docblock, not edited by hand.
 - **CVE findings are reported and triaged with the user, never silently patched** (D-022). As of
-  2026-07-19 the audit reports 5 known medium CVEs — see `docs/04-adoption-audit.md` NEW-05 before
-  treating them as a new discovery.
+  2026-07-25 `composer audit -d installer` reports **zero** — the tree was re-vendored in Sprint 3
+  (D-052, closing audit NEW-05). CI reports the current list on every run without failing the build
+  (the `vendor-advisories` job); if it warns, triage with the user rather than bumping silently.
 
 ## Security Checklist for Core Changes
 
@@ -204,7 +215,9 @@ composer audit:vendor     # alias for: composer audit -d installer
 
 ## Coding Standards
 
-- PHP 8.1+ with `declare(strict_types=1)`.
+- PHP 8.1+ with `declare(strict_types=1)`. That is the **product's** floor — the vendored AI stack
+  needs 8.3 and refuses below it rather than fataling (`docs/reference/ai-runtime.md`). Core code you
+  write must run on 8.1; only code behind `App::getChatEngine()` may assume more.
 - All code in English (comments, variable names, function names).
 - Descriptive class/method/variable names.
 - PHPDoc on every public method.

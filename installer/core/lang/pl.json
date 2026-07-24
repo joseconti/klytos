@@ -541,6 +541,9 @@
     "missing_extension": "Brakujące rozszerzenie: {ext}",
     "directory_not_writable": "Katalog nie jest zapisywalny: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "Funkcje AI wymagają PHP {required} lub nowszego. Ta witryna działa na PHP {running}, więc silnik AI jest wyłączony. Reszta Klytos działa normalnie — poproś dostawcę hostingu o aktualizację PHP."
+  },
   "ai_chat": {
     "title": "Czat AI",
     "new_conversation": "Nowa rozmowa",

@@ -18,7 +18,7 @@
 | Front-end tooling | **None** — no bundler, no transpiler, no npm scripts. Vanilla CSS/JS shipped as-is |
 | Dependency manifest | Root `composer.json` since 2026-07-19 (Sprint 1 slice 1) — **`require-dev` only**: PHPUnit + PHPCS, plus `autoload-dev` for the test tiers. The runtime stays dependency-free and nothing ships (`export-ignore`). `composer.lock` is tracked so versions are reproducible (D-022, D-027). No root `package.json` |
 | Vendored deps | `installer/vendor-ai/` committed — **17 packages, 509 tracked files** (guzzlehttp, psr/*, ramsey/uuid, ramsey/collection, brick/math, swaggest, symfony polyfills, phplang/scope-exit, ralouphie/getallheaders, soukicz/llm) + TinyMCE under `installer/admin/assets/vendor/`. Since 2026-07-19 (slice 2) reconstructed and pinned by `installer/composer.json` + `installer/composer.lock` (D-028), so `composer audit -d installer` runs. Counts re-measured 2026-07-25 after the Sprint 3 security re-vendor (D-052), which raised guzzle→7.15.1, psr7→2.13.0, promises→2.5.1 and added `symfony/polyfill-php80`. Loaded lazily, only by `App::getChatEngine()` |
-| Autoloading | Custom `spl_autoload_register` for `Klytos\Core` at `installer/core/app.php:698`, plus explicit `require_once` chains; Composer's `vendor-ai/autoload.php` loaded lazily at `app.php:1009` |
+| Autoloading | Custom `spl_autoload_register` for `Klytos\Core` at `installer/core/app.php:698`, plus explicit `require_once` chains; Composer's `vendor-ai/autoload.php` loaded lazily from `App::getChatEngine()`, behind the NEW-06 runtime guard (D-053) |
 | Output | Static HTML generated into `installer/public/` |
 
 **Risk closed 2026-07-19 (slice 2), with findings.** `vendor-ai/` now has a manifest (D-028), so the

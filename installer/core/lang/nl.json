@@ -541,6 +541,9 @@
     "missing_extension": "Ontbrekende extensie: {ext}",
     "directory_not_writable": "Map is niet schrijfbaar: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "AI-functies vereisen PHP {required} of nieuwer. Deze site draait op PHP {running}, dus de AI-engine is uitgeschakeld. De rest van Klytos werkt gewoon — vraag je hostingprovider om PHP bij te werken."
+  },
   "ai_chat": {
     "title": "AI-chat",
     "new_conversation": "Nieuw gesprek",

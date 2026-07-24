@@ -74,8 +74,11 @@ php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
 ## Stop and reset
 
 ```bash
-# Stop: Ctrl-C, or if it was backgrounded
-pkill -f "php -S 127.0.0.1:$KPORT"
+# Stop: Ctrl-C, or if it was backgrounded — kill by PORT, not by command pattern.
+# `pkill -f "php -S ..."` only matches a server started with no options between
+# `php` and `-S`; the $RPORT server below has `-d` flags there, so that pattern
+# silently matches nothing and the process survives (found 2026-07-25, L-021).
+kill $(lsof -nP -tiTCP:$KPORT -sTCP:LISTEN)
 
 # Wipe all runtime state and seed again from scratch
 php scripts/dev/seed-playground.php --reset
@@ -135,12 +138,20 @@ To exercise the role system, drive it the way the tests do — write the session
 ```bash
 # Pick a free port for the role-system server — NOT 8099 (upgrade-test.sh owns that).
 export RPORT=8093
-nc -z 127.0.0.1 $RPORT && echo "PORT $RPORT IS TAKEN — export a different RPORT"
+nc -z 127.0.0.1 $RPORT && echo "PORT $RPORT IS TAKEN — see the note below before doing anything else"
 
 # Start a server with a private, inspectable session store.
+# Its output is REDIRECTED so the bind check below has something to read — without
+# the redirect that check silently finds nothing and reassures you for free (L-016).
 SP=/tmp/klytos-sessions; mkdir -p $SP
 php -d session.save_path=$SP -d session.serialize_handler=php_serialize \
-    -S 127.0.0.1:$RPORT -t . scripts/dev/router.php &
+    -S 127.0.0.1:$RPORT -t . scripts/dev/router.php > /tmp/klytos-rport.log 2>&1 &
+sleep 2
+
+# BACKGROUNDED means a failed bind is silent. Check for it explicitly, every time.
+grep -i 'failed to listen' /tmp/klytos-rport.log \
+  && echo "DID NOT BIND — everything below would answer from someone else's server" \
+  || echo "bound cleanly on $RPORT"
 
 # Mint a session for any seeded role and print its cookie value.
 XDEBUG_MODE=off php -r '
@@ -153,6 +164,22 @@ file_put_contents("/tmp/klytos-sessions/sess_".$sid, serialize([
 echo $sid."\n";' viewer
 ```
 
+> **If the port is taken, find out WHOSE it is before switching ports — it is usually ours.**
+> L-011 taught the tell `Server: Apache/2.4.54 (Debian)` for a foreign squatter. That does not help
+> here: a `php -S` left running by an **earlier session of this project** is byte-identical on every
+> signal — same `X-Powered-By`, same security headers, same session store, same router. Every
+> identity check passes, honestly, and you end up testing a server you did not start, possibly
+> against an older tree. This happened on 2026-07-25 (**L-021**) and the walk was correct only by
+> luck. Two commands settle it:
+>
+> ```bash
+> lsof -nP -iTCP:$RPORT -sTCP:LISTEN          # which PID owns the port
+> ps -o pid,lstart,command -p <PID>           # when it started, and with which arguments
+> ```
+>
+> If it is an old Klytos router, `kill <PID>` and start a fresh one — do not just move to another
+> port, or the stale process is still there for the next session to trip over.
+
 The cookie is named **`klytos_session`**, not `PHPSESSID` (`auth.php:61`):
 
 ```bash
@@ -164,7 +191,9 @@ curl -s -o /dev/null -w '%{http_code}\n' -b "klytos_session=<the id printed abov
 test if you ever set `RPORT=8099`, and it costs nothing to be tidy:
 
 ```bash
-pkill -f "php -S 127.0.0.1:$RPORT"
+# Kill by PORT — `pkill -f "php -S 127.0.0.1:$RPORT"` does NOT match this server,
+# because its command line carries `-d session.save_path=...` between `php` and `-S`.
+kill $(lsof -nP -tiTCP:$RPORT -sTCP:LISTEN)
 ```
 
 ### 2. Authorization — what each role may reach (Sprint 1 slice 4)

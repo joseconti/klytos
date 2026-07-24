@@ -541,6 +541,9 @@
     "missing_extension": "拡張機能が不足しています: {ext}",
     "directory_not_writable": "ディレクトリに書き込み権限がありません: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "AI 機能には PHP {required} 以降が必要です。このサイトは PHP {running} で動作しているため、AI エンジンは無効になっています。Klytos のその他の機能には影響ありません。ホスティング事業者に PHP の更新を依頼してください。"
+  },
   "ai_chat": {
     "title": "AIチャット",
     "new_conversation": "新しい会話",

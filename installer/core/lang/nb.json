@@ -541,6 +541,9 @@
     "missing_extension": "Manglende utvidelse: {ext}",
     "directory_not_writable": "Katalogen er ikke skrivbar: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "KI-funksjoner krever PHP {required} eller nyere. Dette nettstedet kjører PHP {running}, så KI-motoren er deaktivert. Resten av Klytos er upåvirket – be vertstjenesten din om å oppgradere PHP."
+  },
   "ai_chat": {
     "title": "AI-chat",
     "new_conversation": "Ny samtale",

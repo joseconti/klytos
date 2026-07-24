@@ -541,6 +541,9 @@
     "missing_extension": "Puuttuva laajennus: {ext}",
     "directory_not_writable": "Hakemistoon ei voi kirjoittaa: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "Tekoälytoiminnot vaativat PHP-version {required} tai uudemman. Tämä sivusto käyttää PHP-versiota {running}, joten tekoälymoottori on poistettu käytöstä. Klytosin muut osat toimivat normaalisti — pyydä palveluntarjoajaasi päivittämään PHP."
+  },
   "ai_chat": {
     "title": "Tekoälykeskustelu",
     "new_conversation": "Uusi keskustelu",

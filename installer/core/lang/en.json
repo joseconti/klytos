@@ -541,6 +541,9 @@
     "missing_extension": "Missing extension: {ext}",
     "directory_not_writable": "Directory is not writable: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "AI features need PHP {required} or newer. This site runs PHP {running}, so the AI engine is disabled. The rest of Klytos is unaffected — ask your hosting provider to upgrade PHP."
+  },
   "ai_chat": {
     "title": "AI Chat",
     "new_conversation": "New conversation",

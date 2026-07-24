@@ -328,4 +328,44 @@ abstract class IntegrationTestCase extends TestCase
             );
         }
     }
+
+    /**
+     * Skip a test that touches the vendored AI stack when this runtime cannot
+     * load it (audit NEW-06 / D-053).
+     *
+     * WHY THIS EXISTS, and it is not hypothetical. `.github/workflows/ci.yml`
+     * runs the FULL suite on PHP **8.2** as well as 8.3, because Klytos declares
+     * 8.1+ — but `installer/vendor-ai/` needs 8.3. Every test that reaches
+     * App::getChatEngine() therefore fails on the 8.2 leg: the guard refuses (as
+     * designed), and an uncaught UnsupportedRuntimeException errors the test.
+     * Measured, not assumed: with the floor temporarily raised so this host
+     * counts as unsupported, **8 tests across 3 classes** broke.
+     *
+     * Skipping is the honest answer rather than a workaround. The refusal IS the
+     * correct product behaviour on 8.2; a test asserting the AI stack loads is
+     * asserting something that must not be true there, so it has nothing to say
+     * on that runtime. What must NOT happen is a silent pass — hence a skip with
+     * a reason, which CI already promotes to a hard failure if the playground is
+     * missing (so a skip storm cannot hide).
+     *
+     * Uses the same shape as requirePlayground() above rather than a second
+     * mechanism: ask the application's own policy, never re-derive it here.
+     *
+     * @return void
+     */
+    protected function requireAiRuntime(): void
+    {
+        $reason = App::aiRuntimeUnsupportedReason( PHP_VERSION_ID );
+
+        if ( $reason !== null ) {
+            self::markTestSkipped( sprintf(
+                'This runtime cannot load the vendored AI stack (%s): PHP %s is below the '
+                . 'required %d. The guard refusing here is CORRECT product behaviour (NEW-06), '
+                . 'so a test that asserts the stack loads has nothing to prove on it.',
+                $reason,
+                PHP_VERSION,
+                App::AI_MIN_PHP_VERSION_ID
+            ) );
+        }
+    }
 }

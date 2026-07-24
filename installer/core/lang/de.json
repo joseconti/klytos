@@ -541,6 +541,9 @@
     "missing_extension": "Fehlende Erweiterung: {ext}",
     "directory_not_writable": "Das Verzeichnis ist nicht beschreibbar: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "KI-Funktionen benötigen PHP {required} oder neuer. Diese Website läuft mit PHP {running}, daher ist die KI-Engine deaktiviert. Der Rest von Klytos ist nicht betroffen – bitten Sie Ihren Hosting-Anbieter, PHP zu aktualisieren."
+  },
   "ai_chat": {
     "title": "KI-Chat",
     "new_conversation": "Neues Gespräch",

@@ -541,6 +541,9 @@
     "missing_extension": "Extensão em falta: {ext}",
     "directory_not_writable": "O diretório não tem permissões de escrita: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "As funcionalidades de IA precisam de PHP {required} ou superior. Este site usa PHP {running}, pelo que o motor de IA está desativado. O resto do Klytos não é afetado — peça ao seu fornecedor de alojamento que atualize o PHP."
+  },
   "ai_chat": {
     "title": "Chat IA",
     "new_conversation": "Nova conversa",

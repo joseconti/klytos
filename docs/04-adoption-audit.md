@@ -675,7 +675,7 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 
 - **Reachability, checked rather than assumed** (this is what makes it MEDIUM and not HIGH):
   - `vendor-ai/` is loaded **lazily and from exactly one place** — `App::getChatEngine()`
-    (`installer/core/app.php:1009`). A site that never opens the AI chat never loads Guzzle at all.
+    (`installer/core/app.php`). A site that never opens the AI chat never loads Guzzle at all.
   - **No cookie jar.** `CookieJar` and the `cookies` request option appear nowhere in
     `installer/core/ai/` or in `soukicz/llm`. CVE-2026-55767 has no path.
   - **No user-controllable URLs.** The five provider endpoints are hardcoded literals in
@@ -696,7 +696,32 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Trigger:** Sprint 1 close — **FIRED, and the slice ran 2026-07-25 (Sprint 3 slice 1). Estimate v3
   written. See the CLOSED block at the head of this entry.**
 
-### NEW-06 — The vendored AI stack requires PHP 8.3, but Klytos declares 8.1+ — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2)*
+### NEW-06 — The vendored AI stack requires PHP 8.3, but Klytos declares 8.1+ — **MEDIUM** — **CLOSED 2026-07-25 (Sprint 3 slice 2, D-053)** *(found 2026-07-19, Sprint 1 slice 2)*
+- **CLOSED.** `App::getChatEngine()` now decides **before** requiring the vendored autoloader and
+  throws a typed `Klytos\Core\Ai\UnsupportedRuntimeException` carrying a translated message, rather
+  than letting Composer's generated `platform_check.php` send HTTP 500, echo third-party text into the
+  response body and throw from inside vendored code. All three callers already wrap the call in
+  `try/catch (\Throwable)`, so they degrade with no change.
+  - **The ordering is the load-bearing part and it is pinned by a test that reads the source**
+    (`AiRuntimeGuardTest::testTheGuardRunsBeforeTheVendoredAutoloaderIsRequired`), because once the
+    `require_once` has run the guard is unreachable — dead code that still reviews clean. Proven by
+    relocating the guard below the require and watching the test fail, then reverting.
+  - **The policy is a pure static** (`App::aiRuntimeUnsupportedReason( int )`) taking the version id as
+    a parameter, since PHP cannot be downgraded inside the suite — the D-044 `buildSecurityHeaders()`
+    split, for the same reason. Every branch is reachable: 80100/80200/80299 refused, 80300/80400
+    allowed, both directions asserted (L-008).
+  - **The floor is written once** (`App::AI_MIN_PHP_VERSION_ID = 80300`) and a test asserts it matches
+    what Composer generated into `vendor-ai/composer/platform_check.php`, so a future re-vendor that
+    moves the floor fails the suite instead of reaching a user as a 500.
+  - **The `ai.runtime_unsupported` action is an audit seam with no core listener**, stated in those
+    words in `docs/reference/ai-runtime.md` — L-019's rule applied at the moment of writing rather than
+    discovered later by a fresh-context pass.
+  - **What this does NOT do, deliberately:** it does not raise the product's declared PHP support, and
+    it does not reconcile the four different floors this codebase asserts (8.0 in `installer/index.php`,
+    8.1 in README/`install.php`/`updater.php`, 8.2 for the suite per D-027, 8.3 for vendor-ai). That is
+    a support-matrix decision with installed-base consequences and stays with **D-027's trigger**.
+  - **Unchanged by the D-052 re-vendor:** the 8.3 floor comes from `soukicz/llm`, which was not touched,
+    so `config.platform.php` and `platform_check.php` regenerated identically.
 - **Where:** `installer/vendor-ai/soukicz/llm` (`php: >=8.3`), `brick/math` (`php: ^8.2`),
   `ramsey/collection` (`php: ^8.1`) vs the product's declared PHP 8.1+ (D-004).
 - **What:** On PHP 8.1 or 8.2, the AI chat module loads code whose own manifest says it will not run
@@ -713,7 +738,8 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   point that disables AI chat with an explicit message below 8.3 — or raising the product floor, a
   user decision with installed-base consequences.
 - **Trigger:** the same triage as NEW-05 (both are "what do we do about vendor-ai"), or the next
-  verification of the support matrix (D-027's trigger).
+  verification of the support matrix (D-027's trigger). — **FIRED: closed 2026-07-25 in the NEW-05
+  slice's own sprint, as this line anticipated. See the CLOSED block at the head of this entry.**
 
 ### NEW-07 — Two BSD packages ship with no licence text — **LOW (licence compliance)** *(found 2026-07-19, Sprint 1 slice 2)*
 - **Where:** `installer/vendor-ai/soukicz/llm` (BSD-3-Clause) and `installer/vendor-ai/phplang/scope-exit` (BSD)
@@ -1704,6 +1730,76 @@ verified test point with a recorded files-updated count.
   pattern — the global `__()` is not available in `cli.php` either) and add the keys to all 20
   catalogues. **Trigger:** the next slice touching `terminal-executor.php`, or the NEW-18 resolution,
   which owns the underlying `__()` reachability problem.
+
+### NEW-34 — The AI chat's `model` parameter is unvalidated and reaches the provider URL — **LOW** *(found 2026-07-25 by the Sprint 3 slice 1 reachability trace, sharpened by that slice's `security-auditor` pass)*
+- **Where:** `installer/admin/api/ai-chat.php:168` (`$modelId = $input['model'] ?? null;`) →
+  `installer/core/ai/chat-engine.php` (`new LocalModel( $modelId )`, stored verbatim) →
+  `installer/vendor-ai/soukicz/llm/src/Client/Gemini/GeminiClient.php:83`, which builds
+  `"{$this->apiEndpoint}/models/{$model}:generateContent?key={$this->apiKey}"` by plain interpolation.
+- **What:** `send_message` never checks `model` against `AiKeyManager::PROVIDERS[$providerId]['models']`,
+  although its sibling actions (`switch_provider`, `set_key`, `validate_key`) all validate *provider*.
+  The value lands in the URL's **path** segment, before the `?key=` the request authenticates with.
+- **Impact, measured rather than reasoned about** (five spellings run through the vendored psr7):
+  | `model` | effect |
+  |---|---|
+  | `gemini-2.5-pro` | normal — `key=` on the wire |
+  | `evil#x` | everything after `#`, **including `key={apiKey}`**, becomes the URI **fragment**, which PSR-7 never sends → the request reaches Google **with no API key** → 401 |
+  | `evil?x` | `:generateContent?key=…` is pulled into the query and the path truncates to `/models/evil` → wrong endpoint |
+  | `evil%0d%0aX-Injected: 1` | percent-encoded — **no CRLF injection** |
+  | any spelling | **host never moves** — the authority is fixed by the literal prefix that precedes the interpolation |
+- **So: denial-of-function, not a security boundary crossing.** No header injection, no authority
+  takeover, no key exfiltration to a third party — the key is *dropped*, not *sent elsewhere*. The
+  caller already holds `ai.use` and is already using their own API key against that same host.
+- **Population, corrected:** this is **not** admin-only. `api/ai-chat.php` is gated at `ai.use`
+  (`installer/core/admin-gate.php`), which **D-051 widened to `editor`** — so editor and above. The
+  first draft of this finding said "authenticated admin"; the slice-1 `security-auditor` caught it.
+- **Why NOT fixed in Sprint 3:** it is an adjacent subsystem under D-031's narrowing — Sprint 3's
+  slices touch the vendored tree and `App::getChatEngine()`, not `api/ai-chat.php`'s input handling —
+  and it is a correctness defect rather than a CVE path, so folding it into a security slice would
+  repeat the tangling D-025/D-026/D-029/D-038 have each refused.
+- **Fix shape (so the next slice does not re-derive it):** validate `$modelId` against
+  `AiKeyManager::PROVIDERS[$providerId]['models']` in the `send_message` branch exactly as the sibling
+  actions already validate `$providerId`, and fall back to the provider's default model rather than
+  erroring — an unknown model is a stale client, not an attack.
+- **Trigger:** the next slice touching `installer/admin/api/ai-chat.php`, or the NEW-11 authentication
+  slice (which will be reviewing what each role may reach anyway).
+
+### NEW-35 — MCP tool input schemas are advertised but never enforced, and a second URL interpolation rides on that — **LOW/MEDIUM** *(found 2026-07-25 by the Sprint 3 slice 2 `security-auditor` pass; both halves re-verified against source before recording)*
+- **Two findings, one root.**
+- **(a) The systemic half — `inputSchema` is a published contract the server does not keep.**
+  `ToolRegistry::call()` (`installer/core/mcp/tool-registry.php`) does exactly three things before
+  dispatch: the D-046 authorization gate, the `mcp.handle_tool` plugin filter, and the handler
+  invocation. **It never validates `$params` against the tool's `inputSchema`.** The schema is built at
+  registration and sanitised for `tools/list` — i.e. it exists to be *advertised* — so every `enum`,
+  `type` and `required` a tool declares is advisory. An MCP client that reads the schema and trusts it
+  is trusting something nothing enforces, and every one of the 172 core tools' handlers receives
+  whatever the caller sent.
+- **(b) The concrete instance it enables — the NEW-34 pattern, a second time.**
+  `installer/core/mcp/tools/ai-image-tools.php` declares `model` with a JSON-Schema `enum` and passes
+  `$params['model']` straight through; `installer/core/ai-image-generator.php:57,62` then does
+  `$model = $options['model'] ?? self::DEFAULT_MODEL;` and
+  `$url = self::API_BASE . '/models/' . $model . ':generateContent?key=' . $apiKey;` — the identical
+  unvalidated interpolation NEW-34 records for the chat path, reachable over **MCP** via
+  `klytos_generate_image` (gated `assets.manage`). The declared `enum` looks like it prevents this and
+  does not.
+- **Impact is the same shape as NEW-34 and is bounded the same way:** the authority is fixed by the
+  literal prefix, so the host cannot move; a `#` would push `key={apiKey}` into the fragment and the
+  request would leave unauthenticated. Denial-of-function, not exfiltration.
+- **Why (a) matters more than (b):** (b) is one file. (a) is the reason (b) was possible and the reason
+  the next one will be. Fixing only the interpolation leaves every other tool's declared contract
+  unenforced — the by-omission failure shape S-07 and NEW-02 both exist to close, on a third axis.
+- **Deliberately NOT fixed in Sprint 3.** Neither half is in this sprint's diff: slice 1 touched the
+  vendored tree, slice 2 touched `App::getChatEngine()`. Schema enforcement across 172 tools is its own
+  slice with its own decision — it is a **behaviour change for every MCP client**, since calls that
+  work today would start being refused, and that needs the D-034 treatment (a recorded decision plus a
+  release note), not a quiet inclusion.
+- **Fix shape, recorded so it is not re-derived:** validate `$params` against `inputSchema` in ONE place
+  in `ToolRegistry::call()` — the D-046/D-032 inversion applied a third time — deciding first whether an
+  unknown property is refused or ignored, and whether the check is advisory (log) or enforcing (refuse)
+  for the first release. The interpolation in `ai-image-generator.php` should be fixed regardless, since
+  it does not depend on the schema question.
+- **Trigger:** the next slice touching `ToolRegistry::call()` or the MCP tool surface; or the NEW-34
+  slice, which is the same defect class and should close both instances together.
 
 ---
 

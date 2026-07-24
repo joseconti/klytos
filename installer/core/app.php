@@ -1059,14 +1059,105 @@ class App
     }
 
     /**
+     * The PHP_VERSION_ID the vendored AI stack requires (audit NEW-06).
+     *
+     * Written ONCE, here. It has two upstream sources that must not be copied
+     * into a third place: `installer/vendor-ai/soukicz/llm/composer.json`
+     * declares `"php": ">=8.3"`, and Composer bakes the same floor into the
+     * generated `installer/vendor-ai/composer/platform_check.php` as
+     * `PHP_VERSION_ID >= 80300`. If a future re-vendor moves that floor, this
+     * constant is what changes — and `AiRuntimeGuardTest` fails until it does.
+     *
+     * This is NOT the product's supported-PHP floor. Klytos itself declares
+     * 8.1+ (README, install.php, updater.php); the AI feature simply needs more
+     * than the product does, which is exactly why it must degrade rather than
+     * fatal. Reconciling the four different floors this codebase asserts is a
+     * support-matrix decision that belongs to D-027's trigger, not here.
+     */
+    public const AI_MIN_PHP_VERSION_ID = 80300;
+
+    /**
+     * Why the vendored AI stack cannot be loaded on this runtime, or null if it
+     * can be.
+     *
+     * Split out as a PURE static taking the version id as a parameter — the
+     * `Auth::buildSecurityHeaders()` shape from D-044 — for one reason: PHP
+     * cannot be downgraded inside the test suite, so a guard that read
+     * `PHP_VERSION_ID` directly could never be observed refusing anything. Every
+     * branch here is reachable from a test; the caller supplies the real
+     * constant.
+     *
+     * Returns a stable machine reason rather than a sentence, following
+     * `SafeHttp`'s REASON_* convention (D-041): the caller owns the wording and
+     * the translation, so the policy stays testable without an I18n service.
+     *
+     * @param  int $phpVersionId A PHP_VERSION_ID-shaped integer (e.g. 80300).
+     * @return string|null A machine-readable reason, or null when supported.
+     */
+    public static function aiRuntimeUnsupportedReason(int $phpVersionId): ?string
+    {
+        if ($phpVersionId < self::AI_MIN_PHP_VERSION_ID) {
+            return 'php_version_too_low';
+        }
+
+        return null;
+    }
+
+    /**
      * Get the AI chat engine (lazy-loaded).
      *
      * Creates a shared ToolRegistry, AiProviderRegistry, AiKeyManager,
      * and ChatEngine on first access.
+     *
+     * @throws Ai\UnsupportedRuntimeException When this PHP is older than the
+     *         vendored AI stack requires (audit NEW-06). All three callers
+     *         already catch \Throwable, so they degrade without change.
      */
     public function getChatEngine(): Ai\ChatEngine
     {
         if ($this->chatEngine === null) {
+            // NEW-06: refuse BEFORE requiring the vendored autoloader, not after.
+            //
+            // vendor-ai/composer/autoload_real.php requires the generated
+            // platform_check.php unconditionally, and on an unsupported runtime
+            // that file sends HTTP 500, echoes "Composer detected issues in your
+            // platform" into the response body and throws a bare
+            // \RuntimeException — all inside vendored code, before Klytos can say
+            // which feature failed or that the rest of the CMS is fine. Keel's
+            // "external dependencies fail safe" rule wants the opposite. Once the
+            // require below has run it is already too late, which is why this sits
+            // above it rather than wrapping it in a try/catch.
+            $reason = self::aiRuntimeUnsupportedReason(PHP_VERSION_ID);
+
+            if ($reason !== null) {
+                // An ACTION, never a filter: a listener must not be able to talk
+                // this refusal into proceeding, because "proceeding" means the
+                // fatal above. Same reasoning as auth.access_denied (D-032) and
+                // http.safe.blocked (D-041). Nothing in core subscribes to it —
+                // it is an audit seam, not a sink (L-019).
+                klytos_do_action(
+                    'ai.runtime_unsupported',
+                    $reason,
+                    self::AI_MIN_PHP_VERSION_ID,
+                    PHP_VERSION_ID
+                );
+
+                throw new Ai\UnsupportedRuntimeException(
+                    __('ai.unsupported_runtime', [
+                        // Display form derived from the one constant rather than
+                        // written a second time, so the two can never disagree.
+                        'required' => sprintf(
+                            '%d.%d',
+                            intdiv(self::AI_MIN_PHP_VERSION_ID, 10000),
+                            intdiv(self::AI_MIN_PHP_VERSION_ID % 10000, 100)
+                        ),
+                        'running'  => PHP_VERSION,
+                    ]),
+                    self::AI_MIN_PHP_VERSION_ID,
+                    PHP_VERSION_ID
+                );
+            }
+
             // Load the vendorized SDK (soukicz/php-llm + Guzzle + dependencies).
             $vendorAutoload = $this->rootPath . '/vendor-ai/autoload.php';
             if (file_exists($vendorAutoload)) {

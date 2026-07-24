@@ -48,7 +48,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [ '8.2', '8.3' ]
+        include:
+          # Klytos declares PHP 8.1+, but installer/vendor-ai/ needs 8.3
+          # (audit NEW-06 / D-053). The 8 tests that load that stack carry
+          # the `ai-runtime` group and are EXCLUDED here rather than left to
+          # skip — a skip would trip the skip-is-a-hard-failure rule below,
+          # which exists to catch an un-seeded playground and must keep
+          # meaning that. Measured: with the floor raised so this host counts
+          # as unsupported, exactly those 8 broke.
+          - php: '8.2'
+            phpunit_args: '--exclude-group ai-runtime'
+          - php: '8.3'
+            phpunit_args: ''
 
     steps:
       - name: Check out the repository
@@ -91,9 +102,14 @@ jobs:
         # promoted to a hard failure here rather than trusted to be noticed.
         env:
           XDEBUG_MODE: off
+          # Passed via env rather than interpolated into the shell: matrix values
+          # are workflow-defined constants, but keeping every `${{ }}` out of a
+          # run: block is the habit that makes the github.* injection class
+          # impossible here by construction.
+          PHPUNIT_ARGS: ${{ matrix.phpunit_args }}
         run: |
           set -o pipefail
-          vendor/bin/phpunit | tee phpunit-output.txt
+          vendor/bin/phpunit $PHPUNIT_ARGS | tee phpunit-output.txt
           if grep -qiE 'skipped|no tests executed' phpunit-output.txt; then
             echo "::error::A test skipped. If the playground seed did not take, the authorization"
             echo "::error::tests did not run and this green result would be false. Investigate"
@@ -138,3 +154,64 @@ jobs:
             | grep -v '^installer/admin/assets/vendor/')
           php -l scripts/keel-verify > /dev/null || { echo "PARSE ERROR: scripts/keel-verify"; status=1; }
           exit $status
+
+  vendor-advisories:
+    name: Vendored dependency advisories (report only)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          # The vendor-ai tree resolves against platform.php 8.3.0
+          # (installer/composer.json, D-028). `composer audit` reads the lock, so
+          # this job installs nothing and needs no playground and no suite.
+          php-version: '8.3'
+          coverage: none
+
+      - name: Report advisories against the vendored AI dependency tree
+        # WHY THIS EXISTS. Between 2026-07-19 and 2026-07-24 the advisory count
+        # on the SAME pinned versions grew from 5 to 11 and nothing detected it —
+        # it was noticed by hand at a sprint close, five days late. That is the
+        # gap this job closes (user decision, 2026-07-25; Sprint 3 slice 2).
+        #
+        # WHY IT DOES NOT FAIL THE BUILD. An advisory lands when upstream
+        # publishes it, not when someone pushes a commit — so a hard failure
+        # would turn an unrelated pull request red for a reason its author cannot
+        # fix, and a check that cries wolf is a check people learn to ignore.
+        # That is exactly the reasoning D-045 recorded for keel-verify's WARN
+        # tier, applied here. The output is the deliverable; the exit code is
+        # not. Remediation stays a triaged decision with the user (D-022's
+        # standing rule), which is what produced D-029 and D-052.
+        #
+        # It also deliberately stays OUT of scripts/keel-verify: that script must
+        # keep running offline, and a network-dependent check would either fail
+        # or go quiet without a network — and a check that goes quiet is the
+        # failure mode L-010 and L-016 both record.
+        continue-on-error: true
+        run: |
+          # Capture output AND exit status separately. An earlier version piped
+          # straight into grep, so the pipeline reported GREP's status: any way
+          # the audit could fail without printing the clean string (no network,
+          # missing lock) was reported as "advisories found". Misreporting an
+          # infrastructure failure as a security finding is the same dishonesty
+          # as the reverse, and this job's own comments cite L-016 about it.
+          set +e
+          audit_out="$(composer audit -d installer 2>&1)"
+          audit_status=$?
+          set -e
+
+          echo "::group::composer audit -d installer"
+          echo "$audit_out"
+          echo "::endgroup::"
+
+          if [ "$audit_status" -eq 0 ]; then
+            echo "No advisories against the vendored AI dependency tree."
+          elif printf '%s' "$audit_out" | grep -qiE 'security vulnerability advisor'; then
+            echo "::warning::The vendored AI dependency tree has known advisories. This does NOT fail the build — triage with the user per D-022, and see docs/decisions.md D-029/D-052 for how the last round was handled."
+          else
+            echo "::warning::composer audit did NOT run to completion (exit ${audit_status}) — this is an infrastructure failure, NOT a statement about advisories. Nothing was verified."
+          fi

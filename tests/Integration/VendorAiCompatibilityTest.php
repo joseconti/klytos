@@ -40,8 +40,17 @@ declare(strict_types=1);
 
 namespace Klytos\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\Group;
 use Klytos\Tests\IntegrationTestCase;
 
+/**
+ * Grouped so CI's PHP 8.2 leg can EXCLUDE these explicitly rather than let them
+ * skip. Klytos declares PHP 8.1+ and CI verifies 8.2, but the vendored AI stack
+ * needs 8.3 (NEW-06 / D-053), so these tests cannot run there. Excluding a named
+ * group keeps D-045's 'a skip is a hard failure' rule intact and meaningful — a
+ * silently skipped integration tier is exactly what that rule exists to catch.
+ */
+#[Group( 'ai-runtime' )]
 final class VendorAiCompatibilityTest extends IntegrationTestCase
 {
     /**
@@ -97,6 +106,11 @@ final class VendorAiCompatibilityTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Below the AI stack's PHP floor the guard refuses (NEW-06 / D-053) and
+        // the autoloader never runs — correct behaviour there, and nothing this
+        // class can assert. CI runs the full suite on PHP 8.2 as well as 8.3.
+        $this->requireAiRuntime();
 
         $this->app->getChatEngine();
     }

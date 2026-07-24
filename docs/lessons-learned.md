@@ -569,3 +569,76 @@
   docblock rather than letting the reader assume it has. More sharply, and generalising L-010 one step:
   a check must be exercised against the *event* it guards, not merely against the *state* it happens to
   find. "It has been green for three sprints" is evidence about the inputs it saw, not about the check.
+
+## L-021 — The squatter was our own leftover server, and every L-011 tell agreed with it
+- Problem: the slice-2 playground walk started a `php -S` on `$RPORT=8093`, ran a four-role check
+  against `admin/ai-chat.php`, and got a perfect result — 200/200/200/403, exactly what D-051
+  predicts. The documented bind check (`nc -z`, added by L-011) had printed **`PORT 8093 IS TAKEN`**
+  one line earlier. The server that answered was **not the one this session started**: ours failed to
+  bind and, because it was backgrounded, said so only in its log file. The responses came from a
+  `php -S` left running by the *previous* session of this same project.
+- Where: `docs/playground.md` "Try it" (`$RPORT`); the slice-2 test point.
+- Why L-011's diagnostic does not cover this case, which is the whole point: L-011 taught the tell
+  `Server: Apache/2.4.54 (Debian)` — PHP's built-in server never sends a `Server:` header of that
+  shape, so a foreign squatter is obvious in one `curl -D -`. A **leftover Klytos server** is
+  byte-identical on every such signal: same `X-Powered-By: PHP/8.3.12`, same `X-Content-Type-Options:
+  nosniff`, same session save path, same router, same working tree. Every check L-011 prescribes
+  **passes**, and passes honestly. The tell was written for the wrong half of the problem space.
+- Why the result was nevertheless correct, stated so the record is accurate rather than dramatic:
+  PHP's built-in server re-reads its PHP files on every request and the leftover was started with
+  `-t .` on this same checkout, so it was serving the current code. The walk was right. It was right
+  **by luck**, and it was indistinguishable in advance from a walk against a week-old tree — which is
+  what a leftover server usually is, and which would have produced a confidently wrong test point.
+- How it was caught: by reading the `nc` output that had already fired and not reading past it, then
+  `lsof -nP -iTCP:8093 -sTCP:LISTEN` for the owning PID and `ps -o lstart,command` for its start time
+  and argv. That pair — not the response headers — is what separates "my server" from "a server".
+- Working solution: kill the leftover, restart, and **verify the bind succeeded before trusting a
+  single response** — the backgrounded `php -S` writes `Failed to listen on 127.0.0.1:8093 (reason:
+  Address already in use)` to its redirect target and nothing else ever mentions it. Then re-run the
+  walk and confirm the result reproduces. It did, identically.
+- Rule for next time: **a busy port is not automatically a stranger — check whether it is your own
+  process from a previous session, because if it is, every identity check will agree with you.**
+  Concretely: when the bind check says TAKEN, run `lsof -nP -iTCP:<port> -sTCP:LISTEN` and
+  `ps -o lstart,command -p <pid>` before doing anything else, and when a `php -S` is backgrounded,
+  grep its log for `Failed to listen` rather than assuming silence means success. And the general
+  form, which is L-008's rule one turn further out: **a correct-looking result from an unverified
+  instrument is not evidence, even when it is correct.**
+
+## L-022 — The CI workflow has never run, so its second matrix leg had been broken for two sprints
+- Problem: `.github/workflows/ci.yml` runs the full suite on **PHP 8.2 and 8.3**, because Klytos
+  declares 8.1+ and the 8.2 leg is how the declared floor gets any real coverage (D-045/D-027). But
+  `installer/vendor-ai/` needs **8.3**, and every test that reaches `App::getChatEngine()` therefore
+  cannot pass on the 8.2 leg. Sprint 3 slice 2 added two such tests. It also emerged that **three more
+  had existed since Sprint 2 slice 3** (`ChatEngineToolListTest`) and three since Sprint 3 slice 1
+  (`VendorAiCompatibilityTest`) — **8 tests in 3 classes**, measured by temporarily raising the floor
+  so this host counted as unsupported.
+- Where: `.github/workflows/ci.yml` (the `test` job's matrix); `tests/Integration/` — three classes.
+- **Why nobody noticed, and this is the whole lesson: CI has never executed. Not once.** The workflow
+  was written in Sprint 1 slice 9 (2026-07-20) and every commit since — 29 at the time of writing — is
+  **unpushed**, by a standing instruction. So the project has carried a green-looking CI configuration
+  for two sprints while it has never run a single job. Its 8.2 leg would have gone red on the first
+  push, on code that had already been signed off through three test points.
+- The shape is **L-019 one level out**: there, a hook that fires with no subscriber writes nothing, so
+  "it goes to the audit log" was true of the mechanism and false of the system. Here a workflow that
+  is never triggered checks nothing, so "CI runs the same commands the test points run" is true of the
+  file and false of the project. **A seam with no subscriber, and a workflow with no run, fail the
+  same way: the mechanism is real and the outcome does not exist.**
+- The near-miss inside the near-miss: slice 2's own subject is *"PHP below 8.3 must degrade
+  gracefully"*, and the tests it wrote to prove that were the ones that would have broken the build on
+  PHP 8.2. Found by the slice's `code-reviewer`, not by the suite — because the suite runs on one
+  runtime, on one machine, and that machine is 8.3.
+- Working solution, in two layers because they answer different questions: the 8 tests carry a
+  `#[Group('ai-runtime')]` and CI's 8.2 leg **excludes** that group — chosen over letting them skip,
+  because CI promotes any skip to a hard failure (D-045) and that rule must keep meaning "the
+  playground did not seed". And `IntegrationTestCase::requireAiRuntime()` skips them anyway for a
+  developer running the whole suite locally on 8.1/8.2. Proven by re-running with the floor raised:
+  8 errors/failures became **8 skips**, and the group selects exactly those 8. The group is applied
+  **per method** in one class, so the one test that asserts only the refusal *message* keeps running on
+  8.2 — the runtime where that message is what a real operator sees.
+- Rule for next time: **a CI configuration that has never run is a promise, not a check — treat its
+  first execution as an unverified test point, not a formality.** Concretely: when adding a matrix leg,
+  ask what in the suite is runtime-dependent and prove the answer by *simulating* that leg (here:
+  moving the floor rather than the runtime), because the machine you develop on will only ever tell
+  you about itself. And when a workflow cannot be exercised at all — an unpushed repo, a disabled
+  action — say so where its status is reported, rather than letting a committed YAML file read as
+  coverage.

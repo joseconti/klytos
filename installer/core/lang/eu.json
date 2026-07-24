@@ -541,6 +541,9 @@
     "missing_extension": "Falta den luzapena: {ext}",
     "directory_not_writable": "Direktorioak ez du idazteko baimenik: {dir}"
   },
+  "ai": {
+    "unsupported_runtime": "AI funtzioek PHP {required} edo berriagoa behar dute. Gune honek PHP {running} darabil, beraz AI motorra desgaituta dago. Klytosen gainerakoak ez du eraginik: eskatu zure ostatu-hornitzaileari PHP eguneratzeko."
+  },
   "ai_chat": {
     "title": "IA txata",
     "new_conversation": "Elkarrizketa berria",
