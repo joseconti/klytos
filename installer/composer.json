@@ -3,11 +3,12 @@
     "description": "Reconstructed manifest for the vendored AI-chat dependency tree in installer/vendor-ai/. NOT a runtime dependency manifest: Klytos ships vendor-ai/ pre-installed and never runs Composer on an installed site. This file exists so the vendored tree can be audited (composer audit) and reproduced byte-for-byte. Every package is pinned to the exact version currently vendored, transitive ones included, so the resolved set can never drift away from what actually ships. See docs/decisions.md D-028.",
     "type": "project",
     "license": "GPL-3.0-or-later",
+    "version": "1.0.0",
     "require": {
         "brick/math": "0.14.8",
-        "guzzlehttp/guzzle": "7.10.0",
-        "guzzlehttp/promises": "2.3.0",
-        "guzzlehttp/psr7": "2.9.0",
+        "guzzlehttp/guzzle": "7.15.1",
+        "guzzlehttp/promises": "2.5.1",
+        "guzzlehttp/psr7": "2.13.0",
         "phplang/scope-exit": "1.0.0",
         "psr/http-client": "1.0.3",
         "psr/http-factory": "1.1.0",
@@ -19,7 +20,8 @@
         "swaggest/json-diff": "3.12.1",
         "swaggest/json-schema": "0.12.43",
         "symfony/deprecation-contracts": "3.6.0",
-        "symfony/polyfill-mbstring": "1.33.0"
+        "symfony/polyfill-mbstring": "1.33.0",
+        "symfony/polyfill-php80": "1.37.0"
     },
     "config": {
         "vendor-dir": "vendor-ai",

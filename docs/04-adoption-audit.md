@@ -613,8 +613,42 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   warning in `docs/playground.md`: any operation that triggers a build writes into the checkout, not
   just the obvious one.
 
-### NEW-05 — Five CVEs in the vendored HTTP stack — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2, by the first `composer audit` this project has ever been able to run)*
-- **Advisory count re-measured 2026-07-24 (Sprint 2 close): it has grown from 5 to 11.** `composer audit -d installer`
+### NEW-05 — CVEs in the vendored HTTP stack — **MEDIUM** — **CLOSED 2026-07-25 (Sprint 3 slice 1, D-029 → D-052)** *(found 2026-07-19, Sprint 1 slice 2, by the first `composer audit` this project has ever been able to run)*
+- **CLOSED.** `composer audit -d installer` reports **`No security vulnerability advisories found.`** The
+  tree was re-vendored to **guzzle 7.15.1**, **psr7 2.13.0**, **promises 2.5.1**, plus a new
+  **`symfony/polyfill-php80` v1.37.0** required by both (16 → **17** packages, 482 → **509** tracked
+  files). Measured both sides: **11 advisories before, 0 after.**
+  - **D-029's recorded floors were stale and would not have closed this.** It fixed the target at
+    "guzzle ≥ 7.12.1, psr7 ≥ 2.12.1" **and** at "re-audit to zero"; by 2026-07-25 those two halves
+    disagreed — 7.12.1/2.12.1 leaves **6 of 11 open**. The criterion won over the derivation (L-014),
+    a user decision recorded as **D-052**. D-029's remediation *shape* was not re-opened.
+  - **The change is 95 files, not 482.** D-029 called this "a change across 482 tracked files"; that is
+    the size of the whole tree, never the size of the change. Measured: **95 files across `installer/`**,
+    of which **93 sit under `vendor-ai/` (27 added, 66 modified, 0 deleted)**; the remaining two are
+    `installer/composer.json` and `installer/composer.lock`. The two scopes are named because 27+66+0 = 93
+    and the mismatch would otherwise read as an error to anyone re-deriving it (L-015). Recorded because
+    the 482 figure was the main argument for treating this as a scope change.
+  - **The reachability assessment was redone from scratch, and it retires the NEW-15 worry.**
+    `installer/core/safe-http.php` and `installer/core/http-client.php` contain **zero** references to
+    `GuzzleHttp` or `Psr\Http`, so the two HTTP stacks never share a URL and the differential-parsing
+    precondition for "host confusion via authority reinterpretation" does not exist in this codebase.
+    CVE-2026-59882 and CVE-2026-48998 have **no bearing on the SSRF control**. Cookies (4 advisories):
+    no jar anywhere, Guzzle's default is `'cookies' => false` and is now asserted by a test. Proxy
+    (2): nothing sets it; the env read is SAPI-guarded for `HTTP_PROXY` and `HTTPS_PROXY` cannot come
+    from a request header under CGI. Referer/fragment: `'referer' => false` by default and stripped.
+    Full reasoning in **D-052**.
+  - **Stated plainly: none of the 11 had a demonstrated exploitation path in Klytos.** The bump closed
+    a standing obligation on a released product with an installed base; it did not close a live hole.
+  - **Verified, not assumed:** the two new files `guzzle/src/Handler/ProxyEnvironment.php` and
+    `psr7/src/Rfc3986.php` — the proxy and URI-host-validation fixes — are physically present in the
+    tree. `tests/Unit/VendorAiManifestTest.php` was observed **failing on all three methods** before the
+    four records were reconciled, and green after. A new
+    `tests/Integration/VendorAiCompatibilityTest.php` proves the vendored API surface the AI stack
+    imports still resolves, proven to fail against a wrong symbol and against a non-round-tripping URL.
+  - **The honest limit (L-014):** no automated test proves "AI chat still works" — that needs a live
+    provider key. The suite proves the stack loads and its API surface resolves; the real round-trip is
+    handed to the operator.
+- **Advisory count re-measured 2026-07-24 (Sprint 2 close): it had grown from 5 to 11.** `composer audit -d installer`
   now reports **11 advisories across the same 2 packages** — 7 in `guzzlehttp/guzzle` 7.10.0 and 4 in
   `guzzlehttp/psr7` 2.9.0, all medium, same pinned versions. New since the 2026-07-19 triage:
   **CVE-2026-59882** (psr7, *Host Confusion via Weak URI Host Validation* — worth a second look
@@ -659,7 +693,8 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   change (Estimate v2), not a slice detail.
 - **Fails:** web-app profile — dependency audit; `references/maintenance.md` — CVE duty.
 - **Triaged 2026-07-19 (D-029):** dedicated remediation slice **after** Sprint 1 closes, with Estimate v2. Scope fixed in that decision. Rejected at triage: folding it into Sprint 1, a guzzle-only minimal fix, and permanent acceptance.
-- **Trigger:** Sprint 1 close.
+- **Trigger:** Sprint 1 close — **FIRED, and the slice ran 2026-07-25 (Sprint 3 slice 1). Estimate v3
+  written. See the CLOSED block at the head of this entry.**
 
 ### NEW-06 — The vendored AI stack requires PHP 8.3, but Klytos declares 8.1+ — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 2)*
 - **Where:** `installer/vendor-ai/soukicz/llm` (`php: >=8.3`), `brick/math` (`php: ^8.2`),

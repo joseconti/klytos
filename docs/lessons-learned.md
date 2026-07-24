@@ -531,3 +531,41 @@
   rule from the same finding: **the fresh-context pass is not a formality.** It is the only check in
   this project's process that reads the docs as promises rather than as description, which is exactly
   what a user does.
+
+## L-020 — A drift guard was built against an artifact it had never produced, so its one hardcoded assumption rode along untested for three sprints
+- Problem: `tests/Unit/VendorAiManifestTest.php` (D-028) cross-checks four records — the manifest, the
+  lock, Composer's generated `vendor-ai/composer/installed.php`, and the licence notice — using
+  `installed.php` as the anchor. `vendoredVersions()` skipped the root package by the **literal string**
+  `'__root__'`. That is only what Composer writes for a root package it cannot name. This manifest is
+  named (`klytos/vendor-ai-manifest`), so the moment Sprint 3 ran the first real `composer update` this
+  repository has ever performed, Composer wrote the root under its **real name**, the entry no longer
+  matched the hardcoded skip, and the root leaked into all three comparisons.
+- Where: `tests/Unit/VendorAiManifestTest.php::vendoredVersions()`;
+  `installer/vendor-ai/composer/installed.php`.
+- Why it survived three sprints undetected, which is the whole lesson: **the guard had never once seen a
+  tree that Composer itself generated.** D-028 *reconstructed* a manifest to describe a tree that had
+  been vendored somewhere else, and slice 2's own test point asserted the opposite of exercising it —
+  "`vendor-ai/` unmutated". So every green run since was a run against the single input the assumption
+  happened to fit. The guard was not weak; it was **unexercised on the only event it exists for**. A
+  drift guard that has never watched the thing drift is in the same position as a check that has never
+  fired (L-010) — indistinguishable from one that cannot.
+- A second defect surfaced in the same moment, and it is the same root: left to itself Composer wrote
+  `'pretty_version' => 'dev-develop'` and `'reference' => '<commit sha>'` into that **tracked** generated
+  file — making a committed artifact a function of the branch name and the commit it was regenerated at,
+  in direct contradiction of the manifest's own recorded purpose ("reproduced byte-for-byte", D-028).
+  Nobody had seen it because nobody had ever regenerated the file. Fixed by pinning `"version": "1.0.0"`
+  in `installer/composer.json`, which restores `reference => null`.
+- Working solution: read the root's identity from the data instead of assuming its spelling —
+  `$installed['root']['name'] ?? '__root__'` — which is what the method's own docblock always said it
+  did. Explicitly **not** a loosening: both set comparisons remain `assertSame` in both directions, and
+  a vendored package can never collide with the root name because Composer refuses to install a package
+  named after its own root.
+- The consolation, and it is worth stating because it is why this cost minutes rather than a session:
+  the failure was **loud and immediate**. All three methods failed with a readable diff naming the
+  intruding key. A guard that breaks noisily when its assumption expires is behaving correctly; the
+  defect is that the assumption was never put under load, not that it broke.
+- Rule for next time: **when a guard checks a generated artifact, generate the artifact at least once
+  before trusting the guard** — and if the project has never run the generator, say so in the guard's
+  docblock rather than letting the reader assume it has. More sharply, and generalising L-010 one step:
+  a check must be exercised against the *event* it guards, not merely against the *state* it happens to
+  find. "It has been green for three sprints" is evidence about the inputs it saw, not about the check.

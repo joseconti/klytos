@@ -196,3 +196,93 @@ accumulating in `docs/token-ledger.md`.
   theme-package redesign (D-023); the vendor-ai CVE re-vendor (D-029, its own Estimate version); the
   349 inline `style=` attributes (S-10); the accessibility sprint (A-01…A-07); Phase 6 docs; Phase 8.
 - **Not estimated on purpose:** anything past Sprint 2.
+
+## Estimate v3 — Phase 5, Sprint 3 scope (vendor-ai CVE remediation, NEW-05 / D-029 / D-052, + NEW-06) — 2026-07-25
+
+Trigger fired: **D-029 requires its own estimate version**, and its trigger ("Sprint 1 close") fired
+2026-07-20; Sprint 2 closed 2026-07-24 with this queued as the next slice. This version covers
+**Sprint 3 only**. The theme-package sprint (D-023/D-024) still has no estimate and gets its own
+version when it is planned.
+
+### Scope basis
+
+2 slices in `docs/sprints/sprint-3.md`. Concrete counts the numbers are computed from: **11**
+advisories to drive to zero across **2** packages; **3** packages bumped plus **1** added (16 → **17**),
+against a tree of **482** tracked files today; **4** hand-edited files in slice 1 and **4** records
+that must agree afterwards (`composer.json` ↔ `composer.lock` ↔ `vendor-ai/composer/installed.php` ↔
+`LICENSE-THIRD-PARTY.md`); **1** existing drift guard reused unchanged; **1** new compatibility test;
+**1** guard point (`App::getChatEngine()`) with **3** callers that already catch; **20** i18n
+catalogues for one new key; **1** new CI job.
+
+### AI working hours (itemized)
+
+| Segment (AI does) | Hours (low–high) | Basis |
+|---|---|---|
+| Planning — kickoff re-validation (2 Explore sweeps + self-verification), advisory re-measurement, resolution probing, 3 user decisions, artifacts (sprint-3, D-052, this estimate) | 2.0–3.5 | Done this session. Cheaper than Sprint 2's planning: no 172-surface enumeration, and the re-validation is dependency metadata rather than a code survey |
+| Slice 1 — hand-pin, two `composer update` passes, resolve the 17th package, verify no unintended package moved, `LICENSE-THIRD-PARTY.md`, compatibility test, prove the drift guard fails on a stale record | 3.0–5.5 | The `composer` work itself is minutes; the hours are in **reviewing a ~500-file third-party diff** and proving the four records agree in both directions |
+| Slice 2 — typed exception + pure testable policy split + guard, `__()` key × 20 catalogues, unit + integration tests proven both directions, CI job, reference doc + INDEX rows | 2.5–4.5 | Small code, ordinary cost; the 20 catalogues and the docs-at-creation rule dominate |
+| Reviews on the finished diff (both subagents, per slice) | 1.5–2.5 | **Not optional overhead.** Nine consecutive slices have had their code changed by the review cycle |
+| Sprint close-out — docs-verifier, playground-QA, state, try-it script, continuation prompt | 1.5–2.5 | Phase 5 §5, mandatory |
+| **Total AI** | **10.5–18.5 h** | |
+
+Roughly half Sprint 2's 19.5–32.0 h band, and the reason is structural rather than optimistic: this
+sprint **writes very little code**. Slice 1 is a dependency operation whose cost is verification, and
+slice 2 reuses the typed-exception pattern (`permission-denied-exception.php`), the pure-policy split
+(D-044's `buildSecurityHeaders()`), the catalogue-insertion procedure from Sprint 2 slice 4 and the
+existing CI workflow. Nothing here is novel except the compatibility test.
+
+### Vibe coder hours (itemized)
+
+| Segment | What the developer does | Hours (low–high) |
+|---|---|---|
+| Sprint kickoff | Take the 3 decisions, approve the plan (done — 2026-07-25) | 0.25–0.5 |
+| During the build | Open sessions, read summaries, approve gates (shorter sprint, fewer gates) | 1.5–3.0 |
+| Test points | Spot-check the vendored diff; confirm the playground still loads AI chat | 0.5–1.0 |
+| **The one segment only the developer can do** | Run a real AI chat round-trip with their own provider API key — the suite structurally cannot prove this | 0.5–1.0 |
+| Sprint close | Follow the numbered try-it script, return the verdict either way | 0.5–1.0 |
+| Commits | Repo operations the AI does not perform unattended | 0.25–0.5 |
+| **Total developer** | | **3.5–7.0 h → plan for ~7 h with margin** |
+
+### Contingency: +30% (same basis as v1/v2, carried)
+
+Justified less by the code than by the diff: ~500 third-party files enter the repository of a released
+product, and the one property that matters most — "does AI chat still work" — has **no automated
+proof**. Contingency here buys the round of re-verification that gap implies.
+
+| | Base | With +30% |
+|---|---|---|
+| AI hours | 10.5–18.5 h | **14–24 h** |
+| Developer hours | 3.5–7.0 h | **5–9 h** |
+
+### Estimated calendar delivery
+
+At the stated **5–10 h/week** supervision and 5–9 h of developer time, Sprint 3 lands over roughly
+**1–2 calendar weeks**. Estimate, not commitment — calendar time tracks supervision availability, not
+AI hours.
+
+### AI cost
+
+**Mode: subscription** — marginal token cost **≈ 0**, recorded as the mode, not billed. Rows keep
+accumulating in `docs/token-ledger.md`.
+
+### Assumptions & risks
+
+- **Assumed:** the environment stays as verified — PHP 8.3.x, Composer 2.9.x, phpcs 3.13.x, PHPUnit
+  11.5.x, and network access to Packagist (this sprint cannot be done offline).
+- **Risk — "does AI chat still work" has no automated proof, and this is the sprint's real exposure.**
+  No test in the project exercises Guzzle's HTTP path; the suite proves the vendored code *loads* and
+  that its *API surface resolves*. A real provider round-trip needs a key and is handed to the
+  developer. D-029 named this at triage; it is costed as a developer segment above, not hidden.
+- **Risk — the advisory list can move again mid-sprint**, exactly as it moved 5 → 11 between the
+  triage and this plan. Mitigated by re-measuring at the test point rather than trusting the planning
+  number (L-015), and closed structurally by the CI job in slice 2.
+- **Risk — the third-party diff must still pass the confidential-data scan.** ~500 files is real
+  reviewing work, not a formality. Costed into slice 1.
+- **Risk — an unintended package moves.** Every package is exact-pinned, so nothing *should* move
+  except the four named — verified in the diff rather than assumed. If one does, the four-record
+  agreement catches it, but the hours to understand it are not budgeted.
+- **Excluded, and costed nowhere here:** raising the product's PHP floor to 8.3 (a support-matrix
+  decision, D-027's trigger); the unvalidated `model` parameter finding; NEW-11 authentication;
+  NEW-03; the theme-package redesign (D-023, still un-estimated); S-10; the accessibility sprint;
+  Phase 6 docs; Phase 7's `.gitattributes` review; Phase 8.
+- **Not estimated on purpose:** anything past Sprint 3.

@@ -118,10 +118,21 @@ final class VendorAiManifestTest extends TestCase
         $installed = require self::INSTALLED;
         $versions  = [];
 
+        // The root package is whatever installed.php says it is — read it, never
+        // assume a spelling. Until Sprint 3 this was hardcoded to '__root__',
+        // which is only what Composer writes for a root package it cannot name.
+        // The tree this guard was built against (D-028) was vendored elsewhere
+        // and never regenerated here, so that spelling survived untested; the
+        // first real `composer update` in this repository renamed the entry to
+        // 'klytos/vendor-ai-manifest' and the root leaked into the comparison.
+        // A vendored package can never collide with this name — Composer refuses
+        // to install a package named after its own root.
+        $rootName = $installed['root']['name'] ?? '__root__';
+
         foreach ( $installed['versions'] as $name => $data ) {
             // Skip the root package and virtual entries (provide/replace), which
             // carry no pretty_version and are not vendored directories.
-            if ( $name === '__root__' || ! isset( $data['pretty_version'] ) ) {
+            if ( $name === $rootName || ! isset( $data['pretty_version'] ) ) {
                 continue;
             }
 

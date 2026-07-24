@@ -4,8 +4,9 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-24** — booted on `KPORT=8083` (8080/8081/8082/8090 were squatted again),
-> anonymous MCP → 401, and every command in §3a run for real, including the full per-role matrix.
+> **last verified: 2026-07-25** — booted on `KPORT=8083` (8080/8081/8082/8090 squatted for the
+> **sixth** consecutive session), admin → 302, anonymous MCP → 401, and the `Server:` header checked
+> to confirm the responses came from our own `php -S` and not from the squatter (L-011).
 
 ---
 

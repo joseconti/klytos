@@ -3,7 +3,9 @@
 This directory contains vendorized PHP dependencies used by the Klytos AI Chat module.
 These are pre-installed and do not require Composer at runtime.
 
-**16 packages**, reconstructed and pinned in `installer/composer.json` (see `docs/decisions.md` D-028).
+**17 packages**, reconstructed and pinned in `installer/composer.json` (see `docs/decisions.md` D-028,
+and D-052 for the 2026-07-25 security re-vendor that raised guzzle/psr7/promises and added
+`symfony/polyfill-php80`).
 Composer's own record of what is installed lives in `composer/installed.json` and
 `composer/installed.php`; `tests/Unit/VendorAiManifestTest.php` fails the suite if this list ever
 drifts from it.
@@ -17,17 +19,17 @@ it — so their license text is reproduced in full at the end of this file: `sou
 - Copyright (c) Petr Soukup
 - https://github.com/soukicz/php-llm
 
-## guzzlehttp/guzzle (v7.10.0)
+## guzzlehttp/guzzle (v7.15.1)
 - License: MIT
 - Copyright (c) Michael Dowling and contributors
 - https://github.com/guzzle/guzzle
 
-## guzzlehttp/promises (v2.3.0)
+## guzzlehttp/promises (v2.5.1)
 - License: MIT
 - Copyright (c) Michael Dowling and contributors
 - https://github.com/guzzle/promises
 
-## guzzlehttp/psr7 (v2.9.0)
+## guzzlehttp/psr7 (v2.13.0)
 - License: MIT
 - Copyright (c) Michael Dowling and contributors
 - https://github.com/guzzle/psr7
@@ -86,6 +88,11 @@ it — so their license text is reproduced in full at the end of this file: `sou
 - License: MIT
 - Copyright (c) Fabien Potencier
 - https://github.com/symfony/polyfill-mbstring
+
+## symfony/polyfill-php80 (v1.37.0)
+- License: MIT
+- Copyright (c) Fabien Potencier
+- https://github.com/symfony/polyfill-php80
 
 ## symfony/deprecation-contracts (v3.6.0)
 - License: MIT

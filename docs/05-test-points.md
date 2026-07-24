@@ -1924,6 +1924,208 @@ $ vendor/bin/phpcs --standard=phpcs.xml …   # per scope, no default value (L-0
   core+admin 193/488 · plugins 113/109 · tests 0/0 · installer/public 0/0 · scripts 0/2
 ```
 
+---
+
+# SPRINT 3 — vendor-ai CVE remediation, and the AI stack fails safe
+
+### Slice 1 — the re-vendor to zero advisories — evidence (commands and output, 2026-07-25)
+
+**Acceptance criterion 1 — `composer audit -d installer` reports zero. Measured on BOTH sides.**
+
+```
+# BEFORE (working tree at ffc8d29)
+$ composer audit -d installer
+  Found 11 security vulnerability advisories affecting 2 packages:
+    guzzlehttp/guzzle 7.10.0 — 7 advisories (fixed in 7.12.1 / 7.12.3 / 7.14.2 / 7.15.1)
+    guzzlehttp/psr7   2.9.0  — 4 advisories (fixed in 2.10.2 / 2.12.1 / 2.12.3)
+
+# THE BUMP
+$ composer update guzzlehttp/guzzle guzzlehttp/psr7 guzzlehttp/promises -W -d installer
+  Lock file operations: 1 install, 3 updates, 0 removals
+    - Upgrading guzzlehttp/guzzle   (7.10.0 => 7.15.1)
+    - Upgrading guzzlehttp/promises (2.3.0  => 2.5.1)
+    - Upgrading guzzlehttp/psr7     (2.9.0  => 2.13.0)
+    - Locking   symfony/polyfill-php80 (v1.37.0)
+  No security vulnerability advisories found.
+
+# AFTER
+$ composer audit -d installer
+  No security vulnerability advisories found.
+```
+
+**D-029's recorded floors would NOT have reached zero.** Measured from the advisory list itself:
+7.12.1/2.12.1 clears only 2 guzzle + 3 psr7, leaving **6 of 11** open (three guzzle advisories are
+fixed only in 7.15.1, one in 7.14.2, one in 7.12.3; psr7's newest in 2.12.3). Resolved by **D-052**
+in favour of D-029's own "audit to zero" criterion (L-014). Recorded here as a measurement, not an
+argument.
+
+**No unintended package moved — verified by listing changed directories, not assumed from the pins.**
+
+```
+$ git status --porcelain installer/vendor-ai/ | ...   # changed top-level package dirs
+  guzzlehttp/guzzle · guzzlehttp/promises · guzzlehttp/psr7 · symfony/polyfill-php80
+  + composer/ (generated metadata) + LICENSE-THIRD-PARTY.md
+```
+
+**The diff is 95 files, not the 482 D-029 implied** (482 is the size of the tree, never the size of
+the change — corrected in D-052 and in `03-technical-plan.md`):
+
+```
+$ git diff --cached --shortstat installer/
+  95 files changed, 15660 insertions(+), 1004 deletions(-)
+$ git diff --cached --name-status installer/vendor-ai | awk '{print $1}' | sort | uniq -c
+  27 A     66 M     0 D
+$ git ls-files installer/vendor-ai | wc -l
+  482 before  →  509 after
+  guzzle 43→52 · psr7 33→37 · promises 18→21 · symfony/polyfill-php80 0→11
+```
+
+**The fixes are physically present, checked rather than inferred from a version number:**
+`guzzlehttp/guzzle/src/Handler/ProxyEnvironment.php` (the proxy advisories) and
+`guzzlehttp/psr7/src/Rfc3986.php` (CVE-2026-59882, weak URI host validation) are both among the 27
+added files.
+
+**Autoloader init hash unchanged** — `ComposerAutoloaderInita67a306bc5846a467c9201d459055b69` before
+and after, so `autoload.php` / `autoload_real.php` / `autoload_static.php` did not churn beyond the
+new psr-4 entry.
+
+**Acceptance criterion 2 — the drift guard, observed RED before it was made green (L-016).** No fault
+had to be injected: the real half-updated state failed all three methods, naming both the version
+drift and a leaked root package.
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter VendorAiManifestTest    # records half-updated
+  FAILURES!  Tests: 3, Assertions: 4, Failures: 3
+    - manifest ↔ installed.php : guzzle/promises/psr7 versions differ; symfony/polyfill-php80 absent
+                                 from require; 'klytos/vendor-ai-manifest' present in installed.php
+    - notice   ↔ installed.php : same three versions + the missing 17th package
+    - lock     ↔ installed.php : 'klytos/vendor-ai-manifest' => '1.0.0' not in the lock's packages
+
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter VendorAiManifestTest    # all four records reconciled
+  OK (3 tests, 21 assertions)
+```
+
+**The guard's root-package assumption was the real finding here (L-020).** `vendoredVersions()`
+skipped the root by the literal `'__root__'` — only what Composer writes for a root it cannot *name*.
+This manifest is named, so the first `composer update` this repository has ever run renamed the entry
+and the root leaked into all three comparisons. The guard was built (D-028) against a tree vendored
+elsewhere and never regenerated here — slice 2's own test point asserted "`vendor-ai/` unmutated" —
+so the assumption rode along unexercised for three sprints. Fixed by reading
+`$installed['root']['name']`; both set comparisons stay `assertSame` in both directions.
+
+**`installer/composer.json` gains `"version": "1.0.0"`, and it is load-bearing.** Left alone Composer
+resolved the root identity from git and wrote branch-and-commit-dependent values into the **tracked**
+generated file:
+
+```
+# without the pin
+'pretty_version' => 'dev-develop',  'reference' => 'ffc8d2916217a4e407cb113dc46b978f0ec4ec1d'
+# with it
+'pretty_version' => '1.0.0',        'reference' => null
+```
+
+**Acceptance criterion 3 — the new compatibility test, proven to fail in three directions.**
+`tests/Integration/VendorAiCompatibilityTest.php` (3 tests / 24 assertions). Its symbol list is
+**measured**, not guessed — every `GuzzleHttp\*` / `Psr\Http\*` import in
+`installer/vendor-ai/soukicz/llm/src/` plus the two exception types first-party code catches at
+`chat-engine.php:197` and `:216`.
+
+```
+# probe A — an unresolvable symbol must be reported
++ 'GuzzleHttp\ProbeSymbolThatDoesNotExist'
+  FAIL: "The vendored AI stack no longer provides symbols its own consumers import.
+         Missing: GuzzleHttp\ProbeSymbolThatDoesNotExist"
+
+# probe B — a URL psr7 normalises must break the round-trip assertion
++ 'https://api.anthropic.com:443/v1/messages'
+  FAIL: "psr7 no longer round-trips a provider endpoint" — expected ':443', actual without it
+
+# probe C — the cookie assertion must be able to be false, not only pass
+$ php -r 'require ".../autoload.php"; ...'
+  default         : false                              # what the test asserts
+  cookies => true : GuzzleHttp\Cookie\CookieJar        # so the assertion reads a real property
+
+# both probes reverted
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter VendorAiCompatibilityTest
+  OK (3 tests, 24 assertions)
+```
+
+**Full test point.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (195 tests, 986 assertions)          # sprint start: 192/961  (+3 / +25)
+
+$ php scripts/keel-verify ; echo exit=$?
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+  exit=0
+  # check 10 = 172 tools · locale parity 120 files / 6 sets · INDEX parity clean
+  # "no placeholder copy in distributable surfaces" moved 448 → 462 files: the new vendored
+  #  PHP ships (the added .md files do not — `*.md` is export-ignored). Expected, not drift.
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary <scope>   # per scope, no default (L-016)
+  installer/core + installer/admin  193 errors / 488 warnings in 112 files   (baseline 193/488 — held)
+  installer/plugins                 113 errors / 109 warnings in  17 files   (baseline 113/109 — held)
+  tests                               0 /   0  — 33 files scanned, ran (Time: line), no total line
+  installer/public                    0 /   0  —  2 files scanned, ran (Time: line), no total line
+  scripts + scripts/keel-verify       0 /   2  in 1 file                     (baseline 0/2 — held)
+```
+
+Two of the five scopes print **no** "A TOTAL OF" line when clean, which is indistinguishable from
+"did not run" — so the file-count progress line and the `Time:` line are recorded as the proof each
+scan actually executed. A first attempt at a scripted loop reported "NO SUMMARY LINE — INVESTIGATE"
+for scopes that were in fact fine; the numbers above come from running each scope directly rather
+than from patching the loop, because a measurement that needs a workaround is not yet a measurement
+(L-016). **`installer/vendor-ai/*` is excluded at `phpcs.xml:27`, so a re-vendor structurally cannot
+move a baseline — a movement here would itself have been the finding.**
+
+**Reachability was redone from scratch and is recorded in D-052 and audit NEW-05, not repeated here.**
+Headline: **none of the 11 advisories has a demonstrated exploitation path in Klytos**, and the
+specific worry this slice was told not to inherit — that psr7's host-confusion CVEs sit next to
+`SafeHttp`/NEW-15 — is **refuted by measurement**: `installer/core/safe-http.php` and
+`installer/core/http-client.php` contain **zero** `GuzzleHttp`/`Psr\Http` references, so the two HTTP
+stacks never share a URL and the differential-parsing precondition does not exist.
+
+#### Post-review re-verification (slice 1)
+
+Both subagents ran on the finished diff, docs included (L-015). **Neither returned a blocking finding.**
+Two non-blocking items, both mine and both the L-015 class, were fixed before the commit:
+
+- **"95 files" and "27 added, 66 modified, 0 deleted" sum differently (93)** — because they are two
+  different scopes: 95 is `git diff --shortstat installer/`, 93 is `git diff --name-status
+  installer/vendor-ai`. The missing two are `installer/composer.json` and `installer/composer.lock`.
+  Both numbers were right and their juxtaposition was not; the scope of each is now named in D-052 and
+  in audit NEW-05, so re-deriving them does not produce an apparent contradiction.
+- **A comment in the new test said "three of the fourteen" symbols are interfaces; four are**
+  (`ResponseInterface` was uncounted). Corrected. Nothing was under-tested — the loop checks
+  `class_exists() || interface_exists()` uniformly.
+
+The `security-auditor` re-derived the reachability verdict independently and reached the same
+conclusion, and **found the `model`-parameter defect is sharper than I had framed it, in two ways**:
+a `#` in `$input['model']` pushes `key={apiKey}` into the URI **fragment**, so the request leaves with
+**no API key** (not merely a wrong endpoint); and the population is **editor and above**, not
+"authenticated admin", because `ai.use` was widened by D-051. Both re-verified in the main session by
+running the encodings rather than accepting the report (L-013) — the host never moves in any spelling
+and CRLF is percent-encoded. Recorded as an audit finding with a trigger; not fixed here.
+
+**Both reviewers ran without a shell** and reported that limit themselves, so the file-count
+bookkeeping and the before/after `Client.php` comparison rest on this session's measurements rather
+than an independent second run. Recorded rather than glossed.
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (195 tests, 986 assertions)
+$ php scripts/keel-verify
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+$ composer audit -d installer
+  No security vulnerability advisories found.
+$ vendor/bin/phpcs --standard=phpcs.xml tests/Integration/VendorAiCompatibilityTest.php tests/Unit/VendorAiManifestTest.php
+  clean (no violations)
+```
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -1947,6 +2149,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-20 (slice 7 session) | documented commands, **port 8080 again held by the same unrelated container** | Caught immediately this time — `docs/playground.md`'s step-2 bind check (added by L-011) reported the port taken, and `curl -D -` confirmed `Server: Apache/2.4.54 (Debian)` before anything was believed. Re-run on verified-free ports (8104 for the walk, 8103 for the new test class): admin **302**, `klytos_session` cookie present, the S-09 defect reproduced live as **401** `authentication_required` (not the 302 the audit recorded — slice 4 changed that). The bind check paid for itself in seconds, which is the whole point of L-011 | yes |
 | 2026-07-23 (Sprint 2 slice 3 session) | port 8080/8090 skipped (known-held, L-011); booted on a `nc -z`-verified-free **8091** | MCP **401** unauthenticated, **no `Server:` header** (PHP built-in). Then a live slice-3 walk on a verified-free **8092**: owner `tools/list` = **206** (172 core + 8 x402 + 16 forms + 10 importer — integrity and both shipped plugins now live), owner `tools/call klytos_forms_list` → **HTTP 200** (NEW-30: was "Unknown tool" pre-slice). The 100+-test integration tier had booted the real App on the seeded playground first | yes |
 | 2026-07-24 (Sprint 2 slice 4 session) | documented commands; 8080/8081/8082/8090 skipped (known-held, L-011), booted on an `nc -z`-verified-free **8083** | MCP **401** unauthenticated (freshness). Then the whole of `docs/playground.md` §3a run for real on the same boot: four per-role bearer tokens minted with the documented one-liner, the full 5-tool × 4-role `tools/call` matrix (206/197/56/19 on `tools/list`), the translated 403 body, and the unmapped-tool protocol error. **Two commands in the newly-written §3a were wrong when first drafted and were corrected against the real output before the document was saved**: `grep -c '"name"'` counts 1 (the response is one line — and tool schemas carry `name` too), and the unmapped-tool call answers **200** with `-32602`, not a non-200 | yes |
+| 2026-07-25 (Sprint 3 slice 1 session) | documented commands on a verified-free **8083** (`nc -z` first; **8080, 8081, 8082 and 8090 all held by the same unrelated container for the SIXTH consecutive session**) | admin **302**, MCP **401** unauthenticated, and `curl -D -` checked for the L-011 tell — no `Server: Apache/...` header, so the responses were our own `php -S` and not the squatter's. The seeder declined to overwrite the existing install, as documented, so the session ran against the standing playground | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 
