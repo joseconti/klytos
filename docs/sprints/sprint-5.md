@@ -231,19 +231,43 @@ fail against the unrestricted endpoint first.
 6. **CI has never run** (L-022). Nothing in this sprint reaches `App::getChatEngine()`, so
    `#[Group('ai-runtime')]` does not apply — stated because the rule is live, not because it bites.
 
-## Close-out — filled at the sprint close
+## Close-out — filled 2026-07-25
 
 | Requirement | Status |
 |---|---|
-| Full suite green (every test, not only this sprint's) | — |
-| `keel-verify` output pasted | — |
-| Upgrade tested from the REAL previous version | — |
-| Lint baselines held (all five, per scope, no default value — L-016) | — |
-| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | — |
-| `docs-verifier` over everything the sprint touched | — |
-| Playground-QA fresh-context pass (never concurrent with the suite — L-025) | — |
-| Numbered try-it script handed to the user, debug log ON | — |
-| **User's recorded verdict** | — |
-| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | — |
-| Continuation prompt produced unprompted | — |
-| Finished docs archived to `docs/old/sprint-5/` (or "nothing qualified", stated) | — |
+| Full suite green (every test, not only this sprint's) | **PASS** — `OK (248 tests, 1152 assertions)`, 0 skips, PHP 8.3. Sprint start: **227 / 1059** |
+| `keel-verify` output pasted | **PASS** — `OK — 10 check(s) run: 8 passed, 2 warning(s) carrying 9 note(s)`. The 2 WARNs are H-01 and NEW-27, both owned by Phase 7. **That summary line was itself corrected during the close** — it used to say "10 check(s) passed", counting the 2 WARNs as passes, so a reader counting PASS lines found 8 |
+| Upgrade tested from the REAL previous version | **PASS** — `UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)`, run after each slice. **The script gained the assertion this sprint made load-bearing**: an upgraded install can LOG IN with the previous version's password, through `Auth::login()` itself |
+| Lint baselines held (all five, per scope, no default value — L-016) | **PASS** — core+admin **192/488**, plugins 113/109, tests 0/0, installer/public 0/0, scripts 0/2. The core+admin scope grew to **194** twice during the sprint and was brought back both times by fixing the touched file, never by rebaselining |
+| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | **DONE, 2/2 slices — and EACH SLICE GOT A BLOCKING FINDING THAT WAS CORRECT AND WAS MINE.** Slice 1: the owner-suspend guard was bypassable by demoting in the same call (`role` is processed before `status` and mutates `$user` in place); plus **NEW-39**, the timing oracle, measured at **340×**. Slice 2: **the slice had not closed NEW-09 at all** — the shipped page's CSRF token could never validate, and the suite was green only because the harness sent a header the product does not (**L-026**); plus the enrolment action sitting inside the registration `try/catch` |
+| `docs-verifier` over everything the sprint touched | **PASS after 2 fixes.** It re-derived all eight INDEX counts independently (146/102/**309**/120/206/34/27/19 = **963**), confirmed every new surface documented with a runnable example, and checked the two new i18n keys in all 20 catalogues including the accents individually. It found **2 BLOCKING stale code comments** — `auth.php` and `token-auth.php` both still said application passwords are "pinned to the admin user", which D-056 made false. Both fixed |
+| Playground-QA fresh-context pass (never concurrent with the suite — L-025) | **DONE — ~45 commands, and it confirmed all four Sprint 5 claims independently.** All four roles log in (302 + dashboard 200, with per-role dashboard sizes decreasing 43099 → 19214 bytes); a password change takes effect at the form; five failures lock **one** account while the other three still log in, and deleting `login_lockouts.json` clears it; the 5×4 `tools/call` matrix and `tools/list` 206/197/56/19 reproduce exactly. **6 defects found, all fixed** — see below. 8080 squatted for the **eighth** consecutive session |
+| Numbered try-it script handed to the user, debug log ON | **DONE** — handed with this close |
+| **User's recorded verdict** | **PENDING** — awaiting the user's own walk. A reported failure reopens the sprint |
+| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **DONE** — **L-026** (the harness sent a header the product never sends, so a feature that could not work in any browser had a green suite); token-ledger row **21**; Estimate **v5** |
+| Continuation prompt produced unprompted | **DONE** — handed with this close |
+| Finished docs archived to `docs/old/sprint-5/` (or "nothing qualified", stated) | **Nothing qualified — stated, not skipped.** Same reasoning as Sprints 3 and 4: `sprint-1…4.md` are still read as precedent (this sprint read sprint-4 and D-036 from Sprint 1), `theme-package-model.md` specifies an upcoming sprint, `04-adoption-audit.md` gained six findings. **But the question is now overdue in the other direction:** `decisions.md` is ~80k tokens across four pages and is re-read every session, which is the dominant per-session cost of this project. That is an argument for splitting the state files, not for archiving them — recorded here so the next close treats it as a real decision rather than a fourth "nothing qualified" |
+
+### The fresh-context pass found 6 defects, and the worst one was the document's own remedy
+
+1. **The debug-log snippet wrote nothing.** `docs/playground.md` offered a one-line listener to make
+   MCP refusals self-log, passing `'security'` as the source. `Logger::write()` treats any source
+   other than `'core'` as a **plugin ID** and drops the entry unless that plugin has logging enabled.
+   So the remedy produced silence — sitting directly beneath a paragraph explaining that an empty log
+   is expected (NEW-32). **A fix that produces nothing, next to a note saying nothing is normal, is
+   unfalsifiable.** This is L-019's shape a second time, in the section written about L-019. Fixed to
+   `'core'`, with a confirmation command and the reason stated in the snippet.
+2. **`keel-verify` miscounted its own result** — 8 PASS lines, summary "10 check(s) passed". Fixed to
+   "10 check(s) run: 8 passed, 2 warning(s)…", with `KeelVerifyTest`'s regex updated and the quoted
+   expected output in `playground.md` corrected.
+3. **`klytos_delete_page` returns `success: false` beside "Page moved to trash."** — a response
+   describing an action that did not occur, quoted verbatim in the document. Recorded as **NEW-43**;
+   not fixed (adjacent MCP surface, D-031's narrowing).
+4. **The sprint's headline claim had no runnable command.** §1 verified "all four roles log in" only
+   as browser prose while every other claim in the file ships a command, so a terminal-only reader had
+   to derive the form fields. Added — and the added snippet was then run verbatim, producing the
+   documented output exactly.
+5. **A broken path reference** — `LICENSE-THIRD-PARTY.md` lives at `installer/vendor-ai/`, not where
+   the surrounding text implied.
+6. **Self-contradicting squat counts** — the same file said "seventh consecutive session" in one place
+   and "four consecutive sessions" in another. It is the eighth; both corrected to one figure.

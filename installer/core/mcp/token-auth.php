@@ -150,7 +150,9 @@ class TokenAuth
             if ($appPassId !== null) {
                 $this->authMethod     = 'app_password';
                 $this->authIdentifier = 'apppass:' . $appPassId;
-                // App passwords are pinned to the admin user — resolve its role from the store.
+                // An app password names a user, so its role follows that user's record
+                // (D-047). Since D-056 that can be ANY active account, not just
+                // config['admin_user'] — an editor's credential arrives here as an editor.
                 $this->actor          = $this->resolveUserActor($basicAuth['username']);
                 return true;
             }

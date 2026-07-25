@@ -137,9 +137,12 @@ final class KeelVerifyTest extends TestCase
     {
         $output = $this->runKeelVerify()['output'];
 
+        // "run", not "passed": the summary used to report the TOTAL as the number
+        // passed, counting the two WARN checks twice — once as passes and again as
+        // warnings. It now names how many ran and how many of those passed.
         $this->assertSame(
             1,
-            preg_match( '/OK — (\d+) check\(s\) passed/u', $output, $match ),
+            preg_match( '/OK — (\d+) check\(s\) run/u', $output, $match ),
             "keel-verify did not print its summary line:\n" . $output
         );
 

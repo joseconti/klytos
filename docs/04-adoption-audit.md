@@ -2090,6 +2090,26 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the next slice touching the WebAuthn path, or the first report of a passkey failing
   after an authenticator restore.
 
+### NEW-43 — `klytos_delete_page` describes an action it did not perform — **LOW** *(found 2026-07-25 by the Sprint 5 sprint-close playground-QA pass)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/tools/page-tools.php` (the `klytos_delete_page` handler)
+- **What:** the handler returns `'info' => 'Page moved to trash. Use klytos_restore_page to undo…'`
+  **unconditionally**, alongside `'success' => $deleted`. So deleting a page that does not exist
+  answers `success: false` together with a sentence stating the page was moved to trash, with
+  `isError: false` and HTTP 200. A model reading the response — which is the primary consumer of this
+  product's tools — has one field saying nothing happened and one saying something did.
+- **How it was found:** a fresh-context pass ran `docs/playground.md`'s own example against the
+  non-existent `index` page. The document quotes that sentence as the tool's answer, so the misleading
+  text had already propagated into the documentation.
+- **Severity is LOW and said plainly:** nothing is destroyed and nothing is escalated. It is the
+  **L-002 shape on an MCP surface** — a response asserting a state change that did not occur — which
+  matters more here than the same wart would in a human-facing string, because the caller is an agent
+  that acts on what it is told.
+- **Fix shape:** return the `info` only when `$deleted` is true, and give the false branch a reason
+  (no such page / already trashed). One line plus its test.
+- **Trigger:** the next slice touching the page MCP tools, or the NEW-35 slice (tool contracts are
+  advisory), which is the same family — a published contract that does not describe what the tool
+  does.
+
 ---
 
 ## Next step

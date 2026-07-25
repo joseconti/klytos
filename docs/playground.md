@@ -9,7 +9,7 @@
 > per-role table reproduced exactly, `tools/list` sizes 206/197/56/19 exact, all nine router
 > protections 403, the full security-header set present, suite `OK (227 tests, 1059 assertions)` with
 > no skips, and `keel-verify` 10 checks exit 0. Six DOCUMENT defects were found and fixed here.
-> 8080 was squatted for the **seventh** consecutive session.
+> 8080 was squatted for the **eighth** consecutive session (2026-07-25).
 
 ---
 
@@ -59,7 +59,7 @@ php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
 ```
 
 > **`$KPORT` is not decoration — set it.** 8080 is the default and it has been occupied by an
-> unrelated Docker container in **four consecutive sessions** of this project. Every URL below is
+> unrelated Docker container in **every session since 2026-07-19** (eight consecutive) of this project. Every URL below is
 > written `http://127.0.0.1:$KPORT/...` so that changing the port in step 2 is the only edit you
 > ever make. A fresh reader following this document with 8080 busy previously had no path forward,
 > because the rest of the page hardcoded 8080 — found by the sprint-1 playground-QA pass and fixed
@@ -143,6 +143,32 @@ Everything the playground writes is gitignored — verified with `git check-igno
 3. Log out and repeat with `admin`, `editor` and `viewer` — **all four reach the dashboard**, each
    seeing only what its role allows. That is the fastest way to see the whole authorization system
    working end to end.
+
+Without a browser — the same walk, and the one command that proves the sprint's headline claim.
+Every other claim in this document ships a runnable command and this one did not, so a terminal-only
+reader had to derive the form fields themselves (found by the Sprint 5 fresh-context pass):
+
+```bash
+for u in owner admin editor viewer; do
+  code=$( curl -s -o /dev/null -w '%{http_code}' -c /tmp/klytos-$u.jar \
+    -d "username=$u" -d "password=playground-$u-2026" \
+    "http://127.0.0.1:$KPORT/installer/admin/login.php" )
+  dash=$( curl -s -o /dev/null -w '%{http_code}' -b /tmp/klytos-$u.jar \
+    "http://127.0.0.1:$KPORT/installer/admin/" )
+  echo "$u: login $code, dashboard $dash"
+done
+rm -f /tmp/klytos-*.jar
+```
+
+Expected — **all four identical**; before Sprint 5 only `owner` reached the dashboard and the other
+three answered `login 200` (the refusal re-renders the form):
+
+```
+owner: login 302, dashboard 200
+admin: login 302, dashboard 200
+editor: login 302, dashboard 200
+viewer: login 302, dashboard 200
+```
 
 ### All four roles log in (since Sprint 5)
 
@@ -700,7 +726,7 @@ the exit code (D-045: a check that reddens the build for something you are not a
 check people learn to ignore). The current expected output is:
 
 ```
-OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+OK — 10 check(s) run: 8 passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
 ```
 
 Both WARNs belong to Phase 7: **H-01** (the version string disagrees across five touchpoints) and
@@ -782,7 +808,7 @@ composer update --no-install -d installer
 ```
 
 `tests/Unit/VendorAiManifestTest.php` fails the suite if the manifest, the lock,
-`vendor-ai/composer/installed.php` and `LICENSE-THIRD-PARTY.md` ever stop agreeing.
+`vendor-ai/composer/installed.php` and `installer/vendor-ai/LICENSE-THIRD-PARTY.md` ever stop agreeing.
 
 ## The debug log — how to hand back a diagnosable failure
 
@@ -807,8 +833,20 @@ plugin:
 
 ```php
 klytos_add_action( 'mcp.access_denied', function ( string $tool, ?string $role, string $reason ): void {
-    klytos_log_warning( "MCP refused {$tool} for role " . ( $role ?? 'none' ) . ": {$reason}", [], 'security' );
+    // The last argument MUST be 'core'. Logger::write() treats any other source as a
+    // PLUGIN ID and drops the entry unless that plugin has logging enabled
+    // (logger.php, condition 2) — so this snippet previously passed 'security' and
+    // wrote absolutely nothing, while the paragraph above explained that an empty log
+    // was expected. A remedy that produces silence, next to a note saying silence is
+    // normal, is unfalsifiable: found by a fresh-context pass that ran it.
+    klytos_log_warning( "MCP refused {$tool} for role " . ( $role ?? 'none' ) . ": {$reason}", [], 'core' );
 }, 10 );
+```
+
+Confirm it actually wrote something rather than trusting the absence of an error:
+
+```bash
+php installer/cli.php logs | head -5     # must show the entry, not "No hay archivos de log."
 ```
 
 Also note the log directory name is **randomized per install** (`data/logs-<12 hex>/`), and a reset

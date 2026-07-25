@@ -344,3 +344,69 @@ design. Sprint 3's turned CI's 8.2 leg red in simulation; Sprint 4's refuted an 
 review-and-rework as a first-class segment, not as a rounding error on "the code is done" — on this
 project it has cost between 15% and 30% of the slice it lands on, every time, and has been worth it
 every time.
+
+---
+
+## Estimate v5 — Phase 5, Sprint 5 scope (authentication: NEW-11 / NEW-37 / NEW-39 / NEW-09) — 2026-07-25
+
+Written at the sprint close. Covers **Sprint 5 only**. The theme-package sprint (D-023/D-024) still
+has no estimate, and the newly-scoped bilingual in-product guides (user instruction, 2026-07-25) get
+their own version when planned.
+
+### Scope basis
+
+2 slices in `docs/sprints/sprint-5.md`. Counts measured rather than carried: **2** `Auth::login()`
+callers repo-wide; **6** consequences of the delegation fixed in path (lockout keying and relocation,
+`security.php` re-auth, `validateAppPassword`, the owner-status and owner-role guards, the 60 s
+status re-read); **4** new public surfaces (`Helpers::webauthnRpId()`,
+`TwoFactor::sendPasskeyEnrolledEmail()`, the `user.passkey_enrolled` action, and
+`docs/reference/authentication.md` itself); **20** catalogues × **2** new keys; **3** new test files
+carrying **16** tests; **10** documentation surfaces reconciled; **6** audit findings opened
+(NEW-38…NEW-43) and **4** closed.
+
+### AI working hours (itemized)
+
+| Segment (AI does) | Hours (low–high) | Basis |
+|---|---|---|
+| Planning — kickoff re-validation driven by source and by a **net-zero live probe** of the rotation defect, 2 user decisions, artifacts (sprint-5, this estimate) | 2.0–3.5 | The probe is the item that paid: it turned "three roles cannot log in" into "the login credential and every other credential surface have already diverged", which is what made the fallback design refusable |
+| Slice 1 — the delegation plus its six consequences, 13 tests proven RED first, 6 teaching surfaces, a new reference doc | 4.0–6.5 | Small production diff inside a large verification shell; the surfaces that teach the old truth cost as much as the code |
+| Slice 2 — endpoint restriction, dispatcher branch, notification + 20 catalogues, the `$preAuthScripts` key change, and a **WebAuthn fixture with real ES256 signatures and hand-encoded CBOR/COSE** | 4.0–6.5 | The fixture is the unusual item: hand-encoding an attestation object is a day's work in the wrong hands and a couple of hours with the parser open beside it |
+| Reviews on the finished diff (both subagents, per slice) | 2.5–4.0 | **A blocking finding per slice for the fifteenth and sixteenth consecutive slice.** Slice 2's proved the slice had not closed its finding at all |
+| Sprint close-out — docs-verifier, playground-QA, **8 defect fixes**, state, try-it script, continuation prompt | 2.0–3.5 | Higher than previous closes because the QA pass found 6 defects and the docs pass 2, all fixed before closing |
+| **Total AI** | **14.5–24.0 h** | |
+
+The highest of the five estimates so far, and the reason is not the code — it is that **authentication
+touches every credential surface at once.** Changing one comparison in `Auth::login()` obliged six
+adjacent corrections, each with its own failure mode, because four sprints of authorization had been
+built on top of a login only one account could pass.
+
+### Vibe coder hours (itemized)
+
+| Segment | What the developer does | Hours (low–high) |
+|---|---|---|
+| Sprint choice + kickoff | Choose NEW-11 over the theme-package sprint; take the record-only and scope decisions (done — 2026-07-25) | 0.25–0.5 |
+| Mid-sprint decisions | Approve the plan; scope the bilingual-guides instruction raised mid-slice | 0.25–0.5 |
+| During the build | Open sessions, read summaries, approve gates | 1.0–2.0 |
+| Test points | Walk the try-it script: log in as all four roles, rotate a password, lock one account and confirm another still works | 0.5–1.0 |
+| **Total developer** | | **2.0–4.0 h** |
+
+### What this estimate is NOT
+
+It excludes the theme-package sprint (D-023/D-024), the **bilingual in-product guides** (16 guides ×
+2 languages plus a locale-selection mechanism that does not exist, and NEW-27 must be fixed first or
+neither language ships), the S-10 CSS-consolidation sprint, the accessibility sprint (A-01…A-07),
+NEW-33's i18n conversion, and NEW-34/NEW-35/NEW-40/NEW-41/NEW-42/NEW-43. Each gets its own version.
+
+### Calibration note for the next estimate
+
+**Three sprints running, the review cycle has produced a blocking finding that changed the shipped
+design — and this one changed whether the sprint had achieved anything at all.** Sprint 3's turned
+CI's 8.2 leg red in simulation; Sprint 4's refuted an entire command; Sprint 5's proved a feature
+declared closed could not work in any browser, because the test harness was sending a header the
+product never sends. Budget review-and-rework as a first-class segment: it has cost 15–30% of the
+slice it lands on, every time.
+
+The sharper calibration point for whoever estimates next: **every high-value finding in this sprint
+came from EXECUTING something** — a net-zero password probe, a 340× timing measurement, a hand-built
+HTTP request, a QA agent following the document literally. None came from reading. Budget probe time
+explicitly; it is the cheapest hour in the estimate and it has decided the design four times now.

@@ -831,15 +831,23 @@ if ( $failures !== [] ) {
     exit( 1 );
 }
 
+// The summary reports what was OBSERVED, not a total dressed up as a result.
+// It used to print "%d check(s) passed" with the TOTAL, counting the two WARN
+// checks as passes and then reporting them again as warnings — so a reader who
+// counted the PASS lines found 8 where the summary claimed 10. Found by a
+// fresh-context pass following docs/playground.md, which quotes this line as
+// expected output. A verifier that miscounts its own result is the L-016 defect
+// in the script written to prevent it.
 if ( $warnings !== [] ) {
     printf(
-        "OK — %d check(s) passed, %d warning(s) carrying %d note(s) (owned by another phase).\n",
+        "OK — %d check(s) run: %d passed, %d warning(s) carrying %d note(s) (owned by another phase).\n",
         $checks,
+        $checks - $warnedChecks,
         $warnedChecks,
         count( $warnings )
     );
     exit( 0 );
 }
 
-printf( "OK — %d check(s) passed.\n", $checks );
+printf( "OK — %d check(s) run: all passed.\n", $checks );
 exit( 0 );

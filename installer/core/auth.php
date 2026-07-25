@@ -530,10 +530,13 @@ class Auth
      * @param  string $role  Role the token operates as (D-047). Defaults to 'owner',
      *                       which reproduces the pre-Sprint-2 behaviour where every
      *                       bearer token held owner-equivalent power (NEW-02). A lower
-     *                       role (e.g. 'viewer') mints a genuinely reduced credential —
-     *                       the only credential type mintable below owner today, since
-     *                       application passwords are pinned to the admin user until
-     *                       NEW-11.
+     *                       role (e.g. 'viewer') mints a genuinely reduced credential.
+     *                       It was the ONLY such credential until Sprint 5: application
+     *                       passwords were pinned to config['admin_user'] (NEW-11) and
+     *                       now resolve against an active user record (D-056), so one
+     *                       minted for an editor reaches the MCP gate as an editor. A
+     *                       bearer token remains the only credential that names no user,
+     *                       which is why it carries a role of its own.
      * @return array  ['token' => string (raw), 'id' => string]
      */
     public function createBearerToken(string $label = '', string $role = 'owner'): array
