@@ -728,5 +728,12 @@
     "author_name_required": "Izena beharrezkoa da.",
     "content_required": "Iruzkina ezin da hutsik egon.",
     "status_pending": "Egoera: moderazioaren zain"
+  },
+  "terminal": {
+    "owner_repair_description": "Berrezarri jabearen kontua erregistroa falta zaion instalazio batean",
+    "owner_repair_usage": "Erabilera: owner:repair --email=<helbidea>\nBaliozko helbide elektronikoa behar da. Uneko pasahitza ez da aldatzen.",
+    "owner_repair_exists": "Instalazio honek jabea du dagoeneko ({username}). Ez da ezer aldatu.",
+    "owner_repair_no_credentials": "Instalazio honek ez du administrazio-kredentzialik konfigurazioan, beraz jabearen kontua ezin da hortik berrezarri. Ez da ezer aldatu.",
+    "owner_repair_done": "«{username}» jabe-kontua berrezarri da. Sartu lehendik zenuen pasahitzarekin: komando honek ez du aldatu."
   }
 }

@@ -86,6 +86,7 @@ $executor->getHistory( 0 );   // All entries (max 100 stored)
 | `logs [--date=Y-m-d] [--lines=50]` | system | site.configure | View system log entries |
 | `webhooks` | system | site.configure | List configured webhooks |
 | `users` | users | users.manage | List admin users |
+| `owner:repair` | users | users.manage | Recreate the owner account on an install that has none (audit NEW-08). CLI-only in practice: `dispatch()` runs no permission check, which is what makes recovery possible with no session. See `docs/reference/owner-recovery.md` |
 | `plugins` | plugins | plugins.manage | List installed plugins |
 | `plugins:activate <id>` | plugins | plugins.manage | Activate a plugin |
 | `plugins:deactivate <id>` | plugins | plugins.manage | Deactivate a plugin |

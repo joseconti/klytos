@@ -728,5 +728,12 @@
     "author_name_required": "Nimi vaaditaan.",
     "content_required": "Kommentti ei voi olla tyhjä.",
     "status_pending": "Tila: odottaa moderointia"
+  },
+  "terminal": {
+    "owner_repair_description": "Palauta omistajatili asennukseen, jonka tietue puuttuu",
+    "owner_repair_usage": "Käyttö: owner:repair --email=<osoite>\nKelvollinen sähköpostiosoite vaaditaan. Nykyinen salasana ei muutu.",
+    "owner_repair_exists": "Tällä asennuksella on jo omistaja ({username}). Mitään ei muutettu.",
+    "owner_repair_no_credentials": "Tässä asennuksessa ei ole enää hallinnan tunnuksia asetuksissa, joten omistajatiliä ei voi palauttaa niistä. Mitään ei muutettu.",
+    "owner_repair_done": "Omistajatili ”{username}” palautettiin. Kirjaudu sisään salasanalla, joka sinulla jo oli — tämä komento ei muuttanut sitä."
   }
 }

@@ -1,7 +1,7 @@
 # Sprint 4 — the hook mutation contract, and owner recovery
 
 - **Planned:** 2026-07-25 (plan mode, approved by the user). Kickoff re-validation ran the same session.
-- **Status:** IN PROGRESS — slice 1 starting.
+- **Status:** **CLOSED 2026-07-25** — both slices. Audit **NEW-03**, **NEW-36** and **NEW-08** CLOSED.
 - **Scope basis:** audit **NEW-03** (by-reference action listeners are silently broken), deferred by
   **D-026** in Sprint 1 slice 0; and audit **NEW-08** (there is no supported way to recreate a missing
   owner), whose recorded trigger is literally *"with the NEW-03 slice, after Sprint 1"*.
@@ -105,7 +105,7 @@ session's own (L-011 + L-021). 8080 squatted again.
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
 | 1 | Actions are fire-and-forget, enforced; page data gets a real filter | **NEW-03**, **NEW-36** | **closed 2026-07-25** | **PASS** — suite **206 → 221 tests / 1007 → 1029 assertions**; keel-verify 10 checks exit 0, INDEX parity green after +4 rows (102/308/**120**, total **961**); upgrade from real v0.30.1 PASS; five D-025 baselines held with core+admin **improved** 193 → **192**. Evidence in `docs/05-test-points.md` | Refusal at registration (typed `HookContractException`, both registries); `page.save_data` filter above the `page.before_save` action; x402 converted. **NEW-36 found by driving the feature** — the post-type allow-list dropped what its own extension filter added, so x402's checkbox had never persisted. `failOnWarning="true"` enabled per `phpunit.xml`'s own trigger. Both reviews **no blocking**; they **disagreed** on the reserved-key gap and the auditor was right (**L-023**) |
-| 2 | Owner recovery from the CLI | **NEW-08** | pending | — | Fires NEW-33's trigger |
+| 2 | Owner recovery from the CLI | **NEW-08** | **closed 2026-07-25** | **PASS** — suite **221 → 227 tests / 1029 → 1059 assertions**; keel-verify 10 checks exit 0 incl. locale parity ×20 and INDEX parity (CLI commands 26 → **27**, total **962**); lint held 192/488 and tests 0/0. Real CLI: every refusal exits **1**. Evidence in `docs/05-test-points.md` | `owner:repair --email=<address>` writes the missing `admin_email` and runs the product's **own** `migrateFromV1Config()`; the existing password still applies. **The first design was refuted in review** — it took `--username`/`--password` and created a record `Auth::login()` could never accept, then refused to run again (**L-024**). Refusals THROW so they exit non-zero. Two tests first passed for the WRONG reason (L-012). Recovery proven through **`Auth::login()`**, the real gate. `execute()` gained `redactSecrets()` from the security pass. NEW-33 **not** closed — user decision, trigger re-bound |
 
 ## Acceptance — this sprint is done when
 

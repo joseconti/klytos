@@ -728,5 +728,12 @@
     "author_name_required": "名前を入力してください。",
     "content_required": "コメントを入力してください。",
     "status_pending": "ステータス: 承認待ち"
+  },
+  "terminal": {
+    "owner_repair_description": "オーナーのレコードが失われたインストールでオーナーアカウントを復元します",
+    "owner_repair_usage": "使い方: owner:repair --email=<アドレス>\n有効なメールアドレスが必要です。現在のパスワードは変更されません。",
+    "owner_repair_exists": "このインストールには既にオーナー（{username}）が存在します。何も変更されていません。",
+    "owner_repair_no_credentials": "このインストールの設定には管理者の認証情報が残っていないため、オーナーアカウントを復元できません。何も変更されていません。",
+    "owner_repair_done": "オーナーアカウント「{username}」を復元しました。これまでのパスワードでログインしてください。このコマンドはパスワードを変更していません。"
   }
 }

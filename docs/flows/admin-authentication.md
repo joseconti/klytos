@@ -23,7 +23,7 @@ randomized at install and `Helpers::getBasePath()` states it must NEVER appear i
 | Unauthenticated request to any admin surface | **302** to login for pages, **401 JSON** for `api`/`mcp` (slice 4) |
 | Authenticated but lacking the capability | **403** via `klytos_deny()`, in the shape the caller can parse |
 | Surface not in the gate map | **denied** — default-deny is the point (D-032) |
-| No owner record exists (failed v1.x migration) | boot survives and **fails closed** (D-031). **It does not restore access** — there is no owner-recovery path anywhere in the product (**NEW-08**) |
+| No owner record exists (failed v1.x migration) | boot survives and **fails closed** (D-031). Recovery is `php installer/cli.php owner:repair --email=<address>`, which supplies the `admin_email` the migration lacked and rebuilds the record from `config['admin_user']`/`config['admin_pass_hash']` — the existing password still applies (**NEW-08** closed, D-055; see `docs/reference/owner-recovery.md`) |
 | Password reset | `reset-password.php` — **no CSRF field or check** (**NEW-26**) |
 
 ## The branch that is broken today

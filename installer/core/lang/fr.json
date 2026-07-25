@@ -728,5 +728,12 @@
     "author_name_required": "Le nom est obligatoire.",
     "content_required": "Le commentaire ne peut pas être vide.",
     "status_pending": "Statut : en attente de modération"
+  },
+  "terminal": {
+    "owner_repair_description": "Restaurer le compte propriétaire sur une installation dont l'enregistrement manque",
+    "owner_repair_usage": "Utilisation : owner:repair --email=<adresse>\nUne adresse e-mail valide est requise. Le mot de passe actuel est inchangé.",
+    "owner_repair_exists": "Cette installation a déjà un propriétaire ({username}). Rien n'a été modifié.",
+    "owner_repair_no_credentials": "Cette installation ne conserve aucun identifiant d'administration dans sa configuration ; le compte propriétaire ne peut donc pas en être restauré. Rien n'a été modifié.",
+    "owner_repair_done": "Compte propriétaire « {username} » restauré. Connectez-vous avec le mot de passe que vous aviez déjà : cette commande ne l'a pas modifié."
   }
 }

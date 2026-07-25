@@ -728,5 +728,12 @@
     "author_name_required": "Imię jest wymagane.",
     "content_required": "Komentarz nie może być pusty.",
     "status_pending": "Status: oczekuje na moderację"
+  },
+  "terminal": {
+    "owner_repair_description": "Przywróć konto właściciela w instalacji, w której brakuje rekordu",
+    "owner_repair_usage": "Użycie: owner:repair --email=<adres>\nWymagany jest prawidłowy adres e-mail. Obecne hasło nie ulega zmianie.",
+    "owner_repair_exists": "Ta instalacja ma już właściciela ({username}). Nic nie zostało zmienione.",
+    "owner_repair_no_credentials": "Ta instalacja nie ma już w konfiguracji danych logowania administratora, więc konta właściciela nie można z nich przywrócić. Nic nie zostało zmienione.",
+    "owner_repair_done": "Konto właściciela „{username}” zostało przywrócone. Zaloguj się hasłem, które już miałeś — to polecenie go nie zmieniło."
   }
 }

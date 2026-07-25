@@ -728,5 +728,12 @@
     "author_name_required": "Falta el nombre.",
     "content_required": "El comentario no puede estar vacío.",
     "status_pending": "Estado: pendiente de moderación"
+  },
+  "terminal": {
+    "owner_repair_description": "Restaurar la cuenta de propietario en una instalación cuyo registro falta",
+    "owner_repair_usage": "Uso: owner:repair --email=<dirección>\nSe requiere una dirección de correo válida. La contraseña actual no cambia.",
+    "owner_repair_exists": "Esta instalación ya tiene un propietario ({username}). No se ha cambiado nada.",
+    "owner_repair_no_credentials": "Esta instalación no conserva credenciales de administración en su configuración, así que la cuenta de propietario no puede restaurarse a partir de ella. No se ha cambiado nada.",
+    "owner_repair_done": "Cuenta de propietario «{username}» restaurada. Accede con la contraseña que ya tenías: este comando no la ha cambiado."
   }
 }

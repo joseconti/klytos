@@ -728,5 +728,12 @@
     "author_name_required": "请填写姓名。",
     "content_required": "评论不能为空。",
     "status_pending": "状态：待审核"
+  },
+  "terminal": {
+    "owner_repair_description": "在所有者记录丢失的安装中恢复所有者帐户",
+    "owner_repair_usage": "用法： owner:repair --email=<地址>\n需要有效的电子邮件地址。现有密码不会更改。",
+    "owner_repair_exists": "此安装已有所有者（{username}）。未做任何更改。",
+    "owner_repair_no_credentials": "此安装的配置中已没有管理凭据，因此无法据此恢复所有者帐户。未做任何更改。",
+    "owner_repair_done": "所有者帐户「{username}」已恢复。请使用您原有的密码登录——此命令未更改密码。"
   }
 }

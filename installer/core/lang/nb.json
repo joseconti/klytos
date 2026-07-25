@@ -728,5 +728,12 @@
     "author_name_required": "Navn er påkrevd.",
     "content_required": "Kommentaren kan ikke være tom.",
     "status_pending": "Status: venter på moderering"
+  },
+  "terminal": {
+    "owner_repair_description": "Gjenopprett eierkontoen på en installasjon der posten mangler",
+    "owner_repair_usage": "Bruk: owner:repair --email=<adresse>\nEn gyldig e-postadresse er påkrevd. Det eksisterende passordet endres ikke.",
+    "owner_repair_exists": "Denne installasjonen har allerede en eier ({username}). Ingenting ble endret.",
+    "owner_repair_no_credentials": "Denne installasjonen har ingen administratorlegitimasjon igjen i konfigurasjonen, så eierkontoen kan ikke gjenopprettes fra den. Ingenting ble endret.",
+    "owner_repair_done": "Eierkontoen «{username}» er gjenopprettet. Logg inn med passordet du allerede hadde — denne kommandoen endret det ikke."
   }
 }

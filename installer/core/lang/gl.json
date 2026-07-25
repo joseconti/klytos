@@ -728,5 +728,12 @@
     "author_name_required": "Falta o nome.",
     "content_required": "O comentario non pode estar baleiro.",
     "status_pending": "Estado: pendente de moderación"
+  },
+  "terminal": {
+    "owner_repair_description": "Restaurar a conta de propietario nunha instalación á que lle falta o rexistro",
+    "owner_repair_usage": "Uso: owner:repair --email=<enderezo>\nCómpre un enderezo de correo válido. O contrasinal actual non cambia.",
+    "owner_repair_exists": "Esta instalación xa ten un propietario ({username}). Non se cambiou nada.",
+    "owner_repair_no_credentials": "Esta instalación non conserva credenciais de administración na súa configuración, así que a conta de propietario non se pode restaurar. Non se cambiou nada.",
+    "owner_repair_done": "Conta de propietario «{username}» restaurada. Accede co contrasinal que xa tiñas: esta orde non o cambiou."
   }
 }

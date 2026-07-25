@@ -184,6 +184,12 @@ class TerminalExecutor
         // 1. Sanitize.
         $clean = $this->sanitizeInput( $input );
 
+        // $clean is what gets PARSED and executed; $recorded is what is allowed to
+        // leave this method — persisted to history, written to the audit log, or
+        // echoed back to the browser. They differ only in that a secret passed as
+        // a flag is masked in the second. Every `return` below uses $recorded.
+        $recorded = $this->redactSecrets( $clean );
+
         if ( $clean === '' ) {
             return [
                 'success'      => false,
@@ -199,7 +205,7 @@ class TerminalExecutor
             return [
                 'success'      => false,
                 'output'       => 'Demasiadas peticiones. Espera unos segundos.',
-                'command'      => $clean,
+                'command'      => $recorded,
                 'timestamp'    => $timestamp,
                 'requires_2fa' => false,
             ];
@@ -210,7 +216,7 @@ class TerminalExecutor
             return [
                 'success'      => false,
                 'output'       => '',
-                'command'      => $clean,
+                'command'      => $recorded,
                 'timestamp'    => $timestamp,
                 'requires_2fa' => true,
             ];
@@ -230,7 +236,7 @@ class TerminalExecutor
                     return [
                         'success'      => false,
                         'output'       => 'No tienes permiso para ejecutar este comando.',
-                        'command'      => $clean,
+                        'command'      => $recorded,
                         'timestamp'    => $timestamp,
                         'requires_2fa' => false,
                     ];
@@ -248,7 +254,7 @@ class TerminalExecutor
 
         // 8. Persist history.
         $this->sessionHistory[] = [
-            'command'   => $clean,
+            'command'   => $recorded,
             'output'    => mb_substr( $result['output'], 0, 2000 ),
             'timestamp' => $timestamp,
         ];
@@ -257,7 +263,7 @@ class TerminalExecutor
         // 9. Audit log.
         klytos_log( $result['success'] ? 'info' : 'error', 'terminal.command', [
             'user_id' => $userId,
-            'command' => $clean,
+            'command' => $recorded,
             'ip'      => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
             'result'  => $result['success'] ? 'ok' : 'error',
         ] );
@@ -265,7 +271,7 @@ class TerminalExecutor
         return [
             'success'      => $result['success'],
             'output'       => $result['output'],
-            'command'      => $clean,
+            'command'      => $recorded,
             'timestamp'    => $timestamp,
             'requires_2fa' => false,
         ];
@@ -523,6 +529,82 @@ class TerminalExecutor
                     $output .= "  {$twofa} {$name} ({$role})\n";
                 }
                 return $output;
+            },
+        ];
+
+        // Audit NEW-08: the only supported way to recreate a missing owner.
+        //
+        // WHAT THE BROKEN STATE ACTUALLY IS, because the fix follows from it.
+        // App::boot() Step 10b runs UserManager::migrateFromV1Config(), which
+        // builds the owner record from config['admin_user'] and
+        // config['admin_pass_hash']. It THROWS when config has no usable
+        // admin_email, and D-031 contained that throw so boot survives — leaving
+        // an install whose credentials are intact but whose owner RECORD does not
+        // exist. Every permission check then denies, and nothing could put the
+        // record back.
+        //
+        // So this command repairs the CAUSE — the missing admin_email — and then
+        // runs the product's own migration, rather than creating an owner by a
+        // second route. That matters for correctness, not tidiness: Auth::login()
+        // validates the username against config['admin_user'] and the password
+        // against config['admin_pass_hash'], never against the user record. An
+        // owner minted with its own username and password would therefore be a
+        // record nobody can log in as — and, because findOwner() would then return
+        // non-null, this command would refuse to run again. Found by this slice's
+        // own code-reviewer.
+        //
+        // WHY THE CLI. Recovery must work with no session, which rules out the
+        // admin panel by construction. dispatch() runs no permission check and
+        // cli.php calls it directly — deliberate, since CLI access already implies
+        // filesystem access. The permission below gates the WEB terminal.
+        $this->commands['owner:repair'] = [
+            'description' => __( 'terminal.owner_repair_description' ),
+            'usage'       => 'owner:repair --email=<address>',
+            'category'    => 'users',
+            'permission'  => 'users.manage',
+            'handler'     => function ( array $args, array $flags, self $terminal ): string {
+                $email = trim( $flags['email'] ?? '' );
+
+                // Refusals THROW rather than return: dispatch() reports success
+                // for any handler that returns, and cli.php derives its exit code
+                // from that — a returned refusal would exit 0 and tell a recovery
+                // script that a repair which changed nothing had worked.
+                if ( $email === '' || ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+                    throw new \RuntimeException( __( 'terminal.owner_repair_usage' ) );
+                }
+
+                $users = $this->app->getUserManager();
+
+                $existing = $users->findOwner();
+                if ( $existing !== null ) {
+                    $message = __(
+                        'terminal.owner_repair_exists',
+                        [ 'username' => $existing['username'] ?? '?' ]
+                    );
+
+                    throw new \RuntimeException( $message );
+                }
+
+                // Without these two, restoring the record restores nothing:
+                // Auth::login() has nothing to validate against. Refuse plainly
+                // rather than creating an account that cannot be used.
+                $config = $this->app->getConfig();
+                if ( empty( $config['admin_user'] ) || empty( $config['admin_pass_hash'] ) ) {
+                    throw new \RuntimeException( __( 'terminal.owner_repair_no_credentials' ) );
+                }
+
+                // Repair the cause, then let the product's own migration build the
+                // record from the credentials that already work.
+                $config['admin_email'] = $email;
+
+                $storage = $this->app->getStorage();
+                $storage->writeTo( $this->app->getConfigPath(), 'config.json.enc', $config );
+
+                $owner = $users->migrateFromV1Config( $config );
+
+                return __( 'terminal.owner_repair_done', [
+                    'username' => $owner['username'] ?? (string) $config['admin_user'],
+                ] );
             },
         ];
 
@@ -962,6 +1044,38 @@ class TerminalExecutor
     }
 
     // --- Private security methods ---
+
+    /**
+     * Mask the VALUE of any secret-bearing flag before a command is persisted.
+     *
+     * `execute()` writes the typed command into three places that outlive the
+     * request: the terminal history (storage collection `terminal`, which is NOT
+     * in ENCRYPTED_PATHS at any level, so it is plaintext on disk), the audit log
+     * (a plaintext file whenever Developer Mode is on), and the response echoed
+     * back to the browser. None of that was secret-aware, because until
+     * `owner:repair` no terminal command had ever taken a secret as a flag.
+     *
+     * The consequence was concrete rather than theoretical: `admin/logs.php` is
+     * gated at `site.configure`, which resolves to owner AND admin — so an admin,
+     * strictly lower-privileged than the owner, could read the owner's password
+     * out of the log. Found by the slice's own `security-auditor` pass.
+     *
+     * Redaction lives HERE, at the one place every command's text is persisted,
+     * rather than in the one command that happens to need it today — the same
+     * inversion S-07 and NEW-02 were each closed with. A future command taking a
+     * `--token` is safe without its author remembering anything.
+     *
+     * @param  string $command The sanitized command line as typed.
+     * @return string The same line with secret-bearing flag values replaced.
+     */
+    private function redactSecrets( string $command ): string
+    {
+        return (string) preg_replace(
+            '/(--(?:password|passwd|pass|secret|token|api[_-]?key|key)=)\S+/i',
+            '$1***',
+            $command
+        );
+    }
 
     private function sanitizeInput( string $raw ): string
     {

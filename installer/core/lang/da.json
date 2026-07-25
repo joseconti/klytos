@@ -728,5 +728,12 @@
     "author_name_required": "Navn er påkrævet.",
     "content_required": "Kommentaren må ikke være tom.",
     "status_pending": "Status: afventer moderation"
+  },
+  "terminal": {
+    "owner_repair_description": "Gendan ejerkontoen på en installation, hvor posten mangler",
+    "owner_repair_usage": "Brug: owner:repair --email=<adresse>\nEn gyldig e-mailadresse er påkrævet. Den nuværende adgangskode ændres ikke.",
+    "owner_repair_exists": "Denne installation har allerede en ejer ({username}). Intet blev ændret.",
+    "owner_repair_no_credentials": "Denne installation har ingen administratoroplysninger tilbage i konfigurationen, så ejerkontoen kan ikke gendannes ud fra den. Intet blev ændret.",
+    "owner_repair_done": "Ejerkontoen '{username}' er gendannet. Log ind med den adgangskode, du allerede havde — denne kommando ændrede den ikke."
   }
 }

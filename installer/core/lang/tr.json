@@ -728,5 +728,12 @@
     "author_name_required": "İsim gereklidir.",
     "content_required": "Yorum boş olamaz.",
     "status_pending": "Durum: moderasyon bekliyor"
+  },
+  "terminal": {
+    "owner_repair_description": "Kaydı eksik olan bir kurulumda sahip hesabını geri yükle",
+    "owner_repair_usage": "Kullanım: owner:repair --email=<adres>\nGeçerli bir e-posta adresi gerekir. Mevcut parola değişmez.",
+    "owner_repair_exists": "Bu kurulumun zaten bir sahibi var ({username}). Hiçbir şey değiştirilmedi.",
+    "owner_repair_no_credentials": "Bu kurulumun yapılandırmasında yönetim kimlik bilgileri kalmamış, bu nedenle sahip hesabı oradan geri yüklenemez. Hiçbir şey değiştirilmedi.",
+    "owner_repair_done": "'{username}' sahip hesabı geri yüklendi. Zaten sahip olduğunuz parolayla giriş yapın — bu komut parolayı değiştirmedi."
   }
 }

@@ -728,5 +728,12 @@
     "author_name_required": "Namn är obligatoriskt.",
     "content_required": "Kommentaren får inte vara tom.",
     "status_pending": "Status: väntar på granskning"
+  },
+  "terminal": {
+    "owner_repair_description": "Återställ ägarkontot på en installation där posten saknas",
+    "owner_repair_usage": "Användning: owner:repair --email=<adress>\nEn giltig e-postadress krävs. Det befintliga lösenordet ändras inte.",
+    "owner_repair_exists": "Den här installationen har redan en ägare ({username}). Inget ändrades.",
+    "owner_repair_no_credentials": "Den här installationen har inga administratörsuppgifter kvar i konfigurationen, så ägarkontot kan inte återställas från den. Inget ändrades.",
+    "owner_repair_done": "Ägarkontot '{username}' har återställts. Logga in med lösenordet du redan hade — kommandot ändrade det inte."
   }
 }

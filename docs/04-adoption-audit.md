@@ -817,7 +817,7 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   decision, not a slice-2 side effect.
 - **Trigger:** H-02, at the next full Phase 7.
 
-### NEW-08 — There is no supported way to recreate a missing owner — **MEDIUM** *(found 2026-07-19, Sprint 1 slice 3)*
+### NEW-08 — There is no supported way to recreate a missing owner — **MEDIUM** — **CLOSED 2026-07-25 (Sprint 4 slice 2, D-055)** *(found 2026-07-19, Sprint 1 slice 3)*
 - **Where:** `installer/cli.php` (26 commands; `users` **lists** only), `installer/core/app.php`
   Step 10b, `installer/core/user-manager.php` (`migrateFromV1Config()` throws on a missing or
   invalid `admin_email`)
@@ -842,6 +842,39 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   folded into slice 3, whose subject is the escalation itself.
 - **Trigger:** with the NEW-03 slice, after Sprint 1 closes. Raise to HIGH if any real install is
   ever reported in this state.
+
+- **RESOLUTION 2026-07-25 (Sprint 4 slice 2, D-055).** `owner:repair --email=<address>` — a terminal
+  command declaring `users.manage`, reachable from `installer/cli.php` with **no session**, which is
+  what this state requires. It writes the missing `admin_email` into config and then runs the
+  product's **own** `UserManager::migrateFromV1Config()`, which rebuilds the owner record from
+  `config['admin_user']` and `config['admin_pass_hash']`. **The operator's existing password still
+  applies; the command sets no credentials.**
+- **Why it takes no username or password, which is the whole design.** `Auth::login()` validates the
+  username against `config['admin_user']` and the password against `config['admin_pass_hash']`, never
+  against the user record (**NEW-11**). An owner minted with its own credentials would be a record
+  **nobody can log in as** — and `findOwner()` returning non-null would then make the command refuse
+  forever, leaving the install permanently unrecoverable. **The first implementation did exactly
+  that**; it was caught by the slice's own `code-reviewer` before it shipped, and the design changed.
+  Recorded as **L-024**.
+- **What the broken state actually retains, measured:** `upgrade-assert.php:131` removes **only**
+  `admin_email`. `admin_user` and `admin_pass_hash` survive. So the missing piece is the email, not
+  the identity — and repairing the cause is what restores access.
+- `dispatch()` runs no permission check and `cli.php` calls it directly; that asymmetry is deliberate
+  (CLI access already implies filesystem access) and the declared permission gates the **web**
+  terminal. Consequence worth naming: being logged in presupposes an owner, so the web terminal can
+  only ever reach this command's refusal branches.
+- **Refusals THROW**, so they exit non-zero — a returned refusal would have exited 0 and told an
+  automated recovery script that a repair which changed nothing had worked. Six tests; two of them
+  initially passed against the unfixed tree **for the wrong reason** (an unknown command also reports
+  failure) and were tightened to assert the refusal's REASON (L-012). The recovery is proven through
+  **`Auth::login()`**, the real gate, not through the user manager.
+- **An install that has ALSO lost `admin_user`/`admin_pass_hash` cannot be recovered by this command**
+  — it refuses and says so, rather than creating an account nobody could use.
+- **Deliberately NOT built, named so it does not read as an oversight:** resetting a password. Making
+  the supplied password real would mean writing `config['admin_pass_hash']`, i.e. an unauthenticated
+  CLI primitive that resets the owner password on any install. If wanted, that belongs in a
+  separately-named command. This also does not touch **NEW-11** — non-owner accounts still cannot log
+  in.
 
 ### Positive findings (recorded so they are not re-litigated)
 - **No tracked secrets.** `git ls-files` over secret-shaped patterns returns zero; only

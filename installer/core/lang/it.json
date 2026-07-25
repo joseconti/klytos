@@ -728,5 +728,12 @@
     "author_name_required": "Il nome è obbligatorio.",
     "content_required": "Il commento non può essere vuoto.",
     "status_pending": "Stato: in attesa di moderazione"
+  },
+  "terminal": {
+    "owner_repair_description": "Ripristinare l'account proprietario in un'installazione a cui manca il record",
+    "owner_repair_usage": "Uso: owner:repair --email=<indirizzo>\nÈ richiesto un indirizzo email valido. La password attuale non cambia.",
+    "owner_repair_exists": "Questa installazione ha già un proprietario ({username}). Non è stato modificato nulla.",
+    "owner_repair_no_credentials": "Questa installazione non conserva credenziali di amministrazione nella configurazione, quindi l'account proprietario non può essere ripristinato da essa. Non è stato modificato nulla.",
+    "owner_repair_done": "Account proprietario «{username}» ripristinato. Accedi con la password che avevi già: questo comando non l'ha modificata."
   }
 }

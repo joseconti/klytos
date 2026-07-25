@@ -13,9 +13,9 @@
 | Filters | 120 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
-| Terminal / CLI commands | 26 |
+| Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **961** |
+| **Total** | **962** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -965,6 +965,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 |---------|------|-----------|-----|--------------------|
 | build | command | installer/core/terminal-executor.php | — | Regenerate the whole static site; requires build.run |
 | build:page | command | installer/core/terminal-executor.php | — | Regenerate a single page identified by slug; requires build.run |
+| owner:repair | command | installer/core/terminal-executor.php | docs/reference/owner-recovery.md | Restore the owner record from config credentials on an install that lost it; requires users.manage |
 | pages | command | installer/core/terminal-executor.php | — | List pages, optionally narrowed with --status; requires pages.view |
 | pages:count | command | installer/core/terminal-executor.php | — | Report how many pages exist in each status; requires pages.view |
 | tasks | command | installer/core/terminal-executor.php | — | List tasks, optionally narrowed with --status; requires tasks.manage |

@@ -728,5 +728,12 @@
     "author_name_required": "Der Name ist erforderlich.",
     "content_required": "Der Kommentar darf nicht leer sein.",
     "status_pending": "Status: wartet auf Moderation"
+  },
+  "terminal": {
+    "owner_repair_description": "Das Eigentümerkonto einer Installation wiederherstellen, deren Datensatz fehlt",
+    "owner_repair_usage": "Verwendung: owner:repair --email=<Adresse>\nEine gültige E-Mail-Adresse ist erforderlich. Das vorhandene Passwort bleibt unverändert.",
+    "owner_repair_exists": "Diese Installation hat bereits einen Eigentümer ({username}). Es wurde nichts geändert.",
+    "owner_repair_no_credentials": "Diese Installation enthält keine Administrationsanmeldedaten mehr in ihrer Konfiguration, daher kann das Eigentümerkonto daraus nicht wiederhergestellt werden. Es wurde nichts geändert.",
+    "owner_repair_done": "Eigentümerkonto „{username}“ wiederhergestellt. Melden Sie sich mit Ihrem bisherigen Passwort an — dieser Befehl hat es nicht geändert."
   }
 }

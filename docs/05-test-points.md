@@ -2526,6 +2526,97 @@ multi-line signature, second position; and MUST-NOT: by-value, use(&$x), unrelat
   all directions correct
 ```
 
+### Slice 2 — owner recovery from the CLI — evidence (commands and output, 2026-07-25)
+
+**PROVEN TO FAIL FIRST (L-016), and two of the five failed for the WRONG reason until tightened.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter OwnerRepairTest      # first draft
+  Tests: 5, Failures: 3      ← testItRefusesWhenAnOwnerAlreadyExists and
+                               testItRefusesIncompleteArguments PASSED against a tree
+                               where the command does not exist, because dispatch()
+                               also reports success=false for an UNKNOWN command.
+  → tightened to assert the refusal's REASON (L-012)
+$ … after tightening
+  Tests: 5, Failures: 5      ← all five now fail for the right reason
+```
+
+**THE DESIGN WAS THEN REFUTED IN REVIEW AND REBUILT — see L-024.** The first version took
+`--username`/`--password` and called `UserManager::create()`. `Auth::login()` validates against
+`config['admin_user']` and `config['admin_pass_hash']`, never the record, so it minted an owner
+nobody could log in as — and `findOwner()` returning non-null then made the command refuse forever.
+The test written to prevent that asserted `UserManager::authenticate()` (the manager) instead of
+`Auth::login()` (the gate), and passed against a command that restored nothing.
+
+Measured, which is what settled the redesign:
+
+```
+$ php -r '…dump config keys…'
+  admin_user       owner
+  admin_pass_hash  present (60 chars)
+  admin_email      owner@playground.test
+$ grep -n admin_email scripts/dev/upgrade-assert.php
+  131:    unset( $config['admin_email'] );      ← ONLY the email is lost
+```
+
+So the missing piece is the email, not the identity. The command now supplies it and runs the
+product's own `migrateFromV1Config()`.
+
+**Two guards fired on the new tests and both were right:**
+
+```
+D-039 config guard:
+  "This test mutated installer/config/config.json.enc while App was already booted…"
+  → #[RunInSeparateProcess] did NOT silence it (the guard detects the mutation, not the staleness).
+    Resolved by passing the email config ALREADY holds → the write is net-zero, the command still
+    takes the same branch. Suppressing the guard for this file was rejected.
+
+L-010 positive control, on the redaction test:
+  "Failed asserting that '[]' contains 'owner:repair'"
+  → history was EMPTY: execute() re-demands 2FA after 10 min of terminal inactivity and returns
+    BEFORE the history/audit writes. Without the control, the test would have asserted "the secret
+    is not in the history" about a history nothing ever wrote to.
+```
+
+**After the redesign — full suite, lint, keel-verify:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (227 tests, 1059 assertions)                      # slice 1 closed at 221 / 1029
+$ vendor/bin/phpcs … installer/core installer/admin
+  A TOTAL OF 192 ERRORS AND 488 WARNINGS IN 112 FILES  # held
+$ vendor/bin/phpcs … tests
+  0 errors / 0 warnings   (grew to 1 after the redesign — a stray blank line — fixed, re-measured)
+$ php scripts/keel-verify
+  OK — 10 check(s) passed, 2 warning(s) (owned by another phase)
+  incl. PASS locale catalogues agree on their key set (120 files across 6 sets)
+        PASS docs/api/INDEX.md parity   (CLI commands 26 -> 27, total 962)
+```
+
+**Real functional verification over the REAL CLI:**
+
+```
+$ php installer/cli.php owner:repair --email=x@example.test   ; echo $?
+  Error: This install already has an owner (owner). Nothing was changed.
+  1
+$ php installer/cli.php owner:repair --email=not-an-email     ; echo $?
+  Error: Usage: owner:repair --email=<address>
+         A valid email address is required. The existing password is unchanged.
+  1
+$ php installer/cli.php owner:repair                          ; echo $?
+  1
+$ php installer/cli.php help | grep owner:repair
+      owner:repair            Restore the owner account on an install whose owner record is missing
+```
+
+The first attempt at that exit-code measurement piped through `head -2` and reported `EXIT: 0` —
+`$?` after a pipeline is the exit of `head`. Re-measured without the pipe. L-016 on the instrument,
+in the same slice that recorded L-024 about the same class of error.
+
+**`__()` proven to resolve on this path** (NEW-18 made it the sharpest risk): the tests assert on
+`--email` and on the substituted username, neither of which appears in the catalogue KEYS — a miss
+returns the key verbatim and would have failed them.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in

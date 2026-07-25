@@ -728,5 +728,12 @@
     "author_name_required": "Een naam is vereist.",
     "content_required": "De reactie mag niet leeg zijn.",
     "status_pending": "Status: wacht op moderatie"
+  },
+  "terminal": {
+    "owner_repair_description": "Het eigenaarsaccount herstellen op een installatie waarvan het record ontbreekt",
+    "owner_repair_usage": "Gebruik: owner:repair --email=<adres>\nEen geldig e-mailadres is verplicht. Het bestaande wachtwoord verandert niet.",
+    "owner_repair_exists": "Deze installatie heeft al een eigenaar ({username}). Er is niets gewijzigd.",
+    "owner_repair_no_credentials": "Deze installatie bevat geen beheerdersgegevens meer in de configuratie, dus het eigenaarsaccount kan daaruit niet worden hersteld. Er is niets gewijzigd.",
+    "owner_repair_done": "Eigenaarsaccount '{username}' hersteld. Log in met het wachtwoord dat je al had — deze opdracht heeft het niet gewijzigd."
   }
 }

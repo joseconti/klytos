@@ -728,5 +728,12 @@
     "author_name_required": "Cal indicar el nom.",
     "content_required": "El comentari no pot estar buit.",
     "status_pending": "Estat: pendent de moderació"
+  },
+  "terminal": {
+    "owner_repair_description": "Restaurar el compte de propietari en una instal·lació on falta el registre",
+    "owner_repair_usage": "Ús: owner:repair --email=<adreça>\nCal una adreça de correu vàlida. La contrasenya actual no canvia.",
+    "owner_repair_exists": "Aquesta instal·lació ja té un propietari ({username}). No s'ha canviat res.",
+    "owner_repair_no_credentials": "Aquesta instal·lació no conserva credencials d'administració a la configuració, de manera que el compte de propietari no es pot restaurar. No s'ha canviat res.",
+    "owner_repair_done": "Compte de propietari «{username}» restaurat. Accedeix amb la contrasenya que ja tenies: aquesta ordre no l'ha canviada."
   }
 }

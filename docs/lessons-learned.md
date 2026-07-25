@@ -677,3 +677,41 @@
   second way. This is L-015 one turn further out — that lesson was "a number copied from another
   document is not a measurement", this one is "a number measured **once** is not a measurement
   either."
+
+## L-024 — I quoted L-014 in the docblock and then tested the manager instead of the gate
+- Problem: Sprint 4 slice 2 built `owner:repair` to close NEW-08 — an install can lose its owner
+  record and there was no way to put one back. The command took `--username`, `--email` and
+  `--password` and called `UserManager::create()`. It was wrong end to end: **`Auth::login()`**, the
+  admin panel's actual gate, validates the username against `config['admin_user']` and the password
+  against **`config['admin_pass_hash']`** — never against the user record (that is NEW-11). So the
+  supplied password could not log anyone in, and once `findOwner()` returned non-null the command
+  **refused to run again**, leaving the install permanently unrecoverable through the product.
+- Where: `installer/core/terminal-executor.php` (`owner:repair`, first version);
+  `tests/Integration/OwnerRepairTest.php::testTheRecreatedOwnerCanActuallyAuthenticate`;
+  `installer/core/auth.php:99-102`.
+- What failed, and it is uncomfortable: **the test written specifically to prevent this tested the
+  wrong layer.** Its docblock says, verbatim, *"Recreating a RECORD is not the same as restoring
+  ACCESS — L-014's rule applied to this slice's own subject"* — and then it asserted
+  `UserManager::authenticate()`, the manager, rather than `Auth::login()`, the gate. It passed
+  against a command that restored nothing. Quoting the lesson is not applying it.
+- The second surface that should have caught it: **the reference doc contained its own disproof.**
+  The headline said "Then log in to the admin panel with the username and password you passed", and
+  three paragraphs later the "What it does not do" section said `Auth::login()` validates only against
+  `config['admin_user']`. Both sentences were written in the same session, by me, and neither was read
+  against the other.
+- How it was caught: the slice's own `code-reviewer`, tracing the call chain from the command to the
+  login path rather than reading either document. Not by the suite — the suite agreed with the defect.
+- The fix that followed from asking what actually breaks: `upgrade-assert.php:131` removes **only**
+  `admin_email`; `admin_user` and `admin_pass_hash` survive. So the missing piece was never the
+  identity — it was the email the migration needed. The command now supplies that and runs the
+  product's existing `migrateFromV1Config()`, which restores the record from credentials that already
+  work. One code path creates an owner from config, not two.
+- Rule for next time: **when a fix claims to restore ACCESS, the test must go through the exact
+  function the product uses to grant it — name that function before writing the test, and check that
+  the assertion calls it.** A manager method with a similar name is not the gate. Concretely: for
+  anything touching authentication, grep for what the login form actually calls and assert against
+  that; and when a document has a "what it does not do" section, read it against its own headline
+  before shipping — a doc that contains its own refutation is a defect that has already been written
+  down, just not noticed. This is L-014 one turn inward: that lesson said drive the FEATURE, not the
+  defect; this one says the feature is defined by the code path the USER traverses, not the one the
+  fix happens to touch.

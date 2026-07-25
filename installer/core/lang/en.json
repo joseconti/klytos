@@ -728,5 +728,12 @@
     "author_name_required": "A name is required.",
     "content_required": "The comment cannot be empty.",
     "status_pending": "Status: pending moderation"
+  },
+  "terminal": {
+    "owner_repair_description": "Restore the owner account on an install whose owner record is missing",
+    "owner_repair_usage": "Usage: owner:repair --email=<address>\nA valid email address is required. The existing password is unchanged.",
+    "owner_repair_exists": "This install already has an owner ({username}). Nothing was changed.",
+    "owner_repair_no_credentials": "This install has no admin credentials left in its configuration, so the owner account cannot be restored from it. Nothing was changed.",
+    "owner_repair_done": "Owner account '{username}' restored. Log in with the password you already had — this command did not change it."
   }
 }
