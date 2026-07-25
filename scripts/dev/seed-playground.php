@@ -316,8 +316,12 @@ $access = <<<TXT
 Klytos playground access — generated {$config['installed_at']}
 THROWAWAY LOCAL CREDENTIALS. Never reuse these anywhere real.
 
-Admin:  http://127.0.0.1:8080/installer/admin/
-MCP:    http://127.0.0.1:8080/installer/mcp
+Admin:  http://127.0.0.1:{PORT}/installer/admin/
+MCP:    http://127.0.0.1:{PORT}/installer/mcp
+
+  ({PORT} is whatever you passed to `php -S` — docs/playground.md calls it \$KPORT.
+   8080 is the document's default and has been squatted by an unrelated Docker
+   container in every session since 2026-07-19, so do not assume it.)
 
 Users (username / password):
 {$userLines}
@@ -333,9 +337,12 @@ echo <<<TXT
 
 Playground ready.
 
-  Start it:  php -S 127.0.0.1:8080 -t . scripts/dev/router.php
-  Admin:     http://127.0.0.1:8080/installer/admin/
-  MCP:       http://127.0.0.1:8080/installer/mcp
+  Pick a free port first — 8080 is the documented default and is frequently taken:
+    export KPORT=8080; nc -z 127.0.0.1 \$KPORT && echo "TAKEN — pick another"
+
+  Start it:  php -S 127.0.0.1:\$KPORT -t . scripts/dev/router.php
+  Admin:     http://127.0.0.1:\$KPORT/installer/admin/
+  MCP:       http://127.0.0.1:\$KPORT/installer/mcp
 
   Log in as: owner   (the ONLY account that can currently log in)
 

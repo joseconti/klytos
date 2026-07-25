@@ -42,8 +42,17 @@ XDEBUG_MODE=off php scripts/dev/seed-playground.php
 export KPORT=8080
 nc -z 127.0.0.1 $KPORT && echo "PORT $KPORT IS TAKEN — export a different KPORT and re-run step 2"
 
-# 3. Serve it — 127.0.0.1 ONLY, never a routable interface
+# 3. Serve it — 127.0.0.1 ONLY, never a routable interface.
+#    In the FOREGROUND a bind failure is visible: php -S prints it and exits.
 php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
+
+#    If you background it instead, that failure becomes SILENT — so redirect and
+#    check, exactly as the $RPORT section does:
+#      php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php > /tmp/klytos-kport.log 2>&1 &
+#      sleep 2
+#      grep -i 'failed to listen' /tmp/klytos-kport.log \
+#        && echo "DID NOT BIND — everything below would answer from someone else's server" \
+#        || echo "bound cleanly on $KPORT"
 ```
 
 > **`$KPORT` is not decoration — set it.** 8080 is the default and it has been occupied by an
@@ -78,7 +87,13 @@ php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
 # `pkill -f "php -S ..."` only matches a server started with no options between
 # `php` and `-S`; the $RPORT server below has `-d` flags there, so that pattern
 # silently matches nothing and the process survives (found 2026-07-25, L-021).
-kill $(lsof -nP -tiTCP:$KPORT -sTCP:LISTEN)
+# The guard matters: with nothing listening, `kill $(...)` gets no arguments and
+# errors "not enough arguments", which reads like a failure and is not one.
+kill $(lsof -nP -tiTCP:$KPORT -sTCP:LISTEN) 2>/dev/null || echo "nothing listening on $KPORT"
+
+# The $RPORT section (below) leaves a private session store behind. It is throwaway
+# state and accumulates across sessions — clear it when you are finished:
+rm -rf /tmp/klytos-sessions
 
 # Wipe all runtime state and seed again from scratch
 php scripts/dev/seed-playground.php --reset
@@ -193,7 +208,7 @@ test if you ever set `RPORT=8099`, and it costs nothing to be tidy:
 ```bash
 # Kill by PORT — `pkill -f "php -S 127.0.0.1:$RPORT"` does NOT match this server,
 # because its command line carries `-d session.save_path=...` between `php` and `-S`.
-kill $(lsof -nP -tiTCP:$RPORT -sTCP:LISTEN)
+kill $(lsof -nP -tiTCP:$RPORT -sTCP:LISTEN) 2>/dev/null || echo "nothing listening on $RPORT"
 ```
 
 ### 2. Authorization — what each role may reach (Sprint 1 slice 4)
@@ -263,8 +278,21 @@ Every tool call passes a default-deny gate carrying the **credential's** role, a
 filtered by the same decision. Bearer tokens are the one credential mintable below owner today
 (application passwords are pinned to the admin user until **NEW-11**), so mint one per role:
 
+> **`klytos_delete_page` really does delete a page.** The call below is safe on a *freshly seeded*
+> playground only because the seed creates `home`, `about` and `contact` — there is no `index` page,
+> so an allowed call finds nothing to delete. **On any install that does have one, running this as
+> owner or admin removes it.** Use a slug you have just created if you are unsure:
+>
+> ```bash
+> ls installer/data/pages/ 2>/dev/null    # what actually exists before you aim a destructive tool at it
+> ```
+>
+> Found by the Sprint 3 fresh-context pass, which noticed the example is *accidentally* safe and that
+> the document never said so.
+
 ```bash
 # Mint four bearer tokens, one per role. Prints role=token lines.
+# NOTE: these persist in the install until revoked — see "Clean up" at the end of this section.
 XDEBUG_MODE=off php -r 'require "installer/core/app.php";
   $a=\Klytos\Core\App::getInstance(); $a->boot();
   foreach ( ["owner","admin","editor","viewer"] as $r ) {
@@ -293,8 +321,30 @@ The message comes from the locale catalogues (`mcp.permission_denied`, 20 locale
 admin language is Spanish gets it in Spanish. It names the tool and the fix, never the role or the
 capability — that detail goes to the audit log (`mcp.access_denied`).
 
-**The per-role expectation table.** Every cell below was measured on this playground on 2026-07-24
-(`tools/call` with the four tokens; HTTP status shown). Swap `$TOK_*` and repeat:
+**The per-role expectation table.** Every cell below was measured on this playground (re-confirmed
+cell-by-cell by the Sprint 3 fresh-context pass). To reproduce it, run this — the arguments differ per
+tool, which "swap `$TOK_*` and repeat" did not tell you:
+
+```bash
+for tok in OWNER ADMIN EDITOR VIEWER; do
+  eval "T=\$TOK_$tok"
+  for call in \
+    'klytos_get_page|{"slug":"home"}' \
+    'klytos_delete_page|{"slug":"index"}' \
+    'klytos_x402_get_config|{}' \
+    'klytos_forms_list|{}' \
+    'klytos_integrity_status|{}' ; do
+      name="${call%%|*}"; args="${call#*|}"
+      code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:$KPORT/installer/mcp \
+        -H "Authorization: Bearer $T" -H 'Content-Type: application/json' \
+        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"$name\",\"arguments\":$args}}")
+      printf '%-8s %-28s %s\n' "$tok" "$name" "$code"
+  done
+done
+```
+
+(`klytos_delete_page` above targets `index`, which the seed does not create — see the warning at the
+top of this section before pointing it at a slug that exists.)
 
 | Tool | Capability | owner | admin | editor | viewer |
 |---|---|---|---|---|---|
@@ -304,6 +354,25 @@ capability — that detail goes to the audit log (`mcp.access_denied`).
 | `klytos_forms_list` (shipped plugin) | `forms.manage` | 200 | 200 | **403** | **403** |
 | `klytos_integrity_status` (core, admin-tier) | `site.configure` | 200 | 200 | **403** | **403** |
 | `tools/list` size | — | 206 | 197 | 56 | 19 |
+
+**Clean up when you are done — these tokens persist.** Every walk mints four more, and three of them
+carry a privileged role:
+
+```bash
+# revokeBearerToken() takes the token's ID, not its label — so look the IDs up by
+# label first. (Passing the label straight in silently revokes nothing and returns
+# false, which is why this reads the store rather than guessing.)
+XDEBUG_MODE=off php -r 'require "installer/core/app.php";
+  $a=\Klytos\Core\App::getInstance(); $a->boot();
+  $auth = $a->getAuth();
+  $n = 0;
+  foreach ( $a->getStorage()->read( "config", "tokens" )["tokens"] ?? [] as $t ) {
+      if ( str_starts_with( $t["label"] ?? "", "walk-" ) && $auth->revokeBearerToken( $t["id"] ) ) {
+          $n++;
+      }
+  }
+  echo "revoked {$n} walk-* bearer token(s)\n";'
+```
 
 A 200 with `"isError":true` in the body is the tool reporting a domain error (a missing slug, say) —
 that is the tool running, i.e. the gate **allowed** it. The gate's refusal is always a 403 with a
@@ -468,9 +537,15 @@ authorization over HTTP, always.
 >
 > ```bash
 > # 1. Stop the second server section 1 told you to start and never told you to stop.
-> #    Leaving it up makes AdminGateHttpTest error out: the harness refuses to test a
-> #    server it did not start (correctly — see AdminHttpTestCase), and 16 tests never run.
-> pkill -f "127.0.0.1:8099"
+> #    Leaving one on port 8099 makes AdminGateHttpTest (12 tests) error out: the harness
+> #    refuses to test a server it did not start (correctly — see AdminHttpTestCase).
+> #
+> #    Kill by PORT. This previously read `pkill -f "127.0.0.1:8099"`, which could never
+> #    match the server section 1 tells you to start — that section forbids RPORT=8099 —
+> #    AND misses any `php -S` carrying `-d` flags before `-S` (L-021). Found by the
+> #    Sprint 3 fresh-context pass, which ran it and watched it match nothing.
+> kill $(lsof -nP -tiTCP:$RPORT -sTCP:LISTEN) 2>/dev/null || echo "nothing listening on $RPORT"
+> kill $(lsof -nP -tiTCP:8099 -sTCP:LISTEN) 2>/dev/null || echo "nothing on 8099 — the usual case"
 >
 > # 2. Re-seed. Walking section 4 by hand STORES a real comment, and
 > #    PublicCommentTest::testRateLimitHoldsAcrossSessions counts stored comments.
@@ -493,8 +568,8 @@ composer install
 XDEBUG_MODE=off vendor/bin/phpunit
 
 # One tier at a time
-vendor/bin/phpunit --testsuite unit
-vendor/bin/phpunit --testsuite integration
+XDEBUG_MODE=off vendor/bin/phpunit --testsuite unit
+XDEBUG_MODE=off vendor/bin/phpunit --testsuite integration
 
 # Lint (baseline-locked per D-025 — zero violations in the files you touched)
 vendor/bin/phpcs --standard=phpcs.xml tests/
@@ -548,6 +623,19 @@ gate check is the one that matters today: it fails the build when any file under
 has no entry in `klytos_admin_gate_map()`, and when `admin/bootstrap.php` stops calling
 `klytos_enforce_admin_gate()` — a complete map enforces nothing if nobody invokes the enforcer.
 
+**There is a third tier, and a clean run still prints it.** A `WARN` reports a property that is
+genuinely broken but whose fix another phase owns — it prints full evidence and does **not** change
+the exit code (D-045: a check that reddens the build for something you are not allowed to fix is a
+check people learn to ignore). The current expected output is:
+
+```
+OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+```
+
+Both WARNs belong to Phase 7: **H-01** (the version string disagrees across five touchpoints) and
+**NEW-27** (the blanket `*.md export-ignore` strips all 16 in-product guides from release archives).
+Seeing them is the expected state, not a regression.
+
 ## Testing an upgrade from the real previous release
 
 Keel makes this mandatory because `Installed base: yes`: the upgrade path is tested from the **real
@@ -581,24 +669,35 @@ the back door; section 1's server is the likely culprit, which is why it now run
 
 ## Auditing the vendored dependencies
 
-`installer/vendor-ai/` ships 16 pre-installed packages (the AI chat stack). Since Sprint 1 slice 2 it
-has a reconstructed manifest at `installer/composer.json`, pinned to exactly what is vendored
+`installer/vendor-ai/` ships **17** pre-installed packages (the AI chat stack). Since Sprint 1 slice 2
+it has a reconstructed manifest at `installer/composer.json`, pinned to exactly what is vendored
 (D-028), so it can be audited:
 
 ```bash
 composer audit -d installer
 ```
 
-Exit code 1 means advisories were found; the table it prints is the full report. **As of 2026-07-24
-this reports 11 advisories affecting 2 packages** — 7 in `guzzlehttp/guzzle` 7.10.0 and 4 in
-`guzzlehttp/psr7` 2.9.0, all medium. Seeing them is the current expected output, not a new discovery:
-they are recorded as audit finding **NEW-05** and triaged to their own slice (D-029).
+**As of 2026-07-25 the expected output is `No security vulnerability advisories found.` with exit
+code 0.** Sprint 3 slice 1 re-vendored the tree to guzzle **7.15.1**, psr7 **2.13.0** and promises
+**2.5.1** (adding `symfony/polyfill-php80`), closing audit **NEW-05** — see **D-052**. Before that it
+reported 11 advisories across guzzle 7.10.0 and psr7 2.9.0.
 
-**The number grows over time and that is expected** — it was **5** when NEW-05 was triaged on
-2026-07-19 and is 11 today, because advisories keep being published against versions that are not
-being updated. Do not read a higher number as a regression; read it as the reason the remediation
-slice is queued. Check it against the count recorded in `docs/04-adoption-audit.md` NEW-05 rather
-than against this sentence, which is a snapshot.
+**Zero is the expected result, and a non-zero result is a finding, not a known state.** Exit code 1
+means advisories were published against the pinned versions since; the table it prints is the full
+report. Triage it with the maintainer rather than bumping silently — that is D-022's standing rule,
+and it is what produced D-029 and D-052.
+
+> **Distinguish "clean" from "did not run", because they look alike.** `composer audit` needs network
+> access to Packagist. If it cannot reach it you may see an error, or an empty-looking result, and
+> neither means the tree is clean. Check the **exit code**, not the text:
+>
+> ```bash
+> composer audit -d installer; echo "exit=$?"    # 0 = genuinely clean; 1 = advisories; anything else = it did not run
+> ```
+>
+> CI makes the same three-way distinction in its `vendor-advisories` job, deliberately
+> (`.github/workflows/ci.yml`) — reporting an infrastructure failure as a security finding is the same
+> dishonesty as the reverse.
 
 The manifest also regenerates the tree reproducibly, but **do not run that in a checkout you care
 about** — it rewrites 482 tracked files:

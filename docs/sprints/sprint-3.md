@@ -1,7 +1,7 @@
 # Sprint 3 — `vendor-ai/` CVE remediation, and the AI stack fails safe
 
 - **Planned:** 2026-07-25 (plan mode, approved by the user). Kickoff re-validation ran the same session.
-- **Status:** both slices closed 2026-07-25; sprint close-out in progress. Audit **NEW-05** and **NEW-06** CLOSED.
+- **Status:** **CLOSED 2026-07-25** — both slices. Audit **NEW-05** and **NEW-06** CLOSED. Close-out table at the foot of this file; the user's own test verdict is the one row still open.
 - **Scope basis:** audit **NEW-05** (CVEs in the vendored HTTP stack), triaged to a dedicated post-Sprint-1
   slice by **D-029**, plus audit **NEW-06** (the vendored AI stack needs PHP 8.3 while the product declares
   8.1+, with no guard), whose recorded natural home is this slice.
@@ -160,20 +160,92 @@ close, five days late. Closed in slice 2 (user decision 2026-07-25).
 5. **A re-vendor cannot move the lint baselines** — `phpcs.xml:27` excludes `installer/vendor-ai/*`. If a
    baseline moves, that is itself the finding.
 
-## Close-out
+## Close-out — filled 2026-07-25
 
 | Requirement | Status |
 |---|---|
-| Full suite green (every test, not only this sprint's) | pending |
-| `keel-verify` output pasted | pending |
-| `composer audit -d installer` → zero, measured both sides | pending |
-| Upgrade tested from the REAL previous version | pending |
-| Lint baselines held (all five, measured per scope, no default value — L-016) | pending |
-| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | pending |
-| `docs-verifier` over everything the sprint touched | pending |
-| Playground-QA fresh-context pass | pending |
-| Numbered try-it script handed to the user, debug log ON | pending |
-| **User's recorded verdict** | pending |
-| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | pending |
-| Continuation prompt produced unprompted | pending |
-| Finished docs archived to `docs/old/sprint-3/` (or "nothing qualified", stated) | pending |
+| `composer audit -d installer` → zero, measured both sides | **PASS** — 11 advisories before, **0** after. D-029's recorded floors would have left 6 open; the criterion beat the derivation (D-052, user decision) |
+| Full suite green (every test, not only this sprint's) | **PASS** — `XDEBUG_MODE=off vendor/bin/phpunit` → **206 tests / 1007 assertions**, 0 failures, 0 skips on PHP 8.3 (sprint start: 192/961) |
+| `keel-verify` output pasted | **PASS** — 10 checks, exit 0, the same 2 WARNs owned by Phase 7. INDEX parity green after +2 rows (classes 100→101, actions 307→308, total 955→**957**) |
+| Upgrade tested from the REAL previous version | **PASS** — `UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)`, run after both slices |
+| Lint baselines held (all five, per scope, no default value — L-016) | **PASS**, exactly: core+admin **193/488**, plugins **113/109**, tests **0/0** (35 files), installer/public **0/0**, scripts **0/2**. `phpcs.xml:27` excludes `vendor-ai/`, so a re-vendor structurally cannot move them |
+| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | **DONE, 2/2 slices.** Slice 1: both **no blocking**; two non-blocking doc-precision fixes taken. Slice 2: `security-auditor` **no blocking** (corrected a premise, found **NEW-35**); `code-reviewer` **ONE BLOCKING, correct** — see below |
+| `docs-verifier` over everything the sprint touched | **PASS — no blockers.** INDEX parity exact in both directions and **957 = 957** re-counted per section (146/101/308/117/206/34/26/19); every file in `docs/reference/` has a row and every row's doc exists. All four new surfaces documented **and** their examples checked against source — `aiRuntimeUnsupportedReason(80200)` → `'php_version_too_low'`, `(80300)` → `null`, the exception signature, and the action's parameter count and order. The `ai.unsupported_runtime` key confirmed present in **all 20** catalogues with both placeholders. No stale NEW-05/NEW-06 references, and no other skill left asserting a superseded package or advisory count |
+| Playground-QA fresh-context pass | **DONE — verdict "largely accurate but does not work end to end", and it earned its keep again.** ~60 commands run. **Both areas this sprint edited came back clean** — the `$RPORT` bind check fires in both directions and both kill-by-port Stop recipes work, with the L-021 `pkill` claim confirmed empirically (`pgrep` matched 0 for the `-d`-flagged server, 1 for the plain one). It also re-confirmed §3a's entire 5×4 table byte-for-byte, the 206/197/56/19 counts, NEW-11, NEW-32, NEW-33 and the include-time gate caveat. **11 document defects found, all fixed before this close** — the two most serious created by this very sprint. See the note below |
+| Numbered try-it script handed to the user, debug log ON | **DONE** — handed with this close |
+| **User's recorded verdict** | **PENDING** — awaiting the user's own walk. A reported failure reopens the sprint |
+| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **DONE** — **L-020** (a drift guard built against an artifact it had never produced), **L-021** (the squatter was our own leftover, and every L-011 tell agreed with it), **L-022** (the CI workflow has never run); token-ledger row **18**, and the layout slip its own note deferred to "the sprint close" was fixed here |
+| Continuation prompt produced unprompted | **DONE** — handed with this close |
+| Finished docs archived to `docs/old/sprint-3/` (or "nothing qualified", stated) | **Nothing qualified — stated, not skipped.** Phase 5 §5.7 moves docs that are finished AND no longer consulted. `sprint-1.md`/`sprint-2.md` are still read as precedent (this sprint read both); `theme-package-model.md` specifies an upcoming sprint; `estimate.md` gained v3 today; `04-adoption-audit.md` gained NEW-34/NEW-35. The state files, specs, technical plan, flows and api/reference docs never move while the project is alive |
+
+### The blocking finding was this sprint's own subject turned against it
+
+Slice 2's `code-reviewer` found that the two new integration tests would have turned **CI's PHP 8.2
+leg red** — for behaviour that is *correct* on 8.2. A slice whose entire premise is "below PHP 8.3 the
+AI stack must degrade gracefully" had written tests that break the build below 8.3.
+
+Three things about it are worth carrying forward:
+
+1. **It was measured by simulating the environment, not by reasoning about it.** PHP could not be
+   downgraded, so the *floor* was raised instead. That single trick did three jobs this sprint: it
+   drove the refusal branch end to end (proving `__()` resolves in the throwing path — the sharpest
+   risk in the slice), it reproduced CI's 8.2 leg, and it proved the fix. **8 tests in 3 classes**
+   broke, of which **3 have been latent since Sprint 2 slice 3** and 3 came from slice 1.
+2. **The obvious fix was rejected on the record.** Letting them skip would trip D-045's
+   "a skip is a hard failure" rule — which exists to catch an un-seeded playground and must keep
+   meaning exactly that. So the 8 carry `#[Group('ai-runtime')]` and the 8.2 leg excludes them
+   explicitly, with `requireAiRuntime()` (shaped like the existing `requirePlayground()`) still
+   skipping them for a developer running locally on 8.1/8.2. The group is applied **per method** in one
+   class so the test asserting the refusal *message* keeps running on 8.2 — the runtime where that
+   message is what an operator actually sees.
+3. **Why nobody had seen it: CI has never run.** Not once. The workflow was written in Sprint 1 slice 9
+   and all 29 commits since are unpushed, so its second matrix leg had been broken for two sprints
+   behind a green-looking config. **L-022** — a workflow with no run checks nothing, which is **L-019
+   one level out**.
+
+One reviewer suggestion was **refuted**: dropping inner-paren spaces contradicts
+`docs/03-technical-plan.md` §3 (*"do not 'correct' it"*). It was applied before checking, then
+reverted — L-013 and L-015 in one move.
+
+### The fresh-context pass found 11 defects, and the two worst were this sprint's own
+
+**Both of the serious ones were mine, and neither review subagent could have caught them** — they are
+properties of the *document* against the *world*, not of the diff:
+
+1. **The "Auditing the vendored dependencies" section documented the opposite of reality.** It said
+   `composer audit` reports **11 advisories** across guzzle 7.10.0 and psr7 2.9.0 and that "seeing them
+   is the current expected output". Slice 1 made that false four hours earlier and I did not update the
+   document. It now states zero as the expected result, corrects 16 packages → **17**, and adds the
+   distinction the old text could not make: **a clean run and a run that never happened look alike**, so
+   check the exit code, not the text.
+2. **A STOP-box command that could never match anything.** `pkill -f "127.0.0.1:8099"` was supposed to
+   stop the role-system server — but §1 *forbids* `RPORT=8099`, and the pattern also misses any
+   `php -S` carrying `-d` flags, which is exactly what L-021 records. Two independent reasons it was a
+   no-op. Now kills by port, and the stale "16 tests never run" is corrected to the real **12**
+   (`AdminGateHttpTest`, re-measured).
+
+Nine more, all fixed and each re-run verbatim: the `klytos_delete_page` example is **only accidentally
+safe** (the seed has no `index` page — on an install that has one, an owner token following the table
+deletes the front page), so the hazard is now stated with a "look before you aim" command; §3a's
+per-role table was not reproducible from its own text ("swap `$TOK_*` and repeat" hid four different
+argument shapes) and now ships a runnable loop; §3a minted four privileged bearer tokens per walk and
+never revoked them — a cleanup step was added, and **the first version of it was wrong**
+(`revokeBearerToken()` takes an ID, not a label, so it would have silently revoked nothing — the same
+free-reassurance defect this sprint fixed twice elsewhere), corrected and then run for real, revoking
+the 4 tokens the QA pass had left; the `$KPORT` server had no bind check while `$RPORT` did; the
+keel-verify section documented only exit 0/1 and never mentioned the WARN tier a clean run actually
+prints; `--testsuite` lines dropped `XDEBUG_MODE=off`; `kill $(...)` with nothing listening errored
+confusingly; `/tmp/klytos-sessions` was never cleaned; and the seeder hardcoded `8080` into the access
+file while the whole document is `$KPORT`-parameterised.
+
+### Findings opened, not fixed
+
+- **NEW-34** — `$input['model']` is unvalidated and reaches the Gemini URL's path segment. Measured:
+  a `#` pushes `key={apiKey}` into the fragment so the request leaves with **no API key**; the host
+  never moves; CRLF is percent-encoded. Denial-of-function, **editor and above** (`ai.use`, D-051) —
+  the slice-1 auditor corrected an "admin-only" framing.
+- **NEW-35** — `ToolRegistry::call()` **never validates `$params` against `inputSchema`**, so every
+  tool contract the MCP server publishes is advisory, and a second URL interpolation
+  (`ai-image-generator.php:62`, reachable via `klytos_generate_image`) rides on that. The systemic half
+  matters more than the instance. Not fixed: enforcing schemas is a behaviour change for every MCP
+  client and needs the D-034 treatment.
