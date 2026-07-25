@@ -4,9 +4,12 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-25** — booted on `KPORT=8083` (8080/8081/8082/8090 squatted for the
-> **sixth** consecutive session), admin → 302, anonymous MCP → 401, and the `Server:` header checked
-> to confirm the responses came from our own `php -S` and not from the squatter (L-011).
+> **last verified: 2026-07-25 (Sprint 4 close)** — a fresh-context pass ran this document end to end
+> on `KPORT=8110` / `RPORT=8111`, ~45 commands, and every product claim it checked held: the 5×4
+> per-role table reproduced exactly, `tools/list` sizes 206/197/56/19 exact, all nine router
+> protections 403, the full security-header set present, suite `OK (227 tests, 1059 assertions)` with
+> no skips, and `keel-verify` 10 checks exit 0. Six DOCUMENT defects were found and fixed here.
+> 8080 was squatted for the **seventh** consecutive session.
 
 ---
 
@@ -96,13 +99,19 @@ kill $(lsof -nP -tiTCP:$KPORT -sTCP:LISTEN) 2>/dev/null || echo "nothing listeni
 rm -rf /tmp/klytos-sessions
 
 # Wipe all runtime state and seed again from scratch
-php scripts/dev/seed-playground.php --reset
+XDEBUG_MODE=off php scripts/dev/seed-playground.php --reset
 ```
 
 `--reset` deletes the contents of `installer/config/` and `installer/data/` and the generated site,
 **preserving the tracked `.htaccess` guards** in those directories — those are production access
 controls, not clutter. Without `--reset` the seeder refuses to run when an installation already
 exists, so it can never silently destroy a real local install.
+
+> **`--reset` prints `user owner already exists, skipping` and that does NOT mean the reset failed.**
+> The reset wipes the data tree first, and the line comes from the seeder re-creating users against a
+> config it has just rewritten. The reliable confirmation is that the MCP application password in
+> `installer/config/.playground-access` is a **new** one. Noted because the message reads like a
+> no-op and is not.
 
 ## Credentials — throwaway, local only
 
@@ -281,7 +290,14 @@ filtered by the same decision. Bearer tokens are the one credential mintable bel
 > **`klytos_delete_page` really does delete a page.** The call below is safe on a *freshly seeded*
 > playground only because the seed creates `home`, `about` and `contact` — there is no `index` page,
 > so an allowed call finds nothing to delete. **On any install that does have one, running this as
-> owner or admin removes it.** Use a slug you have just created if you are unsure:
+> owner or admin TRASHES it** — the tool answers *"Page moved to trash. Use klytos_restore_page to
+> undo or klytos_permanent_delete_page to remove permanently"*, and the record stays in
+> `installer/data/pages/`. So it is recoverable, and the earlier wording ("removes it") overstated it
+> — corrected by the Sprint 4 fresh-context pass, which ran the call and read the answer. The flip
+> side is the part to remember when tidying up after a probe: **trashing is not cleanup**, and
+> leaving the tree clean needs `klytos_permanent_delete_page`.
+>
+> Use a slug you have just created if you are unsure:
 >
 > ```bash
 > ls installer/data/pages/ 2>/dev/null    # what actually exists before you aim a destructive tool at it
@@ -372,6 +388,18 @@ XDEBUG_MODE=off php -r 'require "installer/core/app.php";
       }
   }
   echo "revoked {$n} walk-* bearer token(s)\n";'
+
+# CONFIRM it, do not trust the count. The message above is the script's own
+# report; a revocation that silently wrote nothing would print the same thing.
+# A revoked token must be refused:
+curl -s -o /dev/null -w 'revoked token now answers %{http_code} (expect 401)\n' \
+  -X POST -H "Authorization: Bearer $TOK_OWNER" -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+  "http://127.0.0.1:$RPORT/installer/mcp"
+
+# A 2026-07-25 QA pass saw this snippet report success ONCE while all four tokens
+# stayed live. It did not reproduce in two further attempts and the mechanism is
+# unknown — which is exactly why the confirmation above is not optional.
 ```
 
 A 200 with `"isError":true` in the body is the tool reporting a domain error (a missing slug, say) —
@@ -434,7 +462,9 @@ done
 
 Expect `201`, then `201` again (the honeypot, indistinguishable on purpose — check
 `klytos_list_comments` or the admin Comments page to see that it stored nothing), then
-`429`s once the window is spent. The flood ceiling is 10 per minute per address and the
+`429`s once the window is spent. **The loop below will show `429` on every one of its four
+requests, not a mix**: the policy is 2 per 60 seconds and the two submissions above have already
+spent the window. To see a `201` from the loop, wait 60 seconds first. The flood ceiling is 10 per minute per address and the
 comment policy is 2; reset by waiting 60 seconds or deleting
 `installer/data/rate_limits.json`.
 
@@ -502,11 +532,37 @@ quietly allowed.
 ### 6. The CLI
 
 ```bash
-XDEBUG_MODE=off php installer/cli.php help        # 26 commands
+XDEBUG_MODE=off php installer/cli.php help        # 27 commands
 XDEBUG_MODE=off php installer/cli.php status
 XDEBUG_MODE=off php installer/cli.php pages
 XDEBUG_MODE=off php installer/cli.php logs
 ```
+
+#### `owner:repair` — the one command you cannot try safely here
+
+The 27th command exists for an install that has **lost its owner record**, a state D-031 makes
+survivable and this command makes recoverable (audit NEW-08, D-055). Full reference:
+`docs/reference/owner-recovery.md`.
+
+```bash
+XDEBUG_MODE=off php installer/cli.php owner:repair --email=you@example.com
+```
+
+On this playground it will **refuse**, and that is the correct outcome — a seeded install already has
+an owner:
+
+```
+Error: This install already has an owner (owner). Nothing was changed.
+```
+
+Exit code **1**. Every refusal path exits non-zero, so a recovery script cannot mistake "nothing was
+done" for success. Reproducing the *success* path means deleting the owner record first, which is
+what `tests/Integration/OwnerRepairTest.php` does under the playground snapshot — do not do it by
+hand here.
+
+Note it is currently the **only** command whose `help` description is English; every other one is
+hardcoded Spanish (**NEW-33**, below). New strings must be catalogue keys under D-006, so the
+inconsistency is temporary and points the right way.
 
 > **The CLI answers in Spanish, and that is a defect, not a locale setting.** `help` prints
 > *"Comandos disponibles:"* whatever the site's language is, because the strings are hardcoded
@@ -549,7 +605,7 @@ authorization over HTTP, always.
 >
 > # 2. Re-seed. Walking section 4 by hand STORES a real comment, and
 > #    PublicCommentTest::testRateLimitHoldsAcrossSessions counts stored comments.
-> php scripts/dev/seed-playground.php --reset
+> XDEBUG_MODE=off php scripts/dev/seed-playground.php --reset
 > ```
 >
 > The paragraph below is true and is **not** a contradiction of this: the integration tier does not

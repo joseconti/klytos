@@ -286,3 +286,61 @@ accumulating in `docs/token-ledger.md`.
   NEW-03; the theme-package redesign (D-023, still un-estimated); S-10; the accessibility sprint;
   Phase 6 docs; Phase 7's `.gitattributes` review; Phase 8.
 - **Not estimated on purpose:** anything past Sprint 3.
+
+---
+
+## Estimate v4 — Phase 5, Sprint 4 scope (the hook mutation contract + owner recovery, NEW-03 / NEW-36 / NEW-08) — 2026-07-25
+
+Written at the sprint close rather than at planning, because Sprint 4 was chosen from two queued
+candidates on the day. Covers **Sprint 4 only**. The theme-package sprint (D-023/D-024) still has no
+estimate and gets its own version when it is planned.
+
+### Scope basis
+
+2 slices in `docs/sprints/sprint-4.md`. Concrete counts, all measured rather than carried:
+**308** distinct action names and **363** fire sites in the blast-radius assessment, against which the
+actual defect was **1** listener; **23** shipped action registrations + **32** filter registrations
+reflected once at boot; **4** new public surfaces (2 filters, 1 exception class, 1 CLI command);
+**20** i18n catalogues × **5** new keys; **2** new test files carrying **11** tests; **7** documentation
+surfaces to reconcile (INDEX, a new reference doc ×2, the in-product guide, 5 skills, README,
+playground.md, a flow file).
+
+### AI working hours (itemized)
+
+| Segment (AI does) | Hours (low–high) | Basis |
+|---|---|---|
+| Planning — kickoff re-validation (2 Explore sweeps, self-verification, **PHP probes of by-reference-variadic semantics**), 3 user decisions, artifacts (sprint-4, this estimate) | 2.0–3.5 | The probes are the unusual item and they decided the design: ten minutes of `php -r` refuted the recorded fix |
+| Slice 1 — reflection refusal in both registries, `page.save_data`, x402 conversion, `post_type.updatable_fields` + reserved-key guard, 2 test files proven RED first, 7 doc surfaces | 3.5–6.0 | ~40 lines of production PHP inside a large verification-and-documentation shell |
+| Slice 2 — the command, 20 catalogues, 6 tests, reference doc — **plus a full redesign after review** | 3.0–5.5 | The redesign is the honest cost: the first implementation was refuted and rebuilt, with its tests, docs, catalogue strings and decision entry rewritten |
+| Reviews on the finished diff (both subagents, per slice) | 2.0–3.0 | **Where the defects were, for the twelfth and thirteenth consecutive slice** — one blocking finding per slice, both correct, both mine |
+| Sprint close-out — docs-verifier, playground-QA, state, try-it script, continuation prompt | 1.5–2.5 | Phase 5 §5, mandatory |
+| **Total AI** | **12.0–20.5 h** | |
+
+Comparable to Sprint 3's 10.5–18.5 h and for the same structural reason: little code, much
+verification. What pushed it higher is the slice-2 redesign — a cost that was *avoidable* only by
+having asked, at design time, which function actually grants the access the command claims to restore.
+That question is now L-024.
+
+### Vibe coder hours (itemized)
+
+| Segment | What the developer does | Hours (low–high) |
+|---|---|---|
+| Sprint choice + kickoff | Choose between the NEW-03 slice and the theme-package sprint; take 3 design decisions (done — 2026-07-25) | 0.25–0.5 |
+| Mid-sprint decisions | The NEW-33 boundary, and the slice-2 fix shape after the blocking review | 0.25–0.5 |
+| During the build | Open sessions, read summaries, approve gates | 1.0–2.0 |
+| Test points | Walk the try-it script; confirm a page create is clean and the recovery command behaves | 0.5–1.0 |
+| **Total developer** | | **2.0–4.0 h** |
+
+### What this estimate is NOT
+
+It excludes the theme-package sprint (D-023/D-024), the NEW-11 authentication slice, the S-10
+CSS-consolidation sprint, the accessibility sprint (A-01…A-07), NEW-33's i18n conversion (deliberately
+left open this sprint by user decision), and NEW-34/NEW-35. Each gets its own version when planned.
+
+### Calibration note for the next estimate
+
+Two sprints running, the **review cycle** has produced a blocking finding that changed the shipped
+design. Sprint 3's turned CI's 8.2 leg red in simulation; Sprint 4's refuted an entire command. Budget
+review-and-rework as a first-class segment, not as a rounding error on "the code is done" — on this
+project it has cost between 15% and 30% of the slice it lands on, every time, and has been worth it
+every time.

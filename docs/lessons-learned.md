@@ -715,3 +715,36 @@
   down, just not noticed. This is L-014 one turn inward: that lesson said drive the FEATURE, not the
   defect; this one says the feature is defined by the code path the USER traverses, not the one the
   fix happens to touch.
+
+## L-025 — The close-out suite and the fresh-context QA pass shared one playground, and each corrupted the other
+- Problem: at the Sprint 4 close, `vendor/bin/phpunit` reported **6 failures** on a tree whose suite
+  had been green minutes earlier, on identical code. The failures included
+  `PublicCommentTest::testRateLimitHoldsAcrossSessions` and
+  `OembedSsrfTest::testAKnownProviderUrlIsStillAccepted` — neither related to anything the sprint
+  changed.
+- Where: the Sprint 4 close-out, run while the fresh-context playground-QA pass was still executing
+  against the same checkout, the same `installer/data/`, and its own `php -S` on another port.
+- What failed: **two verification passes were run concurrently over one shared environment.** The QA
+  agent was following `docs/playground.md` for real — starting a server, submitting comments, walking
+  flows — which consumed the product's own persistent, IP-keyed `MCP\RateLimiter` and occupied ports.
+  The suite then measured an application whose shared state a second process was mutating underneath
+  it. Neither pass was wrong; the environment was not exclusive to either.
+- Why L-021 does not cover it: that lesson is about a **leftover** server from a previous session, and
+  its remedy is `lsof` + `ps` to establish ownership before trusting a response. Here the other process
+  was **ours, live, and deliberately started** — ownership was never in doubt. The interference was not
+  through the port at all for the rate-limit failure; it was through **shared application state on
+  disk**, which no port check can see.
+- How it was caught, and the part worth keeping: by refusing to act on the failures. Two tests
+  unrelated to the sprint's subject, failing on code that passed twenty minutes earlier, with exactly
+  one new variable in the environment — that is a hypothesis about the instrument, not about the
+  product. Re-running after the other process exited returned **227 tests / 1059 assertions green**,
+  with no test touched. Had the failures been "fixed", the fix would have been permanent and the
+  defect imaginary.
+- Working solution: wait for the concurrent pass to exit (watch for its server to disappear), then
+  re-run. Sequential, not parallel, for anything that shares the playground.
+- Rule for next time: **the playground is a single-tenant resource — never run the close-out suite and
+  the fresh-context QA pass at the same time.** Parallelising the review subagents is free because they
+  only READ; parallelising anything that EXERCISES the product is not. And the general form, which is
+  L-008's rule with a new cause: when results change without the code changing, enumerate what else
+  changed in the environment before touching a single assertion — a green suite that was green an hour
+  ago does not spontaneously develop six unrelated defects.

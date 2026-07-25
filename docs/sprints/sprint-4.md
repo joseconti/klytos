@@ -158,3 +158,54 @@ session's own (L-011 + L-021). 8080 squatted again.
    page-create test must trigger neither, and must assert the root is left clean (the slice-4 precedent).
 6. **CI has never run** (L-022). No test in this sprint reaches `App::getChatEngine()`, so
    `#[Group('ai-runtime')]` does not apply — stated because the rule is live, not because it bites.
+
+## Close-out — filled 2026-07-25
+
+| Requirement | Status |
+|---|---|
+| Full suite green (every test, not only this sprint's) | **PASS** — `OK (227 tests, 1059 assertions)`, 0 skips, on PHP 8.3. Sprint start: 206/1007. **Re-run clean after a contended run** — see the note below |
+| `keel-verify` output pasted | **PASS** — 10 checks, exit 0, the same 2 WARNs owned by Phase 7 (H-01 five version touchpoints; NEW-27 sixteen export-ignored guides). INDEX parity green after +5 rows: classes 101→**102**, filters 117→**120**, CLI commands 26→**27**, total 957→**962** |
+| Upgrade tested from the REAL previous version | **PASS** — `UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)`, run after both slices. Slice 2 changes the very migration path this test exercises |
+| Lint baselines held (all five, per scope, no default value — L-016) | **PASS** — core+admin **192/488**, *improved* from 193; plugins 113/109; tests 0/0 (38 files); installer/public 0/0; scripts 0/2. The `tests` scope briefly grew to 1 during slice 2 (a stray blank line) and was fixed and re-measured |
+| `code-reviewer` + `security-auditor` per slice, on a finished diff (L-015) | **DONE, 2/2 slices — and each slice got one BLOCKING finding that was correct and mine.** Slice 1: both no-blocking, but they **disagreed with each other** on the reserved-key gap; re-derived independently, the auditor was right (**L-023** territory). Slice 2: `code-reviewer` **BLOCKING** — the command minted an owner `Auth::login()` could never accept (**L-024**), which redesigned it; `security-auditor` **BLOCKING** — `execute()` persisted typed commands in plaintext where an `admin` could read them |
+| `docs-verifier` over everything the sprint touched | **PASS — no blocking defects.** Re-derived every INDEX count independently (146/102/308/120/206/34/27/19 = **962**), checked all four new surfaces' examples against source, and found **no** stale claims anywhere — no surviving "301 registered actions", no 957/960/961 totals, no "117 filters", and no trace of `owner:repair`'s refuted `--username`/`--password` design. All five `terminal.owner_repair_*` keys structurally identical across 20 catalogues |
+| Playground-QA fresh-context pass | **DONE — and it confirmed this sprint's central claim independently.** ~45 commands on `KPORT=8110`/`RPORT=8111`. **A page create emits zero warnings** (`grep -iE 'warning\|deprecat\|notice\|fatal'` over the server log → no match), `failOnWarning="true"` verified in `phpunit.xml`, suite green with no skips. Every product claim it checked held to the digit: the 5×4 per-role table exact, `tools/list` 206/197/56/19 exact, all nine router protections 403, the full header set present, `--reset` preserving both `.htaccess` guards. **6 document defects found, all fixed** — see below |
+| Numbered try-it script handed to the user, debug log ON | **DONE** — handed with this close |
+| **User's recorded verdict** | **PENDING** — awaiting the user's own walk. A reported failure reopens the sprint |
+| `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **DONE** — **L-023** (two of my own measurements disagreed and the reconciliation found a third defect), **L-024** (I quoted L-014 and then tested the manager instead of the gate), **L-025** (the close-out suite and the QA pass shared one playground); token-ledger row **19**; Estimate **v4** |
+| Continuation prompt produced unprompted | **DONE** — handed with this close |
+| Finished docs archived to `docs/old/sprint-4/` (or "nothing qualified", stated) | **Nothing qualified — stated, not skipped.** Same reasoning as Sprint 3: `sprint-1/2/3.md` are still read as precedent (this sprint read sprint-3), `theme-package-model.md` specifies an upcoming sprint, `estimate.md` gained v4, `04-adoption-audit.md` gained NEW-36. State files, specs, plan, flows and api/reference docs never move while the project is alive |
+
+### The suite went red without the code changing, and that was the instrument
+
+The first close-out run reported **6 failures** on a tree that had been green minutes earlier —
+`PublicCommentTest::testRateLimitHoldsAcrossSessions` and
+`OembedSsrfTest::testAKnownProviderUrlIsStillAccepted` among them, neither related to anything this
+sprint changed. The fresh-context playground-QA pass was still running, driving its own `php -S` and
+consuming the product's persistent IP-keyed rate limiter against the same `installer/data/`.
+
+Nothing was touched. Waiting for that process to exit and re-running returned **227 tests / 1059
+assertions green**. Recorded as **L-025**: the playground is a single-tenant resource, and
+parallelising the review subagents is free only because they *read* — a pass that *exercises* the
+product cannot share it with the suite.
+
+### The fresh-context pass found 6 document defects, two of them created by this sprint
+
+1. **The CLI command count was stale** — the doc said 26, `cli.php help` prints **27**. Mine: slice 2
+   added the 27th and updated `docs/api/INDEX.md` without updating the playground.
+2. **`owner:repair` appeared nowhere in `docs/playground.md`** — a new recovery command a contributor
+   could not discover from the document they are told to follow. Section 6 now carries it, including
+   that on a seeded playground it correctly **refuses** (exit 1) and that reproducing the success path
+   means deleting the owner, which the integration test does under snapshot and a human should not do
+   by hand.
+3. **The bearer-token cleanup reported success once while all four tokens stayed live** — observed
+   once, not reproducible in two further attempts, mechanism unknown. The *documentation* defect is
+   independent of the mechanism: the snippet's own `revoked N` message was the only evidence offered.
+   A `curl … → 401` confirmation step is now mandatory, with the observation recorded beside it.
+4. **The comment rate-limit loop cannot show the mix the text implied** — the 2-per-60s window is
+   already spent by the two submissions above it, so all four requests return `429`. Now stated.
+5. **`klytos_delete_page` trashes rather than removes** — the hazard note overstated it. Corrected,
+   with the flip side that matters for cleanup: trashing is not cleanup, and leaving the tree clean
+   needs `klytos_permanent_delete_page`.
+6. **Two `--reset` snippets omitted `XDEBUG_MODE=off`** against the document's own rule, and `--reset`
+   prints `user owner already exists, skipping`, which reads like a no-op and is not. Both fixed.
