@@ -143,6 +143,27 @@ klytos_remove_filter(string $hook, callable $callback): bool
 klytos_has_filter(string $hook): bool
 ```
 
+### Arguments are passed BY VALUE — to modify something, use a filter
+
+Both actions and filters receive their arguments by value. A listener that declares a parameter by
+reference is **refused at registration** with a `HookContractException`, because no dispatch path can
+bind it — PHP would run your callback against a copy and discard the change silently.
+
+```php
+// REFUSED — actions cannot modify their arguments.
+klytos_add_action('page.before_save', function (array &$page): void {
+    $page['title'] = 'nope';
+});
+
+// CORRECT — a filter takes the value and returns it.
+klytos_add_filter('page.save_data', function (array $page, string $action): array {
+    $page['title'] = 'yes';
+    return $page;
+});
+```
+
+`use (&$x)` — by-reference *capture* — is a different mechanism and works normally.
+
 ## Core Service Accessors
 
 ```php
@@ -168,7 +189,8 @@ klytos_register_translations($pluginId, $langDir) → Register i18n
 ## Available Hooks
 
 ### Page Lifecycle
-- `page.before_save` (action) — args: $page, $action ('create'|'update')
+- `page.save_data` (filter) — args: $page, $action ('create'|'update') — **modify page data here**
+- `page.before_save` (action) — args: $page, $action ('create'|'update') — observe only
 - `page.after_save` (action) — args: $page, $action
 - `page.before_delete` (action) — args: $slug
 - `page.after_delete` (action) — args: $slug

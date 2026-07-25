@@ -229,8 +229,12 @@ klytos_log($level, $msg, $ctx) → Write to log file
 ## Available Hooks
 
 ### Page Lifecycle
-- `page.before_save`, `page.after_save`, `page.before_delete`, `page.after_delete`
+- `page.before_save`, `page.after_save`, `page.before_delete`, `page.after_delete` (actions — observe)
+- `page.save_data` (filter) — modify the page record before it is written
 - `page.content` (filter) — modify page HTML content
+
+> Hook arguments are passed **by value**. A listener declaring `&$data` is refused at registration
+> (`HookContractException`) — use a filter and return the value. See `docs/reference/hooks.md`.
 
 ### Build Lifecycle
 - `build.before`, `build.after`, `build.page.before`, `build.page.after` (actions)

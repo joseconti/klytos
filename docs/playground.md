@@ -32,9 +32,9 @@ No Docker, no MySQL, no Apache — flat-file storage and PHP's built-in server a
 
 ```bash
 # 1. Seed a fresh installation (once; add --reset to re-seed an existing one).
-#    XDEBUG_MODE=off is not optional comfort: with Xdebug loaded, the known NEW-03
-#    warning prints ~35 KB of stack traces here and the seed LOOKS like a crash
-#    when it succeeded. Use it on every php command in this document.
+#    XDEBUG_MODE=off is not optional comfort: with Xdebug loaded, ANY diagnostic
+#    prints tens of KB of stack traces here and a seed that succeeded LOOKS like
+#    a crash. Use it on every php command in this document.
 XDEBUG_MODE=off php scripts/dev/seed-playground.php
 
 # 2. Pick a port and CHECK IT IS FREE (see the warning below).
@@ -607,7 +607,8 @@ Tests: 9, Assertions: 9, Skipped: 5.
 Seed it (`php scripts/dev/seed-playground.php`) and run again. A skipped authorization test proves
 nothing, which is exactly why it refuses to pass quietly.
 
-`XDEBUG_MODE=off` is the same noise suppression the seeder needs, for the same reason — NEW-03, below.
+`XDEBUG_MODE=off` is the same noise suppression the seeder needs, for the same reason — see the
+page-create note below. It also keeps the suite fast; the run is ~17s without it loaded.
 
 ## Running keel-verify
 
@@ -758,22 +759,24 @@ is a **security control, not convenience plumbing**. All of these return 403 (ve
 If you add a protected path to `installer/.htaccess`, add it to the router in the same change, or the
 playground stops matching production.
 
-## Known noise: a real bug, not a playground fault
+## Creating a page prints no warning — and if it ever does, that is a regression
 
-Creating a page prints:
+Until Sprint 4 (2026-07-25), creating a page printed:
 
 ```
 Warning: Klytos\Core\App::{closure}(): Argument #1 ($data) must be passed by reference,
 value given in installer/core/hooks.php on line 145
 ```
 
-This is **audit finding NEW-03** — `Hooks::doAction()` collects arguments variadically, so
-by-reference listeners can never bind and their mutations are silently discarded. It affects every
-production install, was found by the playground's first boot, and is scheduled as its own slice (see
-`docs/04-adoption-audit.md` and lesson L-005). Do not "fix" it by changing the seeder.
+That was **audit finding NEW-03**, closed by **D-054**: `Hooks::doAction()` passes arguments by
+value, so the by-reference listener could never bind and its write was discarded silently. The
+listener is now a filter (`page.save_data`), and a by-reference listener is refused at registration.
 
-To keep output readable while it is open, run with Xdebug's stack traces off:
+**A page create is expected to be silent.** The suite pins this from both sides — `phpunit.xml` sets
+`failOnWarning="true"`, so ANY PHP warning anywhere reddens the suite, and
+`tests/Integration/HookMutationTest.php` asserts specifically that creating a page emits no
+diagnostic. If you see a warning here, it is a new defect, not known noise.
 
-```bash
-XDEBUG_MODE=off php scripts/dev/seed-playground.php --reset
-```
+`XDEBUG_MODE=off` is still worth using on every command in this document — with Xdebug loaded, any
+diagnostic that does appear prints tens of kilobytes of stack trace, and a seeder that succeeded
+looks like a crash.

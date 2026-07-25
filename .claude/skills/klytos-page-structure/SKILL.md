@@ -284,7 +284,8 @@ services/marketing/seo/      → grandchild page
 
 | Hook | Type | Arguments |
 |---|---|---|
-| `page.before_save` | action | `array $page, string $action` (`'create'` or `'update'`) |
+| `page.save_data` | **filter** | `array $page, string $action` (`'create'` or `'update'`) → returns `array`. **Modify the record here** — actions pass arguments by value and cannot mutate them |
+| `page.before_save` | action | `array $page, string $action` (`'create'` or `'update'`) — observe only |
 | `page.after_save` | action | `array $page, string $action` |
 | `page.before_delete` | action | `string $slug` |
 | `page.after_delete` | action | `string $slug` |

@@ -18,7 +18,7 @@
  * project. Each check is independent and self-reporting: add one, do not
  * restructure.
  *
- * Two §1a checks are deliberately absent, so their absence reads as a decision
+ * Three checks are deliberately absent, so their absence reads as a decision
  * rather than an oversight:
  *   - Minified-asset sync — N/A per D-038. All 68 tracked *.min.* files are
  *     third-party vendor distributions; Klytos ships no minified first-party
@@ -26,6 +26,14 @@
  *   - WordPress i18n sniffs — N/A per D-006. This is not a WordPress project.
  *     The equivalent real invariant here is catalogue key parity across the 20
  *     locales, which IS checked below.
+ *   - By-reference hook listeners (audit NEW-03) — N/A per D-054. The contract
+ *     is enforced at RUNTIME: Hooks::addAction()/addFilter() reflect every
+ *     callback and throw HookContractException. That is universal and cannot be
+ *     bypassed by how a call site is spelled, whereas a static source check
+ *     could only approximate it and could disagree with it. A source scan does
+ *     exist, in tests/Unit/HooksTest.php, and it guards one narrower property:
+ *     that CORE registers no such listener — because core is loaded outside
+ *     PluginLoader's try/catch, so a throw there would take down boot.
  *
  * PASS/FAIL vs WARN: a check WARNs when the property is genuinely broken but
  * fixing it belongs to another phase that already owns it. A WARN prints the

@@ -82,13 +82,19 @@ class PageManager
         $page['created_at'] = Helpers::now();
         $page['updated_at'] = Helpers::now();
 
-        // Hook: allow plugins to modify page data before saving.
-        klytos_do_action('page.before_save', $page, 'create');
+        // Filter: plugins MODIFY page data here, by returning it. Actions cannot
+        // mutate their arguments (see Hooks::doAction) — this filter is where a
+        // listener that needs to change the record before it is written belongs.
+        $page = klytos_apply_filters( 'page.save_data', $page, 'create' );
+
+        // Action: plugins OBSERVE the final record. Fired after the filter so a
+        // listener sees exactly what is about to be written, not a draft of it.
+        klytos_do_action( 'page.before_save', $page, 'create' );
 
         $this->storage->write(self::COLLECTION, $slug, $page);
 
         // Hook: notify plugins that a page was created.
-        klytos_do_action('page.after_save', $page, 'create');
+        klytos_do_action( 'page.after_save', $page, 'create' );
 
         return $page;
     }
@@ -144,8 +150,11 @@ class PageManager
 
         $page['updated_at'] = Helpers::now();
 
-        // Hook: allow plugins to modify page data before saving.
-        klytos_do_action('page.before_save', $page, 'update');
+        // Filter: plugins MODIFY page data here, by returning it. See create().
+        $page = klytos_apply_filters( 'page.save_data', $page, 'update' );
+
+        // Action: plugins OBSERVE the final record.
+        klytos_do_action( 'page.before_save', $page, 'update' );
 
         $this->storage->write(self::COLLECTION, $slug, $page);
 

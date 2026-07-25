@@ -70,7 +70,12 @@ klytos_is_admin_page(string $page): bool  // Exact ('settings') or prefix ('sett
 
 ### Page Lifecycle
 - `page.before_save`, `page.after_save`, `page.before_delete`, `page.after_delete` (actions)
+- `page.save_data` (filter) — **modify the page record before it is written**; actions cannot
 - `page.content` (filter)
+
+> **Arguments are passed BY VALUE.** A listener declaring a by-reference parameter (`&$data`) is
+> refused at registration with a `HookContractException` — no dispatch path can bind it. To change
+> a value, register a filter and return it. See `docs/reference/hooks.md`.
 
 ### Build Process
 - `build.before`, `build.after`, `build.page.before`, `build.page.after` (actions)

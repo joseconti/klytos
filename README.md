@@ -406,6 +406,10 @@ All field types support validation rules, default values, required/optional, and
 
 Klytos provides a comprehensive hook system for plugin extensibility:
 
+> Actions **observe**; filters **modify**. Hook arguments are passed by value, so a listener that
+> declares a by-reference parameter is refused at registration — use a filter and return the value.
+> See `docs/reference/hooks.md`.
+
 ### Key Action Hooks
 - **Page Lifecycle** — `page.before_save`, `page.after_save`, `page.after_delete`, `page.status_changed`, `page.scheduled_published`
 - **Build Process** — `build.before`, `build.page.before`, `build.page.after`, `build.completed`, `build.failed`
@@ -419,7 +423,8 @@ Klytos provides a comprehensive hook system for plugin extensibility:
 
 ### Key Filter Hooks
 - **Build Output** — `build.page.output`, `build.head_html`, `build.body_end_html`, `build.llms_txt`, `build.sitemap_urls`
-- **Content** — `page.content`, `page.password_form`, `shortcode.pre_process`
+- **Content** — `page.save_data`, `page.content`, `page.password_form`, `shortcode.pre_process`
+- **Data model** — `post_type.updatable_fields`
 - **Templates** — `template_part.*`, `build.page_markdown`, `build.structural_block_mapping`
 - **MCP** — `mcp.tools_list`, `mcp.tool_response`, `mcp.handle_tool`
 - **Auth** — `auth.capabilities`

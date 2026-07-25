@@ -47,6 +47,8 @@ Each finding's own section carries its closure note and the test that pins it; t
 
 | **NEW-02** MCP tools have zero authorization | **CLOSED** | Sprint 2 (slices 1–4): actor from the credential, ONE default-deny gate in `ToolRegistry::call()`, central capability map, `tools/list` filtered, keel-verify check 10, the loader fails loudly, both shipped MCP plugins + x402 + integrity gated, **NEW-30** resolved, the refusal translated in 20 locales |
 | **NEW-30** filter-injected tools uncallable over HTTP | **CLOSED** | Sprint 2 slice 3 (D-050) |
+| **NEW-03** by-reference hook listeners silently discarded | **CLOSED** | Sprint 4 slice 1 (D-054): refused at registration; `page.save_data` filter carries the one real mutation. Its "301 registered actions" figure was wrong in number and in kind — see the entry |
+| **NEW-36** the post-type allow-list drops what its own filter adds | **CLOSED** | Sprint 4 slice 1 (D-054), found by driving the NEW-03 feature end to end. The x402 post-type checkbox had **never** persisted |
 
 Stated plainly so the closures are not read as more than they are. **The admin surface and the
 product's primary interface are now both gated** — that sentence used to end "and the primary
@@ -526,11 +528,13 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
     token also names no user, so an owner bearer is an **unattributed** owner credential in the audit
     log.
 
-### NEW-03 — By-reference action listeners are silently broken; every page create warns — **HIGH** *(found 2026-07-18, Sprint 1 slice 0, by booting the playground)*
+### NEW-03 — By-reference action listeners are silently broken; every page create warns — **HIGH** — **CLOSED 2026-07-25 (Sprint 4 slice 1, D-054)** *(found 2026-07-18, Sprint 1 slice 0, by booting the playground)*
 - **Where:** `installer/core/hooks.php:124` (`doAction( string $hook, mixed ...$args )`) and `:145`
   (`call_user_func_array`); listener at `installer/core/x402-bootstrap.php:194`
   (`function ( array &$data, string $action )`); fired from `installer/core/page-manager.php:86`
-  (create) and `:148` (update).
+  (create) and `:148` (update). *(Adoption-day line numbers. Sprint 4 inserted the `page.save_data`
+  filter above both, moving the action to `:92` and `:157` — read `PageManager::create()` and
+  `update()` rather than these lines.)*
 - **What:** `doAction()` collects its arguments variadically, which **copies** them, so a listener
   declaring a by-reference parameter can never bind. PHP emits
   `Argument #1 ($data) must be passed by reference, value given` and the listener's mutations are
@@ -539,8 +543,10 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   emits the warning three times out of three. Command and output recorded in
   `docs/05-test-points.md` (slice 0).
 - **Why it matters beyond the noise:**
-  1. `core/x402-bootstrap.php` is loaded **unconditionally** at boot (`core/app.php:486`), so this
-     fires on **every page create in every production install**, not only when x402 is in use.
+  1. `core/x402-bootstrap.php` is loaded **unconditionally** at boot (by `App::boot()` — cited here
+     as `core/app.php:486` at adoption; the real line is now `:546`, so the method is named instead
+     of a line that rots on the next insertion), so this fires on **every page create in every
+     production install**, not only when x402 is in use.
   2. The listener's actual purpose — injecting the post type's `x402_default_enabled` into new pages
      — **never takes effect**. A feature that appears implemented does nothing.
   3. Systemically, the documented contract that an action can mutate `$data` by reference is broken
@@ -556,6 +562,58 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Trigger:** its own slice, before or alongside Sprint 2 (which adds MCP enforcement hooks and
   would inherit the same broken contract). Whoever takes it must also decide the fate of the
   `filter` path, which does not have this defect, and reconcile the guide's documentation.
+
+- **RESOLUTION 2026-07-25 (Sprint 4 slice 1, D-054).** Actions are now fire-and-forget **by
+  enforcement**: `Hooks::addAction()` and `addFilter()` refuse a callback declaring a by-reference
+  parameter with a typed `HookContractException` naming the hook, the parameter and the callback's
+  `file:line`. The one real listener became a filter on the new **`page.save_data`**, applied by
+  `PageManager` above the `page.before_save` action, which stays as an observer. The filter path was
+  closed in the same move (it has the identical defect; zero code relied on it).
+- **The "301 registered actions" figure above is wrong in number AND in kind, and it mattered.** It
+  is a stale copy of `docs/api/INDEX.md`'s `| Actions |` row at commit `622d54c`, traced through that
+  file's history (301 → 302 → 304 → 306 → 307 → 308 at HEAD) — not a measurement, and **nothing
+  "registers" 301 anything**. Re-measured three ways, the last comment-stripped and multi-line-aware:
+  **308** distinct action names, **363** action fire sites, **23** shipped action registrations,
+  **120** filter names, **128** filter fire sites, **32** shipped filter registrations, max **4**
+  payload args. The real blast radius was **one listener**. The inflated framing is part of why this
+  was deferred twice (L-015: a number copied from another document is not a measurement — which
+  applied to the first two of those three passes, see D-054).
+- **The signature change this entry proposed was refuted by measurement, not by preference.**
+  `mixed &...$args` binds correctly and then makes PHP reject every non-variable argument with a
+  fatal `Error` — literals, class constants, concatenations, ternaries, array literals and `??`
+  expressions, which **36+ call sites** pass, including `PageManager::create()` itself. An undefined
+  array key passed to a by-reference parameter is also silently *created* in the caller's array.
+- **A second, independent layer was found underneath it — see NEW-36.** Closing the hook alone would
+  have left the feature just as dead.
+
+### NEW-36 — The post-type update allow-list silently drops what its own extension filter adds — **MEDIUM** — **CLOSED 2026-07-25 (Sprint 4 slice 1, D-054)** *(found 2026-07-25 by driving the NEW-03 feature end to end rather than the defect it names)*
+- **Where:** `installer/core/post-type-manager.php` `update()` (the hardcoded `$updatable` list);
+  `installer/admin/post-type-edit.php:73`; `installer/core/x402-bootstrap.php:167` and `:184`.
+- **What:** `admin/post-type-edit.php` applies the `admin.post_type_edit.update_data` filter — whose
+  entire purpose is letting a plugin add data to a post type — and passes the result to
+  `PostTypeManager::update()`, which persists only a **hardcoded 7-field allow-list**
+  (`name`, `slug`, `slug_i18n`, `editor`, `taxonomies`, `custom_fields`, `statuses`). Anything the
+  filter added is dropped without a word. **An extension point whose output went nowhere.**
+- **The live consequence:** x402 renders a checkbox and a price field on the post-type edit form and
+  reads `x402_default_enabled` back in **six** places, but its only writer is that filter — so the
+  setting has **never** persisted. The operator ticks the box, saves, and it comes back unticked.
+- **Reproduced, not inferred:** `HookMutationTest::testANewPageInheritsItsPostTypeX402Default`
+  carries an explicit precondition assertion that fired against the unfixed tree — *"the post type
+  does not carry x402_default_enabled, so no page could ever inherit it"* — separating this defect
+  from NEW-03's before either was fixed.
+- **Why it was invisible:** NEW-03 was standing in front of it. The by-reference warning was the loud
+  symptom, so the diagnosis stopped there; nobody asked whether the value being read had ever been
+  written. This is **L-009's shape** (a fault masking a fault) and **L-014's rule** (drive the
+  feature, not the defect) arriving together.
+- **Fixed in path** because acceptance criterion 1 of Sprint 4 is unreachable without it — the NEW-16
+  precedent from Sprint 1 slice 7, in scope by necessity rather than opportunism. `$updatable` now
+  passes through a new **`post_type.updatable_fields`** filter and x402 declares its own two keys;
+  **absent still means not persisted**, so the fix cannot become mass assignment (the
+  `admin.gate_map` / `mcp.tool_capabilities` shape).
+- **Not fixed, and named so it is not mistaken for oversight:** `PageManager::buildPageData()` and
+  several sibling managers have the same fixed-key-set shape. None of them currently has a plugin
+  filter feeding it, so none has the live defect this entry records. Trigger: the first plugin that
+  needs to persist its own key on one of those records.
 - **Process lesson recorded as L-005:** this was invisible to a thorough read of the codebase and
   appeared on the playground's first boot. It is the concrete argument for T-01/T-02.
 
@@ -1263,6 +1321,13 @@ no version bump automation — the direct cause of H-01, H-02 and H-03.
 `docs/api/INDEX.md` now exists — **930 public surfaces**: 138 global helper functions, 96 classes and
 interfaces, 301 actions, 110 filters, 206 MCP tools, 34 HTTP routes, 26 terminal/CLI commands,
 19 plugin extension contracts. Full per-surface docs do not exist.
+
+> **These are the ADOPTION-DAY figures (2026-07-18) and are kept as the record of that day, not as
+> current values.** INDEX.md has grown every sprint since; read it, never this paragraph. The `301`
+> here is the specific number that leaked into D-026 and NEW-03 as *"`doAction()` backs 301
+> registered actions"*, where it was wrong in kind as well as in number — it counts distinct action
+> **names**, and nothing registers 301 anything. Corrected in Sprint 4 slice 1 (D-054), which
+> re-measured **308** names, **363** fire sites and **23** shipped listener registrations.
 **Recorded rule (adoption):** progressive backfill — each surface gets its complete doc in
 `docs/api/` or `docs/reference/` the first time a slice touches it, unless the user wants a
 documentation sprint now.

@@ -19,6 +19,7 @@
          colors="true"
          executionOrder="depends,defects"
          failOnRisky="true"
+         failOnWarning="true"
          beStrictAboutTestsThatDoNotTestAnything="true"
          displayDetailsOnTestsThatTriggerWarnings="true"
          displayDetailsOnTestsThatTriggerErrors="true">
@@ -33,15 +34,17 @@
     </testsuites>
 
     <!--
-        failOnWarning is deliberately NOT enabled yet. NEW-03 (Hooks::doAction()
-        copies its arguments, so by-reference listeners never bind) makes every
-        page creation emit a PHP warning; it is a live production bug deferred
-        by D-026, not test noise to be silenced here. Enabling failOnWarning
-        before it is fixed would turn a known-deferred defect into a red suite
-        and invite exactly the "weaken the test to make it pass" move Phase 5
-        forbids.
+        failOnWarning is ON as of Sprint 4 slice 1, which is the trigger this
+        comment used to name. It was off because NEW-03 (Hooks::doAction() copied
+        its arguments, so by-reference listeners never bound) made every page
+        creation emit a PHP warning — a live production bug deferred by D-026,
+        not test noise to be silenced here.
 
-        Trigger: set failOnWarning="true" in the slice that fixes NEW-03.
+        Now that the contract is enforced at registration rather than warned
+        about at dispatch, a PHP warning in this suite is once again a signal
+        rather than a known-and-ignored constant. Keeping it off after the fix
+        would have quietly discarded the very evidence that proved the fix:
+        the warning's ABSENCE is the user-facing outcome.
     -->
 
     <!--

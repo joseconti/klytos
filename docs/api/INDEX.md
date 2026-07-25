@@ -8,14 +8,14 @@
 | Kind | Count |
 |------|-------|
 | Global helper functions | 146 |
-| Classes and interfaces | 101 |
+| Classes and interfaces | 102 |
 | Actions | 308 |
-| Filters | 117 |
+| Filters | 120 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 26 |
 | Plugin extension contracts | 19 |
-| **Total** | **957** |
+| **Total** | **961** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -204,7 +204,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\ExportManager` | class | installer/core/export-manager.php | — | Exports site content to JSON, CSV and WXR files |
 | `Klytos\Core\FileStorage` | class | installer/core/file-storage.php | — | Filesystem storage driver reading and writing encrypted records as files |
 | `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens and environment checks; `isHttps()` is the single TLS check (see the reference doc) |
-| `Klytos\Core\Hooks` | class | installer/core/hooks.php | — | Action and filter registry that dispatches the CMS extensibility events |
+| `Klytos\Core\HookContractException` | class | installer/core/hook-contract-exception.php | docs/reference/hooks.md | Thrown when a hook listener declares a by-reference parameter, which no dispatch path can bind |
+| `Klytos\Core\Hooks` | class | installer/core/hooks.php | docs/reference/hooks.md | Action and filter registry that dispatches the CMS extensibility events |
 | `Klytos\Core\HtmlToMarkdown` | class | installer/core/html-to-markdown.php | — | Converts HTML fragments into Markdown text |
 | `Klytos\Core\HttpClient` | class | installer/core/http-client.php | — | Performs outbound HTTP requests on behalf of core and plugins |
 | `Klytos\Core\I18n` | class | installer/core/i18n.php | — | Loads locale files and resolves translated interface strings |
@@ -503,7 +504,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | page.after_trash | action | installer/core/page-manager.php | — | Notifies plugins after a page is moved to trash; receives the slug and page array |
 | page.before_delete | action | installer/core/page-manager.php | — | Notifies plugins before a page is permanently erased; receives the slug |
 | page.before_restore | action | installer/core/page-manager.php | — | Fired before a trashed page is put back live; receives the slug and page array |
-| page.before_save | action | installer/core/page-manager.php | — | Lets plugins inspect page data before it is written; receives page array and create/update label |
+| page.before_save | action | installer/core/page-manager.php | docs/reference/hooks.md | Lets plugins inspect page data before it is written; to MODIFY it use the page.save_data filter |
 | page.before_trash | action | installer/core/page-manager.php | — | Notifies plugins before a page is moved to trash; receives the slug and page array |
 | page.lock_acquired | action | installer/core/page-manager.php | — | Fired when an editing lock is taken on a page; receives the slug and owning user ID |
 | page.lock_expired | action | installer/core/page-manager.php | — | Fired when a stale editing lock is cleaned up; receives the slug and prior owner ID |
@@ -677,12 +678,14 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | option.get | filter | installer/core/options-manager.php | — | Filters an option value when it is read from cache or storage |
 | page.content | filter | installer/core/build-engine.php | — | Filters a page's rendered content before it is placed into the template |
 | page.password_form | filter | installer/core/build-engine.php | — | Filters the password prompt form HTML used for password-protected pages |
+| page.save_data | filter | installer/core/page-manager.php | docs/reference/hooks.md | Filters the complete page record just before it is written, on create and on update |
 | page_template.available_types | filter | installer/core/page-template-manager.php | — | Filters the registered page template types so plugins can add their own |
 | page_template.structure | filter | installer/core/page-template-manager.php | — | Filters a page template's block structure before it is rendered |
 | page_template.structure_after_dedup | filter | installer/core/page-template-manager.php | — | Filters the template structure after duplicate structural blocks are removed |
 | page_template.wrapper_html | filter | installer/core/page-template-manager.php | — | Filters the template wrapper HTML before the content is inserted into it |
 | pages.bulk_actions | filter | installer/admin/pages.php | — | Filters the bulk actions offered on the admin Pages list |
 | part.rendered_html | filter | installer/core/part-manager.php | — | Filters a template part's HTML after it is rendered |
+| post_type.updatable_fields | filter | installer/core/post-type-manager.php | docs/reference/hooks.md | Filters which fields PostTypeManager::update() persists, so a plugin can store its own keys |
 | privacy.erasable_data | filter | installer/core/privacy-manager.php | — | Filters the erasable data sections declared for a user's GDPR erasure request |
 | privacy.erase_plugin_data | filter | installer/core/privacy-manager.php | — | Filters the erasure results so plugins can erase their own user data |
 | privacy.export_data | filter | installer/core/privacy-manager.php | — | Filters the collected personal data sections for a user data export |
@@ -707,6 +710,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | x402.bot_user_agents | filter | installer/core/x402/config.php | — | Filters the user agent patterns treated as AI bots by the x402 paywall |
 | x402.payment_providers | filter | installer/core/x402-bootstrap.php | — | Collects x402 payment providers registered by plugins after plugin load |
 | x402.response_payload | filter | installer/core/x402/gate.php | — | Filters the HTTP 402 Payment Required response payload for a gated page |
+| x402.should_protect | filter | installer/core/x402/gate.php | — | Decides whether a request for a page is paywalled; receives the effective flag, slug and request context |
 
 ## MCP tools
 | Surface | Kind | Code file | Doc | Purpose (one line) |

@@ -179,6 +179,17 @@ klytos_add_action( 'admin.post_type_edit.after_settings', function ( array $post
 
 // ─── Post Type update — save x402 fields ───────────────────────
 
+// Declare the two keys this module owns so PostTypeManager::update() persists
+// them. Without this the checkbox rendered above saved nothing: the update
+// allow-list dropped both fields, so the setting came back unticked and no page
+// could ever inherit a default that was never stored.
+klytos_add_filter( 'post_type.updatable_fields', function ( array $fields ): array {
+    $fields[] = 'x402_default_enabled';
+    $fields[] = 'x402_price_usd';
+
+    return $fields;
+} );
+
 klytos_add_filter( 'admin.post_type_edit.update_data', function ( array $data, string $ptId, array $post ): array {
     // Checkbox: sent as "1" when checked, absent when unchecked.
     $data['x402_default_enabled'] = !empty( $post['x402_default_enabled'] );
@@ -191,8 +202,15 @@ klytos_add_filter( 'admin.post_type_edit.update_data', function ( array $data, s
 
 // ─── Page before_save — inject x402 defaults from Post Type ────
 
-klytos_add_action( 'page.before_save', function ( array &$data, string $action ): void {
-    if ( $action !== 'create' ) return;
+// A FILTER, not an action. This listener modifies the record, and actions pass
+// their arguments by value — the by-reference version this replaced could never
+// bind, so PHP warned on every page create in every install and discarded the
+// write silently (audit NEW-03). It is the same idiom the post-type listener
+// above already uses: take the data, return the data.
+klytos_add_filter( 'page.save_data', function ( array $data, string $action ): array {
+    if ( $action !== 'create' ) {
+        return $data;
+    }
 
     if ( !array_key_exists( 'x402_enabled', $data ) || $data['x402_enabled'] === null ) {
         $postType = $data['post_type'] ?? 'page';
@@ -203,6 +221,8 @@ klytos_add_action( 'page.before_save', function ( array &$data, string $action )
             $data['x402_enabled'] = false;
         }
     }
+
+    return $data;
 } );
 
 // ─── Build integration ─────────────────────────────────────────

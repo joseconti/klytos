@@ -50,7 +50,8 @@
 
 | Hook | Type | Arguments | Source |
 |---|---|---|---|
-| `page.before_save` | action | `array $page, string $action` ('create' or 'update') | core/page-manager.php |
+| `page.save_data` | **filter** | `array $page, string $action` ('create' or 'update') → returns `array` | core/page-manager.php |
+| `page.before_save` | action | `array $page, string $action` ('create' or 'update') — observe only | core/page-manager.php |
 | `page.after_save` | action | `array $page, string $action` | core/page-manager.php |
 | `page.before_delete` | action | `string $slug` | core/page-manager.php |
 | `page.after_delete` | action | `string $slug` | core/page-manager.php |

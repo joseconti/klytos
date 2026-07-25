@@ -96,12 +96,16 @@ class Hooks
      *
      * @param string   $hook     Hook name (e.g. 'page.after_save', 'build.before').
      * @param callable $callback Function to call when the action fires.
-     *                           Receives whatever arguments doAction() passes.
+     *                           Receives whatever arguments doAction() passes,
+     *                           BY VALUE. A by-reference parameter is refused.
      * @param int      $priority Execution order. Lower = earlier. Default: 10.
      * @return void
+     * @throws HookContractException If $callback declares a by-reference parameter.
      */
     public static function addAction(string $hook, callable $callback, int $priority = 10): void
     {
+        self::refuseByReferenceCallback( $hook, $callback, 'action' );
+
         self::$actions[$hook][] = [
             'callback' => $callback,
             'priority' => $priority,
@@ -213,11 +217,16 @@ class Hooks
      * @param callable $callback Function to call. MUST return the filtered value.
      *                           First argument is the value to filter.
      *                           Additional arguments are context (read-only).
+     *                           All are passed BY VALUE; a by-reference parameter
+     *                           is refused — return the value instead.
      * @param int      $priority Execution order. Lower = earlier. Default: 10.
      * @return void
+     * @throws HookContractException If $callback declares a by-reference parameter.
      */
     public static function addFilter(string $hook, callable $callback, int $priority = 10): void
     {
+        self::refuseByReferenceCallback( $hook, $callback, 'filter' );
+
         self::$filters[$hook][] = [
             'callback' => $callback,
             'priority' => $priority,
@@ -350,6 +359,86 @@ class Hooks
     }
 
     // ─── Internal ────────────────────────────────────────────────
+
+    /**
+     * Refuse a callback that declares a by-reference parameter.
+     *
+     * Both dispatch paths pass arguments BY VALUE — doAction() collects them
+     * variadically (`mixed ...$args`) and applyFilters() spreads them into
+     * call_user_func() — and PHP cannot bind a by-reference parameter to a value.
+     * It does not fail cleanly either: it emits a warning, invokes the callback
+     * against a COPY, and throws the write away. The listener therefore looks
+     * registered and its body demonstrably runs, while its effect does not exist.
+     *
+     * That is audit NEW-03, and the reason it survived from adoption to Sprint 4
+     * is precisely that nothing refused it — the defect is invisible in a diff and
+     * only exists at dispatch. Refusing at REGISTRATION puts the failure where the
+     * mistake is, with the file and line of the offending closure.
+     *
+     * Deliberately shared by addAction() and addFilter(): the filter path has the
+     * same defect on its own arguments, no code relies on it, and leaving it
+     * unchecked would preserve exactly the by-omission gap this method closes.
+     *
+     * By-reference CAPTURE (`use ( &$x )`) is a different mechanism, works
+     * correctly, and is NOT affected — reflection reports parameters only.
+     *
+     * @param  string   $hook     Hook name being registered on.
+     * @param  callable $callback The callback to inspect.
+     * @param  string   $kind     'action' or 'filter', for the message.
+     * @return void
+     * @throws HookContractException If any parameter is declared by reference.
+     */
+    private static function refuseByReferenceCallback( string $hook, callable $callback, string $kind ): void
+    {
+        try {
+            $reflection = is_array( $callback )
+                ? new \ReflectionMethod( $callback[0], $callback[1] )
+                : new \ReflectionFunction( \Closure::fromCallable( $callback ) );
+        } catch ( \ReflectionException ) {
+            // Not introspectable (an exotic callable shape). Registering it is
+            // strictly better than refusing something that may be perfectly
+            // valid: the contract is unchanged and the old behaviour applies.
+            return;
+        }
+
+        foreach ( $reflection->getParameters() as $parameter ) {
+            if ( ! $parameter->isPassedByReference() ) {
+                continue;
+            }
+
+            $file     = $reflection->getFileName();
+            $location = $file === false ? '' : $file . ':' . $reflection->getStartLine();
+
+            // The MESSAGE carries only the basename, because it travels: a plugin
+            // that trips this fails to load, and PluginLoader stores the message
+            // in loadErrors, which the admin plugins page and the MCP tool
+            // klytos_list_plugins both surface. Both are gated at plugins.manage,
+            // so this is convention rather than a boundary — the convention being
+            // plugin-loader.php's own "Missing entry point: basename(...)" two
+            // lines from where this message lands. The absolute path stays
+            // available, structured, through getCallbackLocation().
+            $shortLocation = $file === false
+                ? 'an unknown location'
+                : basename( $file ) . ':' . $reflection->getStartLine();
+
+            throw new HookContractException(
+                sprintf(
+                    'Hook "%s": the %s listener declared at %s takes parameter #%d ($%s) by '
+                    . 'reference. Actions and filters pass their arguments by value, so the '
+                    . 'change would be discarded silently. Register a filter instead and return '
+                    . 'the modified value.',
+                    $hook,
+                    $kind,
+                    $shortLocation,
+                    $parameter->getPosition() + 1,
+                    $parameter->getName()
+                ),
+                $hook,
+                $kind,
+                $location
+            );
+        }
+    }
 
     /**
      * Remove a specific callback from a hook registry (actions or filters).

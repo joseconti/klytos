@@ -642,3 +642,38 @@
   you about itself. And when a workflow cannot be exercised at all — an unpushed repo, a disabled
   action — say so where its status is reported, rather than letting a committed YAML file read as
   coverage.
+
+## L-023 — Two of my own measurements of the same thing disagreed, and the disagreement was the finding
+- Problem: Sprint 4 slice 1 needed the size of the hook surface, because a recorded decision (D-026)
+  had deferred the work twice on the strength of a number. I measured it twice and got two answers:
+  **35 vs 27** listener registrations, **115 vs 118** distinct filter names. Neither pass was
+  obviously wrong. I had already written the second set into `docs/decisions.md`, `docs/PROGRESS.md`,
+  `docs/sprints/sprint-4.md` and the audit before noticing they disagreed with the first.
+- Where: the Sprint 4 slice 1 re-validation; `docs/decisions.md` D-054; `docs/api/INDEX.md`.
+- What failed: not the counting — the **scoping and the method**, differently wrong in each pass.
+  One included `tests/`, where this slice's own new file had just added nine registrations. The other
+  counted the helper's internal delegation line as a registration. And **both were structurally blind
+  to multi-line calls**: a line-based `grep` cannot see
+  `klytos_apply_filters(\n  'name',\n  $value\n)`, and this codebase has four of them.
+- What the reconciliation found, which neither pass reported: a third measurement — strip comments,
+  strip the helper definitions, match across newlines — settled the counts AND surfaced
+  **`x402.should_protect` (`x402/gate.php:70`) fired in code with no `docs/api/INDEX.md` row**. A
+  documentation gap dating to adoption, whose extraction had the same line-based blindness. Nobody
+  was looking for it; it fell out of resolving a disagreement about something else.
+- The uncomfortable part: `keel-verify` was **green** throughout. Its INDEX check verifies that the
+  summary counts match the rows — an internal consistency check, which a file can pass while being
+  incomplete in exactly the same way its generator was. A verifier inherits its generator's blind
+  spots when it was built from the same extraction technique.
+- Working solution: three passes, the last one method-aware rather than line-aware, with the scope
+  of each stated (shipped code vs tests; call sites vs distinct names). Every figure in D-054 now
+  names what it counts, because "27 registrations" and "23 shipped registrations" were both true and
+  answered different questions.
+- Rule for next time: **when two measurements of the same property disagree, do not pick the more
+  plausible one — the disagreement is itself evidence that at least one method is wrong, and finding
+  out which routinely surfaces a third defect.** Concretely: a line-based `grep` over a language with
+  multi-line call syntax is not a measurement of call sites, it is a measurement of call sites that
+  happen to fit on one line; state the scope of every count you write down (does it include tests?
+  definitions? delegations?); and never write a number into a document before you have derived it a
+  second way. This is L-015 one turn further out — that lesson was "a number copied from another
+  document is not a measurement", this one is "a number measured **once** is not a measurement
+  either."

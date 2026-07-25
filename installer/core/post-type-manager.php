@@ -122,8 +122,28 @@ class PostTypeManager
 
         $postType = $this->storage->read(self::COLLECTION, $id);
 
-        // Updatable fields.
-        $updatable = [ 'name', 'slug', 'slug_i18n', 'editor', 'taxonomies', 'custom_fields', 'statuses' ];
+        // Updatable fields. Filterable so a plugin can persist its OWN keys on a
+        // post type: `admin.post_type_edit.update_data` lets a plugin add data to
+        // the array, and without this the allow-list silently dropped exactly what
+        // that filter had just added — an extension point whose output went
+        // nowhere. Absent = not persisted, so omission still denies and no plugin
+        // can widen this into mass assignment by accident (the admin.gate_map /
+        // mcp.tool_capabilities shape).
+        $updatable = klytos_apply_filters(
+            'post_type.updatable_fields',
+            [ 'name', 'slug', 'slug_i18n', 'editor', 'taxonomies', 'custom_fields', 'statuses' ],
+            $id
+        );
+
+        // Reserved keys, subtracted AFTER the filter so no listener can open them.
+        // `id` is the storage key — a mismatch between it and the record would make
+        // the post type unfindable by its own identifier; `builtin` is trusted as
+        // authoritative by list() and getMenuItems(); `created_at` is history.
+        // Without this the filter would be a mass-assignment primitive for exactly
+        // the three fields nothing should ever accept from request data, which is
+        // strictly worse than the hardcoded list it replaced.
+        $updatable = array_diff( $updatable, [ 'id', 'builtin', 'created_at' ] );
+
         foreach ($updatable as $field) {
             if (array_key_exists($field, $data)) {
                 // Validate statuses through buildStatusDefinitions.

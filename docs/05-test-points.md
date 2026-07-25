@@ -2396,6 +2396,136 @@ $ vendor/bin/phpcs --standard=phpcs.xml tests installer/core/ai
   39 files, 0 errors / 1 warning — the warning is pre-existing at chat-engine.php:401, not this slice's
 ```
 
+# Sprint 4 — the hook mutation contract, and owner recovery
+
+### Slice 1 — actions are fire-and-forget, enforced; page data gets a real filter — evidence (commands and output, 2026-07-25)
+
+**Kickoff step 3 — the playground boots from its documented commands.**
+
+```
+$ export KPORT=8083; nc -z 127.0.0.1 $KPORT || echo "free"
+  free                              (8080 squatted again — seventh consecutive session)
+$ php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php > /tmp/klytos-kport.log 2>&1 &
+$ grep -i 'failed to listen' /tmp/klytos-kport.log || echo "bound cleanly"
+  bound cleanly on 8083
+$ lsof -nP -iTCP:8083 -sTCP:LISTEN            # L-021: is it OUR process?
+  php83  35717  joseconti  ... (LISTEN)       # started by this session
+$ curl -s -o /dev/null -w "%{http_code}" .../installer/admin/     →  302   (documented)
+$ curl -s -o /dev/null -w "%{http_code}" -X POST .../installer/mcp →  401   (documented)
+$ curl -s -D - .../installer/admin/ | grep -i "^Server:"
+  (none)                             # L-011 tell: PHP's built-in server, not a squatter
+```
+
+**PROVEN TO FAIL FIRST (L-016) — the RED baseline before any production code was written.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter HooksTest
+  FFFF......F   11 / 11 — 5 failures:
+   1) testAByReferenceActionListenerIsRefusedAtRegistration — exception not thrown
+   2) testAByReferenceFilterListenerIsRefusedAtRegistration — exception not thrown
+   3) testARefusalNamesTheHookTheParameterAndWhereTheCallbackWasDeclared — none thrown
+   4) testTheByReferenceParameterIsCaughtInAnyPosition        — exception not thrown
+   5) testCoreItselfRegistersNoByReferenceListener            — ['core/x402-bootstrap.php']
+  The 6 positive controls PASSED against the unfixed tree — they are regression cover,
+  not new behaviour, which is what makes them a control (L-008).
+
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter HookMutationTest
+  FFF   3 / 3 — 3 failures:
+   1) testANewPageInheritsItsPostTypeX402Default
+      "PRECONDITION FAILED: the post type does not carry x402_default_enabled, so no page
+       could ever inherit it. This is a defect in the post-type save path, not in the hook."
+   2) testCreatingAPageEmitsNoPhpDiagnostic
+      + 0 => 'Klytos\Core\App::{closure}(): Argument #1 ($data) must be passed by
+              reference, value given'                        ← NEW-03 reproduced in a test
+   3) testAListenerCanModifyPageDataAndTheChangeIsPersisted
+      expected 'set-by-listener-on-create', got ''
+```
+
+The precondition guard in (1) is what **separated NEW-36 from NEW-03 before either was fixed** — it
+fired empirically rather than being deduced from reading the allow-list.
+
+**The by-reference variadic was refuted by running PHP, not by argument** (probe, no repo files
+touched):
+
+```
+literal string / int / null / array literal   →  Error: could not be passed by reference
+concatenation / ternary / class constant      →  Error: could not be passed by reference
+?? expression                                 →  Error: could not be passed by reference
+function-call result                          →  Notice: Only variables should be passed…
+plain $var / $obj->prop / $arr['k']           →  OK
+UNDEFINED array key / variable                →  OK — and silently CREATES it
+```
+
+36+ real call sites pass one of the fatal shapes, starting with `page-manager.php:86` (`'create'`).
+
+**After the fix — full suite, with `failOnWarning="true"` newly enabled:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (220 tests, 1026 assertions)            # sprint start: 206 / 1007
+```
+
+`failOnWarning` matters here beyond bookkeeping: it means the NEW-03 warning's absence is now
+asserted across **all 220 tests**, not only in the one test that looks for it.
+
+**Lint — all five D-025 baselines, measured per scope with NO default value (L-016):**
+
+```
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+  A TOTAL OF 192 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES     (was 193/488 — IMPROVED by 1)
+$ … installer/plugins   →  113 ERRORS AND 109 WARNINGS IN 17 FILES   (held exactly)
+$ … tests               →  37 files, no TOTAL line = 0 / 0           (was 35 files; held)
+$ … installer/public    →  2 files, no TOTAL line = 0 / 0            (held)
+$ … scripts scripts/keel-verify → 0 ERRORS AND 2 WARNINGS IN 1 FILE  (held exactly)
+```
+
+A first attempt at this measurement piped through `grep … | head -1` and printed nothing for two
+scopes. It was re-run directly rather than defaulted to zero — the L-016 rule applied to the
+instrument, in the slice that ends a defect L-016 was written about.
+
+**keel-verify and the upgrade path:**
+
+```
+$ php scripts/keel-verify
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase)
+  incl. PASS docs/api/INDEX.md summary counts match its rows      (102 / 308 / 119, total 960)
+        PASS docs/api/INDEX.md parity: every row has its doc, every doc its row
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+**Real functional verification on the production request path** (not only the suite):
+
+```
+$ curl -u owner:<app-pw> -d '{…"klytos_create_page"…}' http://127.0.0.1:8083/installer/mcp
+  {"result":{…"success": true…}}
+$ curl … klytos_get_page … | keys
+  … 'x402_enabled'                    ← PRESENT. Before the fix the key was absent entirely,
+                                        because the listener's write was discarded.
+$ grep -icE "warning|fatal|notice|deprecated" /tmp/klytos-kport.log
+  0                                   ← every page create used to log the NEW-03 warning
+```
+
+**After the review cycle — both subagents on the finished diff, docs included (L-015):**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (221 tests, 1029 assertions)     # +1 test: the reserved-key guard the review produced
+
+reserved-key guard, proven to fail without the hardening (TEMP-BREAK, then restored):
+  1) testTheUpdatableFieldsFilterCannotOpenAReservedKey
+     "A filter opened the reserved `builtin` key — that is mass assignment."
+
+widened interlock scan, proven in both directions by planting an offender the OLD scan
+would have missed entirely (installer/admin/, outside every catch and every test):
+  planted  → + 0 => 'admin/zz-probe.php'   FAILURES!
+  removed  → OK (1 test, 2 assertions)     tree left clean
+
+scan pattern proven against 9 cases (helper + Hooks:: direct, function + arrow fn,
+multi-line signature, second position; and MUST-NOT: by-value, use(&$x), unrelated &$):
+  all directions correct
+```
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
