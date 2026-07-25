@@ -205,6 +205,44 @@ check( $current !== null, 'the upgraded owner still resolves after the fallback 
 check( ( $current['role'] ?? '' ) === 'owner', 'the upgraded owner still holds the owner role' );
 check( klytos_has_permission( 'users.manage' ), 'the upgraded owner still holds owner-only permissions' );
 
+// D-056 on a REAL upgraded install, and this is the question the whole of Sprint 5
+// turns on: an upgraded operator's ability to LOG IN now depends on the owner
+// RECORD the boot migration built, not on config['admin_pass_hash'] any more.
+// Everything above asserts the record and the permissions; only this asserts
+// ACCESS, through the exact function that grants it (L-024). The password is the
+// one upgrade-test.sh installed the PREVIOUS version with — so this fails if the
+// migration ever stops carrying the v1 credential into the record.
+$_SESSION = [];
+
+$savePath = sys_get_temp_dir() . '/klytos-upgrade-login-session';
+if ( ! is_dir( $savePath ) ) {
+    mkdir( $savePath, 0700, true );
+}
+session_save_path( $savePath );
+if ( session_status() !== PHP_SESSION_ACTIVE ) {
+    session_start();
+}
+
+$auth = $app->getAuth();
+
+// The wrong password first: it returns before touching the session, so a pass
+// here cannot come from a session that was never valid (L-010).
+// check() prints its message on PASS, so each one states the property that HOLDS.
+$refused = $auth->login( $owner['username'], 'not-the-upgrade-password' );
+check( ! $refused['success'], 'the upgraded install refuses a wrong password' );
+
+$granted = $auth->login( $owner['username'], 'upgrade-test-2026-Aa!' );
+check(
+    $granted['success'],
+    'the upgraded owner can LOG IN with the previous version\'s password (D-056)'
+);
+check( ( $granted['user_id'] ?? null ) === $owner['id'], 'login resolved the upgraded owner\'s own id' );
+
+if ( session_status() === PHP_SESSION_ACTIVE ) {
+    session_write_close();
+}
+$_SESSION = [];
+
 // NEW-01 on a real upgraded install: a session with no klytos_user_id must be
 // denied, not promoted. This is the escalation the whole slice exists to close.
 $_SESSION = [

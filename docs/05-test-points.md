@@ -2617,6 +2617,201 @@ in the same slice that recorded L-024 about the same class of error.
 `--email` and on the substituted username, neither of which appears in the catalogue KEYS — a miss
 returns the key verbatim and would have failed them.
 
+# Sprint 5 — authentication
+
+### Slice 1 — the gate consults the user record — evidence (commands and output, 2026-07-25)
+
+**PROVEN TO FAIL FIRST (L-016), per test rather than in aggregate — and TWO of the ten passed
+against the unfixed tree, which is recorded rather than glossed.** The source changes were stashed
+(`git stash push -- installer/`) with the tests left in place:
+
+```
+$ git stash push -- installer/ && XDEBUG_MODE=off vendor/bin/phpunit \
+    --filter 'AuthLoginTest|McpActorResolutionTest' --testdox
+  ✘ Every seeded role logs in through the real gate          ← 'account_locked:15' vs 'login_failed'
+  ✘ A rotated password reaches the gate and the old one stops working
+  ✔ A suspended account is refused ... same message           ← PASSED FOR THE WRONG REASON, see below
+  ✘ Suspending an account ends its live session
+  ✘ Locking one account does not lock another
+  ✘ The lockout state is stored inside the install
+  ✘ The owner cannot be suspended
+  ✔ A non owner can still be suspended                        ← the negative control; correct
+  ✘ A valid credential whose user is gone resolves to no actor
+  Tests: 15, Assertions: 36, Failures: 7
+$ git stash pop
+```
+
+- **The suspended-account test passed against the unfixed tree for entirely the wrong reason:** there
+  `editor` cannot log in whether suspended or not (NEW-11), so all three refusals were trivially
+  identical and the assertion observed nothing. A **positive control** was added — the account must
+  log in BEFORE it is suspended — which fails against the unfixed tree and makes the refusal
+  afterwards evidence (L-010, L-016).
+- **`A non owner can still be suspended` passes in both trees by design.** It is the negative control
+  for the owner guard: without it, a guard that refused *every* status change would look identical to
+  the correct one.
+- The first failure line is itself the defect on trial: against the unfixed tree the four wrong-password
+  attempts of test 1 all land in **one global bucket**, so the fourth account is locked out by the
+  first three — `account_locked:15` where `login_failed` was expected.
+
+**A DEFECT IN MY OWN TEST, caught by running it — the L-016 shape.**
+
+```
+✘ The lockout state is stored inside the install
+  A lockout file was written into the shared temp directory:
+  /var/folders/.../T/klytos_lockout_72122ce96bfec66e2396d2e25225d70a.json
+```
+
+The assertion demanded the temp directory contain **no** `klytos_lockout_*` file. It failed on a file
+the **old** implementation had written minutes earlier during the prove-it-fails run above — it was
+measuring *history*, not *behaviour*, and would have failed the same way on any real install that had
+ever run a previous version. Rewritten to compare the glob **before** against **after** a failed
+login, so it observes what this code does rather than what some code once did.
+
+**Full suite, after — and again after the review cycle added three more tests.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (240 tests, 1124 assertions)          ← sprint start: 227 tests / 1059 assertions
+$ XDEBUG_MODE=off vendor/bin/phpunit      # after the review fixes
+  OK (243 tests, 1130 assertions)
+```
+
+**THE REVIEW CYCLE — one BLOCKING finding, correct, and it was my own guard defeating itself.**
+
+Both subagents ran on the finished diff, docs included (L-015). Both reported having **no shell**, so
+every number below was measured in the main session.
+
+```
+BLOCKING (code-reviewer), re-derived against source before acting (L-013):
+  UserManager::update() processes 'role' BEFORE 'status' in $updatable and assigns
+  $user[$field] inside the same loop — so a guard reading $user['role'] saw 'admin'
+  by the time it ran:
+      update( $ownerId, [ 'role' => 'admin', 'status' => 'suspended' ] )
+  demoted AND suspended the owner in one call, straight through the check written to
+  prevent exactly that. Reachable owner-only, incl. over MCP via klytos_update_user.
+  → fixed by comparing $oldRole (already captured for the role-change hook)
+  → second guard added from the auditor's finding 5: the owner's role can no longer
+    be REMOVED through update() either, so transferOwnership() is the one path and
+    an install cannot be left with zero owners
+```
+
+The nuance neither reviewer checked: the combined-call bypass produced a **recoverable** install
+(zero owners → `findOwner()` null → `owner:repair` proceeds), while the single-field suspend the
+guard did block produces the **unrecoverable** one. The guard was covering the worse case by luck.
+
+**NEW-39 — the timing oracle, MEASURED before and after rather than reasoned about.**
+
+```
+$ php <probe>   # median of 12 runs per case, seeded playground
+BEFORE                                     AFTER
+active + wrong password     218.98 ms      217.55 ms
+suspended + right password    0.65 ms      219.13 ms
+no such user                  0.64 ms      218.05 ms
+```
+
+340× before; indistinguishable after. `authenticate()` returned early for an unknown username **and**
+for a non-active account, so only *"exists and is active"* reached `password_verify()`. Pre-existing
+code, new exposure — until D-056 it was only reachable from re-auth behind a session. It also made
+this slice's own `docs/reference/authentication.md` assert *"Nothing in the response distinguishes
+them"*, the **L-002** defect. **The two reviewers described it differently and one was wrong**
+(**L-023**): the `code-reviewer` said "no bcrypt when the username matches no record", omitting the
+suspended case; the `security-auditor` had the real split. Settled by measuring.
+
+The fix compares against another stored record's hash rather than a committed literal — the cost
+matches exactly, no bcrypt string enters the repo, and there is no first-call-in-the-process outlier,
+which under `php -S` (a fresh process per request) would have **inverted** the oracle instead of
+closing it.
+
+**The three review-driven tests, proven in both directions:**
+
+```
+$ git stash push -- installer/core/user-manager.php && phpunit --filter '<the three>' --testdox
+  ✘ The owner cannot be suspended by demoting in the same call
+  ✘ The owners role cannot be removed through update
+  ✘ A failed login costs the same whoever the username belongs to
+  Tests: 3, Failures: 3
+$ git stash pop && phpunit --filter '<the three>' --testdox
+  ✔ ✔ ✔   OK (3 tests, 6 assertions)
+```
+
+**Recorded and NOT fixed:** **NEW-40** (the lockout's read-modify-write is not atomic; nothing
+throttles the login endpoint — the NEW-20 shape in a second subsystem, with
+`ActionScheduler::acquireLock()` named as the fix shape) and **NEW-41** (a suspended user's OAuth
+access token keeps working for up to an hour — the one credential type where suspension does not take
+effect; now stated in `authentication.md`'s suspension table).
+
+**Two things the EXISTING suite caught before any new test was written** — which is why it was run
+first:
+
+```
+1) OwnerRepairTest::testTheRecoveredInstallCanActuallyBeLoggedIntoThroughAuthLogin
+   ArgumentCountError: Too few arguments to Auth::recordFailedAttempt(), 0 passed
+   → a call site missed when the lockout gained its per-account parameter. Fixed; every
+     call site then re-verified by grep rather than by re-running alone.
+
+2) McpActorResolutionTest::testAValidCredentialWhoseUserIsGoneResolvesToNoActor
+   "The credential itself is still valid." Failed asserting that false is true.
+   → a REAL behaviour change: an orphan application password now fails at
+     authentication (401) instead of authenticating and being denied by a null
+     actor (403). Both fail closed; the layer moved. Recorded as implementation
+     note 1 on D-056 BEFORE the test was touched, then the test was corrected to
+     assert the stricter property — never weakened.
+```
+
+**`keel-verify` — 10 checks, exit 0, the 2 WARNs owned by Phase 7.**
+
+```
+$ php scripts/keel-verify
+  PASS  authorization gate covers every admin surface (64 files)
+  PASS  the central gate is invoked from admin/bootstrap.php
+  PASS  docs/api/INDEX.md summary counts match its rows
+  PASS  docs/api/INDEX.md parity: every row has its doc, every doc its row
+  PASS  locale catalogues agree on their key set (120 files across 6 sets)
+  PASS  no placeholder copy in distributable surfaces (470 files)
+  PASS  changelog order oldest → newest (1 entry — ordering not yet exercised)
+  PASS  every registered MCP tool has a capability-map entry (172 tools)
+  WARN  version touchpoints in sync (5 touchpoints)      ← H-01, Phase 7
+  WARN  runtime assets survive the release archive (16 guides)  ← NEW-27, Phase 7
+  OK — 10 check(s) passed, 2 warning(s) carrying 9 note(s) (owned by another phase)
+```
+
+**Upgrade from the REAL v0.30.1 — and this sprint gave that test a new assertion, because it is the
+one property a real operator can lose.** Everything the script asserted before was about the record
+and its permissions; nothing asserted **access**. `upgrade-assert.php` now logs in through
+`Auth::login()` with the password the *previous version* was installed with (L-024: through the exact
+function that grants access, wrong password first per L-010):
+
+```
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+   PASS  the upgraded owner still holds owner-only permissions
+   PASS  the upgraded install refuses a wrong password
+   PASS  the upgraded owner can LOG IN with the previous version's password (D-056)
+   PASS  login resolved the upgraded owner's own id
+== UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+Those three messages were **reworded before this row was written**: `check()` prints its message on
+PASS, so the first drafts ("the upgraded install accepts a WRONG password", "the upgraded owner
+CANNOT LOG IN") made a *passing* run assert things that are false. The L-002 defect, in the output of
+a test written to prevent one.
+
+**Lint — all five D-025 baselines held exactly, measured per scope with no default value (L-016).**
+
+```
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+  A TOTAL OF 192 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES     ← baseline 192/488
+$ … installer/plugins   → 113 ERRORS AND 109 WARNINGS IN 17 FILES    ← baseline 113/109
+$ … tests              → 40 files, no violations                     ← baseline 0/0
+$ … installer/public   → 2 files, no violations                      ← baseline 0/0
+$ … scripts/keel-verify scripts/dev → 0 ERRORS AND 2 WARNINGS IN 1 FILE ← baseline 0/2
+```
+
+The first attempt at that table piped each scope through `grep -E 'A TOTAL OF|^Time'` and printed a
+fallback string for two scopes; it also passed two multi-word scopes as one quoted argument, so
+`phpcs` reported *"The file does not exist"* and the loop reported nothing at all. Re-measured by
+reading each scope's real output. **A measurement with a fallback is the defect L-016 records**, and
+it appeared again in the same project three sprints later.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in

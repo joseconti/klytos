@@ -344,11 +344,11 @@ Playground ready.
   Admin:     http://127.0.0.1:\$KPORT/installer/admin/
   MCP:       http://127.0.0.1:\$KPORT/installer/mcp
 
-  Log in as: owner   (the ONLY account that can currently log in)
+  Log in as: owner, admin, editor or viewer — all four work through the login form.
 
-  admin / editor / viewer exist and hold their roles, but Auth::login() validates
-  only against config['admin_user'] and never consults UserManager — audit NEW-11.
-  They are reachable in tests via actingAs(), not through the login form.
+  Since Sprint 5 (D-056) Auth::login() consults the USER RECORD, not
+  config['admin_user'] / config['admin_pass_hash']. Before that only the owner
+  could log in at all (audit NEW-11), which is why older notes say otherwise.
   Passwords are in docs/playground.md (throwaway, local only).
 
   MCP application password (user 'owner'):

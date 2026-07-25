@@ -237,9 +237,12 @@ klytos_add_filter( 'auth.capabilities', function ( array $caps ): array {
   planned as "reuse `klytos_require_permission()` at the `ToolRegistry` enforcement point". Both
   halves are now false — the second was refuted at the sprint's kickoff re-validation before any
   code was written (D-046).
-- **Authentication.** `Auth::login()` validates only against `config['admin_user']`, so `admin`,
-  `editor` and `viewer` accounts cannot log in through the form at all (**NEW-11**). The gate is
-  correct regardless; the roles simply have no way to reach it interactively yet.
+- **Authentication.** Settled in Sprint 5: `Auth::login()` consults the **user record** through
+  `UserManager::authenticate()` (**D-056**), so all four roles reach this gate interactively.
+  This paragraph previously read "`Auth::login()` validates only against `config['admin_user']`, so
+  `admin`, `editor` and `viewer` accounts cannot log in through the form at all (**NEW-11**)" — true
+  for the first four sprints, which is why the gate was built and tested against synthesized
+  sessions. See `docs/reference/authentication.md`.
 - **Authentication of the second factor.** Passkey second-factor login does not work (**NEW-09**),
   for two independent reasons, and the obvious one-line fix — exempting
   `api/webauthn-challenge.php` from the auth guard — was tried in this slice and **reverted**,
@@ -253,5 +256,8 @@ klytos_add_filter( 'auth.capabilities', function ( array $caps ): array {
   being made to issue the request by someone else (audit **S-12**, slice 5).
 - **Step-up authentication.** Nothing in this system re-checks a password or a second factor before a
   privileged action. Holding the capability is sufficient, so a hijacked session is as good as the
-  account. That gap is recorded as **NEW-13** for the identity-key export specifically, and is bound
-  to the authentication slice that owns NEW-09 and NEW-11.
+  account. That gap is recorded as **NEW-13** for the identity-key export specifically. It was
+  deliberately left out of Sprint 5's scope (**D-057**) even though that sprint owned NEW-09 and
+  NEW-11: re-auth, a second-factor prompt and a mail dependency are a slice of their own. Its trigger
+  is retained. One step-up check *does* exist and now works correctly: `admin/security.php`
+  re-authenticates before an encryption-level change, against the same authority as login (D-056).

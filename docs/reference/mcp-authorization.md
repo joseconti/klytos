@@ -65,13 +65,16 @@ the identity** — never duplicated:
 
 | Credential | Carries a username? | Role source |
 |---|---|---|
-| **Application password** | yes (pinned to the admin user) | the **user record** (`UserManager::getByUsername()`) |
+| **Application password** | yes (any **active** user since D-056; pinned to the admin user before it) | the **user record** (`UserManager::getByUsername()`) |
 | **OAuth access token** | yes (the token's `user` subject) | the **user record** (`UserManager::getByUsername()`) |
 | **Bearer token** | **no** | the **token record itself** (a stamped `role` field) |
 
 This is deliberate (D-047, as amended in slice 1). Application passwords and OAuth tokens already name
-a user, so their role follows that user's record — DRY, and forward-compatible with per-user
-credentials once **NEW-11** lands (the role will simply follow whatever user the credential names).
+a user, so their role follows that user's record — DRY, and it is what made per-user credentials work
+the moment **NEW-11** was closed. That happened in Sprint 5 (**D-056**): `validateAppPassword()` now
+resolves the username against an **active user record** instead of comparing it to
+`config['admin_user']`, so an application password minted for `editor` authenticates and reaches this
+gate carrying the editor's role — with no change to the resolver, exactly as D-047 intended.
 Only bearer tokens, which name no user, carry a role on the credential.
 
 **Fail-closed everywhere.** An empty username, a username that no longer resolves to a user, a token
@@ -99,7 +102,10 @@ bearer branch of `TokenAuth::validate()`.
 **Honest limit — the residual gap (decision 3, D-047).** A bearer token records no user, so a bearer
 token that resolves to `owner` is an **unattributed owner credential**: the audit log can name the
 token, not a person. Migration cannot fix this, because the product never attributed bearer tokens to
-a user in the first place. Per-user bearer tokens are bound to the **NEW-11** authentication work.
+a user in the first place. Sprint 5 did **not** change this: closing NEW-11 made *application
+passwords* per-user (they name a user), while a bearer token still names none. Per-user bearer tokens
+remain unbuilt, and an operator who wants an attributable MCP credential should mint an application
+password for the account instead.
 
 ## The installed-base migration
 
@@ -118,13 +124,17 @@ boot migration stamped it `owner`.
 
 ## The power-reducing effect is latent today (stated plainly, L-014)
 
-Every credential that exists **today** resolves to `owner`: application passwords are pinned to the
-admin user (the owner), and existing bearer/OAuth credentials migrate or resolve to owner. The gate
-(slice 2) is real and default-deny, but its power-**reducing** effect only materialises for a
-credential minted at a lower role. **Bearer tokens are the one credential mintable below owner today**
-without touching NEW-11, so a `role=viewer` bearer token is the sprint's honest end-to-end proof (it
-is denied a destructive tool over real HTTP in slice 2). Per-role **application passwords** stay behind
-the NEW-11 authentication slice.
+*(As written at Sprint 2's close, and superseded by Sprint 5 — kept because it records what was true
+when the gate was built.)* Every credential that existed **then** resolved to `owner`: application
+passwords were pinned to the admin user (the owner), and existing bearer/OAuth credentials migrate or
+resolve to owner. The gate (slice 2) is real and default-deny, but its power-**reducing** effect only
+materialises for a credential minted at a lower role, and bearer tokens were the only credential
+mintable below owner without touching NEW-11 — which is why a `role=viewer` bearer token is the
+sprint's end-to-end proof (denied a destructive tool over real HTTP in slice 2).
+
+**Since Sprint 5 (D-056), per-role application passwords work.** One minted for `editor` or `viewer`
+authenticates and arrives here carrying that role, and a **suspended** user's application password is
+refused outright. Both are pinned by `tests/Integration/McpActorResolutionTest.php`.
 
 ## The gate (slice 2)
 

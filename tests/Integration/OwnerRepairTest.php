@@ -102,12 +102,18 @@ final class OwnerRepairTest extends IntegrationTestCase
      *
      * This is the test the slice's own code-reviewer caught as unsound in its first
      * form, and the finding was correct. It asserted `UserManager::authenticate()`,
-     * which is NOT what the admin panel uses: `Auth::login()` validates the username
-     * against `config['admin_user']` and the password against
-     * `config['admin_pass_hash']`, never against the user record (that is NEW-11).
+     * which was NOT what the admin panel used: at the time `Auth::login()` validated
+     * the username against `config['admin_user']` and the password against
+     * `config['admin_pass_hash']`, never against the user record (audit NEW-11).
      * So the original command minted a record with its own username and a freshly
      * hashed password — and nobody could ever log in as it, while `findOwner()`
      * returning non-null made the command refuse to run again.
+     *
+     * Sprint 5 (D-056) made the record the sole login authority, so the two layers
+     * no longer disagree. The lesson survives the fix and this test is unchanged:
+     * `Auth::login()` is still the gate, and asserting the manager instead is still
+     * asserting the wrong layer (L-024). The command's design is unaffected — it
+     * rebuilds the record from config, which remains the seed.
      *
      * Hence the design: repair `admin_email` and let the product's own migration
      * build the record from the credentials that already work. This test drives

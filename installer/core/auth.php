@@ -25,6 +25,19 @@ class Auth
     /** @var StorageInterface Storage backend (FileStorage or DatabaseStorage). */
     private StorageInterface $storage;
 
+    /**
+     * @var UserManager|null Built on first use, never at construction.
+     *                       App::boot() creates Auth at Step 7 (app.php) and the
+     *                       manager set only at Step 10, so a constructor
+     *                       dependency would be null exactly when it was needed
+     *                       -- the L-006 trap. Step numbers verified against
+     *                       app.php rather than recalled.
+     *                       UserManager holds only the storage backend and
+     *                       memoizes nothing, so a lazily built instance is
+     *                       behaviourally identical to App's.
+     */
+    private ?UserManager $userManager = null;
+
     private const MAX_LOGIN_ATTEMPTS = 5;
     private const LOCKOUT_MINUTES    = 15;
     private const SESSION_LIFETIME   = 1800; // 30 minutes
@@ -82,8 +95,10 @@ class Auth
      */
     public function login(string $username, string $password): array
     {
-        // Check lockout
-        if ($this->isLockedOut()) {
+        // Check lockout. Keyed by the SUBMITTED username, so every account has
+        // its own bucket -- see getLockoutBucket() for why the key is the
+        // submitted string rather than the resolved account.
+        if ($this->isLockedOut($username)) {
             $minutes = self::LOCKOUT_MINUTES;
             return [
                 'success'      => false,
@@ -96,18 +111,25 @@ class Auth
         // Pre-hook: allow plugins to act before credential validation.
         klytos_do_action('auth.before_login', $username);
 
-        $validUser = $this->config['admin_user'] ?? '';
-        $validHash = $this->config['admin_pass_hash'] ?? '';
+        // The USER RECORD is the sole login authority (D-056). config['admin_user']
+        // and config['admin_pass_hash'] are NOT consulted here: they survive only as
+        // the seed UserManager::migrateFromV1Config() and the owner:repair command
+        // (D-055) rebuild a missing owner record FROM. Reading them here is what made
+        // every password change invisible to this gate (audit NEW-37) and what kept
+        // admin/editor/viewer out of the panel entirely (audit NEW-11).
+        // authenticate() verifies the per-user bcrypt hash, refuses a non-active
+        // account and updates last_login.
+        $user = $this->getUserManager()->authenticate($username, $password);
 
-        if ($username === $validUser && password_verify($password, $validHash)) {
+        if ($user !== null) {
             // Regenerate session ID for security
             session_regenerate_id(true);
 
             // Reset failed attempts
-            $this->resetLoginAttempts();
+            $this->resetLoginAttempts($username);
 
             // Check if the user has 2FA enabled.
-            $userId = $this->resolveUserId($username);
+            $userId = $user['id'] ?? null;
 
             if ($userId && $this->userHasTwoFactor($userId)) {
                 // Password verified, but 2FA is required.
@@ -149,8 +171,8 @@ class Auth
             ];
         }
 
-        // Record failed attempt
-        $this->recordFailedAttempt();
+        // Record failed attempt, against THIS account's bucket.
+        $this->recordFailedAttempt($username);
 
         return [
             'success'      => false,
@@ -282,7 +304,13 @@ class Auth
             return false;
         }
 
-        // Check force_logout_at (throttled to once per 60 seconds).
+        // Check force_logout_at and account status (throttled to once per 60
+        // seconds). The record is already being read here, so the status check
+        // costs nothing extra: without it "suspended" would mean "suspended in
+        // up to 30 minutes", the session timeout above being the only thing that
+        // would eventually end a suspended user's live session. That gap only
+        // started to matter once accounts other than the owner could log in at
+        // all (D-056).
         $userId = $_SESSION['klytos_user_id'] ?? null;
         $lastForceCheck = $_SESSION['klytos_last_force_check'] ?? 0;
 
@@ -290,6 +318,12 @@ class Auth
             $_SESSION['klytos_last_force_check'] = time();
             try {
                 $user = $this->storage->read('users', $userId);
+
+                if (($user['status'] ?? 'active') !== 'active') {
+                    $this->logout();
+                    return false;
+                }
+
                 $forceAt = $user['force_logout_at'] ?? null;
                 if ($forceAt && ($_SESSION['klytos_login_time'] ?? 0) < strtotime($forceAt)) {
                     $this->logout();
@@ -691,15 +725,33 @@ class Auth
             return null;
         }
 
-        // Verify username matches the configured admin user
-        $validUser = $this->config['admin_user'] ?? '';
-        if ($username !== $validUser) {
+        // The credential must belong to an ACTIVE user record (D-056). This used
+        // to compare against config['admin_user'], which refused every other
+        // account's application password -- including credentials the product
+        // itself had already minted: admin/mcp.php:48 creates them under
+        // $auth->getUsername() and that page is gated mcp.manage, i.e. owner AND
+        // admin. So the moment an admin could log in (audit NEW-11) they could
+        // mint a credential that could never authenticate.
+        // Resolving to the record also makes the role follow the user:
+        // TokenAuth::resolveUserActor() reads it from the same record, so a
+        // per-user app password arrives at the MCP gate (D-046) carrying its own
+        // role rather than the owner's.
+        $user = $this->getUserManager()->getByUsername($username);
+        if ($user === null || ($user['status'] ?? 'active') !== 'active') {
             return null;
         }
 
         $data = $this->loadAppPasswords();
 
-        foreach ($data['passwords'] ?? [] as &$stored) {
+        // NOT `$data['passwords'] ?? [] as &$stored`: `??` yields a temporary, so
+        // the reference binds to it and $stored['last_used'] never reaches $data.
+        // That is audit NEW-29 / L-017 -- fixed here because this slice rewrites
+        // this method anyway (D-031's narrowing), so last_used starts persisting.
+        if (!isset($data['passwords']) || !is_array($data['passwords'])) {
+            return null;
+        }
+
+        foreach ($data['passwords'] as &$stored) {
             if (($stored['username'] ?? '') !== $username) {
                 continue;
             }
@@ -787,22 +839,19 @@ class Auth
     // ─── Login Attempt Tracking ────────────────────────────────
 
     /**
-     * Check if the account is currently locked out.
+     * Check if the given account is currently locked out.
+     *
+     * @param string $username The username as submitted at the login form.
      */
-    private function isLockedOut(): bool
+    private function isLockedOut(string $username): bool
     {
-        $file = $this->getLockoutFile();
-        if (!file_exists($file)) {
+        $entry = $this->readLockouts()[$this->lockoutKey($username)] ?? null;
+        if (!is_array($entry)) {
             return false;
         }
 
-        $data = json_decode(file_get_contents($file), true);
-        if (!$data) {
-            return false;
-        }
-
-        $attempts = $data['attempts'] ?? 0;
-        $lastTime = $data['last_attempt'] ?? 0;
+        $attempts = $entry['attempts'] ?? 0;
+        $lastTime = $entry['last_attempt'] ?? 0;
 
         if ($attempts >= self::MAX_LOGIN_ATTEMPTS) {
             $elapsed = time() - $lastTime;
@@ -810,47 +859,152 @@ class Auth
                 return true;
             }
             // Lockout expired, reset
-            $this->resetLoginAttempts();
+            $this->resetLoginAttempts($username);
         }
 
         return false;
     }
 
     /**
-     * Record a failed login attempt.
+     * Record a failed login attempt against one account's bucket.
+     *
+     * @param string $username The username as submitted at the login form.
      */
-    private function recordFailedAttempt(): void
+    private function recordFailedAttempt(string $username): void
     {
-        $file = $this->getLockoutFile();
-        $data = ['attempts' => 0, 'last_attempt' => 0];
+        $lockouts = $this->pruneLockouts($this->readLockouts());
+        $key      = $this->lockoutKey($username);
+        $entry    = $lockouts[$key] ?? [];
 
-        if (file_exists($file)) {
-            $data = json_decode(file_get_contents($file), true) ?: $data;
-        }
+        $lockouts[$key] = [
+            'attempts'     => (int) ($entry['attempts'] ?? 0) + 1,
+            'last_attempt' => time(),
+        ];
 
-        $data['attempts']     = ($data['attempts'] ?? 0) + 1;
-        $data['last_attempt'] = time();
-
-        file_put_contents($file, json_encode($data), LOCK_EX);
+        $this->writeLockouts($lockouts);
     }
 
     /**
-     * Reset failed login attempts.
+     * Reset failed login attempts for one account.
+     *
+     * @param string $username The username as submitted at the login form.
      */
-    private function resetLoginAttempts(): void
+    private function resetLoginAttempts(string $username): void
     {
-        $file = $this->getLockoutFile();
-        if (file_exists($file)) {
-            unlink($file);
+        $lockouts = $this->readLockouts();
+        $key      = $this->lockoutKey($username);
+
+        if (!array_key_exists($key, $lockouts)) {
+            return;
         }
+
+        unset($lockouts[$key]);
+        $this->writeLockouts($this->pruneLockouts($lockouts));
     }
 
     /**
-     * Get the path to the lockout tracking file.
+     * Bucket key for one account's failed attempts.
+     *
+     * Keyed by the SUBMITTED username, hashed, and deliberately NOT by the
+     * resolved user record. Two properties depend on that choice:
+     *
+     *  - No lockout can span accounts. The key used to be
+     *    md5( config['admin_user'] ), i.e. ONE bucket for the whole install, so
+     *    once more than one account could log in (D-056) five failures against
+     *    any username would have locked out every account including the owner.
+     *  - No existence oracle. Resolving first and sharing one bucket for
+     *    usernames that do not resolve would leak existence through the bucket
+     *    rather than through the message: an attacker could fill the shared
+     *    bucket with garbage and then read "locked" as "no such user" and
+     *    "wrong password" as "this user exists". Hashing the submitted string
+     *    makes both cases behave identically, which is the property the
+     *    refusal strings alone do not deliver.
+     *
+     * Case is NOT normalised: UserManager::authenticate() compares usernames
+     * exactly, so attempts under a different spelling can never succeed anyway.
+     *
+     * @param string $username The username as submitted at the login form.
+     */
+    private function lockoutKey(string $username): string
+    {
+        return hash('sha256', $username);
+    }
+
+    /**
+     * Path to the lockout tracking file.
+     *
+     * Lives in the install's own data directory rather than
+     * sys_get_temp_dir(): that path is predictable and world-writable, so on
+     * shared hosting a neighbour could forge a permanent lockout or delete a
+     * real one. Reached through StorageInterface::getDataDir(), which every
+     * backend implements, so this needs no new dependency and no App singleton.
+     * Being under data/ also puts it inside the integration tier's
+     * snapshot/restore (D-030) instead of outside every guard.
      */
     private function getLockoutFile(): string
     {
-        return sys_get_temp_dir() . '/klytos_lockout_' . md5($this->config['admin_user'] ?? 'admin') . '.json';
+        return rtrim($this->storage->getDataDir(), '/') . '/login_lockouts.json';
+    }
+
+    /**
+     * Read the lockout map. A missing or unreadable file means "no lockouts".
+     *
+     * @return array<string, array{attempts: int, last_attempt: int}>
+     */
+    private function readLockouts(): array
+    {
+        $file = $this->getLockoutFile();
+        if (!is_file($file)) {
+            return [];
+        }
+
+        $raw = file_get_contents($file);
+        if ($raw === false) {
+            return [];
+        }
+
+        $data = json_decode($raw, true);
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Persist the lockout map.
+     *
+     * @param array<string, array{attempts: int, last_attempt: int}> $lockouts
+     */
+    private function writeLockouts(array $lockouts): void
+    {
+        if ($lockouts === []) {
+            $file = $this->getLockoutFile();
+            if (is_file($file)) {
+                unlink($file);
+            }
+            return;
+        }
+
+        file_put_contents($this->getLockoutFile(), json_encode($lockouts), LOCK_EX);
+    }
+
+    /**
+     * Drop entries whose lockout window has expired.
+     *
+     * One file holds every account's bucket, so without this a flood of
+     * invented usernames would grow it without bound -- the shape recorded as
+     * NEW-19 for the MCP rate limiter. Pruning on write keeps the file
+     * proportional to recent activity rather than to total attempts.
+     *
+     * @param  array<string, array{attempts: int, last_attempt: int}> $lockouts
+     * @return array<string, array{attempts: int, last_attempt: int}>
+     */
+    private function pruneLockouts(array $lockouts): array
+    {
+        $cutoff = time() - (self::LOCKOUT_MINUTES * 60);
+
+        return array_filter(
+            $lockouts,
+            static fn($entry) => is_array($entry) && (int) ($entry['last_attempt'] ?? 0) > $cutoff
+        );
     }
 
     /**
@@ -986,30 +1140,30 @@ class Auth
         return base64_encode(random_bytes(16));
     }
 
-    // ─── 2FA Helpers ────────────────────────────────────────────
+    // ─── Collaborators ──────────────────────────────────────────
 
     /**
-     * Resolve a username to a user ID from the users collection.
+     * The user manager, built on first use.
      *
-     * @param  string $username
-     * @return string|null User ID, or null if not found.
+     * Replaces the private resolveUserId() this class used to carry: that was
+     * a second implementation of UserManager::getByUsername(), and its only
+     * caller was login()'s config comparison, which D-056 removed. Verified
+     * repo-wide before deleting it (private, one call site, zero references in
+     * tests) -- L-007 asks what would still execute removed code, and nothing
+     * would.
+     *
+     * @return UserManager
      */
-    private function resolveUserId(string $username): ?string
+    private function getUserManager(): UserManager
     {
-        try {
-            $users = $this->storage->list('users');
-        } catch (\RuntimeException $e) {
-            return null;
+        if ($this->userManager === null) {
+            $this->userManager = new UserManager($this->storage);
         }
 
-        foreach ($users as $user) {
-            if (($user['username'] ?? '') === $username) {
-                return $user['id'] ?? null;
-            }
-        }
-
-        return null;
+        return $this->userManager;
     }
+
+    // ─── 2FA Helpers ────────────────────────────────────────────
 
     /**
      * Check if a user has 2FA enabled.

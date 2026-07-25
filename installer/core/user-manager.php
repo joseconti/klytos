@@ -206,11 +206,38 @@ class UserManager
                 if ($field === 'role' && !in_array($data['role'], self::VALID_ROLES, true)) {
                     throw new \InvalidArgumentException('Invalid role.');
                 }
-                if ($field === 'role' && $data['role'] === 'owner' && $user['role'] !== 'owner') {
+                if ($field === 'role' && $data['role'] === 'owner' && $oldRole !== 'owner') {
                     throw new \RuntimeException('Cannot set owner role directly. Use transferOwnership().');
+                }
+                // ...and the mirror: the owner's role cannot be taken away here
+                // either. Without it an owner could demote themselves, leaving an
+                // install with NO owner — the state D-031 contains and D-055 exists
+                // to repair. transferOwnership() is the one supported path, and it
+                // demotes the outgoing owner as part of promoting the incoming one,
+                // so the "exactly one owner" invariant this class documents at the
+                // top of the file holds at every point.
+                if ($field === 'role' && $data['role'] !== 'owner' && $oldRole === 'owner') {
+                    throw new \RuntimeException('Cannot remove the owner role directly. Use transferOwnership().');
                 }
                 if ($field === 'status' && !in_array($data['status'], ['active', 'suspended'], true)) {
                     throw new \InvalidArgumentException('Invalid status. Must be: active, suspended.');
+                }
+                // The owner cannot be suspended, mirroring delete()'s protection.
+                // Without this the owner could suspend themselves out of an install
+                // that owner:repair (D-055) ALSO refuses to help, because that
+                // command refuses whenever an owner record exists — leaving the
+                // install permanently unrecoverable through the product. Harmless
+                // while only config['admin_user'] could log in; a live hazard from
+                // the moment the record became the login authority (D-056).
+                //
+                // Compared against $oldRole, NOT $user['role']: 'role' is processed
+                // BEFORE 'status' in $updatable and the loop mutates $user in place,
+                // so update( $ownerId, [ 'role' => 'admin', 'status' => 'suspended' ] )
+                // would have read 'admin' here and sailed past this guard — demoting
+                // AND suspending the owner in one call. Found by this slice's own
+                // code-reviewer; pinned by testTheOwnerCannotBeSuspendedByDemotingInTheSameCall.
+                if ($field === 'status' && $data['status'] !== 'active' && $oldRole === 'owner') {
+                    throw new \RuntimeException('Cannot suspend the owner. Transfer ownership first.');
                 }
 
                 $user[$field] = $data[$field];
@@ -386,31 +413,79 @@ class UserManager
         // We need to search raw (with hash) to verify the password.
         $users = $this->storage->list(self::COLLECTION);
 
+        $found = null;
         foreach ($users as $user) {
-            if (($user['username'] ?? '') !== $username) {
-                continue;
+            if (($user['username'] ?? '') === $username) {
+                $found = $user;
+                break;
             }
+        }
 
-            // Check account status.
-            if (($user['status'] ?? 'active') !== 'active') {
-                return null; // Suspended accounts cannot log in.
-            }
+        // EVERY outcome pays one bcrypt verify, and that is a security property
+        // rather than tidiness. The first version returned early for an unknown
+        // username and for a non-active account, so only "the account exists and
+        // is active" reached password_verify(). Measured on the seeded playground:
+        // 218.98 ms against 0.65 ms — a 340x difference, trivially readable over a
+        // network, and it turns the login form into an account-status oracle even
+        // though the message, the status code and the lockout bucket are all
+        // deliberately identical. Harmless while this method was only reachable
+        // from an already-authenticated re-auth (admin/profile.php); a live
+        // enumeration channel from the moment D-056 put it behind the public login
+        // form. Found by this slice's own security-auditor pass and MEASURED
+        // before being fixed.
+        //
+        // The comparison hash comes from a real record rather than a literal, so
+        // the cost matches exactly, no bcrypt string is committed, and there is no
+        // first-call-in-the-process outlier (which would invert the oracle under
+        // php -S, where every request is a fresh process).
+        $comparisonHash = $found['pass_hash'] ?? $this->anyPasswordHash($users);
+        $verified       = is_string($comparisonHash) && $comparisonHash !== ''
+            ? password_verify($password, $comparisonHash)
+            : false;
 
-            // Verify password against bcrypt hash.
-            if (password_verify($password, $user['pass_hash'] ?? '')) {
-                // Update last login timestamp.
-                $user['last_login'] = Helpers::now();
-                $this->storage->write(self::COLLECTION, $user['id'], $user);
+        if ($found === null) {
+            return null; // User not found.
+        }
 
-                klytos_do_action('user.login', $this->sanitizeForOutput($user));
+        // Check account status.
+        if (($found['status'] ?? 'active') !== 'active') {
+            return null; // Suspended accounts cannot log in.
+        }
 
-                return $user; // Return full data (caller handles sanitization).
-            }
-
+        if (! $verified) {
             return null; // Password mismatch.
         }
 
-        return null; // User not found.
+        // Update last login timestamp.
+        $found['last_login'] = Helpers::now();
+        $this->storage->write(self::COLLECTION, $found['id'], $found);
+
+        klytos_do_action('user.login', $this->sanitizeForOutput($found));
+
+        return $found; // Return full data (caller handles sanitization).
+    }
+
+    /**
+     * Any stored password hash, used only to equalize authenticate()'s cost.
+     *
+     * Verifying a submitted password against another account's hash always fails
+     * and discloses nothing — the point is solely that the bcrypt work happens.
+     * An install with no users at all yields null and the equalization is skipped,
+     * which is stated rather than hidden: there is no account to enumerate then.
+     *
+     * @param  array<int, array<string, mixed>> $users Raw user records.
+     * @return string|null
+     */
+    private function anyPasswordHash(array $users): ?string
+    {
+        foreach ($users as $user) {
+            $hash = $user['pass_hash'] ?? null;
+            if (is_string($hash) && $hash !== '') {
+                return $hash;
+            }
+        }
+
+        return null;
     }
 
     /**

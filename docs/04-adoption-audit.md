@@ -1899,6 +1899,146 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the next slice touching `ToolRegistry::call()` or the MCP tool surface; or the NEW-34
   slice, which is the same defect class and should close both instances together.
 
+### NEW-37 — No supported path can rotate the password of the only account that can log in — **HIGH** *(found 2026-07-25 at the Sprint 5 kickoff, by driving the NEW-11 feature rather than the finding — L-014)*
+- **Where:** `installer/core/auth.php:99-102` (the gate reads config) versus
+  `installer/core/user-manager.php:424` (`changePassword()` writes the record);
+  `installer/admin/reset-password.php:68` and `:71`; `installer/admin/profile.php`;
+  `installer/core/mcp/tools/user-tools.php` (`klytos_reset_user_password`)
+- **What:** every password-change surface in the product writes `pass_hash` on the **user record**.
+  `Auth::login()` verifies against **`config['admin_pass_hash']`**. The two have already diverged, so
+  changing the owner's password changes nothing an operator can observe at the login form: the new
+  password is refused and the old one keeps working, indefinitely.
+- **Proven live, with a net-zero probe** (the password was changed and restored inside one run, so the
+  playground was left byte-identical):
+  ```
+  1. UserManager::changePassword( owner, NEW )
+  2. UserManager::authenticate( owner, NEW )   -> ACCEPTED   the record updated
+  3. Auth::login( owner, NEW )                 -> REFUSED    the change never reached the gate
+  4. Auth::login( owner, OLD )                 -> ACCEPTED   the old password still works
+  5. restored
+  ```
+- **The L-002 defect is live in the product on top of it:** `reset-password.php:71` prints *"Your
+  password has been reset successfully. You can now log in."* immediately after `changePassword()`
+  returns true. The sentence is false for the owner — the only account that can log in at all — and the
+  operator has no way to tell, because the write really did succeed. An owner who follows the reset
+  link believing their old password is gone is wrong in the more dangerous direction.
+- **Why this is a distinct finding from NEW-11 and not a restatement of it:** NEW-11 is about *who* can
+  log in (one account). This is about *which credential* logs them in — it would remain true even if
+  NEW-11 had been fixed by giving the config credential to every role. Both share a single cause (two
+  authorities for one decision) and therefore a single fix, which is why they close together.
+- **Severity is HIGH on the credential-lifecycle axis rather than the escalation axis:** it grants
+  nobody anything they did not have, and it makes revocation impossible — a leaked or shared owner
+  password cannot be rotated through any supported path, on a product whose primary interface hands
+  control to an autonomous agent.
+- **Fix:** closed by **D-056** in Sprint 5 slice 1 — the record becomes the sole login authority, so
+  every existing rotation surface starts working with no change to any of them.
+
+### NEW-38 — The OAuth consent screen cannot complete a 2FA login, so a 2FA-enabled account loops forever — **MEDIUM** *(found 2026-07-25 at the Sprint 5 kickoff, while tracing every `Auth::login()` caller)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/oauth-authorize-view.php:91` (the login call), `:93-96` (the only
+  branch that inspects the result), `:131-138` (the screen selector)
+- **What:** the consent view is the **second** of the two `Auth::login()` callers repo-wide (the other
+  is `admin/login.php:115`), and it has **no second-factor branch of any kind** — `is2faPending`,
+  `complete2fa` and `requires_2fa` appear nowhere in the file. When the account has 2FA enabled,
+  `login()` returns `success => true, requires_2fa => true` and sets the pending state. The view's only
+  check is `if ( ! $result['success'] )`, which is therefore **not** taken; execution falls through to
+  the screen selector, which asks only `isAuthenticated()` — false while 2FA is pending — and sets
+  `$showLogin = true`. The user is shown the same login form again, with **no error and no second-factor
+  prompt**. Submitting again repeats it.
+- **Correction of record, made before this entry was written:** the kickoff plan described this as
+  *"treats `requires_2fa` as a failed login and re-renders the form"*. That is wrong in mechanism and
+  right in outcome — a failed login would display *"Invalid credentials."*; this displays nothing at
+  all, which is worse to diagnose, because the operator sees a form that looks like it was never
+  submitted. Re-derived against source rather than carried across (L-015).
+- **Pre-existing, and this sprint makes it reachable by more accounts.** It is true today for any
+  2FA-enabled owner authorizing an MCP client; after Sprint 5 slice 1 it is true for `admin`, `editor`
+  and `viewer` as well, and slice 2 adds a fourth second-factor method that would hit the same wall.
+  Stated rather than implied: **the sprint does not create this defect and does widen its population.**
+- **Fix shape, recorded so it is not re-derived:** the view needs the same dispatcher `login.php` has —
+  either by rendering a second-factor step of its own, or by redirecting to `admin/login.php` with a
+  `redirect_to` back to the consent URL, which reuses one implementation instead of forking a second
+  2FA UI (the reuse rule; `Helpers::sanitizeRedirectUrl()` already exists for exactly this).
+- **Trigger:** the next slice touching the OAuth authorization flow, or the first report of an MCP
+  client that cannot be authorized. **Deliberately not fixed in Sprint 5** (D-057): it is the OAuth
+  consent surface, a different subsystem with its own test point, and folding it in is the tangling
+  D-025/D-026/D-029/D-031 each refused in turn.
+
+### NEW-39 — The login form was an account-status oracle by TIMING — **MEDIUM** — **CLOSED 2026-07-25 (Sprint 5 slice 1, in path)** *(found by that slice's `security-auditor` pass; both reviewers reported it and only one described it correctly)*
+- **Where:** `installer/core/user-manager.php::authenticate()`
+- **What:** the method returned early for an unknown username **and** for a non-active account, so
+  only *"the account exists and is active"* ever reached `password_verify()`. Every other channel was
+  deliberately identical — same `login_failed` error, same rendered message, same status, same
+  lockout accounting — and the response **time** gave the answer anyway.
+- **Measured, not reasoned about** (12 runs each, median, seeded playground):
+
+  | case | median |
+  |---|---|
+  | active account + wrong password | **218.98 ms** |
+  | suspended account + correct password | **0.65 ms** |
+  | username that does not exist | **0.64 ms** |
+
+  A 340× difference, readable from a single request, needing one or two probes per candidate
+  username — the per-account lockout does not mitigate it, because enumeration never needs five
+  tries.
+- **Pre-existing code, NEW exposure — which is what made it this slice's problem.** `authenticate()`
+  predates Sprint 5, but until **D-056** its only callers were re-authentication surfaces behind an
+  existing session (`admin/profile.php`, `partials/ai-panel-profile.php`). Putting it behind the
+  public login form is what turned a latent ordering quirk into an unauthenticated enumeration
+  channel. It also made this project's own new `docs/reference/authentication.md` assert *"Nothing in
+  the response distinguishes them"* — the **L-002** defect, in a document written in the same slice.
+- **The two reviewers disagreed about it and one was wrong** (**L-023** again): the `code-reviewer`
+  described it as "no bcrypt when the username matches no record", which omits the suspended case;
+  the `security-auditor` described the real split (*active* versus *suspended-or-nonexistent*).
+  Re-derived by measurement rather than by picking the more plausible account.
+- **Fixed in path** (D-031's narrowing — the method the slice re-points the login gate at): every
+  outcome now performs one bcrypt verify, comparing against another stored record's hash when the
+  submitted username resolves to nothing. A real hash rather than a committed literal, so the cost
+  matches exactly, no bcrypt string enters the repository, and there is no first-call-in-the-process
+  outlier — which under `php -S`, where every request is a fresh process, would have **inverted** the
+  oracle instead of closing it. Re-measured after: **217.55 / 219.13 / 218.05 ms**.
+- **Residual, stated rather than hidden:** an install with no users at all skips the equalization.
+  There is no account to enumerate in that state.
+
+### NEW-40 — The login lockout's read-modify-write is not atomic, and nothing throttles the endpoint — **LOW–MEDIUM** *(found 2026-07-25 by both Sprint 5 slice 1 review passes)* — recorded, NOT fixed
+- **Where:** `installer/core/auth.php` — `readLockouts()`, `recordFailedAttempt()`, `writeLockouts()`
+- **What:** `LOCK_EX` covers the final `file_put_contents()` but not the read that preceded it, so two
+  concurrent failed attempts against the same account can both read the pre-increment count and one
+  increment is lost. A parallelized brute force therefore gets somewhat more than the nominal five
+  attempts before the 15-minute lockout engages. A torn read decodes to nothing and falls through to
+  `[]`, i.e. **fails open** (no lockouts) rather than closed.
+- **Second half:** nothing rate-limits `admin/login.php` by IP or globally, so a burst of invented
+  usernames is bounded only by the 15-minute pruning window; every request in that window pays a
+  decode + encode + `LOCK_EX` write of the whole map.
+- **Severity is bounded and said plainly:** it weakens a control that bounds abuse. It does not
+  bypass authentication, does not disclose anything, and does not lock anyone out who should not be.
+- **Same shape as NEW-20** (`MCP\RateLimiter::check()` is a read-decide-write with no lock spanning
+  it), now reproduced in a second subsystem — which is the argument for fixing them together rather
+  than separately.
+- **Fix shape, recorded so it is not re-derived:** the codebase already has the primitive —
+  `ActionScheduler::acquireLock()` is a `flock`-based critical section. Wrap read-through-write in it
+  for both this and NEW-20, and decide explicitly whether a torn or unreadable file should fail
+  closed. **Trigger:** the next slice touching either limiter, or the first report of credential
+  stuffing against a real install.
+
+### NEW-41 — Suspending a user does not revoke their OAuth access token — **MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 1 `security-auditor` pass)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/token-auth.php::resolveUserActor()` and
+  `installer/core/mcp/oauth-server.php::validateAccessToken()` (`ACCESS_LIFETIME = 3600`)
+- **What:** `resolveUserActor()` reads the user's current **role** from the record but never its
+  **status**, and `validateAccessToken()` checks only expiry. So a suspended user's OAuth access
+  token keeps authenticating — carrying its role into the D-046 gate — for up to an hour after
+  suspension.
+- **Why it matters now:** Sprint 5 made suspension mean something on every other surface — the login
+  form refuses, a live admin session ends within 60 seconds, and an application password is refused
+  outright (`validateAppPassword()` requires an active record). This is the one credential type left
+  where "suspended" does not take effect, and the inconsistency is more dangerous than the gap: an
+  operator who suspends an account will reasonably believe access is gone.
+- **Not caused by this slice, and not in its diff** — D-056 rewrote `validateAppPassword()` only.
+  Recorded here rather than fixed because the OAuth token lifecycle (revocation on suspension, and
+  whether existing tokens are invalidated on role change too) is its own decision with its own test
+  point. `docs/reference/mcp-authorization.md` does not claim otherwise, so this is a behavioural gap
+  rather than an L-002 documentation defect; `docs/reference/authentication.md` now states it in its
+  suspension table.
+- **Trigger:** the next slice touching the OAuth server or token validation, or the NEW-40 slice.
+
 ---
 
 ## Next step

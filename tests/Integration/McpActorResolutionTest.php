@@ -65,14 +65,95 @@ final class McpActorResolutionTest extends IntegrationTestCase
     }
 
     /**
-     * The user application passwords are pinned to (core/auth.php validateAppPassword);
-     * in the seeded playground this is the owner.
+     * The v1 config admin user; in the seeded playground this is the owner.
+     *
+     * Application passwords used to be PINNED to this username
+     * (core/auth.php::validateAppPassword compared against config['admin_user']),
+     * which is why these tests were written around it. Since D-056 they are not:
+     * the credential must belong to an active USER RECORD, so any account can hold
+     * one — see testANonOwnerApplicationPasswordCarriesItsOwnRole below.
      *
      * @return string
      */
     private function adminUser(): string
     {
         return $this->app->getConfig()['admin_user'] ?? 'owner';
+    }
+
+    /**
+     * A non-owner's application password authenticates AND arrives at the gate
+     * carrying its own role (Sprint 5 slice 1 / D-056).
+     *
+     * This is the credential the product could already mint and could never use:
+     * `admin/mcp.php:48` creates application passwords under
+     * `$auth->getUsername()`, and that page is gated `mcp.manage` — owner AND
+     * admin. So the moment an admin could log in, they could issue a credential
+     * that `validateAppPassword()` refused, because it compared the username
+     * against config['admin_user'].
+     *
+     * The role assertion is the half that matters for D-046's gate: an editor's
+     * credential must reach it as an EDITOR, not as the owner. `resolveUserActor()`
+     * was already written to read the role from the record (D-047, deliberately
+     * "NEW-11-ready"), so no change was needed there — which this proves rather
+     * than assumes.
+     */
+    public function testANonOwnerApplicationPasswordCarriesItsOwnRole(): void
+    {
+        $record = $this->users->getByUsername( 'editor' );
+        self::assertNotNull( $record, 'PRECONDITION: the playground has no editor.' );
+
+        $created = $this->app->getAuth()->createAppPassword( 'editor MCP credential', 'editor' );
+
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Basic ' . base64_encode( 'editor:' . $created['password'] );
+
+        $auth = $this->tokenAuth();
+
+        self::assertTrue(
+            $auth->validate(),
+            "An editor's application password does not authenticate at all."
+        );
+        self::assertSame(
+            'editor',
+            $auth->getActor()['role'] ?? null,
+            "The editor's credential reached the gate carrying the wrong role."
+        );
+        self::assertSame(
+            $record['id'],
+            $auth->getActor()['user_id'] ?? null,
+            'The credential resolved to a different user.'
+        );
+    }
+
+    /**
+     * A suspended user's application password stops working.
+     *
+     * Suspension has to reach every credential the account holds, not only the
+     * login form — otherwise "suspended" means "may no longer use the browser".
+     */
+    public function testASuspendedUsersApplicationPasswordIsRefused(): void
+    {
+        $record = $this->users->getByUsername( 'viewer' );
+        self::assertNotNull( $record );
+
+        $created = $this->app->getAuth()->createAppPassword( 'viewer MCP credential', 'viewer' );
+
+        // Positive control first: the credential must be one that WOULD work, or
+        // the refusal below proves nothing (L-010).
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Basic ' . base64_encode( 'viewer:' . $created['password'] );
+        self::assertTrue(
+            $this->tokenAuth()->validate(),
+            'PRECONDITION: this credential does not authenticate even before suspension.'
+        );
+
+        $this->users->update( $record['id'], [ 'status' => 'suspended' ] );
+
+        $auth = $this->tokenAuth();
+
+        self::assertFalse(
+            $auth->validate(),
+            "A suspended user's application password still authenticates."
+        );
+        self::assertNull( $auth->getActor(), 'A refused credential still produced an actor.' );
     }
 
     public function testApplicationPasswordResolvesToTheOwnerActor(): void
@@ -215,9 +296,7 @@ final class McpActorResolutionTest extends IntegrationTestCase
         // Remove the user the app password authenticates as, at the storage layer —
         // bypassing UserManager::delete()'s "cannot delete the owner" rule on purpose,
         // because the state being simulated is exactly NEW-08: a corrupted / half-migrated
-        // install whose owner record is gone. The app-password record and admin_user config
-        // still match, so validateAppPassword() still accepts the credential; the store just
-        // can no longer attribute the caller to a role. ('users' is UserManager::COLLECTION.)
+        // install whose owner record is gone. ('users' is UserManager::COLLECTION.)
         $owner = $this->users->getByUsername( $username );
         $this->storage->delete( 'users', $owner['id'] );
 
@@ -225,7 +304,19 @@ final class McpActorResolutionTest extends IntegrationTestCase
 
         $auth = $this->tokenAuth();
 
-        self::assertTrue( $auth->validate(), 'The credential itself is still valid.' );
+        // BOTH assertions are the point, and the FIRST one changed with D-056.
+        // Until the user record became the sole login authority, validateAppPassword()
+        // compared the username against config['admin_user'], so an orphan credential
+        // still AUTHENTICATED and was stopped one layer later by a null actor (403 at
+        // D-046's gate). It now requires the username to resolve to an ACTIVE record,
+        // so it is refused at authentication instead (401). The property this test
+        // exists for — a credential the store cannot attribute must DENY, never
+        // escalate — is unchanged and now holds one layer earlier; recorded as
+        // implementation note 1 on D-056 before this test was touched.
+        self::assertFalse(
+            $auth->validate(),
+            'A credential whose user record is gone no longer authenticates at all (D-056).'
+        );
         self::assertNull(
             $auth->getActor(),
             'A credential the store can no longer attribute to a user resolves to no actor — deny, not escalate (NEW-08).'

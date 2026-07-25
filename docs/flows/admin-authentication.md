@@ -1,7 +1,9 @@
 # Flow — Admin authentication
 
-> Created in Sprint 1 slice 9. Several defects on this flow are **open and bound to one future
-> authentication slice**: NEW-09, NEW-11, NEW-13, NEW-26.
+> Created in Sprint 1 slice 9. **Sprint 5 closed NEW-11 and NEW-37 on this flow** (D-056: the user
+> record is the sole login authority). Still open here, each with its trigger: **NEW-09** (passkey
+> second factor — Sprint 5 slice 2), **NEW-13** and **NEW-26** (both explicitly out of Sprint 5's
+> scope, D-057), and **NEW-38** (the OAuth consent screen cannot complete a 2FA login).
 
 ## Actors
 A human with a browser, reaching `/<admin-dir>/admin/login.php`. The admin directory name is
@@ -26,12 +28,18 @@ randomized at install and `Helpers::getBasePath()` states it must NEVER appear i
 | No owner record exists (failed v1.x migration) | boot survives and **fails closed** (D-031). Recovery is `php installer/cli.php owner:repair --email=<address>`, which supplies the `admin_email` the migration lacked and rebuilds the record from `config['admin_user']`/`config['admin_pass_hash']` — the existing password still applies (**NEW-08** closed, D-055; see `docs/reference/owner-recovery.md`) |
 | Password reset | `reset-password.php` — **no CSRF field or check** (**NEW-26**) |
 
-## The branch that is broken today
-**Only `config['admin_user']` can log in.** `Auth::login()` (`core/auth.php:99-102`) validates
-against the config value and **never calls** the fully-implemented `UserManager::authenticate()`, so
-`admin`, `editor` and `viewer` accounts cannot enter the admin panel at all — verified live against
-the seeded playground (**NEW-11**). This is very likely *why* S-07 survived unnoticed: with one
-usable account, ungated surfaces never misbehave.
+## The branch that WAS broken, and what replaced it
+For the project's first four sprints, **only `config['admin_user']` could log in**: `Auth::login()`
+validated against the config value and never called the fully-implemented
+`UserManager::authenticate()`, so `admin`, `editor` and `viewer` could not enter the admin panel at
+all (**NEW-11**, verified live against the seeded playground). It is very likely *why* S-07 survived
+unnoticed: with one usable account, ungated surfaces never misbehave.
+
+**Sprint 5 (D-056) made the user record the sole login authority.** All four roles log in; the
+config credential survives only as the seed `migrateFromV1Config()` and `owner:repair` rebuild a
+missing owner record from. The same change closed **NEW-37** — every password-change surface writes
+the record, so before it a rotated password was refused and the old one kept working. Details and
+the failure modes: `docs/reference/authentication.md`.
 
 **Passkey second-factor login cannot complete either** (**NEW-09**):
 `TwoFactor::verifyPasskeyAssertion()` has zero call sites and `login.php`'s 2FA dispatcher has no

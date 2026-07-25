@@ -24,15 +24,17 @@ namespace Klytos\Tests;
  * page instead of JSON cannot act on the refusal, which is exactly the defect
  * recorded beside S-07.
  *
- * WHY SESSIONS ARE SYNTHESIZED RATHER THAN LOGGED IN: they have to be.
- * Auth::login() (core/auth.php:99-102) validates ONLY against
- * config['admin_user'] / config['admin_pass_hash'] and never consults
- * UserManager, so admin, editor and viewer CANNOT log in through the form at
- * all — verified live, see NEW-11 in docs/04-adoption-audit.md. That is a
- * defect in authentication, not authorization, and Sprint 1 does not fix it.
- * These tests therefore write the session state directly, the same shape
- * IntegrationTestCase::actingAs() writes and the same shape Auth::login()
- * would write on success (auth.php:129-136).
+ * WHY SESSIONS ARE SYNTHESIZED RATHER THAN LOGGED IN: because an authorization
+ * test wants the resulting state, not the path to it. Until Sprint 5 they HAD to
+ * be — Auth::login() validated only against config['admin_user'] /
+ * config['admin_pass_hash'], so admin, editor and viewer could not log in through
+ * the form at all (audit NEW-11). D-056 closed that: the user record is now the
+ * sole login authority and all four roles log in for real, which
+ * Integration/AuthLoginHttpTest proves through this same harness.
+ * Synthesizing the session is now a choice rather than a workaround — it keeps a
+ * gate test measuring the gate instead of the login form. The shape written is
+ * the one IntegrationTestCase::actingAs() writes and the one Auth::login() writes
+ * on success (auth.php, the session grant in login()).
  *
  * WHY THIS CLASS EXISTS RATHER THAN A SECOND COPY OF THE HARNESS: slice 5 adds
  * a second HTTP test class, and duplicating ~200 lines of server lifecycle

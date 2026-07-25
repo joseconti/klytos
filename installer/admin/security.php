@@ -42,8 +42,12 @@ if (!$userId) {
 
 $tfConfig = $userId ? $twoFactor->getUserConfig($userId) : [];
 
-// Load main config for encryption/recovery features.
-$mainConfig = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
+// This file used to decrypt the main config here, for one consumer: the
+// admin_pass_hash comparison in change_encryption_level. That comparison now
+// goes to the user record (D-056), and every remaining $mainConfig user below
+// re-reads the file for itself (:170, :218, :491), so the read is gone rather
+// than left orphaned. Checked before removing, per L-007: nothing between this
+// point and the next assignment reads it.
 
 // ─── Handle POST actions ────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
@@ -139,9 +143,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId) {
         $newLevel = $_POST['new_encryption_level'] ?? '';
         $confirmPass = $_POST['confirm_password'] ?? '';
 
+        // Re-authentication goes through the SAME authority as the login gate
+        // (D-056): the user record. It used to verify against
+        // config['admin_pass_hash'], which was already the wrong credential —
+        // and would have become a trap the moment password rotation started
+        // working, since it would have gone on demanding the OLD password
+        // forever (audit NEW-37). UserManager::authenticate() is reused rather
+        // than a third comparison written: admin/profile.php:45 and
+        // partials/ai-panel-profile.php:33 already re-authenticate this way.
+        // getByUsername()/authenticate() and NOT getById(): getById() throws
+        // when the record is missing, which would answer a wrong password with
+        // an uncaught RuntimeException. authenticate() returns null for every
+        // failure — unknown user, suspended account, wrong password — which is
+        // exactly one refusal for the caller and no account oracle.
         if ( !in_array( $newLevel, ['basic', 'medium', 'professional'], true ) ) {
             $error = __( 'security.invalid_level' );
-        } elseif ( !password_verify( $confirmPass, $mainConfig['admin_pass_hash'] ?? '' ) ) {
+        } elseif ( $app->getUserManager()->authenticate( $auth->getUsername(), $confirmPass ) === null ) {
             $error = __( 'security.wrong_password' );
         } else {
             $storage = $app->getStorage();

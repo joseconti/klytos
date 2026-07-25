@@ -184,7 +184,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\App` | class | installer/core/app.php | — | Singleton application container that boots the CMS and exposes every core service |
 | `Klytos\Core\AssetManager` | class | installer/core/asset-manager.php | — | Manages media uploads, categories, image editing and asset usage tracking |
 | `Klytos\Core\AuditLog` | class | installer/core/audit-log.php | — | Records and queries security-relevant admin activity, pruning old entries |
-| `Klytos\Core\Auth` | class | installer/core/auth.php | docs/reference/security-headers.md | Handles login sessions, CSRF tokens, bearer tokens and application passwords; also decides the response security headers (`sendSecurityHeaders()` / `buildSecurityHeaders()`) and resolves MCP bearer-token roles (`createBearerToken()` role, `getBearerTokenActor()`, `migrateCredentialRoles()` — see docs/reference/mcp-authorization.md) |
+| `Klytos\Core\Auth` | class | installer/core/auth.php | docs/reference/authentication.md | The login gate (`login()` delegates to UserManager::authenticate — D-056), sessions, per-account lockout, CSRF tokens and application passwords; also decides the response security headers (`sendSecurityHeaders()` / `buildSecurityHeaders()` — see docs/reference/security-headers.md) and resolves MCP bearer-token roles (`createBearerToken()` role, `getBearerTokenActor()`, `migrateCredentialRoles()` — see docs/reference/mcp-authorization.md) |
 | `Klytos\Core\BlockManager` | class | installer/core/block-manager.php | — | Stores, renders and manages reusable blocks, their slots and global block data |
 | `Klytos\Core\BuildEngine` | class | installer/core/build-engine.php | — | Renders pages and generates the static HTML, CSS and JS output of the site |
 | `Klytos\Core\Cache\ApcuCache` | class | installer/core/cache/apcu-cache.php | — | Cache driver backed by APCu shared memory |
@@ -249,7 +249,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\TranslationManager` | class | installer/core/translation-manager.php | — | Manages translation sources, reference keys and saved per-language strings |
 | `Klytos\Core\TwoFactor` | class | installer/core/two-factor.php | — | TOTP, magic-link, passkey and recovery-code second-factor authentication |
 | `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups |
-| `Klytos\Core\UserManager` | class | installer/core/user-manager.php | — | User CRUD, authentication, password resets, permissions and ownership transfer |
+| `Klytos\Core\UserManager` | class | installer/core/user-manager.php | docs/reference/authentication.md | User CRUD, authentication (`authenticate()` is the sole login authority — D-056), password resets, the ONE capability matrix (`hasPermission()` — see docs/reference/authorization.md) and ownership transfer; the owner can be neither deleted nor suspended |
 | `Klytos\Core\VersionManager` | class | installer/core/version-manager.php | — | Saves, lists, diffs, prunes and restores page revisions |
 | `Klytos\Core\WebhookManager` | class | installer/core/webhook-manager.php | — | Manages webhook subscriptions and dispatches events to their endpoints |
 | `Klytos\Core\X402\BotDetector` | class | installer/core/x402/bot-detector.php | — | Identifies AI bots and reads x402 payment receipts from incoming requests |

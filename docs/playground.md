@@ -140,16 +140,26 @@ Everything the playground writes is gitignored — verified with `git check-igno
 
 1. Open http://127.0.0.1:$KPORT/installer/admin/ — you should be redirected to `login.php`.
 2. Log in as `owner`. You should reach the dashboard.
+3. Log out and repeat with `admin`, `editor` and `viewer` — **all four reach the dashboard**, each
+   seeing only what its role allows. That is the fastest way to see the whole authorization system
+   working end to end.
 
-### ⚠️ Only `owner` can log in — and that is a product bug, not a playground fault
+### All four roles log in (since Sprint 5)
 
-The seeded `admin`, `editor` and `viewer` accounts exist, are `active`, and carry valid password
-hashes, but the login form will reject them with *"Incorrect username or password"*.
-`Auth::login()` (`core/auth.php:99-102`) validates **only** against `config['admin_user']` and never
-calls `UserManager::authenticate()`, which is fully implemented one layer below. Recorded as audit
-**NEW-11**; not fixed in Sprint 1 because it is authentication, not authorization.
+`Auth::login()` consults the **user record** through `UserManager::authenticate()` (**D-056**).
+Until Sprint 5 it validated only against `config['admin_user']` / `config['admin_pass_hash']`, so
+`admin`, `editor` and `viewer` were refused with *"Incorrect username or password"* no matter what
+their records said — audit **NEW-11**, closed. Two consequences worth knowing while testing:
 
-To exercise the role system, drive it the way the tests do — write the session directly:
+- **A password change now takes effect.** Rotating a password through the profile page, the admin
+  reset link or `klytos_reset_user_password` changes what the login form accepts. Before Sprint 5 it
+  did not (audit **NEW-37**), which is why an old note may tell you the seeded password always works.
+- **Five failed attempts lock that ONE account for 15 minutes**, not the whole install. The state
+  lives in `installer/data/login_lockouts.json`; deleting that file clears every lockout, which is
+  the quickest way out if you lock yourself out of the playground.
+
+Tests still write the session directly rather than logging in (`actingAs()`), because a gate test
+should measure the gate rather than the login form:
 
 > **This section runs a SECOND server, on its own port `$RPORT`.** It needs a private session
 > store, which the `$KPORT` server from "Start" does not have — a session minted here is unknown to
@@ -284,8 +294,12 @@ are").
 ### 3a. MCP authorization — `tools/call` per role (Sprint 2)
 
 Every tool call passes a default-deny gate carrying the **credential's** role, and `tools/list` is
-filtered by the same decision. Bearer tokens are the one credential mintable below owner today
-(application passwords are pinned to the admin user until **NEW-11**), so mint one per role:
+filtered by the same decision. Bearer tokens carry a role directly, so mint one per role:
+
+> Since Sprint 5 (**D-056**) application passwords are **no longer pinned to the admin user**: one
+> minted for `editor` authenticates and arrives at the gate as an editor, because the role follows
+> the user record. Bearer tokens are still used below because they need no account at all, which
+> keeps this walk independent of the user set.
 
 > **`klytos_delete_page` really does delete a page.** The call below is safe on a *freshly seeded*
 > playground only because the seed creates `home`, `about` and `contact` — there is no `index` page,
