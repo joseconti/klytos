@@ -358,6 +358,28 @@ class Helpers
     }
 
     /**
+     * The WebAuthn Relying Party ID for this request: the host WITHOUT its port.
+     *
+     * A passkey is bound to the rpId it was registered under, so registration and
+     * authentication MUST derive it identically — a divergence of one character
+     * makes every stored credential silently unusable, and the failure looks like
+     * a broken authenticator rather than a broken string. It therefore lives here
+     * once, consumed by both `admin/api/webauthn-challenge.php` (registration and
+     * the challenge) and `admin/login.php` (assertion verification), rather than
+     * being spelled out at each call site.
+     *
+     * The port is stripped because the WebAuthn spec's rpId is a domain, never an
+     * origin — `localhost:8083` is not a valid rpId while `localhost` is, which is
+     * exactly the case every local playground hits.
+     *
+     * @return string
+     */
+    public static function webauthnRpId(): string
+    {
+        return explode( ':', self::getDomain() )[0];
+    }
+
+    /**
      * Send a JSON response and exit.
      *
      * @param  mixed $data

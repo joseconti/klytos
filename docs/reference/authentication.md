@@ -138,17 +138,52 @@ and sets a pending challenge (5-minute expiry). The caller must complete the sec
 **not** an authenticated session: `isAuthenticated()` is false, `is2faPending()` is true.
 
 Enabled methods live on the user record, so per-user 2FA works for every role. Supported branches in
-`login.php`'s dispatcher: `totp`, `recovery`, `email`, `emergency_email`.
+`login.php`'s dispatcher: `totp`, `passkey`, `recovery`, `email`, `emergency_email`.
+
+### Passkeys (WebAuthn)
+
+A passkey is a **second factor**, not a password replacement: the password stage runs first, and the
+assertion completes it.
+
+| Action on `admin/api/webauthn-challenge.php` | Who may call it |
+|---|---|
+| `register_challenge`, `register_complete` | **Fully authenticated callers only** |
+| `auth_challenge` | A fully authenticated caller **or** one whose 2FA is pending |
+
+**That split is the whole security of this endpoint.** `is2faPending()` becomes true after a correct
+**password alone**, and `completePasskeyRegistration()` enrols a credential and sets `enabled = true`
+without checking any existing factor. Had registration stayed reachable in the pending state — as it
+was before Sprint 5 — a stolen password alone would have let an attacker enrol their own
+authenticator and hold the account permanently. Sprint 1 slice 4 shipped exactly that exemption and
+reverted it the same day (**D-036**); it is safe now only because the restriction above landed first.
+`PasskeyLoginTest::testRegistrationIsRefusedWhileTwoFactorIsMerelyPending` exists so that stays true.
+
+The account holder is emailed whenever an authenticator is enrolled, and the
+**`user.passkey_enrolled`** action fires with `( $userId, $credentialId, $label )`. Neither can fail
+the enrolment — the credential is already stored by then. Nothing in core subscribes to that action;
+it is a seam, and saying otherwise would be the L-019 defect.
+
+```php
+klytos_add_action( 'user.passkey_enrolled', function ( $userId, $credentialId, $label ) {
+    error_log( "passkey '{$label}' enrolled for {$userId}" );
+}, 10, 3 );
+```
+
+The Relying Party ID comes from `Helpers::webauthnRpId()` — the host without its port — and both
+registration and verification derive it from that one function. A credential is bound to the rpId it
+was registered under, so a divergence of one character silently invalidates every stored passkey and
+looks like a broken authenticator rather than a broken string.
 
 ## Known limits
 
-- **Passkey second-factor login does not complete** (audit **NEW-09**). `login.php`'s dispatcher has
-  no `passkey` branch and `TwoFactor::verifyPasskeyAssertion()` has zero call sites, although the
-  page's own front end already posts the assertion. **Its obvious one-line fix is FORBIDDEN — read
-  D-036 first**: exempting `api/webauthn-challenge.php` from the auth guard opens a full
-  account-takeover path, because `is2faPending()` is true after a correct password alone and that
-  endpoint's registration actions would then be reachable. Slice 2 of this sprint fixes it in the
-  order that makes the exemption safe, and the exemption lands **last**.
+- **Passkey enrolment does not require an existing second factor.** A fully authenticated session can
+  add an authenticator without re-entering a password or passing 2FA, so a hijacked session can enrol
+  one. The account holder is notified by email, which is the compensating control rather than a
+  substitute for step-up authentication (see **NEW-13**, out of scope per D-057).
+- **Passkey login needs HTTPS in practice.** Browsers only expose WebAuthn on a secure context, and
+  `completePasskeyRegistration()` accordingly expects an `https://` origin, allowing `localhost` for
+  development. The automated tests drive the protocol directly, so they prove the server's
+  verification without a browser — they do not prove any particular browser's UI.
 - **The OAuth consent screen cannot complete a 2FA login** (audit **NEW-38**).
   `core/mcp/oauth-authorize-view.php` has no second-factor branch at all: on the 2FA path `login()`
   returns `success => true`, so its only check (`! $result['success']`) is not taken, and the screen
@@ -184,6 +219,10 @@ Enabled methods live on the user record, so per-user 2FA works for every role. S
 | A non-owner application password carries its own role | `tests/Integration/McpActorResolutionTest.php` |
 | A suspended user's application password is refused | `McpActorResolutionTest` |
 | Recovery restores access through the real gate | `tests/Integration/OwnerRepairTest.php` |
+| A real passkey completes a second-factor login end to end | `tests/Integration/PasskeyLoginTest.php` |
+| Passkey **registration** is refused while 2FA is merely pending | `PasskeyLoginTest` (the D-036 takeover proof) |
+| The `auth_challenge` action stays reachable while 2FA is pending | `PasskeyLoginTest` |
+| A tampered assertion is refused | `PasskeyLoginTest` |
 
 ---
 D-021 · D-055 · **D-056** · D-057 · NEW-09 · NEW-11 (closed) · NEW-13 · NEW-26 · NEW-37 (closed) ·

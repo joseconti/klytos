@@ -462,6 +462,8 @@
     "magic_link_desc": "Será enviada uma ligação de início de sessão para o seu endereço de e-mail registado.",
     "magic_link_subject": "A sua ligação de início de sessão",
     "magic_link_body": "Clique na seguinte ligação para iniciar sessão:\n\n{url}\n\nEsta ligação expira em {minutes} minutos e só pode ser utilizada uma vez.",
+    "passkey_enrolled_subject": "Foi adicionada uma nova chave de acesso à sua conta",
+    "passkey_enrolled_body": "Foi adicionada uma nova chave de acesso («{label}») à sua conta e já pode ser usada como segundo fator. Se não foi você, remova-a nas definições de segurança e altere a sua palavra-passe imediatamente.",
     "send_magic_link": "Enviar ligação por e-mail",
     "emergency_email_link": "Não consigo aceder ao meu autenticador, enviem-me um e-mail",
     "emergency_email_sent": "Foi enviada uma ligação de recuperação para o seu e-mail. Verifique a sua caixa de entrada.",

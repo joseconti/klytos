@@ -462,6 +462,8 @@
     "magic_link_desc": "En innloggingslenke sendes til din registrerte e-postadresse.",
     "magic_link_subject": "Din innloggingslenke",
     "magic_link_body": "Klikk pa folgende lenke for a logge inn:\n\n{url}\n\nDenne lenken utloper om {minutes} minutter og kan bare brukes en gang.",
+    "passkey_enrolled_subject": "En ny passnøkkel er lagt til på kontoen din",
+    "passkey_enrolled_body": "En ny passnøkkel ('{label}') er lagt til på kontoen din og kan nå brukes som andre faktor. Hvis dette ikke var deg, fjern den i sikkerhetsinnstillingene og endre passordet ditt umiddelbart.",
     "send_magic_link": "Send e-postlenke",
     "emergency_email_link": "Jeg far ikke tilgang til autentiseringsappen, send meg en e-post",
     "emergency_email_sent": "En gjenopprettingslenke er sendt til e-posten din. Sjekk innboksen.",

@@ -388,7 +388,7 @@ require_once __DIR__ . '/templates/sidebar.php';
             // Get registration challenge from server.
             var resp = await fetch('<?php echo Helpers::getBasePath(); ?>admin/api/webauthn-challenge.php', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': '<?php echo $csrf; ?>'},
                 body: JSON.stringify({action: 'register_challenge', csrf: '<?php echo $csrf; ?>'})
             });
             var options = await resp.json();
@@ -416,7 +416,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 
             var verifyResp = await fetch('<?php echo Helpers::getBasePath(); ?>admin/api/webauthn-challenge.php', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': '<?php echo $csrf; ?>'},
                 body: JSON.stringify({action: 'register_complete', csrf: '<?php echo $csrf; ?>', attestation: attestation, label: label})
             });
             var result = await verifyResp.json();

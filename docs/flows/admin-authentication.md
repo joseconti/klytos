@@ -1,9 +1,10 @@
 # Flow — Admin authentication
 
-> Created in Sprint 1 slice 9. **Sprint 5 closed NEW-11 and NEW-37 on this flow** (D-056: the user
-> record is the sole login authority). Still open here, each with its trigger: **NEW-09** (passkey
-> second factor — Sprint 5 slice 2), **NEW-13** and **NEW-26** (both explicitly out of Sprint 5's
-> scope, D-057), and **NEW-38** (the OAuth consent screen cannot complete a 2FA login).
+> Created in Sprint 1 slice 9. **Sprint 5 closed NEW-11, NEW-37 and NEW-39 (D-056) and NEW-09
+> (D-058)** on this flow: the user record is the sole login authority, and passkey second-factor
+> login completes. Still open here, each with its trigger: **NEW-13** and **NEW-26** (both explicitly
+> out of Sprint 5's scope, D-057), **NEW-38** (the OAuth consent screen cannot complete a 2FA login)
+> and **NEW-40** (the login lockout's read-modify-write is not atomic).
 
 ## Actors
 A human with a browser, reaching `/<admin-dir>/admin/login.php`. The admin directory name is
@@ -41,7 +42,13 @@ missing owner record from. The same change closed **NEW-37** — every password-
 the record, so before it a rotated password was refused and the old one kept working. Details and
 the failure modes: `docs/reference/authentication.md`.
 
-**Passkey second-factor login cannot complete either** (**NEW-09**):
+**Passkey second-factor login now completes** (**NEW-09** CLOSED, **D-058**), in the order D-036
+demanded: the endpoint's registration actions were restricted to fully authenticated callers FIRST,
+the dispatcher branch and the enrolment notification followed, and the `$preAuthScripts` entry landed
+LAST. What follows is the state that made it dangerous, kept because the reasoning still governs the
+endpoint.
+
+**Historically (Sprint 1 – Sprint 5 slice 1):**
 `TwoFactor::verifyPasskeyAssertion()` has zero call sites and `login.php`'s 2FA dispatcher has no
 `passkey` branch. **Its obvious one-line fix is FORBIDDEN — read D-036 first:** exempting
 `api/webauthn-challenge.php` from the auth guard opens a full account-takeover primitive, because

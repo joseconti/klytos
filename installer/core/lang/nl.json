@@ -462,6 +462,8 @@
     "magic_link_desc": "Er wordt een inloglink naar uw geregistreerde e-mailadres verzonden.",
     "magic_link_subject": "Uw inloglink",
     "magic_link_body": "Klik op de volgende link om in te loggen:\n\n{url}\n\nDeze link verloopt over {minutes} minuten en kan slechts één keer worden gebruikt.",
+    "passkey_enrolled_subject": "Er is een nieuwe passkey aan je account toegevoegd",
+    "passkey_enrolled_body": "Er is een nieuwe passkey ('{label}') aan je account toegevoegd en die kan nu als tweede factor worden gebruikt. Als jij dit niet was, verwijder hem dan bij je beveiligingsinstellingen en wijzig direct je wachtwoord.",
     "send_magic_link": "E-maillink verzenden",
     "emergency_email_link": "Ik heb geen toegang tot mijn authenticator, stuur mij een e-mail",
     "emergency_email_sent": "Er is een herstellink naar uw e-mail verzonden. Controleer uw inbox.",

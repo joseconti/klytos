@@ -462,6 +462,8 @@
     "magic_link_desc": "Link logowania zostanie wysłany na zarejestrowany adres e-mail.",
     "magic_link_subject": "Twój link logowania",
     "magic_link_body": "Kliknij poniższy link, aby się zalogować:\n\n{url}\n\nTen link wygasa za {minutes} minut i może być użyty tylko raz.",
+    "passkey_enrolled_subject": "Do Twojego konta dodano nowy klucz dostępu",
+    "passkey_enrolled_body": "Do Twojego konta dodano nowy klucz dostępu („{label}”) i można go teraz używać jako drugiego składnika. Jeśli to nie Ty, usuń go w ustawieniach zabezpieczeń i natychmiast zmień hasło.",
     "send_magic_link": "Wyślij link e-mail",
     "emergency_email_link": "Nie mam dostępu do aplikacji uwierzytelniającej, wyślij mi e-mail",
     "emergency_email_sent": "Link odzyskiwania został wysłany na Twój e-mail. Sprawdź skrzynkę odbiorczą.",

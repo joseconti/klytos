@@ -462,6 +462,8 @@
     "magic_link_desc": "A login link will be sent to your registered email address.",
     "magic_link_subject": "Your login link",
     "magic_link_body": "Click the following link to log in:\n\n{url}\n\nThis link expires in {minutes} minutes and can only be used once.",
+    "passkey_enrolled_subject": "A new passkey was added to your account",
+    "passkey_enrolled_body": "A new passkey (\"{label}\") was added to your account and can now be used as your second factor. If this was not you, remove it from your security settings and change your password immediately.",
     "send_magic_link": "Send email link",
     "emergency_email_link": "I can't access my authenticator, send me an email",
     "emergency_email_sent": "A recovery link has been sent to your email. Check your inbox.",

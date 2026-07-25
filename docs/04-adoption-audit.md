@@ -887,7 +887,32 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 
 ---
 
-### NEW-09 — Passkey second-factor login is broken, and the obvious fix opens an account-takeover path — **HIGH** *(found 2026-07-19, Sprint 1 slice 4)* — **NOT FIXED, deliberately**
+### NEW-09 — Passkey second-factor login is broken, and the obvious fix opens an account-takeover path — **HIGH** *(found 2026-07-19, Sprint 1 slice 4)* — **CLOSED 2026-07-25 (Sprint 5 slice 2, D-058)**
+- **Closed in the order D-036 demanded, and the order is the whole fix.** (1) `register_challenge`
+  and `register_complete` now require `isAuthenticated()`, leaving only `auth_challenge` reachable
+  while 2FA is pending; (2) `login.php`'s dispatcher gained the `passkey` branch wired to
+  `TwoFactor::verifyPasskeyAssertion()`; (3) the account holder is emailed on enrolment and a
+  `user.passkey_enrolled` action fires; (4) **only then** was
+  `api/webauthn-challenge.php` added to `$preAuthScripts`. Proven end to end without a browser: a
+  P-256 key, a hand-encoded COSE key and CBOR attestation object, and a real ES256 signature over
+  `authData || SHA-256(clientDataJSON)` — enrolled through the product's own
+  `completePasskeyRegistration()` and completed through the real login form over HTTP
+  (`tests/Integration/PasskeyLoginTest.php`). The takeover proof is a permanent test: registration is
+  **refused** in the 2FA-pending state, and all four tests were observed failing before the exemption
+  existed.
+- **Correction of record: this entry said "all FOUR of its actions". There are THREE**
+  (`register_challenge`, `register_complete`, `auth_challenge`) plus an unknown-action branch.
+  Re-counted against source while writing the fix (L-015: a number inherited from another document is
+  not a measurement). The finding's substance is unaffected — two of the three were the dangerous
+  pair, and they are the two now restricted.
+- **A second-order defect was found and closed in the same change:** `$preAuthScripts` was matched
+  against `basename( SCRIPT_NAME )`, and **six** filenames exist in both `admin/` and `admin/api/`
+  (`ai-chat`, `logs`, `plugins`, `tasks`, `terminal`, `translations`) — the exact collision D-032 keyed
+  the gate map by path to avoid. Adding the list's first `api/` entry is what made it matter, so the
+  list now matches `klytos_admin_gate_key()`, which resolves from `SCRIPT_FILENAME` and returns null
+  (i.e. requires authentication) for anything outside `admin/`. `webauthn-challenge.php` happens to be
+  unique repo-wide, so nothing was exploitable; the mechanism was one same-named file away from being.
+- Original entry follows, unchanged.
 - **Where:** `installer/admin/bootstrap.php` (the auth-guard exemption list),
   `installer/admin/api/webauthn-challenge.php:20`, `installer/admin/login.php:54-99` and `:311`,
   `installer/core/two-factor.php:507-530` and `:586`
@@ -2038,6 +2063,32 @@ verified test point with a recorded files-updated count.
   rather than an L-002 documentation defect; `docs/reference/authentication.md` now states it in its
   suspension table.
 - **Trigger:** the next slice touching the OAuth server or token validation, or the NEW-40 slice.
+
+### NEW-42 — Four rough edges in the passkey assertion path, now that it is reachable — **LOW–MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 2 review passes)* — recorded, NOT fixed
+- **Where:** `installer/core/two-factor.php::verifyPasskeyAssertion()`; `installer/admin/bootstrap.php` (the setup-wizard skip-list)
+- **What (four, each verified against source):**
+  1. **No clone detection.** The new signature count is stored without being compared to the stored
+     one, so an authenticator that has been cloned — the exact condition the WebAuthn sign counter
+     exists to reveal — produces no signal. The data to detect it is written and never read.
+  2. **No `origin` check on assertion**, although `completePasskeyRegistration()` validates
+     `clientData['origin']` against `https://{rpId}`. Asymmetric, and the narrower path is the one
+     that runs at every login rather than once per enrolment.
+  3. **No length guard before reading `authData` offsets.** `completePasskeyRegistration()` checks
+     `strlen( $authData ) < 37` first; the assertion path does not, so a 32-byte
+     `authenticatorData` (trivially precomputable — it is `sha256( rpId )`, and the rpId is public)
+     reaches `ord( $authData[32] )` on an out-of-range offset. It fails **closed** after a PHP
+     warning, so this is log noise and a rough edge rather than a bypass.
+  4. **The setup-wizard skip-list was not extended alongside `$preAuthScripts`.** It still matches by
+     basename and does not name this endpoint, so on an install where `setup_completed` is false the
+     endpoint 302s to the wizard instead of answering its JSON contract. Narrow window; the two lists
+     should move together.
+- **Why they are recorded rather than fixed:** items 1–3 are inside `verifyPasskeyAssertion()`, which
+  this slice made reachable but did not write, and each is a behaviour decision of its own (what
+  should a sign-count regression DO — refuse, or warn?). Item 4 is a second list with its own
+  semantics. The slice that found them was already carrying two blocking corrections, and D-031's
+  narrowing is what keeps that from becoming an argument for widening it further.
+- **Trigger:** the next slice touching the WebAuthn path, or the first report of a passkey failing
+  after an authenticator restore.
 
 ---
 

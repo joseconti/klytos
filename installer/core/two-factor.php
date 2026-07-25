@@ -290,6 +290,50 @@ class TwoFactor
     }
 
     /**
+     * Tell the account holder that a new passkey was enrolled on their account.
+     *
+     * Enrolling an authenticator adds a credential that can pass the second factor
+     * from then on, so it is exactly the event an account holder must hear about
+     * even when it was legitimate — it is the only signal that would expose a
+     * silent enrolment by someone who reached an authenticated session. D-036
+     * recorded "notify the account owner on enrolment" as part of NEW-09's fix
+     * shape for that reason.
+     *
+     * Failure to send is NOT allowed to fail the enrolment: the credential is
+     * already stored by the time this runs, and throwing here would leave the user
+     * with a passkey the UI told them had failed.
+     *
+     * @param  string $email  Recipient email (the account's own address).
+     * @param  string $label  The label stored with the new passkey.
+     * @param  Mailer $mailer The Mailer instance (from $app->getMailer()).
+     * @return bool   True if mail was sent.
+     */
+    public function sendPasskeyEnrolledEmail(string $email, string $label, Mailer $mailer): bool
+    {
+        $i18n = $GLOBALS['klytos_i18n'] ?? null;
+
+        $subject = $i18n
+            ? $i18n->get('security.passkey_enrolled_subject')
+            : 'A new passkey was added to your account';
+
+        $message = $i18n
+            ? $i18n->get('security.passkey_enrolled_body', ['label' => $label])
+            : sprintf(
+                'A new passkey ("%s") was added to your account and can now be used '
+                . 'as your second factor. If this was not you, remove it from your '
+                . 'security settings and change your password immediately.',
+                $label
+            );
+
+        try {
+            return $mailer->send($email, $subject, $message);
+        } catch (\Throwable $e) {
+            error_log('Klytos: passkey enrolment notification could not be sent: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Enable magic link 2FA for a user.
      *
      * @param string $userId User ID.

@@ -462,6 +462,8 @@
     "magic_link_desc": "Kirjautumislinkki lähetetään rekisteröityyn sähköpostiosoitteeseesi.",
     "magic_link_subject": "Kirjautumislinkki",
     "magic_link_body": "Napsauta seuraavaa linkkiä kirjautuaksesi sisään:\n\n{url}\n\nTämä linkki vanhenee {minutes} minuutissa ja sitä voi käyttää vain kerran.",
+    "passkey_enrolled_subject": "Tilillesi lisättiin uusi pääsyavain",
+    "passkey_enrolled_body": "Tilillesi lisättiin uusi pääsyavain ('{label}'), ja sitä voi nyt käyttää toisena vaiheena. Jos et tehnyt tätä itse, poista se suojausasetuksista ja vaihda salasanasi välittömästi.",
     "send_magic_link": "Lähetä sähköpostilinkki",
     "emergency_email_link": "En pääse todennussovellukseeni, lähetä minulle sähköposti",
     "emergency_email_sent": "Palautuslinkki on lähetetty sähköpostiisi. Tarkista saapuneet viestit.",

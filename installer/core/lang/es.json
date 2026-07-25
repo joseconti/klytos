@@ -462,6 +462,8 @@
     "magic_link_desc": "Se enviara un enlace de acceso a tu correo electronico registrado.",
     "magic_link_subject": "Tu enlace de acceso",
     "magic_link_body": "Haz clic en el siguiente enlace para acceder:\n\n{url}\n\nEste enlace caduca en {minutes} minutos y solo puede usarse una vez.",
+    "passkey_enrolled_subject": "Se ha añadido una nueva clave de acceso a tu cuenta",
+    "passkey_enrolled_body": "Se ha añadido una nueva clave de acceso («{label}») a tu cuenta y ya puede usarse como segundo factor. Si no has sido tú, elimínala en los ajustes de seguridad y cambia tu contraseña de inmediato.",
     "send_magic_link": "Enviar enlace por email",
     "emergency_email_link": "No puedo acceder, enviadme un correo",
     "emergency_email_sent": "Se ha enviado un enlace de recuperacion a tu correo. Revisa tu bandeja de entrada.",

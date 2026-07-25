@@ -302,9 +302,45 @@ $currentScript = basename( $_SERVER['SCRIPT_NAME'] );
 // TwoFactor::verifyPasskeyAssertion() (two-factor.php:586) has zero call
 // sites. Fixing this properly means restricting the endpoint's actions AND
 // building the missing verification path — its own slice, with its own tests.
-$preAuthScripts = [ 'login.php', 'logout.php', 'reset-password.php' ];
+// THE D-036 ENTRY, AND IT IS DELIBERATELY THE LAST THING SPRINT 5 SLICE 2 WROTE.
+//
+// Sprint 1 slice 4 added `api/webauthn-challenge.php` here as a one-line fix for
+// NEW-09 and REVERTED it the same day: `is2faPending()` is true after a correct
+// PASSWORD alone, the endpoint gated every action on that condition, and
+// `TwoFactor::completePasskeyRegistration()` enrols a credential and sets
+// `enabled = true` without checking any existing factor. A stolen password would
+// therefore have defeated 2FA permanently. D-036 forbade re-adding this line
+// until the endpoint's registration actions were restricted first.
+//
+// They now are: `register_challenge` and `register_complete` require
+// `isAuthenticated()`, so what this exemption exposes is exactly one action —
+// `auth_challenge` — to a caller who has ALREADY passed the password stage, for
+// their own user id, returning their own credential ids and storing a challenge
+// scoped to them. `TwoFactor::verifyPasskeyAssertion()` then verifies a real
+// signature against the key stored at registration. Pinned by
+// PasskeyLoginTest::testRegistrationIsRefusedWhileTwoFactorIsMerelyPending, which
+// is the takeover proof: if it ever goes red, this line is unsafe again.
+//
+// The other question D-043 taught us to ask -- what does an ANONYMOUS caller now
+// reach? -- is answered by ordering rather than by hope: the cron manager and the
+// action scheduler run above (see the block near the top of this file), so they
+// already execute for every anonymous request to login.php, logout.php and
+// reset-password.php. A fourth entry adds no new anonymous capability, and the
+// endpoint still answers 401 to a caller with neither a session nor a pending
+// challenge.
+// Matched on the gate-map KEY (path relative to admin/), not on the basename.
+// $currentScript above is a basename, and six filenames exist in BOTH admin/ and
+// admin/api/ -- ai-chat, logs, plugins, tasks, terminal, translations -- which is
+// exactly why D-032 keyed the gate map by path. A basename entry here would
+// exempt every file with that name, so adding the first api/ entry to this list
+// is also the moment the list stops being keyed by basename.
+// klytos_admin_gate_key() resolves from SCRIPT_FILENAME (never the URL, so
+// traversal resolves to its real location) and returns null for anything outside
+// admin/ -- which then matches nothing and requires authentication: fail-closed.
+$preAuthScripts = [ 'login.php', 'logout.php', 'reset-password.php', 'api/webauthn-challenge.php' ];
+$currentSurface = klytos_admin_gate_key();
 
-if ( ! in_array( $currentScript, $preAuthScripts, true ) ) {
+if ( $currentSurface === null || ! in_array( $currentSurface, $preAuthScripts, true ) ) {
     if ( ! $app->getAuth()->isAuthenticated() ) {
         if ( klytos_current_surface() === 'api' ) {
             \Klytos\Core\Helpers::jsonResponse(

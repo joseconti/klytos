@@ -462,6 +462,8 @@
     "magic_link_desc": "En inloggningslänk skickas till din registrerade e-postadress.",
     "magic_link_subject": "Din inloggningslänk",
     "magic_link_body": "Klicka på följande länk för att logga in:\n\n{url}\n\nDenna länk upphör att gälla om {minutes} minuter och kan bara användas en gång.",
+    "passkey_enrolled_subject": "En ny nyckel har lagts till i ditt konto",
+    "passkey_enrolled_body": "En ny nyckel ('{label}') har lagts till i ditt konto och kan nu användas som andra faktor. Om det inte var du, ta bort den i säkerhetsinställningarna och byt lösenord omedelbart.",
     "send_magic_link": "Skicka e-postlänk",
     "emergency_email_link": "Jag kan inte nå min autentiseringsapp, skicka mig ett e-postmeddelande",
     "emergency_email_sent": "En återställningslänk har skickats till din e-post. Kontrollera din inkorg.",

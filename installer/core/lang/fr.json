@@ -462,6 +462,8 @@
     "magic_link_desc": "Un lien de connexion sera envoyé à votre adresse e-mail enregistrée.",
     "magic_link_subject": "Votre lien de connexion",
     "magic_link_body": "Cliquez sur le lien suivant pour vous connecter :\n\n{url}\n\nCe lien expire dans {minutes} minutes et ne peut être utilisé qu'une seule fois.",
+    "passkey_enrolled_subject": "Une nouvelle clé d'accès a été ajoutée à votre compte",
+    "passkey_enrolled_body": "Une nouvelle clé d'accès (« {label} ») a été ajoutée à votre compte et peut désormais servir de deuxième facteur. Si ce n'était pas vous, supprimez-la dans vos paramètres de sécurité et changez votre mot de passe immédiatement.",
     "send_magic_link": "Envoyer le lien par e-mail",
     "emergency_email_link": "Je ne peux pas accéder à mon authentificateur, envoyez-moi un e-mail",
     "emergency_email_sent": "Un lien de récupération a été envoyé à votre adresse e-mail. Vérifiez votre boîte de réception.",

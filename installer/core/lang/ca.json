@@ -462,6 +462,8 @@
     "magic_link_desc": "S'enviarà un enllaç d'inici de sessió a l'adreça de correu registrada.",
     "magic_link_subject": "El teu enllaç d'inici de sessió",
     "magic_link_body": "Fes clic al següent enllaç per iniciar sessió:\n\n{url}\n\nAquest enllaç caduca en {minutes} minuts i només es pot utilitzar una vegada.",
+    "passkey_enrolled_subject": "S'ha afegit una nova clau d'accés al teu compte",
+    "passkey_enrolled_body": "S'ha afegit una nova clau d'accés («{label}») al teu compte i ja es pot fer servir com a segon factor. Si no has estat tu, elimina-la des de la configuració de seguretat i canvia la contrasenya immediatament.",
     "send_magic_link": "Envia l'enllaç per correu",
     "emergency_email_link": "No puc accedir al meu autenticador, envieu-me un correu",
     "emergency_email_sent": "S'ha enviat un enllaç de recuperació al vostre correu. Reviseu la safata d'entrada.",

@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 146 |
 | Classes and interfaces | 102 |
-| Actions | 308 |
+| Actions | 309 |
 | Filters | 120 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **962** |
+| **Total** | **963** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -203,7 +203,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\EncryptionLevelTrait` | trait | installer/core/encryption-level-trait.php | — | Shared per-record encryption-level decisions reused by storage drivers |
 | `Klytos\Core\ExportManager` | class | installer/core/export-manager.php | — | Exports site content to JSON, CSV and WXR files |
 | `Klytos\Core\FileStorage` | class | installer/core/file-storage.php | — | Filesystem storage driver reading and writing encrypted records as files |
-| `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens and environment checks; `isHttps()` is the single TLS check (see the reference doc) |
+| `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens and environment checks; `isHttps()` is the single TLS check (see the reference doc) and `webauthnRpId()` the single WebAuthn Relying Party ID (docs/reference/authentication.md) |
 | `Klytos\Core\HookContractException` | class | installer/core/hook-contract-exception.php | docs/reference/hooks.md | Thrown when a hook listener declares a by-reference parameter, which no dispatch path can bind |
 | `Klytos\Core\Hooks` | class | installer/core/hooks.php | docs/reference/hooks.md | Action and filter registry that dispatches the CMS extensibility events |
 | `Klytos\Core\HtmlToMarkdown` | class | installer/core/html-to-markdown.php | — | Converts HTML fragments into Markdown text |
@@ -247,7 +247,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\TerminalExecutor` | class | installer/core/terminal-executor.php | — | Executes web-terminal commands and keeps the command registry and history |
 | `Klytos\Core\ThemeManager` | class | installer/core/theme-manager.php | — | Stores theme colors, fonts and layout and generates the CSS variables |
 | `Klytos\Core\TranslationManager` | class | installer/core/translation-manager.php | — | Manages translation sources, reference keys and saved per-language strings |
-| `Klytos\Core\TwoFactor` | class | installer/core/two-factor.php | — | TOTP, magic-link, passkey and recovery-code second-factor authentication |
+| `Klytos\Core\TwoFactor` | class | installer/core/two-factor.php | docs/reference/authentication.md | TOTP, magic-link, passkey and recovery-code second-factor authentication; `verifyPasskeyAssertion()` is what the login dispatcher calls and `sendPasskeyEnrolledEmail()` notifies the account holder on enrolment |
 | `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups |
 | `Klytos\Core\UserManager` | class | installer/core/user-manager.php | docs/reference/authentication.md | User CRUD, authentication (`authenticate()` is the sole login authority — D-056), password resets, the ONE capability matrix (`hasPermission()` — see docs/reference/authorization.md) and ownership transfer; the owner can be neither deleted nor suspended |
 | `Klytos\Core\VersionManager` | class | installer/core/version-manager.php | — | Saves, lists, diffs, prunes and restores page revisions |
@@ -578,6 +578,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | user.login | action | installer/core/user-manager.php | — | Fired when credentials authenticate successfully; receives the sanitized user record |
 | user.logout | action | installer/core/auth.php | — | Fired before the session is destroyed; receives the session username and user ID |
 | user.ownership_transferred | action | installer/core/user-manager.php | — | Fired when site ownership moves to another account; receives previous and new owner IDs |
+| user.passkey_enrolled | action | installer/admin/api/webauthn-challenge.php | docs/reference/authentication.md | Fired after an authenticator is enrolled; receives user ID, credential ID and label. No core listener — the account holder is emailed separately |
 | user.role_changed | action | installer/core/user-manager.php | — | Fired on update only when the role actually differs; receives user ID, new role and old role |
 | user.updated | action | installer/core/user-manager.php | — | Fired once account changes are persisted; receives the sanitized updated user record |
 | webhook.after_create | action | installer/core/webhook-manager.php | — | Lets plugins act once a webhook subscription is stored; receives the webhook record |

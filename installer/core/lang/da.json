@@ -462,6 +462,8 @@
     "magic_link_desc": "Et login-link sendes til din registrerede e-mailadresse.",
     "magic_link_subject": "Dit login-link",
     "magic_link_body": "Klik på følgende link for at logge ind:\n\n{url}\n\nDette link udløber om {minutes} minutter og kan kun bruges én gang.",
+    "passkey_enrolled_subject": "Der er tilføjet en ny adgangsnøgle til din konto",
+    "passkey_enrolled_body": "Der er tilføjet en ny adgangsnøgle ('{label}') til din konto, og den kan nu bruges som anden faktor. Hvis det ikke var dig, skal du fjerne den i sikkerhedsindstillingerne og straks ændre din adgangskode.",
     "send_magic_link": "Send e-mail-link",
     "emergency_email_link": "Jeg kan ikke tilgå min godkendelsesapp, send mig en e-mail",
     "emergency_email_sent": "Et gendannelseslink er blevet sendt til din e-mail. Tjek din indbakke.",

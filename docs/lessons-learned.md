@@ -748,3 +748,47 @@
   L-008's rule with a new cause: when results change without the code changing, enumerate what else
   changed in the environment before touching a single assertion — a green suite that was green an hour
   ago does not spontaneously develop six unrelated defects.
+
+## L-026 — The test harness sent a header the product never sends, so a feature that could not work in any browser had a green suite
+- Problem: Sprint 5 slice 2 closed NEW-09 — passkey second-factor login — with five tests, a real
+  ES256 signature, a real CBOR/COSE fixture, and the credential enrolled through the product's own
+  `completePasskeyRegistration()`. All of it passed. **None of it could happen in a browser.**
+  `login.php` and `security.php` call the endpoint with `Content-Type: application/json` and put the
+  CSRF token inside the JSON body; `Helpers::verifyCsrf()` reads `$_POST['csrf']`, the
+  `X-CSRF-Token` header and `$_GET['csrf']`; and PHP does not populate `$_POST` for a JSON body. So
+  the real request was answered **403 `Invalid CSRF token`** — passkey enrolment and passkey login
+  both unreachable, on top of the two defects NEW-09 already named.
+- Where: `tests/AdminHttpTestCase.php::postJson()` versus `installer/admin/login.php`'s and
+  `installer/admin/security.php`'s `fetch()` calls; `installer/core/helpers.php::verifyCsrf()`;
+  `installer/admin/api/webauthn-challenge.php`.
+- What failed, and it is worse than a missed case: **`postJson()` adds an `X-CSRF-Token` header that
+  no shipped page sends** — and its own docblock explains exactly why, in a sentence that is a
+  correct diagnosis of the product's bug: *"klytos_verify_csrf() reads the request superglobals and
+  the header, not the JSON body."* The harness had understood the problem and worked around it,
+  silently, for every JSON test in the project. So the suite was not merely failing to observe the
+  defect — **it was repairing it on the way in.**
+- The tell had been sitting in the endpoint the whole time: `$csrf = $input['csrf'] ?? '';` was read
+  into a variable and never used. Dead code marking the exact spot.
+- How it was caught, which is the transferable part: **not by the suite, and not by reading — by a
+  reviewer asking whether the test client resembles the real one.** The `security-auditor` traced the
+  shipped page's `fetch()` options against the CSRF helper's sources and reported that the two could
+  never meet. It was then proven in the main session by building the request by hand, with exactly
+  the page's headers, and watching it return 403.
+- This is **L-016 one turn further out**. That lesson was about measurements that go green without
+  observing anything — a defaulting fallback, a status code two paths both emit, a fixture built from
+  the wrong tree. This is a harness that observes correctly and *fixes the subject first*. Both are
+  instruments lying; only this one improves the product as it measures it, which is why it survives
+  code review, a green suite, and a proven-to-fail-first cycle. Every one of those was satisfied here.
+- Working solution: the endpoint now accepts the token from **either** channel (using the variable it
+  already read), and all three `fetch()` calls send the header too — so neither side can silently
+  break the other again. Pinned by `testTheEndpointAcceptsTheTokenTheShippedPageActuallySends`, which
+  builds its request by hand *without* the convenience header, is the only test in that class that
+  reproduces the shipped page byte for byte, and was observed failing first.
+- Rule for next time: **when a test drives an HTTP surface, the request it sends must be the request
+  the product's own client sends — compare them field by field, and treat any convenience the harness
+  adds (a header, a default, a normalisation) as a potential repair of the thing under test.** Any
+  helper that makes requests "just work" is a suspect. Concretely: for every endpoint called from
+  JavaScript, read the `fetch()`/XHR options in the shipped page and assert that the test builds the
+  same thing — or, better, have one test per endpoint that constructs the request by hand. And when a
+  test helper's docblock explains *why* something has to be done a particular way, ask whether that
+  explanation is describing a workaround for a defect nobody filed.

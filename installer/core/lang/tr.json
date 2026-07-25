@@ -462,6 +462,8 @@
     "magic_link_desc": "Kayıtlı e-posta adresinize bir giriş bağlantısı gönderilecektir.",
     "magic_link_subject": "Giriş bağlantınız",
     "magic_link_body": "Giriş yapmak için aşağıdaki bağlantıya tıklayın:\n\n{url}\n\nBu bağlantı {minutes} dakika içinde sona erer ve yalnızca bir kez kullanılabilir.",
+    "passkey_enrolled_subject": "Hesabınıza yeni bir geçiş anahtarı eklendi",
+    "passkey_enrolled_body": "Hesabınıza yeni bir geçiş anahtarı (\"{label}\") eklendi ve artık ikinci faktör olarak kullanılabilir. Bunu siz yapmadıysanız, güvenlik ayarlarından kaldırın ve şifrenizi hemen değiştirin.",
     "send_magic_link": "E-posta bağlantısı gönder",
     "emergency_email_link": "Kimlik doğrulama uygulamamı kullanamıyorum, bana e-posta gönder",
     "emergency_email_sent": "E-postanıza bir kurtarma bağlantısı gönderildi. Gelen kutunuzu kontrol edin.",

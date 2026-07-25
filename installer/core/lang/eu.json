@@ -462,6 +462,8 @@
     "magic_link_desc": "Saioa hasteko lotura bat bidaliko da erregistratutako posta-helbidera.",
     "magic_link_subject": "Zure saioa hasteko lotura",
     "magic_link_body": "Egin klik ondorengo loturan saioa hasteko:\n\n{url}\n\nLotura hau {minutes} minututan iraungitzen da eta behin bakarrik erabil daiteke.",
+    "passkey_enrolled_subject": "Sarbide-gako berri bat gehitu da zure kontuan",
+    "passkey_enrolled_body": "Sarbide-gako berri bat («{label}») gehitu da zure kontuan eta bigarren faktore gisa erabil daiteke. Zu izan ez bazara, ezabatu segurtasun-ezarpenetan eta aldatu pasahitza berehala.",
     "send_magic_link": "Posta-lotura bidali",
     "emergency_email_link": "Ezin dut nire autentifikatzailea atzitu, bidali posta bat",
     "emergency_email_sent": "Berreskuratze-lotura bat bidali da zure postara. Egiaztatu sarrera-ontzia.",

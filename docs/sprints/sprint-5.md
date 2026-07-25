@@ -3,8 +3,10 @@
 - **Planned:** 2026-07-25 (plan mode, approved by the user). Kickoff re-validation ran across the
   planning session and the implementation session; every claim below was re-derived from source in the
   session that wrote it, not carried from the plan (L-015).
-- **Status:** **IN PROGRESS** — **slice 1 CLOSED 2026-07-25** (audit **NEW-11**, **NEW-37** and
-  **NEW-39** closed; **NEW-40** and **NEW-41** opened and recorded). Slice 2 (NEW-09) next.
+- **Status:** **BOTH SLICES CLOSED 2026-07-25** — audit **NEW-09**, **NEW-11**, **NEW-37** and
+  **NEW-39** closed; **NEW-38**, **NEW-40**, **NEW-41** and **NEW-42** opened and recorded.
+  Decisions **D-056**, **D-057**, **D-058**; lesson **L-026**. Sprint close-out (docs-verifier,
+  playground-QA, the user's own verdict, Estimate v5, continuation prompt) is what remains.
 - **Scope basis:** audit **NEW-11** (only `config['admin_user']` can log in), found 2026-07-19 in
   Sprint 1 slice 4 and deferred with the trigger *"the authentication slice"*; audit **NEW-09**
   (passkey second-factor login is broken and its obvious fix opens an account takeover), bound by
@@ -119,7 +121,7 @@ sprint's first test point, per L-025: the playground is a single-tenant resource
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
 | 1 | The gate consults the user record | **NEW-11**, **NEW-37**, **NEW-39** | **closed 2026-07-25** | **PASS** — suite **227 → 243 tests / 1059 → 1130 assertions**; keel-verify 10 checks exit 0 (the same 2 Phase-7 WARNs); upgrade from real v0.30.1 PASS **and now asserts LOGIN, not just boot**; all five D-025 baselines held exactly. Evidence in `docs/05-test-points.md` | `Auth::login()` delegates to `UserManager::authenticate()` (D-056); per-account lockout keyed by the **submitted** username, one pruned file in `installer/data/`; `security.php` re-pointed; `validateAppPassword()` resolved against an **active** record, so a non-owner's credential reaches D-046's gate with its own role; owner-status guard; `status` on the 60 s re-read; **NEW-29 fixed in path**; six teaching surfaces corrected (L-004). **The `code-reviewer` returned a BLOCKING finding that was correct and was my own guard defeating itself** — `role` is processed before `status` and mutates `$user` in place, so demoting in the same call sailed past the owner-suspend check. **NEW-39 found by the `security-auditor` and MEASURED at 340×** before being fixed; the two reviewers described it differently and only one was right (**L-023**) |
-| 2 | Passkey second-factor login completes | **NEW-09** | **planned** | — | Order is the point: restrict the registration actions **first**, add the dispatcher branch, notify on enrolment, and only **then** the `$preAuthScripts` entry. D-036's one-liner stays forbidden until it is last |
+| 2 | Passkey second-factor login completes | **NEW-09** | **closed 2026-07-25** | **PASS** — suite **243 → 247 tests / 1130 → 1149 assertions**; keel-verify 10 checks exit 0 (locale parity across 120 files with the 2 new keys ×20; INDEX 962 → **963**); upgrade from real v0.30.1 PASS after the bootstrap auth-guard change; five D-025 baselines held exactly. Evidence in `docs/05-test-points.md` | Order held exactly: registration restricted to fully authenticated callers **first**, dispatcher branch second, enrolment notification third, `$preAuthScripts` **last** (**D-058**). Proven with a REAL ES256 signature and no browser, enrolled through the product's own `completePasskeyRegistration()` (L-005); all four tests observed failing before the exemption existed. **A second-order defect closed in the same change:** `$preAuthScripts` matched on `basename()`, and six filenames exist in both `admin/` and `admin/api/` — the collision D-032 keyed the gate map by path to avoid; it now matches `klytos_admin_gate_key()`. Audit NEW-09's own "all four actions" corrected to **three** |
 
 ### Slice 1 — the gate consults the user record
 

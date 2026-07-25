@@ -462,6 +462,8 @@
     "magic_link_desc": "Un link di accesso verrà inviato al tuo indirizzo email registrato.",
     "magic_link_subject": "Il tuo link di accesso",
     "magic_link_body": "Clicca sul seguente link per accedere:\n\n{url}\n\nQuesto link scade tra {minutes} minuti e può essere usato una sola volta.",
+    "passkey_enrolled_subject": "Una nuova passkey è stata aggiunta al tuo account",
+    "passkey_enrolled_body": "Una nuova passkey («{label}») è stata aggiunta al tuo account e ora può essere usata come secondo fattore. Se non sei stato tu, rimuovila dalle impostazioni di sicurezza e cambia subito la password.",
     "send_magic_link": "Invia link via email",
     "emergency_email_link": "Non riesco ad accedere al mio autenticatore, inviami un'email",
     "emergency_email_sent": "Un link di recupero è stato inviato alla tua email. Controlla la posta in arrivo.",

@@ -462,6 +462,8 @@
     "magic_link_desc": "Ein Anmelde-Link wird an Ihre registrierte E-Mail-Adresse gesendet.",
     "magic_link_subject": "Ihr Anmelde-Link",
     "magic_link_body": "Klicken Sie auf den folgenden Link, um sich anzumelden:\n\n{url}\n\nDieser Link läuft in {minutes} Minuten ab und kann nur einmal verwendet werden.",
+    "passkey_enrolled_subject": "Ein neuer Passkey wurde zu Ihrem Konto hinzugefügt",
+    "passkey_enrolled_body": "Ein neuer Passkey („{label}“) wurde zu Ihrem Konto hinzugefügt und kann jetzt als zweiter Faktor verwendet werden. Falls Sie das nicht waren, entfernen Sie ihn in den Sicherheitseinstellungen und ändern Sie sofort Ihr Passwort.",
     "send_magic_link": "E-Mail-Link senden",
     "emergency_email_link": "Ich kann nicht auf meinen Authenticator zugreifen, senden Sie mir eine E-Mail",
     "emergency_email_sent": "Ein Wiederherstellungslink wurde an Ihre E-Mail gesendet. Überprüfen Sie Ihren Posteingang.",

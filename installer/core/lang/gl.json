@@ -462,6 +462,8 @@
     "magic_link_desc": "Enviarase unha ligazón de inicio de sesión ao enderezo de correo rexistrado.",
     "magic_link_subject": "A túa ligazón de inicio de sesión",
     "magic_link_body": "Fai clic na seguinte ligazón para iniciar sesión:\n\n{url}\n\nEsta ligazón caduca en {minutes} minutos e só se pode usar unha vez.",
+    "passkey_enrolled_subject": "Engadiuse unha nova chave de acceso á túa conta",
+    "passkey_enrolled_body": "Engadiuse unha nova chave de acceso («{label}») á túa conta e xa se pode usar como segundo factor. Se non foches ti, elimínaa nos axustes de seguridade e cambia o teu contrasinal de inmediato.",
     "send_magic_link": "Enviar ligazón por correo",
     "emergency_email_link": "Non podo acceder ao meu autenticador, envíenme un correo",
     "emergency_email_sent": "Enviouse unha ligazón de recuperación ao teu correo. Revisa a bandexa de entrada.",

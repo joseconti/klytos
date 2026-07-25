@@ -2812,6 +2812,75 @@ fallback string for two scopes; it also passed two multi-word scopes as one quot
 reading each scope's real output. **A measurement with a fallback is the defect L-016 records**, and
 it appeared again in the same project three sprints later.
 
+### Slice 2 — passkey second-factor login completes — evidence (commands and output, 2026-07-25)
+
+**PROVEN TO FAIL FIRST (L-016): all four tests red before the `$preAuthScripts` entry existed** —
+which is the ordering proof, since the exemption is the last step by design.
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter PasskeyLoginTest --testdox   # before step 4
+  ✘ Registration is refused while two factor is merely pending   (401 from the auth guard, not 403)
+  ✘ The authentication challenge is reachable while two factor is pending
+  ✘ A passkey completes a second factor login
+  ✘ A tampered assertion is refused
+  Tests: 4, Failures: 4
+$ … after step 4
+  OK (4 tests, 19 assertions)
+```
+
+**THE REVIEW CYCLE FOUND THAT THIS SLICE HAD NOT CLOSED NEW-09 AT ALL.**
+
+The `security-auditor` reported that the shipped page's request could never pass CSRF validation.
+**Reproduced by running, not by reading** — a request built with exactly `login.php`'s headers
+(`Content-Type: application/json` only, token inside the JSON body):
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter testTheEndpointAcceptsTheTokenTheShippedPageActuallySends
+  ✘ The endpoint refused the CSRF token the shipped page sends
+    (body: {"error":"Invalid CSRF token"})
+    Failed asserting that 403 is identical to 200.
+```
+
+`Helpers::verifyCsrf()` reads `$_POST`, `X-CSRF-Token` and `$_GET`; PHP does not populate `$_POST`
+for a JSON body. So passkey registration and passkey login were **both unreachable in a browser** —
+and the whole suite was green because `AdminHttpTestCase::postJson()` adds an `X-CSRF-Token` header
+the shipped page never sends. **The harness was quietly repairing the product it was measuring**, with
+the correct diagnosis written into its own docblock as a workaround. L-016 one turn further out.
+
+The tell was in the endpoint the entire time: `$csrf = $input['csrf'] ?? '';` was read and never used.
+Fixed on both sides (the endpoint honours the body token; all three `fetch()` calls now send the
+header), and pinned by the hand-built test above — the only one here that reproduces the shipped page
+byte for byte.
+
+**Second BLOCKING finding (`code-reviewer`), also correct:** `klytos_do_action( 'user.passkey_enrolled' )`
+sat inside the registration `try/catch`, so a plugin throwing `RuntimeException` would have answered
+`{"success": false}` / 400 for a credential that was **already stored** — contradicting this slice's
+own comment claiming neither notification could fail the enrolment. The success response is now sent
+before the notification block, which has its own `catch ( \Throwable )`.
+
+**Full verification, after both fixes.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (248 tests, 1152 assertions)        ← slice 1 close: 243/1130; sprint start: 227/1059
+$ php scripts/keel-verify
+  OK — 10 check(s) passed, 2 warning(s) …   (locale parity 120 files: the 2 new keys ×20;
+                                             INDEX 962 → 963 after the new action row)
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+     — load-bearing here because the $preAuthScripts change touches the auth guard
+       of EVERY admin surface, not just this endpoint
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+  A TOTAL OF 192 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES   ← baseline held
+```
+
+The core+admin baseline **grew to 194 mid-slice** (a multi-line `if` in the new guard) and was brought
+back to 192 by fixing the file rather than by rebaselining — D-025 says a touched file is left clean.
+
+**Recorded and NOT fixed:** **NEW-42** — four rough edges in the now-reachable assertion path (no
+clone detection from the sign counter, no `origin` check, no length guard before reading `authData`
+offsets, and the setup-wizard skip-list not extended alongside `$preAuthScripts`).
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in

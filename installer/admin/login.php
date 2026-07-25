@@ -80,6 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->is2faPending()) {
             $user = $app->getStorage()->read('users', $userId);
             $secret = $user['two_factor']['totp_secret'] ?? '';
             $verified = $twoFactor->verifyTotp($secret, $code);
+        } elseif ($method === 'passkey') {
+            // This page's own front end has posted `2fa_method=passkey` since before
+            // there was a branch to receive it: the #passkey-form below fills its
+            // hidden 2fa_code field with the JSON assertion from
+            // navigator.credentials.get(). TwoFactor::verifyPasskeyAssertion() was
+            // likewise complete and had ZERO call sites — the two halves of the
+            // feature existed and were never connected, which is why passkey
+            // second-factor login has never worked (audit NEW-09).
+            $assertion = json_decode($code, true);
+            $verified  = is_array($assertion)
+                && $twoFactor->verifyPasskeyAssertion($userId, $assertion, Helpers::webauthnRpId());
         } elseif ($method === 'recovery') {
             $verified = $twoFactor->verifyRecoveryCode($userId, $code);
         } elseif ($method === 'email' || $method === 'emergency_email') {
@@ -319,7 +330,7 @@ if ($show2fa) {
             try {
                 var resp = await fetch('<?php echo $basePath; ?>admin/api/webauthn-challenge.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'X-CSRF-Token': '<?php echo $auth->getCsrfToken(); ?>'},
                     body: JSON.stringify({action: 'auth_challenge', csrf: '<?php echo $auth->getCsrfToken(); ?>'})
                 });
                 var options = await resp.json();

@@ -328,12 +328,14 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      * which returns 400 and would make a refusal test pass without ever
      * reaching the code under test.
      *
-     * @param  string              $path   Path relative to the document root.
-     * @param  array<string,mixed> $body   Decoded JSON body.
-     * @param  string              $role   Seeded username.
+     * @param  string              $path      Path relative to the document root.
+     * @param  array<string,mixed> $body      Decoded JSON body.
+     * @param  string              $role      Seeded username.
+     * @param  string|null         $sessionId Send THIS session instead of the
+     *                                        authenticated one built for $role.
      * @return array{status:int, body:string, content_type:string, location:string}
      */
-    protected function postJson( string $path, array $body, string $role ): array
+    protected function postJson( string $path, array $body, string $role, ?string $sessionId = null ): array
     {
         $handle = $this->handleFor( $path );
 
@@ -341,10 +343,15 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
         // superglobals and the header, not the JSON body.
         $body['csrf'] = self::CSRF_TOKEN;
 
+        // $sessionId lets a caller send a session this method did not build --
+        // Sprint 5 slice 2 needs the 2FA-PENDING shape, which is not an
+        // authenticated session and so cannot come from sessionFor(). Generalized
+        // rather than copied, for the reason in the class docblock: a second copy
+        // of this method would fork the three defects L-008 records.
         curl_setopt_array( $handle, [
             CURLOPT_POST       => true,
             CURLOPT_POSTFIELDS => json_encode( $body ),
-            CURLOPT_COOKIE     => 'klytos_session=' . $this->sessionFor( $role ),
+            CURLOPT_COOKIE     => 'klytos_session=' . ( $sessionId ?? $this->sessionFor( $role ) ),
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
                 'X-CSRF-Token: ' . self::CSRF_TOKEN,
@@ -425,14 +432,61 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
     /**
      * Write a session file for a seeded role and return its session ID.
      *
-     * Mirrors Auth::login()'s successful-session shape (core/auth.php:129-136),
-     * for the reason given in the class docblock: non-owner roles cannot reach
-     * that code path at all (NEW-11).
+     * Mirrors the successful-session shape Auth::login() writes. Synthesized
+     * rather than logged in for the reason given in the class docblock: a gate
+     * test should measure the gate, not the login form.
      *
      * @param  string $role Seeded username.
      * @return string Session ID.
      */
     protected function sessionFor( string $role ): string
+    {
+        $user = $this->requireSeededUser( $role );
+
+        return $this->writeSession( 'klytos-gate-test-' . $role, [
+            'klytos_auth'        => true,
+            'klytos_user'        => $user['username'],
+            'klytos_user_id'     => $user['id'],
+            'klytos_login_time'  => time(),
+            'klytos_last_active' => time(),
+            'klytos_csrf'        => self::CSRF_TOKEN,
+        ] );
+    }
+
+    /**
+     * Write a session in the 2FA-PENDING state — password accepted, second
+     * factor not yet supplied.
+     *
+     * This is the state a passkey second-factor login happens in, and it is a
+     * genuinely different shape from an authenticated session rather than a
+     * variant of one: `klytos_auth` is absent, so `isAuthenticated()` is false
+     * while `is2faPending()` is true. It mirrors what Auth::login() writes on the
+     * 2FA branch. Sprint 5 slice 2 needs it to drive the real login form, and to
+     * prove that the endpoint's registration actions are REFUSED here (D-036).
+     *
+     * @param  string $role Seeded username.
+     * @return string Session ID.
+     */
+    protected function pendingTwoFactorSessionFor( string $role ): string
+    {
+        $user = $this->requireSeededUser( $role );
+
+        return $this->writeSession( 'klytos-2fa-pending-' . $role, [
+            'klytos_2fa_pending' => true,
+            'klytos_2fa_user'    => $user['username'],
+            'klytos_2fa_user_id' => $user['id'],
+            'klytos_2fa_time'    => time(),
+            'klytos_csrf'        => self::CSRF_TOKEN,
+        ] );
+    }
+
+    /**
+     * The seeded user record, or a failure naming the reseed command.
+     *
+     * @param  string $role Seeded username.
+     * @return array<string, mixed>
+     */
+    private function requireSeededUser( string $role ): array
     {
         $user = $this->users->getByUsername( $role );
 
@@ -443,18 +497,27 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
             );
         }
 
-        // Deterministic per role, so repeated requests in one test reuse one
-        // session instead of littering the save path.
-        $sessionId = substr( hash( 'sha256', 'klytos-gate-test-' . $role ), 0, 32 );
+        return $user;
+    }
 
-        $payload = [
-            'klytos_auth'        => true,
-            'klytos_user'        => $user['username'],
-            'klytos_user_id'     => $user['id'],
-            'klytos_login_time'  => time(),
-            'klytos_last_active' => time(),
-            'klytos_csrf'        => self::CSRF_TOKEN,
-        ];
+    /**
+     * Write a session file the server will read, and return its ID.
+     *
+     * The ID is derived from $key so repeated requests in one test reuse one
+     * session instead of littering the save path. `php_serialize` is the handler
+     * the server is started with (see the -d flags above), which is why the
+     * payload is a plain serialize() of the array rather than session_encode()'s
+     * `key|value` format — getting that wrong yields an EMPTY session and a test
+     * that passes because every request arrived anonymous, which is precisely the
+     * defect L-008 records.
+     *
+     * @param  string               $key     Stable identity for this session.
+     * @param  array<string, mixed> $payload Session contents.
+     * @return string Session ID.
+     */
+    private function writeSession( string $key, array $payload ): string
+    {
+        $sessionId = substr( hash( 'sha256', $key ), 0, 32 );
 
         file_put_contents( self::$sessionPath . '/sess_' . $sessionId, serialize( $payload ) );
 
