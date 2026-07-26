@@ -69,6 +69,10 @@ the identity** — never duplicated:
 | **OAuth access token** | yes (the token's `user` subject) | the **user record** (`UserManager::getByUsername()`) |
 | **Bearer token** | **no** | the **token record itself** (a stamped `role` field) |
 
+Both username-carrying credentials go through **one** resolver,
+`TokenAuth::resolveUserActor()`, which reads the record's `role` **and** its `status` — see
+*Suspension* below.
+
 This is deliberate (D-047, as amended in slice 1). Application passwords and OAuth tokens already name
 a user, so their role follows that user's record — DRY, and it is what made per-user credentials work
 the moment **NEW-11** was closed. That happened in Sprint 5 (**D-056**): `validateAppPassword()` now
@@ -77,10 +81,57 @@ resolves the username against an **active user record** instead of comparing it 
 gate carrying the editor's role — with no change to the resolver, exactly as D-047 intended.
 Only bearer tokens, which name no user, carry a role on the credential.
 
-**Fail-closed everywhere.** An empty username, a username that no longer resolves to a user, a token
-record with no role, or any storage error all resolve to **null** — deny, never a default of `owner`.
-That last point matters: a valid credential whose user record has been deleted (a corrupted or
-half-migrated install, **NEW-08**) denies rather than escalating.
+**Fail-closed everywhere.** An empty username, a username that no longer resolves to a user, a
+**non-active** account, a token record with no role, or any storage error all resolve to **null** —
+deny, never a default of `owner`. That last point matters: a valid credential whose user record has
+been deleted (a corrupted or half-migrated install, **NEW-08**) denies rather than escalating.
+
+## Suspension — what it does, and what it does NOT do
+
+Suspending a user (`status = 'suspended'`) makes their OAuth access token answer **HTTP 401 on the
+next request**. Before Sprint 6 slice 2 it kept working, with its role, until it expired — up to an
+hour (audit **NEW-41**). Of the three credential types it was the only one where an operator's
+suspension did not take effect, and the inconsistency was the dangerous half: an operator who
+suspends an account reasonably believes access is gone.
+
+**It is refused at AUTHENTICATION (401), not at the gate (403)** — deliberately, per **D-060**. That
+is the layer **D-056** put application passwords at, so one operator action now produces one answer
+from every credential type rather than three. The wire body is the transport's
+`Unauthorized: Invalid or missing authentication credentials.` JSON-RPC error, not the catalogue's
+`mcp.permission_denied` refusal; that difference is what makes the layer observable, and
+`tests/Integration/OAuthSuspensionHttpTest.php` asserts it rather than the status alone.
+
+**What this does NOT do — said plainly rather than implied:** it does **not revoke** the stored
+token. The status is read on every request, so:
+
+```php
+$users = klytos_app()->getUserManager();
+
+$users->update( $editorId, [ 'status' => 'suspended' ] );  // the token answers 401 from now on
+$users->update( $editorId, [ 'status' => 'active' ] );     // the SAME token works again
+```
+
+Active revocation — deleting a suspended user's stored tokens, and the adjacent question of whether
+a **role change** should invalidate them too — is its own decision with its own test point and is
+**not built**. If an operator needs a token gone rather than refused, they revoke it explicitly.
+
+The same resolver change also applies to **application passwords**, where it is defence in depth
+rather than a fix: `validateAppPassword()` has required an active record since D-056, so a suspended
+user's application password was already refused one layer earlier.
+
+One consequence, named rather than discovered: an OAuth token whose user record has been **deleted**
+now also answers 401 instead of the gate's 403. Same direction D-056 chose for the same condition on
+the application-password path — both fail closed; only the layer moves.
+
+**Operational note an operator should know before suspending a busy integration (audit NEW-49).** A
+refused request is an *authentication failure*, so it feeds `RateLimiter`'s auth-failure bucket —
+which is keyed by **IP address**, shared by every credential from that address, and checked at the
+top of every MCP request (10 failures per 60 s → **429** for everyone behind it). A suspended client
+that keeps retrying will therefore throttle any *other* MCP client sharing its source address, which
+in practice means a NAT or a reverse proxy (the same precondition as **NEW-17**). It is not a new
+attacker capability — an invalid token has always cost the same one request — but it is a new way for
+a legitimate client to cause it, and the honest remedy is to stop the retrying integration rather
+than to wait out the window.
 
 ## Bearer tokens carry a role
 
@@ -428,4 +479,5 @@ Two honest limits, so this is not read as more than it is:
 `docs/reference/authorization.md` (the admin gate, whose matrix and default-deny shape slice 2
 reuses) · `docs/keel-verify.md` (check 10) · `docs/flows/mcp-tool-call.md` (the journey, including
 every failure branch) · `docs/playground.md` (the per-role `tools/call` table you can run) ·
-D-020 · D-046 · D-047 · D-048 · D-049 · D-050 · D-051 · NEW-02 (closed) · NEW-08 · NEW-11 · NEW-18
+D-020 · D-046 · D-047 · D-048 · D-049 · D-050 · D-051 · **D-060** (suspension, above) ·
+NEW-02 (closed) · NEW-08 · NEW-11 · NEW-18 · NEW-41 (closed)

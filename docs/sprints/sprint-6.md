@@ -3,7 +3,12 @@
 - **Planned:** 2026-07-26 (plan mode, approved by the user). Kickoff re-validation ran in the
   planning session; every claim below was re-derived from source in the session that wrote it, not
   carried from the audit (L-015).
-- **Status:** **SLICE 1 CLOSED 2026-07-26.** All five owed items are done — the three tests, the
+- **Status:** **SLICE 2 CLOSED 2026-07-26** — NEW-41 is closed at the trigger it named: a suspended
+  user's OAuth token answers **401 on the next request**, at authentication rather than at the gate
+  (D-060). Active revocation is **not** built and both the reference doc and the audit entry say so
+  in those words, pinned by a test that reactivates the account and watches the same token work
+  again. Suite **267 tests / 1266 assertions**. Slice 3 (NEW-42) is next. Previously: **SLICE 1
+  CLOSED 2026-07-26.** All five owed items are done — the three tests, the
   test-point row and both review passes — and the tree is green at **262 tests / 1237 assertions**,
   keel-verify `10 check(s) run: 8 passed, 2 warning(s)`, upgrade from real v0.30.1 PASS, all five lint
   baselines exact. **Holding the slice open was not bookkeeping: the first owed test found a live
@@ -88,9 +93,10 @@ construction rather than by memory.
 
 ### 4. NEW-41's fix point is a single shared resolver
 
-`TokenAuth::resolveUserActor()` (`token-auth.php:227`) reads `role` and never `status`, and it is
+`TokenAuth::resolveUserActor()` (`installer/core/mcp/token-auth.php`; it was at `:227` when this was
+written and the fix has since moved it — named by method so the citation cannot rot) reads `role` and never `status`, and it is
 the DRY resolver D-047 built for **both** the application-password and the OAuth paths
-(`validate():137` and `:156`). One change covers both — defence in depth for app passwords, which
+(`validate()`'s bearer and Basic-Auth branches). One change covers both — defence in depth for app passwords, which
 D-056 already refuses earlier, and the actual fix for OAuth.
 
 ### The environment
@@ -106,7 +112,7 @@ baseline suite ran — the playground is a single-tenant resource (L-025).
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
 | 1 | The counters are atomic, and the login endpoint has a ceiling | **NEW-40**, **NEW-20**, **NEW-44** | **CLOSED 2026-07-26** | suite **248 → 262 tests / 1152 → 1237 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly (192/488, 113/109, 0/0, 0/0, 0/2) | One promoted file-transaction primitive consumed by `Auth`'s lockout and `MCP\RateLimiter`; `recordFailedAttempt()` returns its post-increment count; the IP ceiling **reuses** the shipped `recordAuthFailure()`/`isAuthBlocked()` with no constant changed. **NEW-20 measured, not argued: 20 concurrent `check()` calls recorded 2–4 before, 20/20 after.** The three owed tests found a defect in the slice's own code (the 429 carried the wrong message — D-059 note 1) and one instrument failure in the test itself (the log-directory measurement passed alone and failed in the suite) |
-| 2 | Suspension takes effect on OAuth too | **NEW-41** | planned | — | `resolveUserActor()` reads `status`; the OAuth branch requires a non-null actor → **401**, where D-056 put application passwords |
+| 2 | Suspension takes effect on OAuth too | **NEW-41** | **CLOSED 2026-07-26** | suite **262 → 268 tests / 1237 → 1272 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly (192/488, 113/109, 0/0, 0/0, 0/2) | `resolveUserActor()` reads `status`; the OAuth branch requires a non-null actor → **401**, where D-056 put application passwords. Proven over the real MCP surface on **8109** with a token minted through the product's own OAuth+PKCE flow; **3 of 4 tests observed failing first** (200 where 401 was required; 403 for the deleted-user case) and the fourth is the recorded positive control. One existing test pinned the OLD layer in its precondition and was **tightened, not weakened**, as a recorded spec correction (D-060 note 1). **Both reviews returned no blocking finding**; two items taken — **NEW-49** (a refused OAuth request now feeds the shared IP-keyed auth-failure bucket, so a suspended integration's retry loop can 429 its NAT neighbours; LOW, verified against source, trigger = NEW-17's slice) and a **sixth test** pinning the fall-through that note 2 had only argued, proven in both directions by a reverted TEMP-BREAK |
 | 3 | The passkey assertion path | **NEW-42** | planned | — | Clone detection (both counters non-zero only), the `origin` check, the length guard, and the setup-wizard skip-list moved onto gate-map keys |
 
 ### Slice 1 — the counters are atomic, and the login endpoint has a ceiling

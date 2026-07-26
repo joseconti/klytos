@@ -131,11 +131,26 @@ class TokenAuth
             if ($this->app !== null) {
                 $oauthResult = $this->validateOAuthToken($bearerToken);
                 if ($oauthResult !== null) {
-                    $this->authMethod     = 'oauth';
-                    $this->authIdentifier = 'oauth:' . ($oauthResult['token_id'] ?? '');
                     // OAuth tokens carry a username — resolve its role from the user store.
-                    $this->actor          = $this->resolveUserActor($oauthResult['user'] ?? null);
-                    return true;
+                    // D-060: a usable actor is REQUIRED to accept. A token whose subject is
+                    // suspended (or whose record is gone) is not authenticated at all, so the
+                    // request is refused with 401 here rather than reaching the gate for a 403
+                    // — the layer D-056's implementation note 1 put application passwords at.
+                    // One resolver, one answer: an operator who suspends an account gets the
+                    // same behaviour from every credential type.
+                    //
+                    // Falling through rather than returning false keeps this method's documented
+                    // "tries in order" contract: a request that ALSO carries Basic credentials
+                    // for an active account still authenticates as that account. A bearer-only
+                    // request reaches step 3, finds nothing, and returns false.
+                    $actor = $this->resolveUserActor($oauthResult['user'] ?? null);
+
+                    if ($actor !== null) {
+                        $this->authMethod     = 'oauth';
+                        $this->authIdentifier = 'oauth:' . ($oauthResult['token_id'] ?? '');
+                        $this->actor          = $actor;
+                        return true;
+                    }
                 }
             }
         }
@@ -216,10 +231,20 @@ class TokenAuth
      * store. DRY and forward-compatible with per-user credentials (NEW-11): the
      * role follows the user record rather than a copy stamped on the credential.
      *
-     * An empty username, a username that no longer resolves to a user, or any
-     * storage error yields null — the fail-closed direction the gate treats as
-     * deny (this is the NEW-08 link: a valid credential whose owner record is gone
-     * denies rather than escalating).
+     * An empty username, a username that no longer resolves to a user, a
+     * NON-ACTIVE account, or any storage error yields null — the fail-closed
+     * direction (this is the NEW-08 link: a valid credential whose owner record is
+     * gone denies rather than escalating).
+     *
+     * The status check is audit NEW-41 / D-060, and it is placed here rather than
+     * in each caller precisely because this is the ONE resolver both credential
+     * types share (D-047): for application passwords it is defence in depth —
+     * validateAppPassword() has required an active record since D-056 — and for
+     * OAuth it is the fix, since nothing else on that path ever read the record.
+     * What it does NOT do is revoke the stored token: the status is read per
+     * request, so reactivating the account makes the same token work again. That
+     * distinction is stated in docs/reference/mcp-authorization.md rather than
+     * implied, and pinned by OAuthSuspensionHttpTest.
      *
      * @param  string|null $username
      * @return array|null  ['user_id' => int|string|null, 'role' => string|null], or null.
@@ -237,6 +262,14 @@ class TokenAuth
         }
 
         if ($user === null) {
+            return null;
+        }
+
+        // A missing status reads as 'active', which is the SAME expression
+        // UserManager::authenticate() uses (user-manager.php:451). One semantic for
+        // "is this account usable", not a second one invented here that could
+        // disagree with the login path — the S-04 lesson.
+        if (($user['status'] ?? 'active') !== 'active') {
             return null;
         }
 

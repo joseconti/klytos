@@ -2058,7 +2058,7 @@ verified test point with a recorded files-updated count.
   closed. **Trigger:** the next slice touching either limiter, or the first report of credential
   stuffing against a real install.
 
-### NEW-41 — Suspending a user does not revoke their OAuth access token — **MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 1 `security-auditor` pass)* — recorded, NOT fixed
+### NEW-41 — Suspending a user does not revoke their OAuth access token — **MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 1 `security-auditor` pass)* — **CLOSED 2026-07-26 (Sprint 6 slice 2, D-060)**
 - **Where:** `installer/core/mcp/token-auth.php::resolveUserActor()` and
   `installer/core/mcp/oauth-server.php::validateAccessToken()` (`ACCESS_LIFETIME = 3600`)
 - **What:** `resolveUserActor()` reads the user's current **role** from the record but never its
@@ -2077,6 +2077,26 @@ verified test point with a recorded files-updated count.
   rather than an L-002 documentation defect; `docs/reference/authentication.md` now states it in its
   suspension table.
 - **Trigger:** the next slice touching the OAuth server or token validation, or the NEW-40 slice.
+- **CLOSED 2026-07-26 — Sprint 6 slice 2 (D-060), at the trigger this entry named** (the slice
+  immediately after NEW-40's). `resolveUserActor()` now reads the record's `status` alongside its
+  `role`, and the OAuth branch of `validate()` requires a non-null actor to accept — so a suspended
+  user's token answers **HTTP 401 on the next request**, at **authentication**, which is the layer
+  D-056's implementation note 1 put application passwords at. One resolver, one answer: the
+  inconsistency this entry called more dangerous than the gap is what closed.
+  - **What was NOT built, stated because the entry asked for it:** active revocation of the stored
+    token, and the adjacent question of whether a **role change** should invalidate existing tokens.
+    Both remain their own decision with their own test point. The status is read per request, so
+    reactivating the account makes the same token work again —
+    `docs/reference/mcp-authorization.md` says exactly that in a section named for it, and
+    `OAuthSuspensionHttpTest::testReactivatingTheUserRestoresTheSameToken` pins it, so the document
+    cannot drift into claiming the stronger property.
+  - **One consequence named in D-060 rather than discovered later:** an OAuth token whose user record
+    has been **deleted** also moves from 403 to 401 — the same direction D-056 chose for the same
+    condition on the application-password path. `validateAccessToken()`'s expiry-only check is
+    unchanged; the attribution is what refuses.
+  - Proven over the real MCP HTTP surface on port 8109, with the token minted through the product's
+    own OAuth flow; three of the four tests observed failing first (200 where 401 was required, and
+    403 where 401 was required for the deleted-user case).
 
 ### NEW-42 — Four rough edges in the passkey assertion path, now that it is reachable — **LOW–MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 2 review passes)* — recorded, NOT fixed
 - **Where:** `installer/core/two-factor.php::verifyPasskeyAssertion()`; `installer/admin/bootstrap.php` (the setup-wizard skip-list)
@@ -2256,6 +2276,37 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the next slice touching the 2FA branch of `admin/login.php` — NEW-38 (the OAuth
   consent screen cannot complete a 2FA login) is the obvious one, since it must reuse this
   dispatcher.
+
+### NEW-49 — A suspended OAuth client's retries now consume the shared per-IP auth-failure budget — **LOW** *(found 2026-07-26 by the Sprint 6 slice 2 `security-auditor` pass; the mechanism re-verified against source before recording)* — recorded, NOT fixed
+
+- **Where:** `installer/core/mcp/server.php:87,101` (the `isAuthBlocked()` gate and the
+  `recordAuthFailure()` call) with `installer/core/mcp/rate-limiter.php:105-138` (the bucket, keyed
+  `'ip:' . $ip`, `MAX_AUTH_FAILURES = 10` per `WINDOW_SECONDS = 60`).
+- **What:** the auth-failure bucket is **IP-keyed and shared across every credential** reaching the
+  MCP endpoint, and `isAuthBlocked()` runs at the top of `handlePost()` for **every** request from
+  that address. Before D-060 a suspended user's OAuth token answered 200, so it never recorded a
+  failure; now each rejected request records one. A legitimate integration with a retry loop whose
+  account has just been suspended therefore starts consuming the shared budget, and past ten
+  failures in sixty seconds every other MCP client behind the same address answers **429** until the
+  window rolls — repeatedly, for as long as the retry loop runs.
+- **Not a new capability for an attacker, and that was checked rather than assumed:** any garbage
+  bearer token already reaches the identical `recordAuthFailure()` at the identical cost of one
+  unauthenticated HTTP request, so an attacker who wanted to exhaust that bucket could already do it
+  with no credential at all. What changed is that a **legitimate, previously silent** client can now
+  do it by accident, which is an operability property rather than a security boundary.
+- **Severity LOW and bounded by deployment:** it only bites where several MCP clients share one
+  source address — a NAT or a reverse proxy — which is the same precondition as **NEW-17**, whose
+  loopback-only `X-Forwarded-For` trust is what makes the address collapse in the first place.
+- **Why not fixed here:** the remedies are all somebody else's slice. Keying the bucket per
+  credential rather than per address, or exempting an *authenticated-but-refused* credential from
+  the anonymous-brute-force budget, is a policy change to a shipped control — the constants
+  `server.php` shares are exactly what D-056's implementation note 3 and D-059 both refused to move
+  for a neighbouring purpose. It also cannot be reasoned about honestly until the address itself is
+  trustworthy, which is NEW-17's remedy.
+- **Stated where an operator meets it** rather than only here: `docs/reference/mcp-authorization.md`
+  says it in the suspension section, beside the behaviour that causes it.
+- **Trigger:** the trusted-proxy slice that owns **NEW-17**, or any slice that revisits the MCP rate
+  limiter's keying.
 
 ---
 

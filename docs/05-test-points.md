@@ -3037,6 +3037,117 @@ product's), 6 (`AdminGateHttpTest::testAGateRefusalReachesTheLogFile` plus
 `AdminGateMapTest::testNeitherGateRefusalLogsUnderASourceTheLoggerWillDiscard` for the twin no
 request can reach), 7 (above).
 
+### Slice 2 — suspension takes effect on OAuth too — evidence (commands and output, 2026-07-26)
+
+**PROVEN TO FAIL FIRST (L-016), against the unfixed tree, before a line of the fix was written.** The
+new class was run whole, so the positive control and the three refusals were observed together:
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/OAuthSuspensionHttpTest.php
+  .FFF                                                                4 / 4 (100%)
+
+  1) testSuspendingTheUserRefusesTheSameTokenOnTheNextRequest
+     "a suspended user's OAuth token must be refused at AUTHENTICATION (401), not at the gate
+      (403) — D-060 puts it at the layer D-056 put application passwords"
+     Failed asserting that 200 is identical to 401.        ← the defect, live: the token kept working
+
+  2) testReactivatingTheUserRestoresTheSameToken
+     "the suspension must take effect first"
+     Failed asserting that 200 is identical to 401.
+
+  3) testAnOAuthTokenForADeletedUserIsRefusedAtAuthenticationToo
+     "an unattributable OAuth token denies at authentication"
+     Failed asserting that 403 is identical to 401.        ← the gate WAS refusing it; the layer moved
+
+  Tests: 4, Assertions: 18, Failures: 3
+```
+
+The fourth test — `testAnOAuthTokenForAnActiveUserIsAccepted` — **passed against the unfixed tree,
+and that is recorded rather than glossed**: it is the positive control. Without it, all three
+refusals above could be passing because the minting flow, the transport or the tool was broken, which
+is precisely the "right answer for the wrong reason" L-016 was written about. After the fix:
+`OK (4 tests, 25 assertions)`.
+
+The token is minted through the product's **own** OAuth flow — `createClient` → `handleAuthorize` →
+`handleTokenRequest` with a real PKCE S256 verifier — never by writing a token record into storage
+(**L-005**), because a hand-written record would bypass exactly the field (`user` on the token) the
+fix reads.
+
+**One existing test went red and it is a SPEC CORRECTION, recorded before it was touched.**
+`McpActorResolutionTest::testOAuthTokenForAnUnknownSubjectResolvesToNoActor` asserted
+`validate() === true` alongside `getActor() === null` — the old layer pinned in its precondition,
+exactly as D-056's implementation note 1 described for the application-password credential one sprint
+ago. The property it exists for is unchanged and is now satisfied more strictly, so the assertion was
+**tightened, never weakened**: `validate()` must be **false** AND the actor null. Recorded as D-060
+implementation note 1 first, then changed. A second method was added in the same class pinning the
+resolver itself for a **suspended** subject, so the contract survives even if the check were ever
+moved up into `server.php`.
+
+**The review round added a sixth test and a finding.** Both subagents ran in parallel on the finished
+diff, docs included (L-015), and neither returned a blocking finding. Two items were taken:
+
+- **NEW-49, recorded after re-verifying the mechanism against source.** A refused OAuth request is an
+  *authentication failure*, so it now feeds `RateLimiter`'s **IP-keyed** auth-failure bucket
+  (`server.php:101`, `rate-limiter.php:105-138`) where a suspended user's token previously answered
+  200 and fed nothing — so a suspended integration with a retry loop can push a shared NAT address
+  past 10 failures/60 s and answer **429** to every other MCP client behind it. Not a new attacker
+  capability (a garbage bearer token already costs the same one request), so severity LOW; recorded
+  with its trigger and stated in the reference doc beside the behaviour that causes it.
+- **A documented claim that had no test now has one.** D-060 implementation note 2 says a rejected
+  OAuth token does not suppress an independently valid Basic credential. That was argued, not proven
+  — the L-014 shape. `McpActorResolutionTest::testARejectedOAuthTokenDoesNotBlockAValidBasicCredential`
+  drives it with a suspended subject's token in the `Authorization` header and an active account's
+  application password in `PHP_AUTH_USER`/`PHP_AUTH_PW`, and was **proven in both directions**:
+
+```
+TEMP-BREAK  (token-auth.php: the fall-through replaced by `if ($actor === null) { return false; }`)
+  $ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/McpActorResolutionTest.php
+    ✘ testARejectedOAuthTokenDoesNotBlockAValidBasicCredential
+      "A rejected OAuth token must not suppress an independently valid Basic credential."
+      Failed asserting that false is true.
+    Tests: 11, Assertions: 32, Failures: 1     ← exactly this test, nothing else
+  reverted from a byte-for-byte backup; `cmp` confirms the file is identical to the pre-break version
+```
+
+Also taken: the line citations in D-060's own Decision line (`token-auth.php:227`,
+`validate():132-139`) were correct when written at the kickoff and stale the moment this slice
+inserted lines into the same file — corrected to name the method, the D-053 treatment, here and in
+`sprints/sprint-6.md`.
+
+**Verification (final, after the review follow-up):**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (268 tests, 1272 assertions)          ← 262/1237 at slice 1's close; 267/1266 before the review's test
+
+$ php scripts/keel-verify
+  OK — 10 check(s) run: 8 passed, 2 warning(s) carrying 9 note(s) (owned by another phase)
+  (the two WARNs are H-01's version drift and NEW-27's stripped guides — both Phase 7's)
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary <scope>      (each scope run separately)
+  installer/core installer/admin  A TOTAL OF 192 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES
+  installer/plugins               A TOTAL OF 113 ERRORS AND 109 WARNINGS WERE FOUND IN 17 FILES
+  tests                           45 / 45 files processed, no violations           (0 / 0)
+                                  (re-run after the review follow-up; still 45 / 45, still 0 / 0)
+  installer/public                 2 / 2  files processed, no violations           (0 / 0)
+  scripts scripts/keel-verify     A TOTAL OF 0 ERRORS AND 2 WARNINGS WERE FOUND IN 1 FILE
+```
+
+All five D-025 baselines held **exactly**. The three 0/0 scopes are recorded with their processed-file
+counts on purpose: **phpcs prints no TOTAL line at 0/0**, so "no total" is indistinguishable from "the
+run never happened" — the L-016 trap this project fell into last session. Each was re-run directly
+and its progress line (`45 / 45 (100%)`) read as the proof it executed. The same session reproduced
+that trap once more: a shell loop reported `exit=3` and no timing line for the `scripts` scope, and
+running the identical command directly printed the baseline `0 ERRORS AND 2 WARNINGS`. The loop was
+the broken instrument, again.
+
+**Coverage of the sprint's acceptance criteria by this slice:** 4
+(`OAuthSuspensionHttpTest::testSuspendingTheUserRefusesTheSameTokenOnTheNextRequest` for the refusal
+and `testAnOAuthTokenForAnActiveUserIsAccepted` for the active half), 7 (above).
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -3062,6 +3173,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-24 (Sprint 2 slice 4 session) | documented commands; 8080/8081/8082/8090 skipped (known-held, L-011), booted on an `nc -z`-verified-free **8083** | MCP **401** unauthenticated (freshness). Then the whole of `docs/playground.md` §3a run for real on the same boot: four per-role bearer tokens minted with the documented one-liner, the full 5-tool × 4-role `tools/call` matrix (206/197/56/19 on `tools/list`), the translated 403 body, and the unmapped-tool protocol error. **Two commands in the newly-written §3a were wrong when first drafted and were corrected against the real output before the document was saved**: `grep -c '"name"'` counts 1 (the response is one line — and tool schemas carry `name` too), and the unmapped-tool call answers **200** with `-32602`, not a non-200 | yes |
 | 2026-07-25 (Sprint 3 slice 1 session) | documented commands on a verified-free **8083** (`nc -z` first; **8080, 8081, 8082 and 8090 all held by the same unrelated container for the SIXTH consecutive session**) | admin **302**, MCP **401** unauthenticated, and `curl -D -` checked for the L-011 tell — no `Server: Apache/...` header, so the responses were our own `php -S` and not the squatter's. The seeder declined to overwrite the existing install, as documented, so the session ran against the standing playground | yes |
 | 2026-07-26 (Sprint 6 slice 1 close session) | documented Start section run verbatim on a `nc -z`-verified-free **8112** (8080 skipped — Docker for the ninth consecutive session, established at the kickoff earlier the same day) | seed (`--reset`) clean; `php -S` backgrounded with its log grepped for `Failed to listen` → **bound cleanly**; owning PID confirmed by `lsof` (php83, 63899) rather than assumed (L-021); admin **302**, MCP **401** unauthenticated; `curl -D -` carried **no `Server:` header**, the L-011 tell, checked before any response was believed. Server stopped by port before the suite ran — the playground is single-tenant (L-025) | yes |
+| 2026-07-26 (Sprint 6 slice 2 session) | documented Start section run verbatim on a `nc -z`-verified-free **8113** | seed (`--reset`) clean; backgrounded `php -S` with its log grepped for `Failed to listen` → **bound cleanly on 8113**; owning PID confirmed by `lsof` (php83, 73855); admin **302**, MCP **401** unauthenticated; `curl -D -` carried **no `Server:` header**. Stopped by port (`kill $(lsof -tiTCP:8113 -sTCP:LISTEN)`) and the port re-checked free **before** the suite ran (L-025) | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

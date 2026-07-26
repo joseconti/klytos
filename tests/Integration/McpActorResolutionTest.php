@@ -25,9 +25,14 @@ use Klytos\Tests\IntegrationTestCase;
  * for the gate that slice 2 adds.
  *
  * These drive validate() against the REAL App with REAL credentials — an app password,
- * bearer tokens at two roles — and, crucially, the deny direction: a credential that
- * still authenticates but that the store can no longer attribute to a usable role must
- * resolve to no actor, so the gate denies rather than escalating (the NEW-08 link).
+ * bearer tokens at two roles — and, crucially, the deny direction.
+ *
+ * Where that deny happens moved in Sprint 6 slice 2 (NEW-41, D-060) and the distinction
+ * is worth keeping straight: a **bearer** token with no stamped role still authenticates
+ * and carries a null role, so the gate denies it (403) — that is the NEW-08 link. An
+ * **OAuth** token whose subject is missing or suspended no longer authenticates at all
+ * (401), because the shared resolver now reads the record's status as well as its role.
+ * Both fail closed; only the layer differs, and each is asserted at its own layer below.
  */
 final class McpActorResolutionTest extends IntegrationTestCase
 {
@@ -250,18 +255,115 @@ final class McpActorResolutionTest extends IntegrationTestCase
         );
     }
 
-    public function testOAuthTokenForAnUnknownSubjectResolvesToNoActor(): void
+    /**
+     * An OAuth token whose subject is not a usable user DENIES — and since
+     * Sprint 6 slice 2 (audit NEW-41, D-060) it denies one layer earlier, at
+     * authentication rather than at the gate.
+     *
+     * The property this test exists for is unchanged; what moved is where it is
+     * enforced, so the assertion is tightened rather than relaxed: `validate()`
+     * must now be FALSE (a 401 on the wire) and there must still be no actor.
+     * It therefore still fails if such a token ever authenticates, and fails a
+     * second way if one ever carries an actor. Recorded as D-060 implementation
+     * note 1 BEFORE this edit, per "a wrong test is a spec correction" — the
+     * same shape D-056's implementation note 1 recorded for the
+     * application-password credential.
+     */
+    public function testOAuthTokenForAnUnknownSubjectIsRefusedAtAuthentication(): void
     {
         $raw                           = $this->seedOAuthToken( 'ghost-' . Helpers::randomHex( 4 ) );
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $raw;
 
         $auth = $this->tokenAuth();
 
-        self::assertTrue( $auth->validate(), 'The OAuth token itself authenticates.' );
+        self::assertFalse(
+            $auth->validate(),
+            'An OAuth token whose subject is not a user is not authenticated at all (D-060).'
+        );
         self::assertNull(
             $auth->getActor(),
-            'An OAuth token whose subject is not a user resolves to no actor — deny, not escalate.'
+            'And it carries no actor either — deny, never escalate.'
         );
+    }
+
+    /**
+     * The same resolver applied to a SUSPENDED subject, at the unit-of-work
+     * level the HTTP class proves end to end: suspension is read from the live
+     * record, so the token stops authenticating (D-060). Kept alongside the
+     * HTTP proof because this one pins the resolver itself — if the check were
+     * ever moved up into server.php, this test would still hold the contract.
+     */
+    public function testOAuthTokenForASuspendedSubjectIsRefusedAtAuthentication(): void
+    {
+        $suspended = $this->users->getByUsername( 'editor' );
+        self::assertNotNull( $suspended, 'Precondition: the seeded editor must exist.' );
+
+        $raw                           = $this->seedOAuthToken( 'editor' );
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $raw;
+
+        $before = $this->tokenAuth();
+        self::assertTrue( $before->validate(), 'Precondition: the token works while the account is active.' );
+
+        $this->users->update( $suspended['id'], [ 'status' => 'suspended' ] );
+
+        $after = $this->tokenAuth();
+        self::assertFalse(
+            $after->validate(),
+            'A suspended subject\'s OAuth token is refused at authentication (NEW-41 / D-060).'
+        );
+        self::assertNull( $after->getActor() );
+    }
+
+    /**
+     * The fall-through is a documented behaviour, so it is pinned rather than
+     * argued (raised by the slice's own `security-auditor` pass).
+     *
+     * D-060 implementation note 2 says a rejected OAuth token does NOT return
+     * false immediately: `validate()` keeps its "tries in order" contract, so a
+     * request that also carries Basic credentials for an ACTIVE account still
+     * authenticates as that account. Two properties matter and both are
+     * asserted: the request authenticates as the Basic credential, and NOTHING
+     * from the rejected OAuth branch leaks into the result — the method is
+     * `app_password`, and the actor is the Basic credential's user, never the
+     * suspended subject.
+     *
+     * The two channels are deliberately different: an Authorization header can
+     * carry only one scheme, so the Basic half arrives through PHP_AUTH_USER /
+     * PHP_AUTH_PW, which is exactly how Apache's module mode presents it.
+     */
+    public function testARejectedOAuthTokenDoesNotBlockAValidBasicCredential(): void
+    {
+        $suspended = $this->users->getByUsername( 'editor' );
+        self::assertNotNull( $suspended, 'Precondition: the seeded editor must exist.' );
+        $this->users->update( $suspended['id'], [ 'status' => 'suspended' ] );
+
+        $active = $this->users->getByUsername( 'admin' );
+        self::assertNotNull( $active, 'Precondition: the seeded admin must exist.' );
+        $appPassword = $this->app->getAuth()->createAppPassword( 'fall-through probe', 'admin' );
+
+        // A valid OAuth token whose subject is now suspended — rejected — plus a
+        // valid application password for a different, active account.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $this->seedOAuthToken( 'editor' );
+        $_SERVER['PHP_AUTH_USER']      = 'admin';
+        $_SERVER['PHP_AUTH_PW']        = $appPassword['password'];
+
+        $auth = $this->tokenAuth();
+
+        self::assertTrue(
+            $auth->validate(),
+            'A rejected OAuth token must not suppress an independently valid Basic credential.'
+        );
+        self::assertSame(
+            'app_password',
+            $auth->getAuthMethod(),
+            'The request must be attributed to the credential that actually authenticated.'
+        );
+        self::assertSame(
+            'admin',
+            $auth->getActor()['role'] ?? null,
+            'The role must come from the Basic credential, never from the rejected OAuth subject.'
+        );
+        self::assertSame( $active['id'], $auth->getActor()['user_id'] ?? null );
     }
 
     public function testABearerTokenWithNoRoleResolvesToANullRole(): void

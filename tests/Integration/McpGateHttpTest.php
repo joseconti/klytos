@@ -218,52 +218,7 @@ final class McpGateHttpTest extends AdminHttpTestCase
         );
     }
 
-    /**
-     * POST a JSON-RPC request to the MCP endpoint with a Bearer token.
-     *
-     * The base harness speaks admin sessions (cookie + CSRF); MCP speaks neither
-     * — it authenticates by the Authorization header — so this sends the request
-     * directly rather than through post()/postJson(). The server lifecycle,
-     * squatter check and teardown are still inherited from AdminHttpTestCase; a
-     * second copy of those would fork the three defects L-008 records.
-     *
-     * @param  string|null         $token  Raw bearer token, or null for anonymous.
-     * @param  string              $method JSON-RPC method.
-     * @param  array<string,mixed> $params JSON-RPC params.
-     * @return array{status:int, json:mixed}
-     */
-    private function mcpCall( ?string $token, string $method, array $params = [] ): array
-    {
-        $url    = sprintf( 'http://%s:%d/installer/mcp', self::HOST, static::serverPort() );
-        $handle = curl_init( $url );
-
-        $headers = [ 'Content-Type: application/json' ];
-        if ( $token !== null ) {
-            $headers[] = 'Authorization: Bearer ' . $token;
-        }
-
-        $body = [ 'jsonrpc' => '2.0', 'id' => 1, 'method' => $method ];
-        if ( $params !== [] ) {
-            $body['params'] = $params;
-        }
-
-        curl_setopt_array( $handle, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode( $body ),
-            CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_TIMEOUT        => 20,
-        ] );
-
-        $raw = curl_exec( $handle );
-
-        if ( $raw === false ) {
-            self::fail( 'MCP request failed: ' . curl_error( $handle ) );
-        }
-
-        $status = (int) curl_getinfo( $handle, CURLINFO_HTTP_CODE );
-        curl_close( $handle );
-
-        return [ 'status' => $status, 'json' => json_decode( (string) $raw, true ) ];
-    }
+    // mcpCall() lived here until Sprint 6 slice 2, which needed the same request
+    // shape for a second MCP HTTP class. It was promoted to AdminHttpTestCase
+    // rather than copied — one implementation, per the project's reuse rule.
 }

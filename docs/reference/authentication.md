@@ -63,7 +63,7 @@ working path.
 | Login form | Refused, with the same message as a wrong password |
 | A live admin session | Ended at the next `isAuthenticated()` check — throttled to once per 60 s |
 | Application password | Refused (`validateAppPassword()` requires an active record) |
-| **OAuth access token** | **NOT revoked** — it keeps working, with its role, until it expires (1 hour). Audit **NEW-41**, recorded rather than implied away |
+| **OAuth access token** | Refused with **HTTP 401** on the **next request** — the resolver reads `status`, so the token stops being accepted at authentication. It is **not revoked**: the record stays, and reactivating the account makes the same token work again. Audit **NEW-41**, closed in Sprint 6 slice 2 (**D-060**) |
 
 **The owner cannot be suspended.** `UserManager::update()` refuses it, mirroring `delete()`'s
 protection. Without that guard an owner could suspend themselves into an install that `owner:repair`
@@ -304,6 +304,7 @@ looks like a broken authenticator rather than a broken string.
 | The owner cannot be suspended; a non-owner can | `AuthLoginTest` |
 | A non-owner application password carries its own role | `tests/Integration/McpActorResolutionTest.php` |
 | A suspended user's application password is refused | `McpActorResolutionTest` |
+| A suspended user's OAuth token is refused with 401 on the next request, and works again once the account is reactivated | `tests/Integration/OAuthSuspensionHttpTest.php` |
 | Recovery restores access through the real gate | `tests/Integration/OwnerRepairTest.php` |
 | A real passkey completes a second-factor login end to end | `tests/Integration/PasskeyLoginTest.php` |
 | Passkey **registration** is refused while 2FA is merely pending | `PasskeyLoginTest` (the D-036 takeover proof) |
@@ -311,5 +312,5 @@ looks like a broken authenticator rather than a broken string.
 | A tampered assertion is refused | `PasskeyLoginTest` |
 
 ---
-D-021 · D-055 · **D-056** · D-057 · NEW-09 · NEW-11 (closed) · NEW-13 · NEW-26 · NEW-37 (closed) ·
-NEW-38 · L-024
+D-021 · D-055 · **D-056** · D-057 · **D-060** · NEW-09 · NEW-11 (closed) · NEW-13 · NEW-26 ·
+NEW-37 (closed) · NEW-38 · NEW-41 (closed) · L-024
