@@ -50,7 +50,8 @@
     "password": "Lösenord",
     "remember_me": "Kom ihåg mig",
     "login_failed": "Felaktigt användarnamn eller lösenord",
-    "account_locked": "Kontot är låst. Försök igen om {minutes} minuter."
+    "account_locked": "Kontot är låst. Försök igen om {minutes} minuter.",
+    "too_many_attempts": "För många inloggningsförsök från denna adress. Försök igen om en minut."
   },
   "dashboard": {
     "title": "Kontrollpanel",

@@ -20,6 +20,8 @@ declare(strict_types=1);
 
 namespace Klytos\Core\MCP;
 
+use Klytos\Core\FileLock;
+
 class RateLimiter
 {
     private string $filePath;
@@ -47,34 +49,51 @@ class RateLimiter
      */
     public function check(string $identifier, int $maxRequests = self::MAX_REQUESTS_PER_WINDOW): bool
     {
-        $data = $this->loadData();
-        $now  = time();
-        $cutoff = $now - self::WINDOW_SECONDS;
+        self::ensureFileLock();
 
-        // Get current window timestamps for this identifier
-        $timestamps = $data['requests'][$identifier] ?? [];
+        $allowed = false;
 
-        // Remove expired entries
-        $timestamps = array_values(array_filter($timestamps, fn(int $ts) => $ts > $cutoff));
+        // The whole read -> decide -> write runs under ONE exclusive lock
+        // (D-059, audit NEW-20). It previously read under a shared lock,
+        // decided, and wrote under a separate exclusive one, so concurrent
+        // callers all read the same pre-increment window and all but one
+        // increment was lost. Measured on the unfixed code: 20 simultaneous
+        // check() calls recorded 2-4 of themselves.
+        $ran = FileLock::transaction(
+            $this->filePath,
+            function (array $data) use ($identifier, $maxRequests, &$allowed): array {
+                $now    = time();
+                $cutoff = $now - self::WINDOW_SECONDS;
 
-        if (count($timestamps) >= $maxRequests) {
-            // Over limit — save cleaned data but don't add new timestamp
-            $data['requests'][$identifier] = $timestamps;
-            $this->saveData($data);
-            return false;
-        }
+                $timestamps = array_values(array_filter(
+                    $data['requests'][$identifier] ?? [],
+                    static fn($ts): bool => (int) $ts > $cutoff
+                ));
 
-        // Add current request
-        $timestamps[] = $now;
-        $data['requests'][$identifier] = $timestamps;
+                $allowed = count($timestamps) < $maxRequests;
 
-        // Probabilistic cleanup
-        if (mt_rand(1, 100) <= (int)(self::CLEANUP_PROBABILITY * 100)) {
-            $data = $this->cleanup($data);
-        }
+                // Over the limit: the cleaned window is still written back, so
+                // expired entries are pruned even on a refused request.
+                if ($allowed) {
+                    $timestamps[] = $now;
+                }
 
-        $this->saveData($data);
-        return true;
+                $data['requests'][$identifier] = $timestamps;
+
+                // Probabilistic cleanup
+                if (mt_rand(1, 100) <= (int)(self::CLEANUP_PROBABILITY * 100)) {
+                    $data = $this->cleanup($data);
+                }
+
+                return $data;
+            }
+        );
+
+        // A lock that could not be taken REFUSES (D-059). Returning true here
+        // would hand out an uncounted request, which is precisely the
+        // amplification this change closes — "we could not count it" is never
+        // a reason to allow it.
+        return $ran && $allowed;
     }
 
     /**
@@ -85,23 +104,37 @@ class RateLimiter
      */
     public function recordAuthFailure(string $ip): bool
     {
-        $data   = $this->loadData();
-        $now    = time();
-        $cutoff = $now - self::WINDOW_SECONDS;
+        self::ensureFileLock();
 
-        $key = 'ip:' . $ip;
-        $failures = $data['auth_failures'][$key] ?? [];
+        $underLimit = false;
 
-        // Remove expired
-        $failures = array_values(array_filter($failures, fn(int $ts) => $ts > $cutoff));
+        // One exclusive lock across the whole cycle, for the same reason as
+        // check() (D-059): a failure that is not counted is a free attempt.
+        $ran = FileLock::transaction(
+            $this->filePath,
+            function (array $data) use ($ip, &$underLimit): array {
+                $now    = time();
+                $cutoff = $now - self::WINDOW_SECONDS;
+                $key    = 'ip:' . $ip;
 
-        // Add current failure
-        $failures[] = $now;
-        $data['auth_failures'][$key] = $failures;
+                $failures = array_values(array_filter(
+                    $data['auth_failures'][$key] ?? [],
+                    static fn($ts): bool => (int) $ts > $cutoff
+                ));
 
-        $this->saveData($data);
+                $failures[] = $now;
 
-        return count($failures) <= self::MAX_AUTH_FAILURES;
+                $data['auth_failures'][$key] = $failures;
+                $underLimit = count($failures) <= self::MAX_AUTH_FAILURES;
+
+                return $data;
+            }
+        );
+
+        // Unable to record it -> report "at the limit", not "still fine". The
+        // caller uses this to decide whether to keep serving the address, and
+        // the fail-closed direction is the one that cannot be gamed.
+        return $ran && $underLimit;
     }
 
     /**
@@ -140,6 +173,26 @@ class RateLimiter
         $recent     = array_filter($timestamps, fn(int $ts) => $ts > $cutoff);
 
         return max(0, $maxRequests - count($recent));
+    }
+
+    /**
+     * Make sure FileLock is loaded before the two methods that need it.
+     *
+     * It cannot be a plain autoload and it cannot be a file-level require.
+     * installer/public/comment-submit.php constructs this class BEFORE
+     * App::boot() by design (D-043), and the autoloader is only registered
+     * during boot — so the class would not resolve there. A require at file
+     * scope fixes that and makes this file both declare a symbol and cause a
+     * side effect, which is a phpcs warning and would have grown the D-025
+     * baseline. Loading it lazily, at the two call sites that need it, is
+     * correct on both counts. require_once is idempotent; the class_exists
+     * check with autoload disabled just avoids the repeated path lookup.
+     */
+    private static function ensureFileLock(): void
+    {
+        if ( ! class_exists( FileLock::class, false ) ) {
+            require_once __DIR__ . '/../file-lock.php';
+        }
     }
 
     /**
@@ -235,30 +288,10 @@ class RateLimiter
         return $data;
     }
 
-    /**
-     * Save rate limit data to file with exclusive lock.
-     *
-     * @param array $data
-     */
-    private function saveData(array $data): void
-    {
-        $dir = dirname($this->filePath);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0700, true);
-        }
-
-        $json = json_encode($data, JSON_UNESCAPED_SLASHES);
-
-        $fp = fopen($this->filePath, 'c');
-        if ($fp === false) {
-            return;
-        }
-
-        flock($fp, LOCK_EX);
-        ftruncate($fp, 0);
-        fwrite($fp, $json);
-        fflush($fp);
-        flock($fp, LOCK_UN);
-        fclose($fp);
-    }
+    // saveData() was removed when check() and recordAuthFailure() moved inside
+    // FileLock::transaction() (D-059). Its exit condition was checked before
+    // deleting it, per L-007: it was private, and after the conversion it had
+    // zero call sites in this class, so nothing could reach it. Keeping it
+    // would have left a second way to write this file — one that takes its own
+    // separate lock, which is the exact defect audit NEW-20 records.
 }

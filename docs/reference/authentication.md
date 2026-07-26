@@ -104,7 +104,49 @@ is predictable and world-writable, so on shared hosting a neighbour could forge 
 or delete a real one.
 
 **Operational note:** deleting `installer/data/login_lockouts.json` clears every lockout. That is the
-supported way out for an operator who has locked themselves out and does not want to wait.
+supported way out for an operator who has locked themselves out and does not want to wait. An empty
+map is stored as `{}` rather than the file being removed, so nothing can `unlink` a file another
+process holds a lock on; removing it by hand still works exactly as described.
+
+### The counter is atomic, and a lock it cannot take refuses
+
+Since D-059 the whole read-modify-write of that file runs inside one exclusive lock, through
+[`Klytos\Core\FileLock`](file-lock.md). Before that, two concurrent failures against the same
+account both read the same pre-increment count and one increment was lost — and every lost increment
+is one free attempt for a parallelized brute force. The identical defect in `MCP\RateLimiter`
+(audit NEW-20) was measured at **20 simultaneous calls recording 2–4 of themselves**.
+
+If the lock cannot be taken within its deadline the failure is **not** recorded, and `Auth::login()`
+answers `account_locked:` rather than `login_failed`. That is deliberate: an uncounted attempt is
+exactly the amplification the lockout exists to prevent, so "we could not count it" is never read as
+"let it through". A corrupt counter file is treated differently — it starts a fresh map and logs,
+because refusing everyone over one damaged file would be a worse failure than the race.
+
+The lock deliberately does **not** span `Auth::login()` as a whole: `UserManager::authenticate()`
+runs a bcrypt verify on every branch (the NEW-39 equalization), so a lock held across it would
+serialise every login attempt on the install behind that verify.
+
+### The endpoint has an IP ceiling
+
+The per-account lockout bounds attempts against **one** account. Nothing bounded the login endpoint
+itself, so a burst of invented usernames was limited only by the pruning window — and each request
+paid a bcrypt verify, making the form a CPU amplifier as well as a credential-stuffing surface
+(audit NEW-40, second half).
+
+`admin/login.php` now refuses with **HTTP 429** and `Retry-After: 60` once an address has produced
+too many failures, reusing the shipped `MCP\RateLimiter` auth-failure tracking — the same policy
+(10 failures per 60 s, IP-keyed) that `core/mcp/server.php` already enforces on the MCP endpoint.
+No constant was changed, which is what makes this reuse rather than a second limiter. Only failed
+attempts count, so a user logging in repeatedly never approaches the ceiling.
+
+**Known limit, stated rather than implied:** `RateLimiter::getClientIp()` trusts `X-Forwarded-For`
+only from loopback, so behind a non-loopback reverse proxy every visitor collapses into one bucket
+and the ceiling becomes a site-wide throttle. That is audit **NEW-17**, pre-existing, and this
+change makes it reachable on a second surface. The remedy is trusted-proxy configuration, which
+changes MCP and OAuth too.
+
+`auth.login_throttled` fires when the ceiling refuses. **Nothing in core subscribes to it** — it is
+an audit seam, not a sink (L-019).
 
 ## Application passwords
 

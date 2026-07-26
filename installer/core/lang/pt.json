@@ -50,7 +50,8 @@
     "password": "Palavra-passe",
     "remember_me": "Lembrar-me",
     "login_failed": "Nome de utilizador ou palavra-passe incorretos",
-    "account_locked": "Conta bloqueada. Tente novamente dentro de {minutes} minutos."
+    "account_locked": "Conta bloqueada. Tente novamente dentro de {minutes} minutos.",
+    "too_many_attempts": "Demasiadas tentativas de início de sessão a partir deste endereço. Tente novamente dentro de um minuto."
   },
   "dashboard": {
     "title": "Painel",

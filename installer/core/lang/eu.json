@@ -50,7 +50,8 @@
     "password": "Pasahitza",
     "remember_me": "Gogoratu",
     "login_failed": "Erabiltzaile-izena edo pasahitza okerra",
-    "account_locked": "Kontua blokeatuta. Saiatu berriro {minutes} minutu barru."
+    "account_locked": "Kontua blokeatuta. Saiatu berriro {minutes} minutu barru.",
+    "too_many_attempts": "Helbide honetatik saioa hasteko saiakera gehiegi. Saiatu berriro minutu batean."
   },
   "dashboard": {
     "title": "Panela",

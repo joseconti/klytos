@@ -8,14 +8,14 @@
 | Kind | Count |
 |------|-------|
 | Global helper functions | 146 |
-| Classes and interfaces | 102 |
-| Actions | 309 |
-| Filters | 120 |
+| Classes and interfaces | 103 |
+| Actions | 311 |
+| Filters | 121 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **963** |
+| **Total** | **967** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -202,6 +202,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\Encryption` | class | installer/core/encryption.php | — | Encrypts and decrypts stored data and manages encryption and RSA identity keys |
 | `Klytos\Core\EncryptionLevelTrait` | trait | installer/core/encryption-level-trait.php | — | Shared per-record encryption-level decisions reused by storage drivers |
 | `Klytos\Core\ExportManager` | class | installer/core/export-manager.php | — | Exports site content to JSON, CSV and WXR files |
+| `Klytos\Core\FileLock` | class | installer/core/file-lock.php | docs/reference/file-lock.md | Runs a read-modify-write on a JSON file under ONE exclusive lock, with a bounded wait that fails closed |
 | `Klytos\Core\FileStorage` | class | installer/core/file-storage.php | — | Filesystem storage driver reading and writing encrypted records as files |
 | `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens and environment checks; `isHttps()` is the single TLS check (see the reference doc) and `webauthnRpId()` the single WebAuthn Relying Party ID (docs/reference/authentication.md) |
 | `Klytos\Core\HookContractException` | class | installer/core/hook-contract-exception.php | docs/reference/hooks.md | Thrown when a hook listener declares a by-reference parameter, which no dispatch path can bind |
@@ -407,6 +408,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | auth.access_denied | action | installer/core/helpers-global.php | docs/reference/authorization.md | Fires immediately before a request is refused; audit hook, cannot reverse the decision |
 | auth.after_login | action | installer/core/auth.php | — | Emitted on successful sign-in (also after 2FA); receives the username and user ID |
 | auth.before_login | action | installer/core/auth.php | — | Emitted before credentials are validated; receives the submitted username |
+| auth.login_throttled | action | installer/admin/login.php | docs/reference/authentication.md | Fires when the login form refuses a request on the IP ceiling; audit seam with no core listener, cannot reverse the refusal |
 | backup.after | action | installer/core/updater.php | — | Emitted when a manual backup finished; receives type 'local' and the backup directory |
 | backup.before | action | installer/core/updater.php | — | Emitted when a manual backup starts; receives the backup type 'local' |
 | block.after_save | action | installer/core/block-manager.php | — | Emitted once a block definition is persisted; receives the stored block array |
@@ -443,6 +445,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | editor.sidebar.after_panels | action | installer/admin/page-editor.php | — | Emitted after the last editor sidebar panel; gets the page array and the editing flag |
 | editor.sidebar.after_seo | action | installer/admin/page-editor.php | — | Emitted below the sidebar SEO panel; receives the page array and the editing flag |
 | editor.sidebar.before_seo | action | installer/admin/page-editor.php | — | Emitted above the sidebar SEO panel; receives the page array and the editing flag |
+| file_lock.timeout | action | installer/core/file-lock.php | docs/reference/file-lock.md | Fires when an exclusive file lock was not acquired before its deadline; audit seam with no core listener |
 | form.after_create | action | installer/plugins/klytos-forms/src/FormManager.php | — | Emitted once a new form definition is stored; receives the created form array |
 | form.after_delete | action | installer/plugins/klytos-forms/src/FormManager.php | — | Emitted once a form definition is removed; receives the deleted form ID |
 | form.after_update | action | installer/plugins/klytos-forms/src/FormManager.php | — | Emitted once form changes are persisted; receives the updated form array |
@@ -653,6 +656,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | cron.tasks | filter | installer/core/cron-manager.php | — | Filters the registered cron task list so plugins can add scheduled tasks |
 | devbar.data | filter | installer/core/dev-bar.php | — | Filters the developer bar payload (meta, performance, queries) before rendering |
 | export.data | filter | installer/core/export-manager.php | — | Filters the gathered site export data so plugins can add their collections |
+| file_lock.timeout_ms | filter | installer/core/file-lock.php | docs/reference/file-lock.md | Filters how long a caller waits for an exclusive file lock before failing closed |
 | form.after_validate | filter | installer/plugins/klytos-forms/src/FormManager.php | — | Filters form validation errors after core validation so plugins can add errors |
 | form.before_render | filter | installer/plugins/klytos-forms/src/FormRenderer.php | — | Filters the form definition before it is rendered |
 | http.before_request | filter | installer/core/http-client.php | — | Filters the method, URL and options tuple before an outgoing HTTP request |

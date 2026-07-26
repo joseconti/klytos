@@ -50,7 +50,8 @@
     "password": "Contraseña",
     "remember_me": "Recordarme",
     "login_failed": "Usuario o contraseña incorrectos",
-    "account_locked": "Cuenta bloqueada. Inténtalo en {minutes} minutos."
+    "account_locked": "Cuenta bloqueada. Inténtalo en {minutes} minutos.",
+    "too_many_attempts": "Demasiados intentos de acceso desde esta dirección. Inténtalo de nuevo en un minuto."
   },
   "dashboard": {
     "title": "Panel de control",

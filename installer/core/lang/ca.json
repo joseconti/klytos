@@ -50,7 +50,8 @@
     "password": "Contrasenya",
     "remember_me": "Recorda'm",
     "login_failed": "Nom d'usuari o contrasenya incorrectes",
-    "account_locked": "Compte bloquejat. Torneu-ho a provar d'aquí a {minutes} minuts."
+    "account_locked": "Compte bloquejat. Torneu-ho a provar d'aquí a {minutes} minuts.",
+    "too_many_attempts": "Massa intents d'accés des d'aquesta adreça. Torna-ho a provar d'aquí a un minut."
   },
   "dashboard": {
     "title": "Tauler",

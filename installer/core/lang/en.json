@@ -50,7 +50,8 @@
     "password": "Password",
     "remember_me": "Remember me",
     "login_failed": "Incorrect username or password",
-    "account_locked": "Account locked. Try again in {minutes} minutes."
+    "account_locked": "Account locked. Try again in {minutes} minutes.",
+    "too_many_attempts": "Too many login attempts from this address. Try again in a minute."
   },
   "dashboard": {
     "title": "Dashboard",

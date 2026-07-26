@@ -3,7 +3,19 @@
 - **Planned:** 2026-07-26 (plan mode, approved by the user). Kickoff re-validation ran in the
   planning session; every claim below was re-derived from source in the session that wrote it, not
   carried from the audit (L-015).
-- **Status:** **PLANNED — slice 1 next.**
+- **Status:** **SLICE 1 IN PROGRESS.** Its code, its i18n, its docs and the primitive's own tests are
+  done and the tree is green (255 tests / 1177 assertions, keel-verify 10 checks, upgrade PASS, all
+  five lint baselines exact). **Still owed before slice 1 can close**, listed so the next session does
+  not have to re-derive them:
+  1. an HTTP test that the IP ceiling engages through the **shipped** login form — the request built
+     to match what the page actually sends, field by field (L-026), on port **8108**;
+  2. a test that the admin gate's refusal now **reaches the log file** — read the file, not the call
+     (NEW-44's whole point is that reading the call said it worked);
+  3. a test that `Auth::login()` answers `account_locked:` when the failure could not be recorded
+     (the D-059 fail-closed branch), driven by holding the lock from a second process;
+  4. the `docs/05-test-points.md` row with its commands and output;
+  5. **both review subagents on the finished diff, docs included** (L-015) — a correct blocking
+     finding has landed on every slice for sixteen consecutive slices.
 - **Scope basis:** audit **NEW-40** (the login lockout's read-modify-write is not atomic and nothing
   throttles the endpoint) together with **NEW-20** (the same shape in `MCP\RateLimiter::check()`,
   carried since Sprint 1 slice 7 as *plausible and unproven*); audit **NEW-41** (a suspended user's
@@ -89,7 +101,7 @@ baseline suite ran — the playground is a single-tenant resource (L-025).
 
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
-| 1 | The counters are atomic, and the login endpoint has a ceiling | **NEW-40**, **NEW-20**, **NEW-44** | planned | — | One promoted file-transaction primitive consumed by `Auth`'s lockout and `MCP\RateLimiter`; `recordFailedAttempt()` returns its post-increment count; the IP ceiling **reuses** the shipped `recordAuthFailure()`/`isAuthBlocked()` with no constant changed |
+| 1 | The counters are atomic, and the login endpoint has a ceiling | **NEW-40**, **NEW-20**, **NEW-44** | **IN PROGRESS — code + primitive tests done and green; 3 tests, the test-point row and the two reviews still owed** | suite **248 → 255 tests / 1152 → 1177 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly | One promoted file-transaction primitive consumed by `Auth`'s lockout and `MCP\RateLimiter`; `recordFailedAttempt()` returns its post-increment count; the IP ceiling **reuses** the shipped `recordAuthFailure()`/`isAuthBlocked()` with no constant changed. **NEW-20 measured, not argued: 20 concurrent `check()` calls recorded 2–4 before, 20/20 after** |
 | 2 | Suspension takes effect on OAuth too | **NEW-41** | planned | — | `resolveUserActor()` reads `status`; the OAuth branch requires a non-null actor → **401**, where D-056 put application passwords |
 | 3 | The passkey assertion path | **NEW-42** | planned | — | Clone detection (both counters non-zero only), the `origin` check, the length guard, and the setup-wizard skip-list moved onto gate-map keys |
 

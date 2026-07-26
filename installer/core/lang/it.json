@@ -50,7 +50,8 @@
     "password": "Password",
     "remember_me": "Ricordami",
     "login_failed": "Nome utente o password errati",
-    "account_locked": "Account bloccato. Riprova tra {minutes} minuti."
+    "account_locked": "Account bloccato. Riprova tra {minutes} minuti.",
+    "too_many_attempts": "Troppi tentativi di accesso da questo indirizzo. Riprova tra un minuto."
   },
   "dashboard": {
     "title": "Pannello",

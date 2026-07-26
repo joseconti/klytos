@@ -123,7 +123,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$auth->is2faPending() && !isset($_
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $result = $auth->login($username, $password);
+    // ─── IP ceiling (audit NEW-40, second half; D-059) ──────────
+    // The per-account lockout bounds attempts against ONE account. Nothing
+    // bounded the endpoint itself, so a burst of invented usernames was
+    // limited only by the pruning window — and every request in it paid a
+    // bcrypt verify, because authenticate() equalizes its cost on all branches
+    // (the NEW-39 fix). That makes the login form a CPU amplifier as well as a
+    // credential-stuffing surface.
+    //
+    // MCP\RateLimiter is REUSED rather than forked: its auth-failure tracking
+    // is already exactly this policy (10 failures per 60 s, IP-keyed) and
+    // core/mcp/server.php:87,101 already consumes it, so no constant moves.
+    // D-056's note 3 rejected this class for the per-ACCOUNT lockout because
+    // expressing 5-attempts/15-minutes through it would have meant changing
+    // those constants for the MCP surface too; that objection does not apply
+    // here, which is why this is reuse and not a second limiter.
+    $loginLimiter = new \Klytos\Core\MCP\RateLimiter( $app->getDataPath() );
+    $clientIp     = \Klytos\Core\MCP\RateLimiter::getClientIp();
+
+    if ( $loginLimiter->isAuthBlocked( $clientIp ) ) {
+        klytos_do_action( 'auth.login_throttled', $clientIp );
+        header( 'Retry-After: 60' );
+        http_response_code( 429 );
+        $error  = __( 'auth.too_many_attempts' );
+        $result = [ 'success' => false, 'error' => 'throttled', 'requires_2fa' => false, 'user_id' => null ];
+    } else {
+        $result = $auth->login($username, $password);
+
+        // Counted on failure only, so a legitimate user logging in repeatedly
+        // never approaches the ceiling.
+        if ( ! $result['success'] ) {
+            $loginLimiter->recordAuthFailure( $clientIp );
+        }
+    }
 
     if ($result['success'] && !$result['requires_2fa']) {
         Helpers::redirect($redirectTo ? Helpers::sanitizeRedirectUrl($redirectTo) : Helpers::url('admin/'));

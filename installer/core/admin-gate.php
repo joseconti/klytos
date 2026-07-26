@@ -276,10 +276,17 @@ function klytos_enforce_admin_gate( ?string $scriptFilename = null ): void
     // Unresolvable path. Denied rather than skipped: if the gate cannot tell
     // WHICH surface is running, it cannot know what that surface may do.
     if ( $key === null ) {
+        // Source is 'core', NOT a category like 'security' (audit NEW-44).
+        // Logger::write() treats any source other than 'core' as a PLUGIN ID
+        // and drops the entry unless that plugin has logging enabled — and no
+        // plugin is called 'security', so both of this function's refusals
+        // used to write nothing at all, with Developer Mode on or off. The
+        // category lives in the message and the context instead, which are
+        // both written. Do not "restore" a category here without first giving
+        // Logger a reserved-source list (that is the NEW-32 slice's work).
         klytos_log_warning(
-            'Admin gate: request did not resolve to a file inside admin/ — denied.',
-            [ 'script' => $scriptFilename ?? ( $_SERVER['SCRIPT_FILENAME'] ?? '' ) ],
-            'security'
+            'Admin gate (security): request did not resolve to a file inside admin/ — denied.',
+            [ 'category' => 'security', 'script' => $scriptFilename ?? ( $_SERVER['SCRIPT_FILENAME'] ?? '' ) ]
         );
         klytos_deny( 403, __( 'common.no_permission' ), 'forbidden' );
     }
@@ -290,10 +297,10 @@ function klytos_enforce_admin_gate( ?string $scriptFilename = null ): void
     // the single line that turns S-07 from "51 files forgot" into "a file
     // cannot forget".
     if ( ! array_key_exists( $key, $map ) ) {
+        // 'core' rather than a category, for the reason recorded above (NEW-44).
         klytos_log_warning(
-            'Admin gate: no entry in the gate map for this surface — denied by default.',
-            [ 'surface' => $key ],
-            'security'
+            'Admin gate (security): no entry in the gate map for this surface — denied by default.',
+            [ 'category' => 'security', 'surface' => $key ]
         );
         klytos_deny( 403, __( 'common.no_permission' ), 'forbidden' );
     }

@@ -50,7 +50,8 @@
     "password": "Şifre",
     "remember_me": "Beni hatırla",
     "login_failed": "Yanlış kullanıcı adı veya şifre",
-    "account_locked": "Hesap kilitlendi. {minutes} dakika sonra tekrar deneyin."
+    "account_locked": "Hesap kilitlendi. {minutes} dakika sonra tekrar deneyin.",
+    "too_many_attempts": "Bu adresten çok fazla giriş denemesi yapıldı. Bir dakika sonra tekrar deneyin."
   },
   "dashboard": {
     "title": "Kontrol Paneli",

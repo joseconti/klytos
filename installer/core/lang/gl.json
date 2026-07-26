@@ -50,7 +50,8 @@
     "password": "Contrasinal",
     "remember_me": "Lembrarme",
     "login_failed": "Nome de usuario ou contrasinal incorrectos",
-    "account_locked": "Conta bloqueada. Ténteo de novo en {minutes} minutos."
+    "account_locked": "Conta bloqueada. Ténteo de novo en {minutes} minutos.",
+    "too_many_attempts": "Demasiados intentos de acceso desde este enderezo. Téntao de novo nun minuto."
   },
   "dashboard": {
     "title": "Panel",

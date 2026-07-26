@@ -172,7 +172,26 @@ class Auth
         }
 
         // Record failed attempt, against THIS account's bucket.
-        $this->recordFailedAttempt($username);
+        //
+        // A null return means the exclusive lock could not be taken, so this
+        // failure was NOT counted. D-059 fixes the direction: an uncounted
+        // attempt is exactly the amplification the lockout exists to prevent,
+        // so the caller is answered as if the account were locked rather than
+        // being handed a free attempt. It costs a legitimate user — who is
+        // already failing on a wrong password — a misleading message in a case
+        // that needs 2 seconds of contention on a small JSON file to reach;
+        // the alternative hands an attacker unlimited uncounted tries for the
+        // price of provoking that contention.
+        if ($this->recordFailedAttempt($username) === null) {
+            $minutes = self::LOCKOUT_MINUTES;
+
+            return [
+                'success'      => false,
+                'error'        => "account_locked:{$minutes}",
+                'requires_2fa' => false,
+                'user_id'      => null,
+            ];
+        }
 
         return [
             'success'      => false,
@@ -871,38 +890,77 @@ class Auth
     /**
      * Record a failed login attempt against one account's bucket.
      *
-     * @param string $username The username as submitted at the login form.
+     * The whole read-modify-write runs inside ONE exclusive lock (D-059, audit
+     * NEW-40). It used to read the map, increment, and write it back with
+     * LOCK_EX covering only the write, so two concurrent failures against the
+     * same account both read the same pre-increment count and one increment
+     * was lost. Every lost increment is one free attempt for a parallelized
+     * brute force. The same defect in MCP\RateLimiter (audit NEW-20) was
+     * measured at 20 concurrent calls recording 2-4 of themselves; this bucket
+     * is written on the same pattern.
+     *
+     * The lock deliberately does NOT extend up to isLockedOut() at the top of
+     * login(): UserManager::authenticate() sits between them and performs a
+     * bcrypt verify on every branch, so a lock spanning the pair would
+     * serialise every login attempt on the install behind that verify. The
+     * remaining window is closed by the IP ceiling in admin/login.php.
+     *
+     * @param  string   $username The username as submitted at the login form.
+     * @return int|null The attempt count after this failure, or NULL if the
+     *                  lock could not be taken and nothing was recorded.
      */
-    private function recordFailedAttempt(string $username): void
+    private function recordFailedAttempt(string $username): ?int
     {
-        $lockouts = $this->pruneLockouts($this->readLockouts());
         $key      = $this->lockoutKey($username);
-        $entry    = $lockouts[$key] ?? [];
+        $attempts = null;
 
-        $lockouts[$key] = [
-            'attempts'     => (int) ($entry['attempts'] ?? 0) + 1,
-            'last_attempt' => time(),
-        ];
+        $ran = FileLock::transaction(
+            $this->getLockoutFile(),
+            function (array $lockouts) use ($key, &$attempts): array {
+                $lockouts = $this->pruneLockouts($lockouts);
+                $entry    = $lockouts[$key] ?? [];
+                $attempts = (int) ($entry['attempts'] ?? 0) + 1;
 
-        $this->writeLockouts($lockouts);
+                $lockouts[$key] = [
+                    'attempts'     => $attempts,
+                    'last_attempt' => time(),
+                ];
+
+                return $lockouts;
+            }
+        );
+
+        return $ran ? $attempts : null;
     }
 
     /**
      * Reset failed login attempts for one account.
      *
+     * Runs inside the same exclusive transaction as recordFailedAttempt(), so
+     * a reset cannot race an increment and resurrect a cleared bucket.
+     *
+     * A lock this one cannot take is not escalated: failing to clear a counter
+     * leaves the account closer to locked, never further from it, so the
+     * fail-closed direction is simply to do nothing.
+     *
      * @param string $username The username as submitted at the login form.
      */
     private function resetLoginAttempts(string $username): void
     {
-        $lockouts = $this->readLockouts();
-        $key      = $this->lockoutKey($username);
+        $key = $this->lockoutKey($username);
 
-        if (!array_key_exists($key, $lockouts)) {
-            return;
-        }
+        FileLock::transaction(
+            $this->getLockoutFile(),
+            function (array $lockouts) use ($key): ?array {
+                if (!array_key_exists($key, $lockouts)) {
+                    return null; // Nothing to clear — write nothing.
+                }
 
-        unset($lockouts[$key]);
-        $this->writeLockouts($this->pruneLockouts($lockouts));
+                unset($lockouts[$key]);
+
+                return $this->pruneLockouts($lockouts);
+            }
+        );
     }
 
     /**
@@ -971,23 +1029,15 @@ class Auth
         return is_array($data) ? $data : [];
     }
 
-    /**
-     * Persist the lockout map.
-     *
-     * @param array<string, array{attempts: int, last_attempt: int}> $lockouts
-     */
-    private function writeLockouts(array $lockouts): void
-    {
-        if ($lockouts === []) {
-            $file = $this->getLockoutFile();
-            if (is_file($file)) {
-                unlink($file);
-            }
-            return;
-        }
-
-        file_put_contents($this->getLockoutFile(), json_encode($lockouts), LOCK_EX);
-    }
+    // writeLockouts() was removed when both writers moved inside
+    // FileLock::transaction() (D-059). Its exit condition was established
+    // before deleting it, per L-007: it was private and had zero remaining
+    // call sites, so nothing could reach it. Leaving it would have left a
+    // second way to write this file — one taking its own separate lock, which
+    // is the defect audit NEW-40 records. Its delete-when-empty branch is not
+    // reproduced either: an empty map is now written as `{}`, so no unlink can
+    // race a lock held on the same path. Deleting the file by hand still
+    // clears every lockout, exactly as docs/reference/authentication.md says.
 
     /**
      * Drop entries whose lockout window has expired.

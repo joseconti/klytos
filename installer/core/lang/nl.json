@@ -50,7 +50,8 @@
     "password": "Wachtwoord",
     "remember_me": "Onthoud mij",
     "login_failed": "Onjuiste gebruikersnaam of wachtwoord",
-    "account_locked": "Account vergrendeld. Probeer het opnieuw over {minutes} minuten."
+    "account_locked": "Account vergrendeld. Probeer het opnieuw over {minutes} minuten.",
+    "too_many_attempts": "Te veel inlogpogingen vanaf dit adres. Probeer het over een minuut opnieuw."
   },
   "dashboard": {
     "title": "Dashboard",

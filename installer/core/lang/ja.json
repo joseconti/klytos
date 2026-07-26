@@ -50,7 +50,8 @@
     "password": "パスワード",
     "remember_me": "ログイン状態を保持する",
     "login_failed": "ユーザー名またはパスワードが正しくありません",
-    "account_locked": "アカウントがロックされています。{minutes}分後に再度お試しください。"
+    "account_locked": "アカウントがロックされています。{minutes}分後に再度お試しください。",
+    "too_many_attempts": "このアドレスからのログイン試行が多すぎます。1分後にもう一度お試しください。"
   },
   "dashboard": {
     "title": "ダッシュボード",

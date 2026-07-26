@@ -50,7 +50,8 @@
     "password": "Passwort",
     "remember_me": "Angemeldet bleiben",
     "login_failed": "Benutzername oder Passwort falsch",
-    "account_locked": "Konto gesperrt. Versuchen Sie es in {minutes} Minuten erneut."
+    "account_locked": "Konto gesperrt. Versuchen Sie es in {minutes} Minuten erneut.",
+    "too_many_attempts": "Zu viele Anmeldeversuche von dieser Adresse. Versuchen Sie es in einer Minute erneut."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -50,7 +50,8 @@
     "password": "Passord",
     "remember_me": "Husk meg",
     "login_failed": "Feil brukernavn eller passord",
-    "account_locked": "Kontoen er last. Prov igjen om {minutes} minutter."
+    "account_locked": "Kontoen er last. Prov igjen om {minutes} minutter.",
+    "too_many_attempts": "For mange innloggingsforsøk fra denne adressen. Prøv igjen om ett minutt."
   },
   "dashboard": {
     "title": "Kontrollpanel",
