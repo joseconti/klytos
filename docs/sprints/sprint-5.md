@@ -3,10 +3,10 @@
 - **Planned:** 2026-07-25 (plan mode, approved by the user). Kickoff re-validation ran across the
   planning session and the implementation session; every claim below was re-derived from source in the
   session that wrote it, not carried from the plan (L-015).
-- **Status:** **BOTH SLICES CLOSED 2026-07-25** — audit **NEW-09**, **NEW-11**, **NEW-37** and
+- **Status:** **SPRINT CLOSED — DEFINITIVELY, 2026-07-26**, with the user's own test verdict recorded
+  as **PASS**. Both slices closed 2026-07-25 — audit **NEW-09**, **NEW-11**, **NEW-37** and
   **NEW-39** closed; **NEW-38**, **NEW-40**, **NEW-41** and **NEW-42** opened and recorded.
-  Decisions **D-056**, **D-057**, **D-058**; lesson **L-026**. Sprint close-out (docs-verifier,
-  playground-QA, the user's own verdict, Estimate v5, continuation prompt) is what remains.
+  Decisions **D-056**, **D-057**, **D-058**; lesson **L-026**. Every close-out row is filled.
 - **Scope basis:** audit **NEW-11** (only `config['admin_user']` can log in), found 2026-07-19 in
   Sprint 1 slice 4 and deferred with the trigger *"the authentication slice"*; audit **NEW-09**
   (passkey second-factor login is broken and its obvious fix opens an account takeover), bound by
@@ -243,7 +243,7 @@ fail against the unrestricted endpoint first.
 | `docs-verifier` over everything the sprint touched | **PASS after 2 fixes.** It re-derived all eight INDEX counts independently (146/102/**309**/120/206/34/27/19 = **963**), confirmed every new surface documented with a runnable example, and checked the two new i18n keys in all 20 catalogues including the accents individually. It found **2 BLOCKING stale code comments** — `auth.php` and `token-auth.php` both still said application passwords are "pinned to the admin user", which D-056 made false. Both fixed |
 | Playground-QA fresh-context pass (never concurrent with the suite — L-025) | **DONE — ~45 commands, and it confirmed all four Sprint 5 claims independently.** All four roles log in (302 + dashboard 200, with per-role dashboard sizes decreasing 43099 → 19214 bytes); a password change takes effect at the form; five failures lock **one** account while the other three still log in, and deleting `login_lockouts.json` clears it; the 5×4 `tools/call` matrix and `tools/list` 206/197/56/19 reproduce exactly. **6 defects found, all fixed** — see below. 8080 squatted for the **eighth** consecutive session |
 | Numbered try-it script handed to the user, debug log ON | **DONE** — handed with this close |
-| **User's recorded verdict** | **PENDING** — awaiting the user's own walk. A reported failure reopens the sprint |
+| **User's recorded verdict** | **PASS — recorded 2026-07-26.** The user walked the sprint's flows and reported that everything worked. Nothing reopened; the sprint is definitively closed |
 | `PROGRESS.md` / `lessons-learned.md` / `token-ledger.md` updated | **DONE** — **L-026** (the harness sent a header the product never sends, so a feature that could not work in any browser had a green suite); token-ledger row **21**; Estimate **v5** |
 | Continuation prompt produced unprompted | **DONE** — handed with this close |
 | Finished docs archived to `docs/old/sprint-5/` (or "nothing qualified", stated) | **Nothing qualified — stated, not skipped.** Same reasoning as Sprints 3 and 4: `sprint-1…4.md` are still read as precedent (this sprint read sprint-4 and D-036 from Sprint 1), `theme-package-model.md` specifies an upcoming sprint, `04-adoption-audit.md` gained six findings. **But the question is now overdue in the other direction:** `decisions.md` is ~80k tokens across four pages and is re-read every session, which is the dominant per-session cost of this project. That is an argument for splitting the state files, not for archiving them — recorded here so the next close treats it as a real decision rather than a fourth "nothing qualified" |
