@@ -29,6 +29,133 @@ use Klytos\Tests\IntegrationTestCase;
 final class AdminGateMapTest extends IntegrationTestCase
 {
     /**
+     * Neither refusal logs under a source `Logger::write()` will discard
+     * (audit NEW-44, D-059).
+     *
+     * `klytos_enforce_admin_gate()` has two refusals. Only one — the unmapped
+     * surface — is reachable over HTTP, and {@see AdminGateHttpTest} proves
+     * that one lands in the log file for real. The other fires when the request
+     * does not resolve to a file inside `admin/` at all, which no request
+     * through the router can produce, so nothing else can pin it.
+     *
+     * That is exactly how NEW-44 survived: both calls passed `'security'` as
+     * the $source, `Logger::write():122` treats any source other than `'core'`
+     * as a PLUGIN ID, no plugin is called `security`, and so both refusals were
+     * dropped — with Developer Mode on or off. Reading the call said it worked.
+     *
+     * Scoped to this ONE file on purpose. Passing a plugin ID as the source is
+     * the correct, documented use of that parameter elsewhere in core (that is
+     * how a plugin's own entries are attributed), so a repository-wide version
+     * of this assertion would be wrong rather than merely broad.
+     *
+     * @return void
+     */
+    public function testNeitherGateRefusalLogsUnderASourceTheLoggerWillDiscard(): void
+    {
+        $path   = KLYTOS_INSTALLER_PATH . '/core/admin-gate.php';
+        $source = (string) file_get_contents( $path );
+
+        self::assertNotSame( '', $source, 'admin-gate.php could not be read, so nothing was scanned.' );
+
+        $calls = $this->logCallsIn( $source );
+
+        self::assertNotEmpty(
+            $calls,
+            'No klytos_log_* call was found in admin-gate.php. Either the gate stopped recording '
+            . 'its refusals, or this scan stopped working — it has not passed, it did not run.'
+        );
+
+        foreach ( $calls as $call ) {
+            self::assertSame(
+                1,
+                $this->topLevelCommas( $call ),
+                "This gate refusal passes a third argument to klytos_log_*(), which is the \$source:\n"
+                . $call . "\n"
+                . 'Logger::write() drops any source other than "core" unless a PLUGIN of that ID has '
+                . 'logging enabled, so the refusal would write nothing at all. Put the category in '
+                . 'the message and the context instead — that is what NEW-44 was.'
+            );
+        }
+    }
+
+    /**
+     * Every `klytos_log_*( ... )` call in a PHP source, as raw text.
+     *
+     * Paren-matched rather than regex-terminated, because these calls span
+     * several lines and a line-based pattern is a measurement of the calls that
+     * happen to fit on one line, not of the calls (L-023).
+     *
+     * KNOWN LIMIT, stated rather than denied: the matcher counts literal
+     * brackets with no awareness of string or comment context. Both messages in
+     * `admin-gate.php` today contain the literal `(security)`, and this works
+     * only because that pair is BALANCED. An unbalanced bracket inside a future
+     * message — natural-language log text makes that plausible — would
+     * mis-terminate the captured call and could miscount its arguments in
+     * either direction, including silently missing a reintroduced $source. A
+     * tokenizer would be exact; this is deliberately not one, because the scan
+     * covers a single ten-line function and a `token_get_all()` walk would be
+     * more machinery than the thing it guards. If this file's log messages ever
+     * carry unbalanced brackets, replace the matcher rather than adjusting the
+     * expectation.
+     *
+     * @param  string $source PHP source.
+     * @return array<int, string> Each call's argument list, parentheses included.
+     */
+    private function logCallsIn( string $source ): array
+    {
+        $calls  = [];
+        $offset = 0;
+
+        while ( preg_match( '/klytos_log_[a-z]+\s*\(/', $source, $m, PREG_OFFSET_CAPTURE, $offset ) === 1 ) {
+            $open  = (int) $m[0][1] + strlen( $m[0][0] ) - 1;
+            $depth = 0;
+
+            for ( $i = $open, $len = strlen( $source ); $i < $len; $i++ ) {
+                if ( $source[ $i ] === '(' ) {
+                    $depth++;
+                } elseif ( $source[ $i ] === ')' ) {
+                    $depth--;
+
+                    if ( $depth === 0 ) {
+                        $calls[] = substr( $source, $open, $i - $open + 1 );
+                        break;
+                    }
+                }
+            }
+
+            $offset = $open + 1;
+        }
+
+        return $calls;
+    }
+
+    /**
+     * Commas separating this call's own arguments, ignoring nested ones.
+     *
+     * @param  string $call An argument list, parentheses included.
+     * @return int
+     */
+    private function topLevelCommas( string $call ): int
+    {
+        $commas = 0;
+        $depth  = 0;
+
+        for ( $i = 0, $len = strlen( $call ); $i < $len; $i++ ) {
+            $char = $call[ $i ];
+
+            if ( $char === '(' || $char === '[' ) {
+                $depth++;
+            } elseif ( $char === ')' || $char === ']' ) {
+                $depth--;
+            } elseif ( $char === ',' && $depth === 1 ) {
+                $commas++;
+            }
+        }
+
+        return $commas;
+    }
+
+    /**
      * Every admin page and API endpoint carries a gate-map entry.
      *
      * This is the sprint's acceptance criterion "all 66 files carry a map

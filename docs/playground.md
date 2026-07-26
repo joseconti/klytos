@@ -4,11 +4,13 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-26 (Sprint 6 kickoff)** — the Start section was run verbatim on
+> **last verified: 2026-07-26 (Sprint 6 slice 1 close)** — the Start section was run verbatim again on
 > `KPORT=8112`: seed (`--reset`) clean, `php -S` bound cleanly with the log checked for
-> `failed to listen`, owning PID confirmed by `lsof`, and the two documented responses reproduced
-> exactly (admin `302`, MCP `401`). **8080 was squatted for the ninth consecutive session** — Docker
-> again, PID 45413, confirmed by `lsof` rather than assumed.
+> `failed to listen`, owning PID confirmed by `lsof` (php83, 63899), the two documented responses
+> reproduced exactly (admin `302`, MCP `401`), and `curl -D -` carried **no `Server:` header** — the
+> L-011 tell, checked rather than assumed. Also verified earlier the same day at the sprint kickoff,
+> where **8080 was squatted for the ninth consecutive session** (Docker, PID 45413, confirmed by
+> `lsof`).
 >
 > Previously — **2026-07-25 (Sprint 4 close)** — a fresh-context pass ran this document end to end
 > on `KPORT=8110` / `RPORT=8111`, ~45 commands, and every product claim it checked held: the 5×4

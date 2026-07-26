@@ -143,7 +143,49 @@ attempts count, so a user logging in repeatedly never approaches the ceiling.
 only from loopback, so behind a non-loopback reverse proxy every visitor collapses into one bucket
 and the ceiling becomes a site-wide throttle. That is audit **NEW-17**, pre-existing, and this
 change makes it reachable on a second surface. The remedy is trusted-proxy configuration, which
-changes MCP and OAuth too.
+changes MCP and OAuth too — and, for an operator who cannot wait for that, the filter below.
+
+**Second known limit, MEASURED rather than reasoned about (audit NEW-46).** The ceiling reads the
+counter, authenticates, and only then records the failure — and the authentication in the middle is
+a ~218 ms bcrypt verify. Concurrent requests can therefore all observe "under the limit" before any
+of them has recorded its own failure. Measured with the bucket pre-filled to 9 of 10, one process
+per request, each doing the real `isAuthBlocked()` → 218 ms → `recordAuthFailure()` sequence:
+
+| Requests fired | Served (expected 1) | Bucket after |
+|---|---|---|
+| 6, one at a time | **1** | 10 |
+| 6, simultaneous | **6** | 15 |
+| 12, simultaneous | **12** | 21 |
+
+So the overshoot equals the server's request concurrency, once, and the ceiling then holds: every
+failure **is** counted (the bucket lands on exactly 9 + N, with no lost updates — that is what
+D-059's atomicity bought), so the following requests are refused. Stated plainly rather than
+softened: **the ceiling bounds a sustained brute force to ~10 attempts per minute plus one burst the
+width of the server's worker pool; it does not make the limit exact.** Closing the remainder means
+counting the attempt before authenticating rather than the failure after, which would also count
+successful logins and is a policy change with its own decision.
+
+### Extension point
+
+`auth.login_ip_blocked` filters the ceiling's decision for one request:
+
+```php
+klytos_add_filter( 'auth.login_ip_blocked', function ( bool $blocked, string $ip ): bool {
+    // The office behind one NAT address is not the threat this ceiling exists for.
+    return str_starts_with( $ip, '203.0.113.' ) ? false : $blocked;
+}, 10 );
+```
+
+It applies **only** to the login form's IP ceiling. It is deliberately not inside `MCP\RateLimiter`:
+that class's constants are shared with `core/mcp/server.php`, and D-056's implementation note 3 and
+D-059 both turn on their not moving, so filtering there would weaken the MCP surface in order to
+loosen the login form. It also cannot reach the **per-account** lockout, which is a separate control
+with its own counter and no filter — a plugin can widen the address ceiling, never the 5-attempts
+bound on an individual account.
+
+Like every other weakenable control here (`admin.gate_map` D-032, `http.safe.*` D-041,
+`security.hsts` D-044), a plugin can switch it off. Plugins already run as first-party code in this
+product; that trade is recorded rather than implied.
 
 `auth.login_throttled` fires when the ceiling refuses. **Nothing in core subscribes to it** — it is
 an audit seam, not a sink (L-019).
@@ -237,15 +279,17 @@ looks like a broken authenticator rather than a broken string.
   for the identity-key export; out of scope per D-057.
 - **A suspended user's live session survives up to 60 seconds**, the throttle on the record re-read.
   Deliberate: the alternative is a storage read on every request.
-- **The lockout's read-modify-write is not atomic** (audit **NEW-40**). `LOCK_EX` covers the write,
-  not the read that preceded it, so concurrent failed attempts against one account can lose an
-  increment and allow a few more tries than the nominal five before the lockout engages. A torn read
-  fails **open** (no lockouts) rather than closed. It bounds abuse, it does not bypass
-  authentication. Same shape as **NEW-20** in `MCP\RateLimiter`; the fix shape is recorded — the
-  `flock`-based critical section `ActionScheduler::acquireLock()` already uses — so it need not be
-  re-derived.
-- **Nothing throttles the login endpoint by IP or globally.** The lockout is per account, so a burst
-  of invented usernames is bounded only by the 15-minute pruning window. Part of NEW-40.
+- ~~**The lockout's read-modify-write is not atomic** (NEW-40)~~ and ~~**nothing throttles the login
+  endpoint**~~ — **both CLOSED by D-059 (Sprint 6, slice 1)**, and described above rather than here.
+  The counter's whole read-modify-write now runs inside one `LOCK_EX` and the endpoint has an IP
+  ceiling. **The remedy this section used to recommend was wrong and is not restored:** it named
+  `ActionScheduler::acquireLock()` as the fix shape, and that method takes `LOCK_EX | LOCK_NB` —
+  *skip if busy* — so under the parallel burst the fix exists to stop, every contender would fail to
+  acquire and skip its own increment. That is a **deterministic** lost update, strictly worse than
+  the racy one. Recorded in D-059 so it is not re-derived a third time.
+- **The ceiling is not exact under concurrency** (audit **NEW-46**) — measured, with the numbers, in
+  "The endpoint has an IP ceiling" above. The residual is one burst the width of the server's worker
+  pool; the sustained rate is bounded.
 
 ## Tests
 

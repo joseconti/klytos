@@ -141,11 +141,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$auth->is2faPending() && !isset($_
     $loginLimiter = new \Klytos\Core\MCP\RateLimiter( $app->getDataPath() );
     $clientIp     = \Klytos\Core\MCP\RateLimiter::getClientIp();
 
-    if ( $loginLimiter->isAuthBlocked( $clientIp ) ) {
+    // The decision is filterable, and the filter is the operator's remedy for
+    // audit NEW-17 rather than a convenience: behind a non-loopback proxy every
+    // visitor collapses into one bucket, so a whole office on one NAT address
+    // shares this ceiling and can lock itself out of its own site. A listener
+    // returning false for a known address range exempts it.
+    //
+    // It is deliberately applied HERE and not inside MCP\RateLimiter: D-056's
+    // implementation note 3 and D-059 both turn on that class's constants not
+    // moving, because core/mcp/server.php shares them — filtering inside it
+    // would weaken the MCP surface to loosen the login form.
+    //
+    // Like every other weakenable control in this project (admin.gate_map
+    // D-032, http.safe.* D-041, security.hsts D-044), a plugin CAN switch this
+    // off; plugins already run as first-party code here. What it cannot do is
+    // weaken the per-ACCOUNT lockout, which is a separate control with its own
+    // counter and no filter.
+    $ipIsBlocked = (bool) klytos_apply_filters(
+        'auth.login_ip_blocked',
+        $loginLimiter->isAuthBlocked( $clientIp ),
+        $clientIp
+    );
+
+    if ( $ipIsBlocked ) {
         klytos_do_action( 'auth.login_throttled', $clientIp );
         header( 'Retry-After: 60' );
         http_response_code( 429 );
-        $error  = __( 'auth.too_many_attempts' );
+
+        // The MESSAGE is not set here. Every refusal on this page is worded in
+        // the single mapping below, from $result['error'] — the first version
+        // of this branch set $error itself and the mapping then overwrote it
+        // with auth.login_failed, so the response carried a 429 status and the
+        // words "Incorrect username or password", and the auth.too_many_attempts
+        // key added to all 20 catalogues in the same slice could never be
+        // rendered at all. Found by the HTTP test, not by reading.
         $result = [ 'success' => false, 'error' => 'throttled', 'requires_2fa' => false, 'user_id' => null ];
     } else {
         $result = $auth->login($username, $password);
@@ -162,7 +191,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$auth->is2faPending() && !isset($_
     } elseif ($result['success'] && $result['requires_2fa']) {
         // 2FA required — page will render the 2FA form below.
     } else {
-        if (str_starts_with($result['error'], 'account_locked:')) {
+        if ($result['error'] === 'throttled') {
+            // The IP ceiling above. Worded here rather than at the branch that
+            // sets it, so this page has exactly ONE place that turns a refusal
+            // into words and no later branch can overwrite an earlier one.
+            $error = __( 'auth.too_many_attempts' );
+        } elseif (str_starts_with($result['error'], 'account_locked:')) {
             $minutes = (int) explode(':', $result['error'])[1];
             $error   = __( 'auth.account_locked', ['minutes' => $minutes]);
         } else {

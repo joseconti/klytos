@@ -519,28 +519,201 @@ final class AdminGateHttpTest extends AdminHttpTestCase
      */
     public function testAnUnmappedAdminFileIsDeniedEvenToTheOwner(): void
     {
-        $file = KLYTOS_INSTALLER_PATH . '/admin/zz-unmapped-probe.php';
+        $response = $this->requestUnmappedProbe( 'zz-unmapped-probe.php', "echo 'REACHED THE BODY';" );
+
+        self::assertSame(
+            403,
+            $response['status'],
+            'An unmapped admin file must be denied by default, to every role including owner.'
+        );
+        self::assertStringNotContainsString(
+            'REACHED THE BODY',
+            $response['body'],
+            'Default-deny must refuse BEFORE the page body executes.'
+        );
+    }
+
+    /**
+     * A default-deny refusal REACHES THE LOG FILE (audit NEW-44, D-059).
+     *
+     * The gate has always called klytos_log_warning() on both of its refusals,
+     * and reading that call said the feature worked. It did not:
+     * `admin-gate.php` passed `'security'` as the $source, and
+     * `Logger::write():122` treats any source other than `'core'` as a PLUGIN
+     * ID and drops the entry unless a plugin of that ID has logging enabled.
+     * No plugin is called `security`, so every refusal by the central S-07 gate
+     * wrote NOTHING — Developer Mode on or off. An authorization system that
+     * refuses silently cannot be operated.
+     *
+     * So this test reads the FILE. Asserting on the call, or on a spy, would
+     * reproduce exactly the mistake being fixed — and this is L-019's shape for
+     * the third time in this project, the two previous ones having been caught
+     * in documents rather than in the product.
+     *
+     * Both directions, because one is half a test (L-010): with Developer Mode
+     * ON the entry appears, with it OFF nothing is written. The OFF half is
+     * what proves the bytes read in the ON half actually came from this
+     * refusal, rather than from some unconditional writer running in the same
+     * request.
+     *
+     * @return void
+     */
+    public function testAGateRefusalReachesTheLogFile(): void
+    {
+        $siteConfig = $this->app->getSiteConfig();
+
+        // Developer Mode is Logger::write()'s FIRST condition, so a refusal
+        // logged under a valid source still writes nothing without it. This
+        // writes data/config/site.json.enc, which the playground snapshot
+        // covers and D-039's guard does not (that one watches core config).
+        $siteConfig->setValue( 'developer.developer_mode', true );
+
+        $before   = $this->logSizes();
+        $response = $this->requestUnmappedProbe( 'zz-gate-log-probe.php' );
+        $written  = $this->logBytesSince( $before );
+
+        self::assertSame( 403, $response['status'], 'The probe was not refused, so nothing was logged.' );
+
+        self::assertNotSame(
+            '',
+            $written,
+            'The gate refused and wrote nothing to any log file under ' . $this->logsRoot()
+            . '. That is audit NEW-44: the refusal is discarded by Logger::write() because the '
+            . '$source is not "core".'
+        );
+        self::assertStringContainsString(
+            'no entry in the gate map',
+            $written,
+            'Something was logged, but not this refusal.'
+        );
+        self::assertStringContainsString(
+            'zz-gate-log-probe.php',
+            $written,
+            'The entry does not name the surface that was refused, so an operator cannot act on it.'
+        );
+        self::assertStringContainsString(
+            '[core]',
+            $written,
+            'The entry must be written under the core source. Any other value is dropped by '
+            . 'Logger::write() unless a PLUGIN of that ID has logging enabled.'
+        );
+        self::assertStringContainsString(
+            '"category":"security"',
+            $written,
+            'The security category moved into the context when the source became "core"; without '
+            . 'it an operator cannot filter authorization refusals out of the log.'
+        );
+
+        // Negative control.
+        $siteConfig->setValue( 'developer.developer_mode', false );
+
+        $beforeOff  = $this->logSizes();
+        $refusedOff = $this->requestUnmappedProbe( 'zz-gate-log-probe-off.php' );
+
+        self::assertSame( 403, $refusedOff['status'], 'The refusal itself must not depend on logging.' );
+        self::assertSame(
+            '',
+            $this->logBytesSince( $beforeOff ),
+            'Something wrote to the log with Developer Mode OFF, so the assertions above cannot be '
+            . 'attributed to the gate.'
+        );
+    }
+
+    /**
+     * Drop an unmapped admin file in, request it as the owner, remove it.
+     *
+     * A genuinely new admin file is the only honest way to assert default-deny
+     * at the HTTP boundary: every real surface is mapped, so mapping one out
+     * would be testing the map rather than the default.
+     *
+     * @param  string $name Filename to create under admin/.
+     * @param  string $body Extra PHP for the probe's body.
+     * @return array{status:int, body:string, content_type:string, location:string, headers:string}
+     */
+    private function requestUnmappedProbe( string $name, string $body = '' ): array
+    {
+        $file = KLYTOS_INSTALLER_PATH . '/admin/' . $name;
 
         file_put_contents(
             $file,
-            "<?php\nrequire_once __DIR__ . '/bootstrap.php';\necho 'REACHED THE BODY';\n"
+            "<?php\nrequire_once __DIR__ . '/bootstrap.php';\n" . ( $body === '' ? '' : $body . "\n" )
         );
 
         try {
-            $response = $this->request( 'installer/admin/zz-unmapped-probe.php', 'owner' );
-
-            self::assertSame(
-                403,
-                $response['status'],
-                'An unmapped admin file must be denied by default, to every role including owner.'
-            );
-            self::assertStringNotContainsString(
-                'REACHED THE BODY',
-                $response['body'],
-                'Default-deny must refuse BEFORE the page body executes.'
-            );
+            return $this->request( 'installer/admin/' . $name, 'owner' );
         } finally {
+            // Left behind, this file would fail AdminGateMapTest's coverage
+            // check on every later run and look like a gate defect.
             @unlink( $file );
         }
+    }
+
+    /**
+     * The directory the per-install log directories live under.
+     *
+     * @return string
+     */
+    private function logsRoot(): string
+    {
+        return $this->storage->getDataDir();
+    }
+
+    /**
+     * Current size of every log file under data/, keyed by absolute path.
+     *
+     * NEITHER the directory NOR the file name is predicted, and both halves of
+     * that are load-bearing rather than defensive:
+     *
+     *  - Logger::resolveLogFile() rotates by date AND by size, so a 5 MB
+     *    debug-<date>.log sends the next entry to debug-<date>-2.log.
+     *  - The logs directory has a random name persisted in encrypted config,
+     *    and the Logger CACHES it per instance. This tier boots the App once
+     *    per process (D-030), so asking the test process's own Logger returns
+     *    whichever directory it resolved first, while the server resolves one
+     *    per request from the file the playground restore has just put back.
+     *    Measured, not reasoned about: this test passed alone and FAILED in the
+     *    full suite for exactly that reason, reading an empty string from a
+     *    directory the server had not written to.
+     *
+     * So the measurement scans every log file the install has, which is also
+     * the honest form of the property under test — the refusal must reach a log
+     * an operator can read, not one particular path.
+     *
+     * @return array<string, int> Absolute path => size in bytes.
+     */
+    private function logSizes(): array
+    {
+        $sizes = [];
+
+        foreach ( glob( $this->logsRoot() . '/logs-*/debug-*.log' ) ?: [] as $file ) {
+            $sizes[ $file ] = (int) filesize( $file );
+        }
+
+        return $sizes;
+    }
+
+    /**
+     * Everything appended to any log file since the given sizes.
+     *
+     * A file that did not exist when the sizes were taken counts from byte 0,
+     * so a request that creates a brand-new log directory is still observed.
+     *
+     * @param  array<string, int> $before Result of logSizes() taken earlier.
+     * @return string             The appended bytes, concatenated.
+     */
+    private function logBytesSince( array $before ): string
+    {
+        $appended = '';
+
+        foreach ( glob( $this->logsRoot() . '/logs-*/debug-*.log' ) ?: [] as $file ) {
+            $offset  = $before[ $file ] ?? 0;
+            $current = (string) file_get_contents( $file );
+
+            if ( strlen( $current ) > $offset ) {
+                $appended .= substr( $current, $offset );
+            }
+        }
+
+        return $appended;
     }
 }

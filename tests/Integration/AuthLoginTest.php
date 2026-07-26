@@ -430,4 +430,122 @@ final class AuthLoginTest extends IntegrationTestCase
             )
         );
     }
+
+    /**
+     * A failure that could not be COUNTED refuses the attempt (D-059, NEW-40).
+     *
+     * The lockout counter is only a bound if every failure reaches it. When the
+     * exclusive lock cannot be taken within its deadline, `recordFailedAttempt()`
+     * returns null and nothing was written — and the only two things `login()`
+     * can do with that are hand the caller a free, uncounted attempt or refuse.
+     * D-059 chose refusal: "we could not count it" is never a reason to allow
+     * it, because provoking contention would otherwise BE the bypass.
+     *
+     * Driven by a REAL second process holding the lock, not by a stub. The
+     * property is that two operating-system processes contend for one file, and
+     * a mock of the primitive would assert the mock's behaviour instead — the
+     * L-024 shape, where a test asserted the manager and not the gate. This one
+     * goes through `Auth::login()`, like every other test in this file.
+     *
+     * Both directions in one test, because one is half a test (L-010): the same
+     * call with no holder must be an ORDINARY refusal. Without that control, a
+     * `login()` that answered account_locked to everything would pass.
+     */
+    public function testAFailureThatCannotBeCountedRefusesInsteadOfPassingUncounted(): void
+    {
+        $lockFile = $this->storage->getDataDir() . '/login_lockouts.json';
+
+        // 150 ms rather than FileLock's 2 s default, so the test does not spend
+        // two seconds proving a deadline it does not own. Registered through the
+        // tier's helper so it cannot leak into a later test (D-042).
+        $this->addTemporaryFilter('file_lock.timeout_ms', static fn(int $ms): int => 150);
+
+        // Control: uncontended, this is an ordinary failed login.
+        $uncontended = $this->auth()->login('viewer', 'wrong-password-uncontended');
+
+        self::assertSame(
+            'login_failed',
+            (string) $uncontended['error'],
+            'Without contention this must be the ordinary refusal, or the assertion below '
+            . 'proves nothing about the lock.'
+        );
+
+        $holder = $this->holdLockFromAnotherProcess($lockFile, 5000);
+
+        try {
+            $contended = $this->auth()->login('viewer', 'wrong-password-contended');
+        } finally {
+            $this->releaseHolder($holder, $lockFile);
+        }
+
+        self::assertFalse($contended['success'], 'A wrong password succeeded.');
+        self::assertStringStartsWith(
+            'account_locked:',
+            (string) $contended['error'],
+            'The failure could not be recorded and the attempt was served anyway — that is a free, '
+            . 'uncounted try for anyone able to provoke contention on the counter file.'
+        );
+    }
+
+    /**
+     * Start a second process holding the exclusive lock, and wait for the fact.
+     *
+     * Waits for the worker's readiness sentinel rather than sleeping a guessed
+     * interval: a sleep that is too short makes the assertion measure an
+     * uncontended call and pass for the wrong reason, which is exactly the class
+     * of false green L-016 records.
+     *
+     * @param  string $lockFile Absolute path to the file to hold.
+     * @param  int    $holdMs   How long the holder keeps the lock.
+     * @return resource The worker process handle.
+     */
+    private function holdLockFromAnotherProcess(string $lockFile, int $holdMs)
+    {
+        $fixture = dirname(__DIR__) . '/fixtures/file-lock-worker.php';
+        $ready   = $lockFile . '.held';
+
+        @unlink($ready);
+
+        $process = proc_open(
+            [PHP_BINARY, $fixture, $lockFile, '0', 'hold', (string) $holdMs],
+            [
+                0 => ['file', '/dev/null', 'r'],
+                1 => ['file', '/dev/null', 'w'],
+                2 => ['file', '/dev/null', 'w'],
+            ],
+            $pipes
+        );
+
+        self::assertIsResource($process, 'The lock-holding worker did not start.');
+
+        for ($i = 0; $i < 200; $i++) {
+            clearstatcache(true, $ready);
+
+            if (is_file($ready)) {
+                return $process;
+            }
+
+            usleep(20_000);
+        }
+
+        proc_terminate($process, 9);
+        proc_close($process);
+
+        self::fail('The worker never reported holding the lock, so nothing was under contention.');
+    }
+
+    /**
+     * Wait for the holder to finish and confirm it left nothing behind.
+     *
+     * @param  resource $process  Handle from holdLockFromAnotherProcess().
+     * @param  string   $lockFile Absolute path that was held.
+     * @return void
+     */
+    private function releaseHolder($process, string $lockFile): void
+    {
+        proc_terminate($process, 15);
+        proc_close($process);
+
+        @unlink($lockFile . '.held');
+    }
 }

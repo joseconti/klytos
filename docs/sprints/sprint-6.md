@@ -3,19 +3,14 @@
 - **Planned:** 2026-07-26 (plan mode, approved by the user). Kickoff re-validation ran in the
   planning session; every claim below was re-derived from source in the session that wrote it, not
   carried from the audit (L-015).
-- **Status:** **SLICE 1 IN PROGRESS.** Its code, its i18n, its docs and the primitive's own tests are
-  done and the tree is green (255 tests / 1177 assertions, keel-verify 10 checks, upgrade PASS, all
-  five lint baselines exact). **Still owed before slice 1 can close**, listed so the next session does
-  not have to re-derive them:
-  1. an HTTP test that the IP ceiling engages through the **shipped** login form — the request built
-     to match what the page actually sends, field by field (L-026), on port **8108**;
-  2. a test that the admin gate's refusal now **reaches the log file** — read the file, not the call
-     (NEW-44's whole point is that reading the call said it worked);
-  3. a test that `Auth::login()` answers `account_locked:` when the failure could not be recorded
-     (the D-059 fail-closed branch), driven by holding the lock from a second process;
-  4. the `docs/05-test-points.md` row with its commands and output;
-  5. **both review subagents on the finished diff, docs included** (L-015) — a correct blocking
-     finding has landed on every slice for sixteen consecutive slices.
+- **Status:** **SLICE 1 CLOSED 2026-07-26.** All five owed items are done — the three tests, the
+  test-point row and both review passes — and the tree is green at **262 tests / 1237 assertions**,
+  keel-verify `10 check(s) run: 8 passed, 2 warning(s)`, upgrade from real v0.30.1 PASS, all five lint
+  baselines exact. **Holding the slice open was not bookkeeping: the first owed test found a live
+  defect in the slice's own code** — the IP ceiling answered HTTP 429 with the words *"Incorrect
+  username or password"*, because the throttle branch set the message and the refusal-wording block
+  below then overwrote it, leaving the `auth.too_many_attempts` key added to all 20 catalogues
+  unreachable in the product. Fixed in path and recorded as D-059 implementation note 1.
 - **Scope basis:** audit **NEW-40** (the login lockout's read-modify-write is not atomic and nothing
   throttles the endpoint) together with **NEW-20** (the same shape in `MCP\RateLimiter::check()`,
   carried since Sprint 1 slice 7 as *plausible and unproven*); audit **NEW-41** (a suspended user's
@@ -55,6 +50,15 @@ flock-based critical section. Wrap read-through-write in it."*
 attempts*) is the requirement; the recorded remedy is one person's guess at how. Each counter's
 read-modify-write becomes atomic **within itself**, and the ~218 ms window is closed by the IP
 ceiling rather than by a wider lock. The 218 ms figure is re-derived in slice 1 rather than quoted.
+
+> **Corrected at slice 1's close, by measurement:** "closed" overstates it — the ceiling **bounds**
+> that window, it does not eliminate it. The ceiling has the same check-then-act shape
+> (`isAuthBlocked()` → 218 ms of bcrypt → `recordAuthFailure()`), so a simultaneous burst overshoots
+> by its own width once before the counter holds: 6 simultaneous requests → 6 served where 1 was
+> expected; 12 → 12; the same 6 run sequentially → 1. No increment is lost, which is what the
+> atomicity bought. Raised by the slice's `security-auditor` as an explicit hypothesis and settled by
+> running it (L-016), then recorded as **NEW-46** with its fix shape and stated with the numbers in
+> `docs/reference/authentication.md`.
 
 ### 2. Two defects found by driving the mechanism, both in no audit entry — NEW-44 and NEW-45
 
@@ -101,7 +105,7 @@ baseline suite ran — the playground is a single-tenant resource (L-025).
 
 | # | Slice | Closes | Status | Test point result | Notes |
 |---|-------|--------|--------|-------------------|-------|
-| 1 | The counters are atomic, and the login endpoint has a ceiling | **NEW-40**, **NEW-20**, **NEW-44** | **IN PROGRESS — code + primitive tests done and green; 3 tests, the test-point row and the two reviews still owed** | suite **248 → 255 tests / 1152 → 1177 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly | One promoted file-transaction primitive consumed by `Auth`'s lockout and `MCP\RateLimiter`; `recordFailedAttempt()` returns its post-increment count; the IP ceiling **reuses** the shipped `recordAuthFailure()`/`isAuthBlocked()` with no constant changed. **NEW-20 measured, not argued: 20 concurrent `check()` calls recorded 2–4 before, 20/20 after** |
+| 1 | The counters are atomic, and the login endpoint has a ceiling | **NEW-40**, **NEW-20**, **NEW-44** | **CLOSED 2026-07-26** | suite **248 → 262 tests / 1152 → 1237 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly (192/488, 113/109, 0/0, 0/0, 0/2) | One promoted file-transaction primitive consumed by `Auth`'s lockout and `MCP\RateLimiter`; `recordFailedAttempt()` returns its post-increment count; the IP ceiling **reuses** the shipped `recordAuthFailure()`/`isAuthBlocked()` with no constant changed. **NEW-20 measured, not argued: 20 concurrent `check()` calls recorded 2–4 before, 20/20 after.** The three owed tests found a defect in the slice's own code (the 429 carried the wrong message — D-059 note 1) and one instrument failure in the test itself (the log-directory measurement passed alone and failed in the suite) |
 | 2 | Suspension takes effect on OAuth too | **NEW-41** | planned | — | `resolveUserActor()` reads `status`; the OAuth branch requires a non-null actor → **401**, where D-056 put application passwords |
 | 3 | The passkey assertion path | **NEW-42** | planned | — | Clone detection (both counters non-zero only), the `origin` check, the length guard, and the setup-wizard skip-list moved onto gate-map keys |
 
@@ -213,8 +217,11 @@ Port **8109**.
 1. **The IP ceiling can lock out a whole office behind one NAT address.** `getClientIp()` trusts
    `X-Forwarded-For` only from loopback, so behind a non-loopback proxy every visitor collapses into
    one bucket — that is **NEW-17**, pre-existing, and this slice makes it reachable on a second
-   surface. The ceiling is filterable and the interaction is stated in the reference doc rather than
-   discovered by an operator.
+   surface. The ceiling is filterable through **`auth.login_ip_blocked`** and the interaction is
+   stated in `docs/reference/authentication.md` rather than discovered by an operator. *(Corrected
+   at the slice's close: when this risk was written the filter did **not** exist — the slice's own
+   `code-reviewer` found the claim was false, and the filter was added and tested rather than the
+   sentence being softened. The mitigation an approved plan promises is part of the plan.)*
 2. **A blocking lock is a new failure mode.** Bounded deadline, fail-closed, and a test that drives
    the timeout path so the branch is observed rather than reasoned about (L-010).
 3. **Slice 3 touches the login path for passkey users.** The `origin` and clone checks can refuse a

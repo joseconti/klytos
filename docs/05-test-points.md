@@ -2881,6 +2881,162 @@ back to 192 by fixing the file rather than by rebaselining — D-025 says a touc
 clone detection from the sign counter, no `origin` check, no length guard before reading `authData`
 offsets, and the setup-wizard skip-list not extended alongside `$preAuthScripts`).
 
+# Sprint 6 — hardening
+
+### Slice 1 — the counters are atomic, and the login endpoint has a ceiling — evidence (commands and output, 2026-07-26)
+
+The code, the i18n, the docs and the primitive's own unit tests landed in `282a3cf` with three tests,
+this row and the two review passes explicitly still owed. This is that debt paid, and **the three
+owed tests were not bookkeeping — one of them found a live defect in the slice's own code.**
+
+**PROVEN TO FAIL FIRST (L-016), one TEMP-BREAK per test rather than in aggregate.** Each break
+reproduces the pre-slice shape of exactly one mechanism, and the observed failure message is quoted
+so a later reader can tell the test fired for its own reason and not for a neighbour's:
+
+```
+1. The IP ceiling removed  (login.php: `if ( $loginLimiter->isAuthBlocked(...) )` → `if ( false )`)
+   $ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/LoginCeilingHttpTest.php
+     ✘ testTheIpCeilingRefusesABurstOfInventedUsernamesThroughTheShippedForm
+       "The attempt past the ceiling was served normally: the login endpoint has no IP ceiling."
+     Tests: 3, Assertions: 27, Failures: 1     ← the other two are the positive control and the
+                                                 source-parity check, which correctly do not depend
+                                                 on the ceiling
+
+2. NEW-44 reintroduced  (admin-gate.php: the `'security'` $source restored on the unmapped refusal)
+   $ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/AdminGateHttpTest.php
+     ✘ testAGateRefusalReachesTheLogFile
+       "The gate refused and wrote nothing to any log file under …/installer/data. That is audit
+        NEW-44: the refusal is discarded by Logger::write() because the $source is not \"core\"."
+     Tests: 13, Assertions: 49, Failures: 1
+
+   …and the same fix reverted on the OTHER refusal — the one no HTTP request can reach:
+   $ XDEBUG_MODE=off vendor/bin/phpunit --filter \
+       testNeitherGateRefusalLogsUnderASourceTheLoggerWillDiscard \
+       tests/Integration/AdminGateMapTest.php
+     ✘ "This gate refusal passes a third argument to klytos_log_*(), which is the $source: …"
+     Tests: 1, Assertions: 3, Failures: 1
+
+3. D-059's fail-closed branch removed  (auth.php: `if ($this->recordFailedAttempt($u) === null)`
+                                        → `if (false) { $this->recordFailedAttempt($u); …`)
+   $ XDEBUG_MODE=off vendor/bin/phpunit --filter \
+       testAFailureThatCannotBeCountedRefusesInsteadOfPassingUncounted \
+       tests/Integration/AuthLoginTest.php
+     ✘ "The failure could not be recorded and the attempt was served anyway — that is a free,
+        uncounted try for anyone able to provoke contention on the counter file."
+     Tests: 1, Assertions: 4, Failures: 1
+```
+
+Breaks 2 and 3 were run under `--filter` and their counts are the FILTERED run's, written as
+executed rather than as a whole-class figure nobody measured — the first draft of this row quoted
+`Tests: 16, Assertions: 46` for break 3 beside a whole-file command, which was a number carried
+rather than derived. L-015 applies to this document as readily as to any other.
+
+Every break was reverted from a byte-for-byte backup and `git diff --stat` confirmed the file
+identical to `HEAD` before continuing — the tree was never left holding a deliberate break.
+
+**A DEFECT IN THIS SLICE'S OWN CODE, found by the first owed test and fixed in path.** The IP ceiling
+answered **HTTP 429 with the words "Incorrect username or password"**. `login.php`'s throttle branch
+set `$error = __( 'auth.too_many_attempts' )`, and the refusal-wording block below it then ran
+unconditionally, took its `else` (because `'throttled'` does not start with `account_locked:`) and
+**overwrote it with `auth.login_failed`**. So the key this slice added to all **20** catalogues could
+never render, and an operator being throttled was told their password was wrong. Fixed by giving the
+page exactly **one** place that turns a refusal into words — `$result['error']` is mapped in the block
+below, and the throttle branch now sets no message at all. `keel-verify`'s locale check could not
+have caught it: catalogue **parity** was perfect, and the key was simply unreachable. This is L-019's
+family — a string that exists and never arrives.
+
+**AN INSTRUMENT FAILURE CAUGHT AND NOT BELIEVED (L-008, L-016).** `testAGateRefusalReachesTheLogFile`
+passed alone and **failed in the full suite**, reporting that the gate had written nothing. The
+product was fine; the measurement was wrong. It asked the test process's own `Logger` for the logs
+directory — and `Logger` caches that path per instance while this tier boots the App **once per
+process** (D-030), so after a playground restore the test read directory X while the server, booting
+fresh per request, wrote to directory Y. Fixed by not predicting the directory OR the file name at
+all: the measurement globs `data/logs-*/debug-*.log` and diffs sizes. That is also the honest form of
+the property — the refusal must reach *a log an operator can read*, not one particular path — and the
+TEMP-BREAK above was re-run against the widened scan to confirm it still fails on unfixed code.
+
+**Full verification.**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (262 tests, 1237 assertions)     ← slice-1 code landing: 255/1177; sprint start: 248/1152
+
+$ php scripts/keel-verify
+  OK — 10 check(s) run: 8 passed, 2 warning(s) carrying 9 note(s) (owned by another phase)
+  [the 2 WARNs are H-01's version touchpoints and NEW-27's export-ignored guides — both Phase 7]
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary installer/core installer/admin
+  A TOTAL OF 192 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES     ← baseline held exactly
+$ … installer/plugins   A TOTAL OF 113 ERRORS AND 109 WARNINGS WERE FOUND IN 17 FILES   ← held
+$ … tests              (no total line; 44/44 files scanned, exit 0)                     ← 0/0 held
+$ … installer/public   (no total line;   2/2 files scanned, exit 0)                     ← 0/0 held
+$ … scripts scripts/keel-verify
+                        A TOTAL OF 0 ERRORS AND 2 WARNINGS WERE FOUND IN 1 FILE          ← held
+```
+
+**The lint measurement was itself checked before being believed, for the second session running.** A
+shell loop over the five scopes collapsed the two multi-path scopes into a single argument
+(`ERROR: The file "installer/core installer/admin" does not exist`), and `tail -3` then cut the
+summary's `A TOTAL OF …` line out of the two that did run — printing nothing where the answer was
+192/488. Each scope was re-run directly, and for the two scopes that legitimately print **no** total
+line at 0/0 the run was confirmed to have happened by its progress output (`44 / 44 (100%)`,
+`2 / 2 (100%)`) rather than by reading the emptiness as a zero, exactly as L-016 requires.
+
+**Reuse, per the standing rule.** No new HTTP harness: `LoginCeilingHttpTest` extends the existing
+`AdminHttpTestCase` on the reserved port **8108**. No new lock-holding fixture: `file-lock-worker.php`
+gained a `hold` mode rather than a sibling file. No new probe-file boilerplate: `AdminGateHttpTest`'s
+existing unmapped-file test and the new logging test now share one `requestUnmappedProbe()` helper —
+the duplicate was refactored away rather than added to.
+
+**THE REVIEW CYCLE EARNED ITS COST FOR THE SEVENTEENTH CONSECUTIVE SLICE — no blocking finding, and
+between the two passes it produced a measured correction to D-059's own claim, a FALSE claim in the
+approved sprint plan, and three new audit findings.** Full account in D-059's review amendment; the
+two that changed code:
+
+- **The `security-auditor` hypothesised that the IP ceiling has the same check-then-act shape it
+  replaces, and MEASURING it confirmed the hypothesis** — so D-059's "the ceiling closes the ~218 ms
+  window" is narrowed to "bounds", with numbers. Bucket pre-filled to 9 of 10, one process per
+  request, real `isAuthBlocked()` → 218 ms → `recordAuthFailure()` sequence:
+
+  ```
+  6 requests, one at a time   ->  1 served (expected 1), bucket 10   ← the control
+  6 requests, simultaneous    ->  6 served,              bucket 15
+  12 requests, simultaneous   -> 12 served,              bucket 21
+  ```
+
+  No increment is lost (the bucket lands on exactly 9 + N — that is what the atomicity bought), so
+  this is a check-then-act window rather than NEW-20's lost update. Recorded as **NEW-46**.
+  **My own instrument was wrong twice before this number was trustworthy**: the probe's `require`
+  path was broken and fataled loudly (last session's false 0/20, caught this time because it
+  screamed), and then `grep -c` over newline-less result files reported `SERVED=1` while the bucket
+  said 15 — two measurements of one event disagreeing, which is what exposed the counter as the
+  broken half (L-023).
+- **The `code-reviewer` found that the approved sprint plan's risk 1 claimed "the ceiling is
+  filterable" and no such filter existed** — re-derived, zero `klytos_apply_filters` in either file.
+  Added rather than softened, because a mitigation the plan promises for a recorded risk (NEW-17) is
+  part of the plan. `auth.login_ip_blocked`, at the login call site only, **proven with a real
+  plugin loaded by the product's own `PluginLoader` in the SERVER process** — a filter registered in
+  the test process would prove nothing about the process serving the request (L-019) — and observed
+  failing against the un-filtered code first.
+
+Also fixed from the review: `docs/reference/authentication.md`'s "Known limits" still declared both
+of this slice's fixes to be open **and recommended `ActionScheduler::acquireLock()`, the remedy
+D-059 refuted on two grounds** — a document contradicting its own body 100 lines above. Recorded and
+not fixed: **NEW-47** (the password-login POST has no CSRF check — pinned by this slice's own
+source-parity test, so it is now a decision rather than an omission) and **NEW-48** (the 2FA
+emergency-email branch overwrites its own error message — implementation note 1's defect one branch
+away). **NEW-17 gained the bypass half it never covered.**
+
+**Coverage of the sprint's acceptance criteria by this slice:** 1 (`FileLockTest::testConcurrentIncrementsAreNotLost`,
+landed with the code), 2 (`LoginCeilingHttpTest`), 3 (`FileLockTest` for the primitive's two fail
+directions, `AuthLoginTest::testAFailureThatCannotBeCountedRefusesInsteadOfPassingUncounted` for the
+product's), 6 (`AdminGateHttpTest::testAGateRefusalReachesTheLogFile` plus
+`AdminGateMapTest::testNeitherGateRefusalLogsUnderASourceTheLoggerWillDiscard` for the twin no
+request can reach), 7 (above).
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -2905,6 +3061,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-23 (Sprint 2 slice 3 session) | port 8080/8090 skipped (known-held, L-011); booted on a `nc -z`-verified-free **8091** | MCP **401** unauthenticated, **no `Server:` header** (PHP built-in). Then a live slice-3 walk on a verified-free **8092**: owner `tools/list` = **206** (172 core + 8 x402 + 16 forms + 10 importer — integrity and both shipped plugins now live), owner `tools/call klytos_forms_list` → **HTTP 200** (NEW-30: was "Unknown tool" pre-slice). The 100+-test integration tier had booted the real App on the seeded playground first | yes |
 | 2026-07-24 (Sprint 2 slice 4 session) | documented commands; 8080/8081/8082/8090 skipped (known-held, L-011), booted on an `nc -z`-verified-free **8083** | MCP **401** unauthenticated (freshness). Then the whole of `docs/playground.md` §3a run for real on the same boot: four per-role bearer tokens minted with the documented one-liner, the full 5-tool × 4-role `tools/call` matrix (206/197/56/19 on `tools/list`), the translated 403 body, and the unmapped-tool protocol error. **Two commands in the newly-written §3a were wrong when first drafted and were corrected against the real output before the document was saved**: `grep -c '"name"'` counts 1 (the response is one line — and tool schemas carry `name` too), and the unmapped-tool call answers **200** with `-32602`, not a non-200 | yes |
 | 2026-07-25 (Sprint 3 slice 1 session) | documented commands on a verified-free **8083** (`nc -z` first; **8080, 8081, 8082 and 8090 all held by the same unrelated container for the SIXTH consecutive session**) | admin **302**, MCP **401** unauthenticated, and `curl -D -` checked for the L-011 tell — no `Server: Apache/...` header, so the responses were our own `php -S` and not the squatter's. The seeder declined to overwrite the existing install, as documented, so the session ran against the standing playground | yes |
+| 2026-07-26 (Sprint 6 slice 1 close session) | documented Start section run verbatim on a `nc -z`-verified-free **8112** (8080 skipped — Docker for the ninth consecutive session, established at the kickoff earlier the same day) | seed (`--reset`) clean; `php -S` backgrounded with its log grepped for `Failed to listen` → **bound cleanly**; owning PID confirmed by `lsof` (php83, 63899) rather than assumed (L-021); admin **302**, MCP **401** unauthenticated; `curl -D -` carried **no `Server:` header**, the L-011 tell, checked before any response was believed. Server stopped by port before the suite ran — the playground is single-tenant (L-025) | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

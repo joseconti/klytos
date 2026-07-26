@@ -10,12 +10,12 @@
 | Global helper functions | 146 |
 | Classes and interfaces | 103 |
 | Actions | 311 |
-| Filters | 121 |
+| Filters | 122 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **967** |
+| **Total** | **968** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -626,6 +626,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | analytics.event | filter | installer/core/analytics-manager.php | — | Filters an analytics page view entry before it is recorded |
 | asset.allowed_types | filter | installer/core/helpers.php | — | Filters the allowed upload file extensions during asset upload validation |
 | auth.capabilities | filter | installer/core/helpers-global.php +1 more | — | Filters the resolved capability list of a user before a permission check |
+| auth.login_ip_blocked | filter | installer/admin/login.php | docs/reference/authentication.md | Filters the login form's IP-ceiling decision for one request; the recorded remedy for NEW-17 (a whole office behind one NAT address). Cannot reach the per-account lockout |
 | block.available_types | filter | installer/core/block-manager.php | — | Filters the registered block types so plugins can add their own |
 | block.css | filter | installer/core/build-engine.php | — | Filters a block's generated CSS during the build stylesheet generation |
 | block.rendered_html | filter | installer/core/block-manager.php | — | Filters a block's wrapped HTML after rendering with its data |

@@ -1552,6 +1552,20 @@ verified test point with a recorded files-updated count.
 - **Stated in the reference doc rather than implied away:** `docs/reference/public-comments.md`
   says the limit raises the cost of spam substantially and that a proxied deployment needs this
   fix before it means what it says.
+- **SECOND HALF, added 2026-07-26 by the Sprint 6 slice 1 `security-auditor` pass — this entry only
+  ever covered availability, and the same function has a BYPASS half.** In the case the code *does*
+  trust (`REMOTE_ADDR` is loopback, i.e. a proxy on the same host — the supported deployment), it
+  takes `explode( ',', $forwarded )[0]`: the **first**, client-supplied entry, with no trusted-hop
+  allow-list and no chain-depth limit. A reverse proxy that **appends** rather than overwrites
+  `X-Forwarded-For` — `proxy_add_x_forwarded_for` is the nginx default — leaves that first entry
+  under the caller's control. Consequences on both sides: a caller can mint a fresh bucket key per
+  request (bypassing the comment limit, the MCP limit and, since D-059, the login ceiling), or fill
+  a chosen victim's bucket deliberately (a targeted lockout rather than the site-wide one this entry
+  already records). Whether it is live depends on a deployment's proxy configuration, which cannot
+  be settled from the source — recorded as a real half of NEW-17 rather than as a separate finding,
+  because it has the same one remedy: a configurable trusted-proxy list.
+- **Severity raised to MEDIUM–HIGH** on that basis, and the trigger is unchanged: the trusted-proxy
+  configuration slice, which owns all four consuming surfaces at once.
 - **Trigger:** the first deployment behind a CDN, or the slice that adds trusted-proxy config.
 
 ### NEW-18 — The global `__()` exists only inside the admin bootstrap, so no public surface can translate — **MEDIUM (i18n)** *(found 2026-07-20, Sprint 1 slice 7)* — recorded, NOT fixed
@@ -2159,6 +2173,89 @@ verified test point with a recorded files-updated count.
   plus a test.
 - **Trigger:** the next slice touching `installer/core/ai/`, or the NEW-32 logging slice, which
   should close all three together.
+
+### NEW-46 — The login IP ceiling is not exact under concurrency — **LOW** *(found 2026-07-26 by the Sprint 6 slice 1 `security-auditor` pass; MEASURED the same session)* — recorded, NOT fixed
+
+- **Where:** `installer/admin/login.php` (the ceiling: `isAuthBlocked()` → `$auth->login()` →
+  `recordAuthFailure()`), `installer/core/mcp/rate-limiter.php:146-158`.
+- **What:** the ceiling reads the counter, authenticates, and only then records the failure — and the
+  authentication in the middle is a ~218 ms bcrypt verify (the NEW-39 equalization). Concurrent
+  requests can all observe "under the limit" before any of them has recorded its own failure, so a
+  simultaneous burst overshoots by its own width.
+- **Measured, not argued** — the discipline NEW-20 established this same sprint. Bucket pre-filled to
+  9 of 10, one process per request, each performing the real `isAuthBlocked()` → 218 ms →
+  `recordAuthFailure()` sequence:
+
+  | Requests fired | Served (expected 1) | Bucket after |
+  |---|---|---|
+  | 6, one at a time | **1** | 10 |
+  | 6, simultaneous | **6** | 15 |
+  | 12, simultaneous | **12** | 21 |
+
+  The sequential run is the control: the instrument can tell the two cases apart. The bucket landing
+  on exactly 9 + N is itself worth noting — **no increment is lost**, which is precisely what D-059's
+  atomicity bought; the overshoot is a check-then-act window, not the lost-update defect NEW-20 was.
+- **Why it is LOW rather than a reopening of NEW-40.** The sustained rate is still bounded: after the
+  burst the counter holds every failure, and subsequent requests are refused. The cost of the attack
+  is one burst the width of the server's worker pool per 60-second window, against an endpoint whose
+  per-account lockout (5 attempts, keyed by the submitted username) is unaffected — a plugin cannot
+  widen that one and neither can this. What it defeats is the claim that the ceiling is exact.
+- **The fix shape, recorded so it is not re-derived:** count the *attempt* before authenticating
+  rather than the *failure* after. That also counts successful logins against the ceiling, which is a
+  policy change — the current design deliberately counts failures only, so that a user logging in
+  repeatedly never approaches the limit. It therefore needs its own decision, not a rider here.
+- **`docs/reference/authentication.md` states this with the numbers** rather than claiming an exact
+  limit, because claiming otherwise would be the L-002 defect in the document written to prevent it.
+- **Trigger:** the trusted-proxy slice that owns NEW-17 (same file, same function, same test point),
+  or the first report of a brute force that outpaces the ceiling.
+
+### NEW-47 — The password-login POST has no CSRF check, so an attacker can log a victim into the attacker's account — **LOW–MEDIUM** *(found 2026-07-26 by the Sprint 6 slice 1 `security-auditor` pass)* — recorded, NOT fixed
+
+- **Where:** `installer/admin/login.php` — the password-login branch runs no `klytos_verify_csrf()`
+  (only the 2FA branch does), and the shipped password form emits no `klytos_csrf_field()`.
+- **What:** login CSRF. An attacker holding **their own** valid credentials on the install can host a
+  page that silently POSTs a victim's browser into a session authenticated as the **attacker's**
+  account. `SameSite=Strict` on the session cookie does not prevent it: the victim has no
+  pre-existing session cookie to withhold, a new session is created, and its `Set-Cookie` is stored
+  normally because the response comes from the CMS's own origin.
+- **Why it matters here specifically:** Klytos is an AI-first CMS whose admin surfaces write content
+  and mint credentials. A victim who does not notice whose session they are in may author content
+  into, or paste secrets into, an account the attacker controls and can read.
+- **Distinct from NEW-26**, which is the password-*reset* form. That one's recorded justification —
+  the reset token already is the secret CSRF would substitute for — does not apply here: the login
+  POST has no equivalent secret gating it.
+- **Pre-existing, and NOT introduced by Sprint 6.** It is recorded now because slice 1's
+  `LoginCeilingHttpTest` deliberately **pins the absence** (its source-parity test asserts the form
+  emits no CSRF field, so the test's token-less request stays faithful to the shipped page). A test
+  asserting a property nobody decided is a decision made by omission — this entry is that decision
+  being written down instead.
+- **Consequence of fixing it, stated so the next slice does not discover it:** adding a CSRF field to
+  the login form makes `LoginCeilingHttpTest`'s source-parity test fail by design, and its requests
+  must be updated in the same slice. That is the test working, not breaking.
+- **Trigger:** the next slice touching `admin/login.php`'s POST handling, or the NEW-26 slice — same
+  defect class, and they should close together.
+
+### NEW-48 — The 2FA emergency-email branch overwrites its own error message — **LOW** *(found 2026-07-26 by the Sprint 6 slice 1 `code-reviewer` pass)* — recorded, NOT fixed
+
+- **Where:** `installer/admin/login.php` — the `email`/`emergency_email` branch of the 2FA POST
+  handler, and the shared outcome block below it.
+- **What:** when the pending user has no valid email on file the branch sets
+  `$error = __( 'security.no_email' )`. Execution then reaches the shared outcome block, where
+  `$verified` is false, `$method !== 'email'` is true for `emergency_email`, and `$info` was never
+  set — so `$error` is **overwritten** with `security.2fa_invalid_code`. A user locked out of their
+  own account, using emergency recovery, is told their code is invalid when the real reason is that
+  the account has no email address.
+- **Exactly the defect class D-059 implementation note 1 fixed one branch away**, in the same file,
+  in the same session: two places writing one message, with the later one winning. That fix was
+  scoped to the password-login handler and its claim ("one place that maps `$result['error']` to
+  words") is accurate for that handler and not for this one.
+- **Why not fixed here:** it is a different branch of the file — the 2FA handler, not the
+  password-login handler this slice changed — so D-031's narrowing applies exactly as it did to
+  NEW-45 at this sprint's kickoff. It is one line plus a test that drives the emergency-email path
+  with an email-less account, which is real work rather than a rider.
+- **Trigger:** the next slice touching the 2FA branch of `admin/login.php` — NEW-38 (the OAuth
+  consent screen cannot complete a 2FA login) is the obvious one, since it must reuse this
+  dispatcher.
 
 ---
 
