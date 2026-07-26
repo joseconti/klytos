@@ -2110,6 +2110,56 @@ verified test point with a recorded files-updated count.
   advisory), which is the same family — a published contract that does not describe what the tool
   does.
 
+### NEW-44 — Every refusal by the central admin gate is silently discarded — **MEDIUM** *(found 2026-07-26 at the Sprint 6 kickoff re-validation)* — FIXED in path, Sprint 6 slice 1 (D-059)
+- **Where:** `installer/core/admin-gate.php:282` and `:296`; `installer/core/logger.php:122`
+- **What:** both refusal paths of `klytos_enforce_admin_gate()` — the unresolvable-path denial and
+  the default-deny for an unmapped surface — call
+  `klytos_log_warning( …, 'security' )`. `Logger::write()` treats **any** source that is not
+  `'core'` as a **plugin ID** and returns early unless that plugin has logging enabled
+  (`if ( $source !== 'core' && ! $this->isPluginLoggingEnabled( $source ) ) return;`). No plugin is
+  called `security`. So the S-07 gate — the single enforcement point four sprints were spent
+  building — writes **nothing** when it refuses, with Developer Mode on or off.
+- **Why it matters beyond the missing lines:** this is the mechanism the project's own hand-off
+  procedure depends on. Every sprint close tells the user "the debug log is ON, paste it when
+  something fails"; for the failures the authorization system produces, there is nothing to paste.
+- **How it was found, and it is the uncomfortable part:** the Sprint 5 close-out playground-QA pass
+  found this **exact** mistake in `docs/playground.md`'s own remedy snippet — a listener passing
+  `'security'` as the source, producing silence directly beneath a paragraph explaining that silence
+  was expected. The document was fixed. **Nobody asked whether the product made the same mistake**,
+  and it does, in the gate itself. **L-019's shape a third time**, and the first two times were in
+  documents.
+- **Distinct from NEW-32**, which is that `mcp.access_denied` / `auth.access_denied` have no
+  subscriber. This one is not about a missing listener: the gate calls the logger **directly** and
+  the logger drops the entry. Fixing NEW-32 would not have fixed this.
+- **Fix applied (D-059):** the callers pass `'core'` and keep the category in the message and
+  context. Deliberately NOT fixed by teaching `Logger` a reserved-core-source allow-list — that is a
+  contract change belonging to the NEW-32 logging slice, and this sprint would otherwise be
+  redesigning the logger while hardening the limiters.
+
+### NEW-45 — Five log calls pass their arguments in the wrong order, so every AI error message is discarded — **LOW** *(found 2026-07-26 at the Sprint 6 kickoff re-validation)* — recorded, NOT fixed
+- **Where:** `installer/core/ai/chat-engine.php:213`, `:221`, `:229`, `:331`;
+  `installer/core/ai/chat-manager.php:304`
+- **What:** the signature is
+  `klytos_log( string $level, string $message, array $context = [], string $source = 'core' )`
+  (`helpers-global.php:642`). All five call sites invoke it as `klytos_log( $message, $level )` —
+  e.g. `klytos_log( "AI chat error [{$httpCode}]: " . mb_substr( $body, 0, 300 ), 'error' )`. So the
+  real diagnostic text arrives as `$level`, fails `in_array( $level, self::LEVELS, true )`, is
+  replaced by `'info'` (`logger.php:145-147`) and is **discarded entirely**; the line written is the
+  literal word `error`, at level INFO.
+- **Severity is LOW and said plainly:** nothing is escalated, nothing is disclosed, no control is
+  weakened. What is lost is the diagnostic content of every AI chat failure — the provider status
+  code, the message body excerpt, the exception text, the failing tool name — which is precisely what
+  the "paste the debug log" hand-off exists to collect.
+- **Same family as NEW-44 and NEW-32**, reached a third way: there the sink drops the entry, here the
+  caller destroys the payload before the sink sees it. The pattern worth naming is that this
+  project's logging surface has now failed in three independent ways and every one was found by
+  following a call to its sink rather than by reading the call.
+- **Why not fixed here:** the AI subsystem is not in Sprint 6's diff and no slice touches these
+  files — D-031's narrowing, which this project applies rather than argues about. It is five lines
+  plus a test.
+- **Trigger:** the next slice touching `installer/core/ai/`, or the NEW-32 logging slice, which
+  should close all three together.
+
 ---
 
 ## Next step

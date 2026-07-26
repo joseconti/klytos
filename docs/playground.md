@@ -4,7 +4,13 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-25 (Sprint 4 close)** — a fresh-context pass ran this document end to end
+> **last verified: 2026-07-26 (Sprint 6 kickoff)** — the Start section was run verbatim on
+> `KPORT=8112`: seed (`--reset`) clean, `php -S` bound cleanly with the log checked for
+> `failed to listen`, owning PID confirmed by `lsof`, and the two documented responses reproduced
+> exactly (admin `302`, MCP `401`). **8080 was squatted for the ninth consecutive session** — Docker
+> again, PID 45413, confirmed by `lsof` rather than assumed.
+>
+> Previously — **2026-07-25 (Sprint 4 close)** — a fresh-context pass ran this document end to end
 > on `KPORT=8110` / `RPORT=8111`, ~45 commands, and every product claim it checked held: the 5×4
 > per-role table reproduced exactly, `tools/list` sizes 206/197/56/19 exact, all nine router
 > protections 403, the full security-header set present, suite `OK (227 tests, 1059 assertions)` with
@@ -59,7 +65,7 @@ php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
 ```
 
 > **`$KPORT` is not decoration — set it.** 8080 is the default and it has been occupied by an
-> unrelated Docker container in **every session since 2026-07-19** (eight consecutive) of this project. Every URL below is
+> unrelated Docker container in **every session since 2026-07-19** (nine consecutive) of this project. Every URL below is
 > written `http://127.0.0.1:$KPORT/...` so that changing the port in step 2 is the only edit you
 > ever make. A fresh reader following this document with 8080 busy previously had no path forward,
 > because the rest of the page hardcoded 8080 — found by the sprint-1 playground-QA pass and fixed

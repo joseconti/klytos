@@ -410,3 +410,63 @@ The sharper calibration point for whoever estimates next: **every high-value fin
 came from EXECUTING something** — a net-zero password probe, a 340× timing measurement, a hand-built
 HTTP request, a QA agent following the document literally. None came from reading. Budget probe time
 explicitly; it is the cheapest hour in the estimate and it has decided the design four times now.
+
+---
+
+## Estimate v6 — Phase 5, Sprint 6 scope (hardening: NEW-40 / NEW-20 / NEW-41 / NEW-42, + NEW-44) — 2026-07-26
+
+Written at the sprint kickoff, before any code. Covers **Sprint 6 only**. The theme-package sprint
+(D-023/D-024) and the bilingual in-product guides still have no estimate; each gets its own version
+when planned.
+
+### Scope basis
+
+3 slices in `docs/sprints/sprint-6.md`. Counts measured this session, not carried: **2** call sites
+of the lockout read-modify-write and **2** of the rate limiter's, closed by **1** promoted primitive;
+**1** new IP ceiling reusing **0** changed constants; **1** shared resolver (`resolveUserActor()`)
+covering **2** credential types; **4** items in NEW-42; **2** new audit findings opened at the
+kickoff (**NEW-44**, **NEW-45**) of which 1 is fixed in path. Sprint-start suite: **248 tests /
+1152 assertions**.
+
+### AI working hours (itemized)
+
+| Segment (AI does) | Hours (low–high) | Basis |
+|---|---|---|
+| Planning — kickoff re-validation against source, which **refuted the audit's own recorded fix shape on two independent grounds** and found 2 defects in no audit entry; 4 user decisions; artifacts (sprint-6, D-059, D-060, 2 audit entries, this estimate) | 2.0–3.0 | The re-validation is the item that paid: implementing the recorded remedy would have serialised every login behind ~218 ms of bcrypt, and the defect it was meant to fix would have got *worse* under `LOCK_NB` |
+| Slice 1 — the file-transaction primitive, 4 call sites converted, the IP ceiling, NEW-44 in path, and a **real N-process concurrency test proven to produce lost updates first** | 4.0–6.0 | The concurrency test is the unusual item and the reason this slice is the sprint's largest: it is the measurement NEW-20 has been carried without for five sprints, and it has to be shown failing before its silence means anything |
+| Slice 2 — `status` on the shared resolver, the OAuth branch requiring an actor, MCP HTTP tests | 1.5–2.5 | Small diff on a well-understood seam; the cost is in proving 401-on-the-next-request over real HTTP rather than by reading |
+| Slice 3 — 4 items in the passkey assertion path, each pinned in both directions | 2.5–4.0 | Item 1's real work is *not* refusing synced passkeys (`signCount = 0`), which is the case that would break most real users |
+| Reviews on the finished diff (both subagents, per slice) | 3.0–4.5 | **A correct blocking finding has landed on every slice for sixteen consecutive slices.** Budgeted as a first-class segment, not as a tax |
+| Sprint close-out — docs-verifier, playground-QA, defect fixes, state, try-it script, continuation prompt | 2.0–3.5 | The last three closes found 6, 11 and 8 document defects respectively; assume it finds some |
+| **Total AI** | **15.0–23.5 h** | |
+
+Comparable to v5 despite a much smaller production diff, and the reason is worth naming: **this
+sprint's subject is concurrency, and concurrency cannot be verified by reading.** Every acceptance
+criterion here needs a process spawned, a burst issued or a timeout driven.
+
+### Vibe coder hours (itemized)
+
+| Segment | What the developer does | Hours (low–high) |
+|---|---|---|
+| Sprint choice + kickoff | Choose the hardening slice over the theme-package sprint and the bilingual guides; take the 4 kickoff decisions (done — 2026-07-26) | 0.25–0.5 |
+| Mid-sprint decisions | Approve the plan; answer anything the reviews surface | 0.25–0.5 |
+| During the build | Open sessions, read summaries, approve gates | 1.0–2.0 |
+| Test points | Walk the try-it script: fail a login five times and confirm the account locks while others do not, suspend an account holding an MCP credential and confirm it stops working immediately, log in with a passkey | 0.5–1.0 |
+| **Total developer** | | **2.0–4.0 h** |
+
+### What this estimate is NOT
+
+It excludes the theme-package sprint (D-023/D-024), the **bilingual in-product guides** (16 guides ×
+2 languages plus a locale-selection mechanism that does not exist, and NEW-27 must be fixed first or
+neither language ships), the S-10 CSS-consolidation sprint, the accessibility sprint (A-01…A-07),
+NEW-33's i18n conversion, **active OAuth token revocation on suspension** (named out of scope in
+slice 2), the **NEW-32 logging slice** that should close NEW-45 with it, and NEW-34/NEW-35/NEW-43.
+
+### Calibration note for the next estimate
+
+**The kickoff re-validation has now changed the plan in four consecutive sprints, and this time it
+invalidated a fix shape the project had already written down and approved.** NEW-40's recorded remedy
+was not merely suboptimal — under `LOCK_NB` it would have converted a racy lost update into a
+deterministic one, in the slice written to close it. Budget the re-validation as a full segment
+(2–3 h here) and treat every recorded "fix shape" as a hypothesis with the same status as a reviewer's
+finding (L-013, L-014, L-015). The estimate that skips it saves two hours and buys a rewrite.
