@@ -32,12 +32,19 @@ use Klytos\Tests\AdminHttpTestCase;
  *
  * WHY THE REQUEST IS BUILT FIELD BY FIELD (L-026): Sprint 5 slice 2 shipped a
  * green suite over a feature no browser could use, because the harness sent a
- * header the shipped page never sends. So this class posts EXACTLY the three
- * fields `login.php`'s password form emits — `redirect_to`, `username`,
- * `password` — with no session cookie and no CSRF token, which is what a real
- * first login is; and {@see testTheRequestThisClassSendsIsTheRequestTheShippedFormSends}
- * derives that set from the page's own source so the comparison is a check
- * rather than a claim that rots.
+ * header the shipped page never sends. So this class posts EXACTLY the fields
+ * `login.php`'s password form emits — `redirect_to`, `username`, `password`,
+ * and, since Sprint 6 slice 4 closed audit NEW-47, the CSRF token — and
+ * {@see testTheRequestThisClassSendsIsTheRequestTheShippedFormSends} derives
+ * that set from the page's own source so the comparison is a check rather than
+ * a claim that rots.
+ *
+ * That check has now fired once for real: slice 4 added `klytos_csrf_field()`
+ * to the form, this class's token-less requests started being answered 403, and
+ * the parity test named the cause on the same run. The session and token are
+ * therefore fetched from the page itself ({@see AdminHttpTestCase::formSession})
+ * rather than invented here — a harness-minted token would prove only that the
+ * harness agrees with itself.
  *
  * (`AuthLoginHttpTest`, which drives the same form for D-056, omits the hidden
  * `redirect_to`. Harmless there — an empty value takes the same branch as an
@@ -83,6 +90,17 @@ final class LoginCeilingHttpTest extends AdminHttpTestCase
      * @var array<int, string>
      */
     private const SHIPPED_FIELDS = [ 'redirect_to', 'username', 'password' ];
+
+    /**
+     * The session and CSRF token the login page itself issued, fetched once.
+     *
+     * PHPUnit builds a fresh instance per test, so this is null at the start of
+     * every one — the burst below shares a session exactly as one browser (or
+     * one bot) would, and no state crosses between tests.
+     *
+     * @var array{session:string, csrf:string, body:string}|null
+     */
+    private ?array $formCredentials = null;
 
     /**
      * A burst of invented usernames from one address is refused by the ceiling.
@@ -274,15 +292,23 @@ final class LoginCeilingHttpTest extends AdminHttpTestCase
         );
 
         // A CSRF field is emitted by a helper call, not by a literal name=
-        // attribute, so the parse above cannot see it. Checked separately
-        // rather than assumed: the password POST branch runs no
-        // klytos_verify_csrf(), and if that ever changes, this class's
-        // token-less requests would start being answered 403 and every
-        // assertion above would pass for the wrong reason.
-        self::assertStringNotContainsString(
+        // attribute, so the parse above cannot see it — it is checked
+        // separately.
+        //
+        // THIS ASSERTION USED TO BE ITS OWN INVERSE, and the flip is the record
+        // of this mechanism working. Until Sprint 6 slice 4 it read
+        // assertStringNotContainsString(), pinning the ABSENCE of a CSRF field
+        // because the password branch verified none (audit NEW-47) — an absence
+        // this class's token-less requests depended on. Slice 4 added the check
+        // and this assertion failed on the same run, with the message it was
+        // written to produce, which is exactly what it existed for: the requests
+        // above were updated in the SAME slice rather than quietly ceasing to
+        // resemble the shipped page (L-026).
+        self::assertStringContainsString(
             'klytos_csrf_field',
             $passwordForms[0],
-            'The password form now emits a CSRF token that these requests do not send.'
+            'The password form no longer emits a CSRF token, so either NEW-47 has been reopened '
+            . 'or these requests are sending a field the page does not.'
         );
     }
 
@@ -340,9 +366,16 @@ final class LoginCeilingHttpTest extends AdminHttpTestCase
     /**
      * POST the login form exactly as the shipped page does.
      *
-     * Anonymous — no session cookie and no CSRF token — because the password
-     * branch of login.php gates on neither (`klytos_verify_csrf()` guards only
-     * the 2FA branch), and a first login has neither to send.
+     * Until Sprint 6 slice 4 this posted anonymously with no session and no
+     * token, because the password branch verified neither. It now carries both,
+     * for the same reason it did not before: **this is what the shipped page
+     * sends** (audit NEW-47, D-061). The pair is fetched from the page itself
+     * — one GET, then reused for every POST, which is also what a browser and a
+     * credential-stuffing bot both do.
+     *
+     * The update was not optional and it was not discovered by accident: the
+     * source-parity test below is written to fail the moment the form gains a
+     * field these requests do not send, and it did.
      *
      * @param  string $username Submitted username.
      * @param  string $password Submitted password.
@@ -350,14 +383,21 @@ final class LoginCeilingHttpTest extends AdminHttpTestCase
      */
     private function postLoginForm( string $username, string $password ): array
     {
+        if ( $this->formCredentials === null ) {
+            $this->formCredentials = $this->formSession( self::LOGIN );
+        }
+
         return $this->post(
             self::LOGIN,
             [
+                'csrf'        => $this->formCredentials['csrf'],
                 'redirect_to' => '',
                 'username'    => $username,
                 'password'    => $password,
             ],
-            null
+            null,
+            [],
+            $this->formCredentials['session']
         );
     }
 }

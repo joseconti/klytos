@@ -51,7 +51,8 @@
     "remember_me": "Muista minut",
     "login_failed": "Virheellinen käyttäjänimi tai salasana",
     "account_locked": "Tili lukittu. Yritä uudelleen {minutes} minuutin kuluttua.",
-    "too_many_attempts": "Liian monta kirjautumisyritystä tästä osoitteesta. Yritä uudelleen minuutin kuluttua."
+    "too_many_attempts": "Liian monta kirjautumisyritystä tästä osoitteesta. Yritä uudelleen minuutin kuluttua.",
+    "session_expired": "Istuntosi vanheni ennen lomakkeen lähettämistä. Lataa sivu uudelleen ja yritä uudestaan."
   },
   "dashboard": {
     "title": "Hallintapaneeli",

@@ -56,7 +56,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $showForm) {
     $postUserId      = $_POST['user_id'] ?? '';
     $postToken       = $_POST['token'] ?? '';
 
-    if ($newPassword !== $confirmPassword) {
+    // ─── CSRF (audit NEW-26; D-061) ─────────────────────────────
+    // The exploitability is genuinely low and is stated rather than inflated: a
+    // forged POST still needs the valid user_id + token pair, which is the very
+    // secret CSRF would be substituting for. It is closed anyway, with NEW-47,
+    // because the two are one defect class on one flow — and because "this form
+    // does not need CSRF" is a judgement that has to be re-derived by every
+    // reader who notices its absence.
+    //
+    // The token comes from the session bootstrap.php starts for this page, and
+    // klytos_csrf_field() below writes it when the form is rendered — so the
+    // GET that shows the form to the recipient of the reset email is what mints
+    // it. A refusal therefore means a stale page, never a wrong link, and the
+    // message says so.
+    if ( ! klytos_verify_csrf() ) {
+        http_response_code( 403 );
+        $error = __( 'auth.session_expired' );
+    } elseif ($newPassword !== $confirmPassword) {
         $error = 'Passwords do not match.';
     } elseif (strlen($newPassword) < 12) {
         $error = 'Password must be at least 12 characters.';
@@ -123,6 +139,7 @@ $basePath = Helpers::getBasePath();
 
         <?php if ($showForm): ?>
             <form method="post">
+                <?php echo klytos_csrf_field(); ?>
                 <input type="hidden" name="user_id" value="<?php echo klytos_esc_attr($userId); ?>">
                 <input type="hidden" name="token" value="<?php echo klytos_esc_attr($token); ?>">
 

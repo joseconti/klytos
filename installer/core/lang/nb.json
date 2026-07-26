@@ -51,7 +51,8 @@
     "remember_me": "Husk meg",
     "login_failed": "Feil brukernavn eller passord",
     "account_locked": "Kontoen er last. Prov igjen om {minutes} minutter.",
-    "too_many_attempts": "For mange innloggingsforsøk fra denne adressen. Prøv igjen om ett minutt."
+    "too_many_attempts": "For mange innloggingsforsøk fra denne adressen. Prøv igjen om ett minutt.",
+    "session_expired": "Økten din utløp før skjemaet ble sendt. Last inn siden på nytt og prøv igjen."
   },
   "dashboard": {
     "title": "Kontrollpanel",

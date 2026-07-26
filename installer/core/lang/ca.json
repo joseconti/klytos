@@ -51,7 +51,8 @@
     "remember_me": "Recorda'm",
     "login_failed": "Nom d'usuari o contrasenya incorrectes",
     "account_locked": "Compte bloquejat. Torneu-ho a provar d'aquí a {minutes} minuts.",
-    "too_many_attempts": "Massa intents d'accés des d'aquesta adreça. Torna-ho a provar d'aquí a un minut."
+    "too_many_attempts": "Massa intents d'accés des d'aquesta adreça. Torna-ho a provar d'aquí a un minut.",
+    "session_expired": "La sessió ha caducat abans d'enviar el formulari. Torna a carregar la pàgina i prova-ho de nou."
   },
   "dashboard": {
     "title": "Tauler",

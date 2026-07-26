@@ -470,3 +470,53 @@ was not merely suboptimal — under `LOCK_NB` it would have converted a racy los
 deterministic one, in the slice written to close it. Budget the re-validation as a full segment
 (2–3 h here) and treat every recorded "fix shape" as a hypothesis with the same status as a reviewer's
 finding (L-013, L-014, L-015). The estimate that skips it saves two hours and buys a rewrite.
+
+---
+
+## Estimate v7 — Sprint 6 scope change (NEW-47 + NEW-26 pulled forward; NEW-50 found inside) — 2026-07-27
+
+Written **after** the slice, because the scope change was decided and executed in the same session
+(the user's instruction at the slice-2 close). It amends **v6** rather than replacing it: v6's three
+slices are unchanged, and this covers the fourth.
+
+### Scope basis
+
+**1** added slice, run before slice 3. Measured rather than estimated, since the work is done: **2**
+product files gained a CSRF check (`admin/login.php`, `admin/reset-password.php`), **1** primitive was
+fixed (`Auth::validateCsrf()` — audit NEW-50, found by execution), **1** locale key × **20**
+catalogues, **1** new test class (**6** tests), **2** existing HTTP test classes updated to send what
+the shipped page sends, **1** harness helper added (`formSession()`) and **2** generalized
+(`post()`, `request()`). **3** TEMP-BREAK cycles. Suite **268 → 274 tests / 1272 → 1323 assertions**.
+
+### AI working hours (itemized)
+
+| Segment (AI does) | Hours (low–high) | Basis |
+|---|---|---|
+| Source re-validation before touching anything | 0.25–0.5 | Confirmed NEW-47 against source (the 2FA branch DOES verify CSRF; the password branch does not — a distinction the audit entry got right and that a careless reading would have inverted) |
+| The two checks + the form fields + the wording map | 0.5–0.75 | Small, once the shape was decided: the ordering (CSRF before the ceiling) and the single wording map are the only judgement calls |
+| **NEW-50 — diagnosis and fix** | 0.5–1.0 | Unplanned and unavoidable: the new check was a no-op until the primitive stopped accepting `hash_equals( '', '' )`. Found only because the token-less requests were still served |
+| 20 catalogues | 0.25–0.5 | One key, 20 languages, each meeting the orthography contract |
+| Tests: the new class, plus updating the two that drove the login form | 1.0–1.5 | The updates were predicted by slice 1's own source-parity test, which fired on the first run |
+| 3 TEMP-BREAK cycles, reverted and `cmp`-verified | 0.25–0.5 | One per mechanism, as the record requires |
+| Verification (suite, keel-verify, upgrade, 5 lint scopes) | 0.25–0.5 | |
+| Review round + follow-up | 0.5–1.0 | Two subagents on the finished diff |
+| Docs and state (D-061, audit ×3, reference, sprint, test points, PROGRESS) | 0.75–1.25 | |
+| **Total AI** | **4.25–7.5 h** | |
+
+### Developer (vibe-coder) hours
+
+| Segment | What the developer does | Hours (low–high) |
+|---|---|---|
+| The scope decision | Answer the question put at the slice-2 close, choosing to pull NEW-47 forward | 0.1–0.25 |
+| Verification | Log in, get it wrong once, let a page go stale and see the message | 0.25–0.5 |
+| **Total developer** | | **0.35–0.75 h** |
+
+### Calibration note
+
+**The unplanned half of this slice was larger than the planned half, and it was found by running the
+tests rather than by reading the diff.** The planned work — two `klytos_verify_csrf()` calls and two
+form fields — is perhaps an hour. NEW-50 is what made it real: without it the change was inert, and
+nothing in the code review would have said so, because the call *was* there. Budget "the fix does not
+work until something underneath it is fixed too" as a real possibility on any slice that adds a check
+to a path nobody was checking before; this project has now hit that shape in NEW-16 (slice 7),
+NEW-36 (Sprint 4) and here.

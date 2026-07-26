@@ -51,7 +51,8 @@
     "remember_me": "Kom ihåg mig",
     "login_failed": "Felaktigt användarnamn eller lösenord",
     "account_locked": "Kontot är låst. Försök igen om {minutes} minuter.",
-    "too_many_attempts": "För många inloggningsförsök från denna adress. Försök igen om en minut."
+    "too_many_attempts": "För många inloggningsförsök från denna adress. Försök igen om en minut.",
+    "session_expired": "Din session gick ut innan formuläret skickades. Ladda om sidan och försök igen."
   },
   "dashboard": {
     "title": "Kontrollpanel",

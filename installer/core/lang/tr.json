@@ -51,7 +51,8 @@
     "remember_me": "Beni hatırla",
     "login_failed": "Yanlış kullanıcı adı veya şifre",
     "account_locked": "Hesap kilitlendi. {minutes} dakika sonra tekrar deneyin.",
-    "too_many_attempts": "Bu adresten çok fazla giriş denemesi yapıldı. Bir dakika sonra tekrar deneyin."
+    "too_many_attempts": "Bu adresten çok fazla giriş denemesi yapıldı. Bir dakika sonra tekrar deneyin.",
+    "session_expired": "Form gönderilmeden önce oturumunuzun süresi doldu. Sayfayı yenileyip tekrar deneyin."
   },
   "dashboard": {
     "title": "Kontrol Paneli",

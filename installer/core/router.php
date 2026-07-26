@@ -192,7 +192,19 @@ class Router
     private function handleOAuthAuthorize(): void
     {
         require_once $this->app->getCorePath() . '/mcp/oauth-authorize-view.php';
-        handleOAuthAuthorizeView($this->app);
+
+        // FULLY QUALIFIED, and that is audit NEW-52 rather than a style choice.
+        // This file is namespace Klytos\Core; the view declares its function in
+        // Klytos\Core\MCP. PHP resolves an unqualified function call to the
+        // current namespace and then to the GLOBAL one — never to a sibling
+        // sub-namespace — so the call fataled with "Call to undefined function
+        // Klytos\Core\handleOAuthAuthorizeView()" on every request. The OAuth
+        // consent screen has therefore never rendered over HTTP for anybody.
+        //
+        // Found by probing the URL while proving NEW-51's CSRF fix on this same
+        // page (L-014: drive the feature, not the finding — and L-009: a fatal
+        // hides whatever sits behind it).
+        MCP\handleOAuthAuthorizeView($this->app);
     }
 
     /**

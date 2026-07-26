@@ -259,9 +259,17 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      * @param  string|null $role Seeded username, or null for anonymous.
      * @return array{status:int, body:string, content_type:string, location:string}
      */
-    protected function request( string $path, ?string $role ): array
+    protected function request( string $path, ?string $role, ?string $sessionId = null ): array
     {
         $handle = $this->handleFor( $path );
+
+        if ( $role === null && $sessionId !== null ) {
+            // An anonymous caller carrying a session the SERVER issued — the
+            // shape needed to ask "did that request actually log anybody in?"
+            // (D-061). Generalized here rather than copied, exactly as post()
+            // and postJson() were.
+            curl_setopt( $handle, CURLOPT_COOKIE, 'klytos_session=' . $sessionId );
+        }
 
         if ( $role !== null ) {
             // Auth::startSession() renames the session (core/auth.php:61), so
@@ -297,14 +305,28 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      * @param  array<int,string>    $headers Extra request headers.
      * @return array{status:int, body:string, content_type:string, location:string}
      */
-    protected function post( string $path, array $fields, ?string $role, array $headers = [] ): array
-    {
+    protected function post(
+        string $path,
+        array $fields,
+        ?string $role,
+        array $headers = [],
+        ?string $sessionId = null
+    ): array {
         $handle = $this->handleFor( $path );
 
         if ( $role !== null ) {
             $fields['csrf'] = self::CSRF_TOKEN;
 
-            curl_setopt( $handle, CURLOPT_COOKIE, 'klytos_session=' . $this->sessionFor( $role ) );
+            curl_setopt( $handle, CURLOPT_COOKIE, 'klytos_session=' . ( $sessionId ?? $this->sessionFor( $role ) ) );
+        } elseif ( $sessionId !== null ) {
+            // Anonymous, but carrying a session: the shape a real visitor has on
+            // the login and password-reset forms once the GET that rendered the
+            // form has issued them a session and a CSRF token (D-061). The token
+            // itself is NOT injected here — the caller puts the one the PAGE
+            // emitted into $fields, because a token this harness invented would
+            // be the L-026 defect: a convenience that repairs the thing under
+            // test. {@see formSession()} produces the pair.
+            curl_setopt( $handle, CURLOPT_COOKIE, 'klytos_session=' . $sessionId );
         }
 
         curl_setopt_array( $handle, [
@@ -359,6 +381,52 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
         ] );
 
         return $this->send( $handle, $path );
+    }
+
+    /**
+     * GET a public form and return the session and CSRF token IT issued.
+     *
+     * This is what a browser does before it can submit `login.php` or
+     * `reset-password.php`: fetch the page, keep the `klytos_session` cookie the
+     * server set, and post back the token the form actually carries. Nothing is
+     * synthesized — the session file is the server's own and the token is parsed
+     * out of the rendered markup — which is the whole point after L-026: a test
+     * that mints its own token proves the harness can agree with itself, not
+     * that the shipped page works.
+     *
+     * Fails loudly rather than returning empty strings, because a silent '' here
+     * would make every CSRF assertion downstream pass or fail for the wrong
+     * reason.
+     *
+     * @param  string $path Path relative to the document root.
+     * @return array{session:string, csrf:string, body:string}
+     */
+    protected function formSession( string $path ): array
+    {
+        $response = $this->request( $path, null );
+
+        $cookie = [];
+        preg_match( '/^Set-Cookie:\s*klytos_session=([^;\s]+)/mi', $response['headers'] ?? '', $cookie );
+
+        self::assertNotEmpty(
+            $cookie[1] ?? '',
+            'GET ' . $path . ' issued no klytos_session cookie, so no CSRF token can belong to it.'
+        );
+
+        $token = [];
+        preg_match( '/name="csrf"\s+value="([^"]+)"/', $response['body'], $token );
+
+        self::assertNotEmpty(
+            $token[1] ?? '',
+            'GET ' . $path . ' rendered no CSRF field, so the form cannot be submitted the way a '
+            . 'browser would submit it.'
+        );
+
+        return [
+            'session' => $cookie[1],
+            'csrf'    => $token[1],
+            'body'    => $response['body'],
+        ];
     }
 
     /**

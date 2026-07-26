@@ -26,9 +26,13 @@ use Klytos\Tests\AdminHttpTestCase;
  * admin/editor/viewer 200 + "Incorrect username or password"), so this is that
  * measurement turned into a permanent test.
  *
- * The password login POST carries no CSRF check (`login.php:111` gates only the
- * 2FA branch on `klytos_verify_csrf()`), so these post anonymously — no session
- * cookie, no token — which is what a real first login does.
+ * Since Sprint 6 slice 4 (audit NEW-47, D-061) the password branch verifies CSRF
+ * like its 2FA sibling, so every request below carries the session and the token
+ * the PAGE issued — fetched from it, never invented here (L-026). A fresh pair
+ * per POST, deliberately: a session that has just logged in successfully is
+ * answered by login.php's "already authenticated" redirect, which is also a 302,
+ * so reusing one across the four roles would let this test pass without any of
+ * them actually authenticating.
  */
 final class AuthLoginHttpTest extends AdminHttpTestCase
 {
@@ -59,10 +63,10 @@ final class AuthLoginHttpTest extends AdminHttpTestCase
     public function testEveryRoleCanLogInThroughTheRealForm(): void
     {
         foreach (self::SEEDED as $username => $password) {
-            $response = $this->post(self::LOGIN, [
+            $response = $this->postLogin( [
                 'username' => $username,
                 'password' => $password,
-            ], null);
+            ] );
 
             self::assertSame(
                 302,
@@ -86,10 +90,10 @@ final class AuthLoginHttpTest extends AdminHttpTestCase
      */
     public function testAWrongPasswordIsRefusedWithTheRefusalText(): void
     {
-        $response = $this->post(self::LOGIN, [
+        $response = $this->postLogin( [
             'username' => 'owner',
             'password' => 'definitely-not-the-password',
-        ], null);
+        ] );
 
         self::assertSame(200, $response['status'], 'A failed login did not re-render the form.');
         self::assertStringContainsString('Incorrect username or password', $response['body']);
@@ -105,19 +109,38 @@ final class AuthLoginHttpTest extends AdminHttpTestCase
      */
     public function testAnUnknownUsernameIsRefusedIdenticallyToAWrongPassword(): void
     {
-        $unknown = $this->post(self::LOGIN, [
+        $unknown = $this->postLogin( [
             'username' => 'no-such-account-here',
             'password' => 'definitely-not-the-password',
-        ], null);
+        ] );
 
-        $wrongPassword = $this->post(self::LOGIN, [
+        $wrongPassword = $this->postLogin( [
             'username' => 'viewer',
             'password' => 'definitely-not-the-password',
-        ], null);
+        ] );
 
         self::assertSame(200, $unknown['status']);
         self::assertSame($wrongPassword['status'], $unknown['status']);
         self::assertStringContainsString('Incorrect username or password', $unknown['body']);
         self::assertStringContainsString('Incorrect username or password', $wrongPassword['body']);
+    }
+
+    /**
+     * POST the login form with a FRESH session and the token that page issued.
+     *
+     * @param  array<string,string> $fields Username and password.
+     * @return array{status:int, body:string, content_type:string, location:string, headers:string}
+     */
+    private function postLogin( array $fields ): array
+    {
+        $form = $this->formSession( self::LOGIN );
+
+        return $this->post(
+            self::LOGIN,
+            [ 'csrf' => $form['csrf'] ] + $fields,
+            null,
+            [],
+            $form['session']
+        );
     }
 }

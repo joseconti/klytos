@@ -85,14 +85,35 @@ function handleOAuthAuthorizeView(App $app): void
         $action = $_POST['action'] ?? '';
 
         if ($action === 'login') {
-            // Admin login attempt
-            $username = $_POST['username'] ?? '';
-            $password = $_POST['password'] ?? '';
-            $result   = $auth->login($username, $password);
-
-            if (!$result['success']) {
-                $error = 'Invalid credentials.';
+            // Admin login attempt.
+            //
+            // This is the SECOND of the two Auth::login() call sites in the product,
+            // and it needs the same CSRF check as the first for the same reason
+            // (audit NEW-47 / NEW-51, D-061): an attacker holding their own account
+            // can otherwise force a victim's browser to log in as THEM, here as
+            // easily as on admin/login.php. Closing one of two identical paths is
+            // the failure D-041's review cycle recorded; the sibling `authorize`
+            // action below has verified CSRF all along, which is what made the gap
+            // visible once someone looked.
+            //
+            // The message is a hardcoded English literal, matching every other
+            // string in this file rather than introducing the twentieth catalogue
+            // key here: this view is reached through the PUBLIC front controller,
+            // where the global __() does not exist (audit NEW-18) and this file's
+            // namespace is Klytos\Core\MCP, so a __() call would fatal rather than
+            // translate. Same literal as the sibling branch, deliberately.
+            if (!klytos_verify_csrf()) {
+                $error     = 'Invalid CSRF token.';
                 $showLogin = true;
+            } else {
+                $username = $_POST['username'] ?? '';
+                $password = $_POST['password'] ?? '';
+                $result   = $auth->login($username, $password);
+
+                if (!$result['success']) {
+                    $error = 'Invalid credentials.';
+                    $showLogin = true;
+                }
             }
         } elseif ($action === 'authorize') {
             // Admin approved — validate CSRF and generate code
@@ -194,6 +215,7 @@ function handleOAuthAuthorizeView(App $app): void
                 <input type="hidden" name="<?php echo klytos_esc_attr( $k ); ?>" value="<?php echo klytos_esc_attr( $v ); ?>">
             <?php endforeach; ?>
             <input type="hidden" name="action" value="login">
+            <?php echo klytos_csrf_field(); ?>
 
             <div class="form-group">
                 <label>Username</label>

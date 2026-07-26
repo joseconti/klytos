@@ -51,7 +51,8 @@
     "remember_me": "Husk mig",
     "login_failed": "Forkert brugernavn eller adgangskode",
     "account_locked": "Konto låst. Prøv igen om {minutes} minutter.",
-    "too_many_attempts": "For mange loginforsøg fra denne adresse. Prøv igen om et minut."
+    "too_many_attempts": "For mange loginforsøg fra denne adresse. Prøv igen om et minut.",
+    "session_expired": "Din session udløb, før formularen blev sendt. Genindlæs siden, og prøv igen."
   },
   "dashboard": {
     "title": "Kontrolpanel",

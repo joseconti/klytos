@@ -51,7 +51,8 @@
     "remember_me": "Lembrarme",
     "login_failed": "Nome de usuario ou contrasinal incorrectos",
     "account_locked": "Conta bloqueada. Ténteo de novo en {minutes} minutos.",
-    "too_many_attempts": "Demasiados intentos de acceso desde este enderezo. Téntao de novo nun minuto."
+    "too_many_attempts": "Demasiados intentos de acceso desde este enderezo. Téntao de novo nun minuto.",
+    "session_expired": "A túa sesión caducou antes de enviar o formulario. Recarga a páxina e téntao de novo."
   },
   "dashboard": {
     "title": "Panel",

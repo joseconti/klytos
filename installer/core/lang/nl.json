@@ -51,7 +51,8 @@
     "remember_me": "Onthoud mij",
     "login_failed": "Onjuiste gebruikersnaam of wachtwoord",
     "account_locked": "Account vergrendeld. Probeer het opnieuw over {minutes} minuten.",
-    "too_many_attempts": "Te veel inlogpogingen vanaf dit adres. Probeer het over een minuut opnieuw."
+    "too_many_attempts": "Te veel inlogpogingen vanaf dit adres. Probeer het over een minuut opnieuw.",
+    "session_expired": "Je sessie is verlopen voordat het formulier werd verzonden. Laad de pagina opnieuw en probeer het nog eens."
   },
   "dashboard": {
     "title": "Dashboard",

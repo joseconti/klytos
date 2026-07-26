@@ -51,7 +51,8 @@
     "remember_me": "Angemeldet bleiben",
     "login_failed": "Benutzername oder Passwort falsch",
     "account_locked": "Konto gesperrt. Versuchen Sie es in {minutes} Minuten erneut.",
-    "too_many_attempts": "Zu viele Anmeldeversuche von dieser Adresse. Versuchen Sie es in einer Minute erneut."
+    "too_many_attempts": "Zu viele Anmeldeversuche von dieser Adresse. Versuchen Sie es in einer Minute erneut.",
+    "session_expired": "Ihre Sitzung ist abgelaufen, bevor das Formular gesendet wurde. Laden Sie die Seite neu und versuchen Sie es erneut."
   },
   "dashboard": {
     "title": "Dashboard",

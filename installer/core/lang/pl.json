@@ -51,7 +51,8 @@
     "remember_me": "Zapamiętaj mnie",
     "login_failed": "Nieprawidłowa nazwa użytkownika lub hasło",
     "account_locked": "Konto zablokowane. Spróbuj ponownie za {minutes} minut.",
-    "too_many_attempts": "Zbyt wiele prób logowania z tego adresu. Spróbuj ponownie za minutę."
+    "too_many_attempts": "Zbyt wiele prób logowania z tego adresu. Spróbuj ponownie za minutę.",
+    "session_expired": "Twoja sesja wygasła przed wysłaniem formularza. Odśwież stronę i spróbuj ponownie."
   },
   "dashboard": {
     "title": "Pulpit",

@@ -423,6 +423,27 @@ class Auth
     public function validateCsrf(string $token): bool
     {
         $expected = $_SESSION['klytos_csrf'] ?? '';
+
+        // An EMPTY token can never be valid, and neither can an empty expected
+        // value — audit NEW-50, found while closing NEW-47 and fixed in path
+        // because that fix does not work without it (D-061).
+        //
+        // hash_equals( '', '' ) returns TRUE. Measured, not reasoned about. So
+        // a request that sent no token at all, arriving in a session that holds
+        // no token either, PASSED this check — which is exactly the anonymous
+        // state the login and password-reset forms live in. The proof was the
+        // login IP-ceiling test: after klytos_verify_csrf() was added to the
+        // password branch, its token-less POSTs were still served, because the
+        // guard agreed with itself about two empty strings.
+        //
+        // The guard belongs here rather than at each call site: this is the one
+        // place that decides "is this token valid", and a local `!== ''` in
+        // login.php would leave every other caller with the same hole (the S-04
+        // and S-07 shape — one decision, one implementation).
+        if ( $expected === '' || $token === '' ) {
+            return false;
+        }
+
         return hash_equals($expected, $token);
     }
 

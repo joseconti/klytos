@@ -1194,7 +1194,7 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
 - **Trigger:** the trusted-proxy slice (NEW-17), which must convert them all as part of its own
   work, or opportunistically whenever one of those files is next opened (the D-025 pattern).
 
-### NEW-26 — The password-reset form has no CSRF protection — **LOW** *(found 2026-07-20, slice 8, by the `security-auditor` pass)*
+### NEW-26 — The password-reset form has no CSRF protection — **LOW** *(found 2026-07-20, slice 8, by the `security-auditor` pass)* — **CLOSED 2026-07-27 (Sprint 6 slice 4, D-061)**
 - **Where:** `installer/admin/reset-password.php` — the "set new password" form (`:125-140`); no
   `klytos_csrf_field()` and no `klytos_verify_csrf()` anywhere in the file.
 - **Exploitability, stated honestly rather than inflated:** low. A forged cross-site POST still
@@ -1206,6 +1206,14 @@ a prerequisite for Sprint 1 — it defeats every gate the sprint adds. NEW-02 is
   adjacent subsystem under D-031's narrowing. It is noted because the file was in the diff and a
   reviewer looked at it — leaving it unrecorded would mean the next reader has to find it again.
 - **Trigger:** the authentication slice that owns **NEW-09**, **NEW-11** and **NEW-13**.
+- **CLOSED 2026-07-27 — Sprint 6 slice 4 (D-061)**, with NEW-47, because the two are one defect class
+  on one flow: the form emits `klytos_csrf_field()` and the POST verifies it, answering **403** with
+  the same `auth.session_expired` message. The recorded low exploitability is unchanged and was not
+  used to argue it away — what closed it is that fixing it alongside NEW-47 costs one line and one
+  test, while leaving it means every future reader re-deriving the "this one does not need CSRF"
+  judgement. Proven by a reverted TEMP-BREAK (the check removed → the token-less POST was accepted,
+  200) and by a positive control that resets a password end to end and then logs in with the new one
+  through the real form.
 
 ## A — Accessibility (target: WCAG 2.2 AA + EAA, `references/accessibility.md`)
 
@@ -2229,7 +2237,7 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the trusted-proxy slice that owns NEW-17 (same file, same function, same test point),
   or the first report of a brute force that outpaces the ceiling.
 
-### NEW-47 — The password-login POST has no CSRF check, so an attacker can log a victim into the attacker's account — **LOW–MEDIUM** *(found 2026-07-26 by the Sprint 6 slice 1 `security-auditor` pass)* — recorded, NOT fixed
+### NEW-47 — The password-login POST has no CSRF check, so an attacker can log a victim into the attacker's account — **LOW–MEDIUM** *(found 2026-07-26 by the Sprint 6 slice 1 `security-auditor` pass)* — **CLOSED 2026-07-27 (Sprint 6 slice 4, D-061)**
 
 - **Where:** `installer/admin/login.php` — the password-login branch runs no `klytos_verify_csrf()`
   (only the 2FA branch does), and the shipped password form emits no `klytos_csrf_field()`.
@@ -2254,6 +2262,21 @@ verified test point with a recorded files-updated count.
   must be updated in the same slice. That is the test working, not breaking.
 - **Trigger:** the next slice touching `admin/login.php`'s POST handling, or the NEW-26 slice — same
   defect class, and they should close together.
+- **CLOSED 2026-07-27 — Sprint 6 slice 4 (D-061), pulled forward by explicit user decision** rather
+  than waiting for its trigger. The shipped password form emits `klytos_csrf_field()` and the
+  password branch verifies it; a refusal answers **HTTP 403** with the form re-rendered and the
+  message `auth.session_expired` (all 20 catalogues), worded from the single mapping D-059
+  implementation note 1 established. NEW-26 closed with it, as this entry's own trigger proposed.
+  - **The predicted consequence happened exactly as written:** `LoginCeilingHttpTest`'s source-parity
+    test failed on the same run that added the field, with its own message, and its requests plus
+    `AuthLoginHttpTest`'s were updated in the same slice — they now fetch the session and token from
+    the page itself rather than minting them (L-026).
+  - **And the fix did not work until a deeper defect was fixed: NEW-50.** `hash_equals( '', '' )` is
+    TRUE, so `Auth::validateCsrf()` accepted a missing token in a session that held none — the exact
+    anonymous state this form lives in. Observed by execution: after the check was added, the
+    token-less requests were still served. See NEW-50.
+  - Proven by three reverted TEMP-BREAK cycles; against the unfixed tree the forged login answered
+    **302** and established a session.
 
 ### NEW-48 — The 2FA emergency-email branch overwrites its own error message — **LOW** *(found 2026-07-26 by the Sprint 6 slice 1 `code-reviewer` pass)* — recorded, NOT fixed
 
@@ -2307,6 +2330,72 @@ verified test point with a recorded files-updated count.
   says it in the suspension section, beside the behaviour that causes it.
 - **Trigger:** the trusted-proxy slice that owns **NEW-17**, or any slice that revisits the MCP rate
   limiter's keying.
+
+### NEW-50 — `hash_equals( '', '' )` is true, so a missing CSRF token passed in a session that held none — **MEDIUM** *(found 2026-07-27 while closing NEW-47; measured, not read)* — **FIXED in path (Sprint 6 slice 4, D-061)**
+
+- **Where:** `installer/core/auth.php::validateCsrf()`, consumed by `Helpers::verifyCsrf()` and
+  therefore by every `klytos_verify_csrf()` call site in the admin.
+- **What:** `verifyCsrf()` resolves an absent field to `''`. `validateCsrf()` read
+  `$_SESSION['klytos_csrf'] ?? ''` and returned `hash_equals( $expected, $token )` — and
+  **`hash_equals( '', '' )` returns true**. So any POST that sent no token, arriving in a session
+  that had never been issued one, was **accepted**.
+- **How it was found, which is the whole point:** by execution, not by reading. `klytos_verify_csrf()`
+  was added to the password-login branch (NEW-47) and the token-less requests in
+  `LoginCeilingHttpTest` were **still served**. The check agreed with itself about two empty strings.
+  A slice that had shipped on "the call is there" would have shipped a guard that guards nothing —
+  the L-019 family, and the L-016 discipline is what caught it.
+- **Reach beyond the login form:** any admin surface POSTed in a session that had not rendered a form
+  first. In practice authenticated sessions receive a token as soon as any admin page renders one, so
+  the realistic exposure is the anonymous surfaces — `login.php` and `reset-password.php`, i.e.
+  exactly the two this slice was closing. Recorded as MEDIUM rather than LOW because the defect was in
+  the **primitive**, not in a call site: nothing about it was specific to those two pages.
+- **Fixed in path (D-061):** `validateCsrf()` refuses when either side is empty, placed in the one
+  method that decides token validity rather than as a guard at the login call site — a local check
+  would have left every other caller with the hole (the S-04 / S-07 shape). Pinned by
+  `LoginCsrfHttpTest::testAnEmptyTokenIsRefusedEvenWhenTheSessionHoldsNoneEither`, proven by removing
+  the guard and watching the token-less login be served again.
+
+### NEW-51 — The OAuth consent screen's own login form had no CSRF check either — **LOW–MEDIUM** *(found 2026-07-27 by BOTH Sprint 6 slice 4 review passes, independently)* — **FIXED in path (D-061)**
+
+- **Where:** `installer/core/mcp/oauth-authorize-view.php` — the `action === 'login'` branch called
+  `$auth->login()` with no `klytos_verify_csrf()`, and its rendered form emitted no
+  `klytos_csrf_field()`. Its sibling `action === 'authorize'` branch has verified CSRF all along,
+  which is what made the gap visible the moment anyone compared them.
+- **What:** the same attack as **NEW-47**, through the other door. `Auth::login()` has exactly **two**
+  call sites in the product; slice 4 was closing one of them. Fixing one of two identical paths is
+  the failure D-041's own review cycle recorded, and it would have left NEW-47 marked CLOSED while the
+  forced login stayed available at a different URL.
+- **Exploitability, stated honestly rather than inflated:** in practice **nil until this same slice**,
+  because the page fataled before rendering anything (**NEW-52**). What made the fix necessary is
+  precisely that NEW-52 was fixed here too — the gap would have become live in the same commit.
+- **Fixed in path (D-061)** rather than recorded, with the message kept as a hardcoded English literal
+  matching every other string in that file: the view runs through the PUBLIC front controller where
+  the global `__()` does not exist (**NEW-18**) and its namespace is `Klytos\Core\MCP`, so a `__()`
+  call there would fatal rather than translate. Proven by a reverted TEMP-BREAK (the check removed →
+  the forced login reached the consent step) plus a positive control that logs in and reaches consent.
+
+### NEW-52 — `/oauth/authorize` fataled on every request: the consent screen has never rendered — **HIGH (functional)** *(found 2026-07-27 by REQUESTING the URL while proving NEW-51)* — **FIXED in path (D-061)**
+
+- **Where:** `installer/core/router.php::handleOAuthAuthorize()` called `handleOAuthAuthorizeView()`
+  **unqualified**. The router is namespace `Klytos\Core`; the function is declared in
+  `Klytos\Core\MCP` (`oauth-authorize-view.php:30`). PHP resolves an unqualified function call to the
+  current namespace and then to the **global** one — never to a sibling sub-namespace.
+- **What the user saw:** `Fatal error: Uncaught Error: Call to undefined function
+  Klytos\Core\handleOAuthAuthorizeView() in .../installer/core/router.php on line 195`, on **every**
+  request to `/oauth/authorize`. So the OAuth **authorization-code flow could not be completed by any
+  MCP client, ever** — the consent screen is its only interactive step. Reproduced over real HTTP
+  against the playground before anything was changed, and confirmed **byte-identical at HEAD**, so it
+  is pre-existing and not introduced by this sprint.
+- **What it reframes:** **NEW-38** says this screen cannot complete a 2FA login. That was derived from
+  source and is true — of a page that could not render at all. The 2FA gap is still open and still
+  needs its slice; what changes is that nobody could have hit it.
+- **Why it was fixed here rather than recorded:** slice 4 adds a CSRF check to this exact page and
+  must prove it over HTTP. The proof is impossible while the page fatals, so this is in scope by
+  necessity — the **NEW-16** precedent (D-043), where comments could never be switched on and the
+  slice's own test point was unreachable without fixing it. One token changed: `MCP\handleOAuth…`.
+- **How it was found, which is the transferable part:** by requesting the URL. Two review subagents,
+  a `docs-verifier` and five sprints of work had read past it, because reading a call site does not
+  tell you which namespace resolves it. Recorded as **L-027**.
 
 ---
 

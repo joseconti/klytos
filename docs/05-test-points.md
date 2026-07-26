@@ -3148,6 +3148,143 @@ the broken instrument, again.
 (`OAuthSuspensionHttpTest::testSuspendingTheUserRefusesTheSameTokenOnTheNextRequest` for the refusal
 and `testAnOAuthTokenForAnActiveUserIsAccepted` for the active half), 7 (above).
 
+### Slice 4 — the two anonymous forms verify CSRF — evidence (commands and output, 2026-07-27)
+
+A fourth slice, added to this sprint by user decision (**D-061**) and run before slice 3. Same
+session as slice 2, which spanned midnight — the playground freshness check below covers both.
+
+**THE PREDICTED FAILURE HAPPENED FIRST, AND IT WAS A TEST DOING ITS JOB.** Slice 1 wrote
+`LoginCeilingHttpTest::testTheRequestThisClassSendsIsTheRequestTheShippedFormSends` specifically so
+that adding a CSRF field to the login form would fail it. Adding the field:
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit tests/Integration/LoginCeilingHttpTest.php tests/Integration/AuthLoginHttpTest.php
+  ✘ testTheRequestThisClassSendsIsTheRequestTheShippedFormSends
+    "The password form now emits a CSRF token that these requests do not send."
+  Tests: 7, Assertions: 60, Failures: 1
+```
+
+**AND THE OTHER SIX STILL PASSED, WHICH IS THE FINDING OF THE SLICE (audit NEW-50).** A token-less
+POST should have been refused the moment `klytos_verify_csrf()` was added to the password branch. It
+was not. `Helpers::verifyCsrf()` resolves a missing field to `''`, `Auth::validateCsrf()` compared it
+against a session that also held `''`, and:
+
+```
+$ php -r 'echo var_export( hash_equals( "", "" ), true );'
+  true
+```
+
+So the new check passed for exactly the anonymous state the login and password-reset forms live in —
+a guard that guarded nothing, in the slice written to add it. Fixed in `validateCsrf()` (the one
+place that decides token validity, not at the call site) and recorded as **NEW-50**.
+
+**PROVEN TO FAIL FIRST — three TEMP-BREAK cycles, one per mechanism**, each reverted from a
+byte-for-byte backup and confirmed with `cmp`:
+
+```
+1. The login CSRF check removed  (login.php: `if ( ! klytos_verify_csrf() )` → `if ( false )`)
+   ✘ testALoginPostWithNoCsrfTokenIsRefused                 Failed asserting that 302 is identical to 403.
+   ✘ testAnEmptyTokenIsRefusedEvenWhenTheSessionHoldsNoneEither   … 302 … 403.
+   ✘ testATokenFromAnotherSessionIsRefused                  … 302 … 403.
+   Tests: 6, Assertions: 27, Failures: 3
+   ← 302 IS the attack succeeding: a forged POST carrying the attacker's valid credentials logged the
+     browser in.
+
+2. validateCsrf()'s empty guard removed  (back to the bare hash_equals)
+   ✘ testAnEmptyTokenIsRefusedEvenWhenTheSessionHoldsNoneEither   … 302 … 403.
+   ✘ testALoginPostWithNoCsrfTokenIsRefused                        … 302 … 403.
+   ✘ testThePasswordResetFormIsRefusedWithoutItsCsrfToken          … 200 … 403.
+   Tests: 6, Assertions: 23, Failures: 3
+   ← this is what makes NEW-50 load-bearing rather than tidy: with the checks in place and this guard
+     gone, BOTH forms accept a token-less POST.
+
+3. The reset-password CSRF check removed
+   ✘ testThePasswordResetFormIsRefusedWithoutItsCsrfToken          … 200 … 403.
+   Tests: 6, Assertions: 27, Failures: 1
+```
+
+**One assertion of mine was wrong and was corrected rather than kept.** The first version of the
+no-token test asserted the refused response carried no `Set-Cookie: klytos_session`. It always does —
+`bootstrap.php` starts a session on every admin request — so the assertion measured something the
+product never does. Replaced with the property that matters: take the session the refusal handed back,
+request the dashboard with it, and require a **302** to the login form. That asks "is the browser now
+logged in?", which is the actual attack.
+
+**The positive controls are the point of this slice, not a formality.** A CSRF fix that broke the
+login form would lock every operator out of their own site, and one that broke password reset would
+strand exactly the users who cannot log in. Both flows are driven the way a browser drives them —
+GET the page, keep its session, post back its token — and the reset control goes further: it resets
+the password over HTTP and then **logs in with the new one through the real form** (L-024).
+
+**Verification:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit
+  OK (276 tests, 1331 assertions)          ← 268/1272 at slice 2's close
+
+$ php scripts/keel-verify
+  OK — 10 check(s) run: 8 passed, 2 warning(s) carrying 9 note(s) (owned by another phase)
+  PASS  locale catalogues agree on their key set (120 files across 6 sets)   ← the new auth.session_expired key ×20
+
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+  == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+
+$ vendor/bin/phpcs --standard=phpcs.xml --report=summary <scope>      (each scope run separately)
+  installer/core installer/admin  A TOTAL OF 192 ERRORS AND 488 WARNINGS WERE FOUND IN 112 FILES
+  installer/plugins               A TOTAL OF 113 ERRORS AND 109 WARNINGS WERE FOUND IN 17 FILES
+  tests                           46 / 46 files processed, no violations           (0 / 0)
+  installer/public                 2 / 2  files processed, no violations           (0 / 0)
+  scripts scripts/keel-verify     A TOTAL OF 0 ERRORS AND 2 WARNINGS WERE FOUND IN 1 FILE
+```
+
+All five D-025 baselines held **exactly**, including the core+admin scope after edits to `login.php`,
+`reset-password.php` and `auth.php`.
+
+**The review round added a third form, and requesting it found a fatal.** Both subagents ran in
+parallel on the finished diff; the `code-reviewer` returned one BLOCKING finding and the
+`security-auditor` reached the same conclusion independently: `core/mcp/oauth-authorize-view.php`'s
+own `action=login` POST — the OTHER of the product's two `Auth::login()` call sites — had no CSRF
+check either (**NEW-51**), which made this slice's new documentation sentence ("Both forms…") false as
+written. Fixed in path. Proving it over HTTP is what found **NEW-52**:
+
+```
+$ curl "http://127.0.0.1:8114/installer/oauth/authorize?client_id=…&code_challenge=…"
+  status=200
+  Fatal error: Uncaught Error: Call to undefined function
+  Klytos\Core\handleOAuthAuthorizeView() in …/installer/core/router.php on line 195
+```
+
+The router (namespace `Klytos\Core`) called the view's function unqualified; it is declared in
+`Klytos\Core\MCP`, and PHP falls back to the GLOBAL namespace, never to a sibling. **The OAuth
+consent screen has never rendered for anybody** — the authorization-code flow could not be completed
+by any MCP client, ever. Confirmed byte-identical at HEAD before concluding anything, so it is
+pre-existing. Both fixed in path, each with its own reverted TEMP-BREAK:
+
+```
+BREAK A  (the consent-screen CSRF check → `if (false)`)
+  ✘ testTheOauthConsentScreenLoginIsRefusedWithoutACsrfToken     the forced login reached consent
+  Tests: 2, Assertions: 6, Failures: 1
+
+BREAK B  (the router call back to the unqualified name)
+  ✘ testTheOauthConsentScreenStillLogsInWithItsToken
+    "GET /installer/oauth/authorize?… issued no klytos_session cookie, so no CSRF token can belong
+     to it."        ← formSession()'s own loud failure, reading the fatal page
+  ✘ testTheOauthConsentScreenLoginIsRefusedWithoutACsrfToken
+  Tests: 2, Assertions: 2, Failures: 2
+```
+
+**One more instrument failure of mine, caught by the test passing alone and failing in its class.**
+The refusal test asserted the body did not contain `Authorize` — which is also the page's heading
+("Authorize Application"), so it measured the chrome rather than the screen. Settled by driving the
+sequence by hand (where it worked), dumping the real bodies, and switching to `value="authorize"` /
+`value="login"`, which appear only in the consent and login forms. **L-018's shape**, and the same
+alone-versus-in-class tell as slice 1's log-directory measurement.
+
+**Coverage of the sprint's acceptance criteria by this slice:** none of the seven — this slice was not
+in the approved plan. Its own acceptance is D-061: both anonymous forms refuse a POST without the
+token they emit, both still work when submitted the way the shipped page submits them, and a token
+minted for another session is refused.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in

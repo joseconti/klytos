@@ -51,7 +51,8 @@
     "remember_me": "记住我",
     "login_failed": "用户名或密码不正确",
     "account_locked": "账户已锁定。请在 {minutes} 分钟后重试。",
-    "too_many_attempts": "此地址的登录尝试次数过多。请在一分钟后重试。"
+    "too_many_attempts": "此地址的登录尝试次数过多。请在一分钟后重试。",
+    "session_expired": "表单提交前会话已过期。请重新加载页面后再试。"
   },
   "dashboard": {
     "title": "仪表盘",

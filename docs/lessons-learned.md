@@ -792,3 +792,42 @@
   same thing — or, better, have one test per endpoint that constructs the request by hand. And when a
   test helper's docblock explains *why* something has to be done a particular way, ask whether that
   explanation is describing a workaround for a defect nobody filed.
+
+## L-027 — I was hardening a page that had never served a request
+- Problem: Sprint 6 slice 4 closed audit NEW-47 (the password-login POST verifies no CSRF token).
+  Both review passes then found the same gap on the **other** `Auth::login()` call site — the OAuth
+  consent screen (`core/mcp/oauth-authorize-view.php`), recorded as **NEW-51**. Fixing it was three
+  lines. Proving it required requesting the URL, and the URL answered a **fatal**:
+  `Call to undefined function Klytos\Core\handleOAuthAuthorizeView()`. `Router::handleOAuthAuthorize()`
+  calls the view's function unqualified from namespace `Klytos\Core`, while the function is declared
+  in `Klytos\Core\MCP`; PHP falls back to the **global** namespace and never to a sibling. **The OAuth
+  consent screen has never rendered for anybody**, so the authorization-code flow — the only
+  interactive way an MCP client can be authorized — could not be completed by any client, ever
+  (**NEW-52**, HIGH, and byte-identical at HEAD, so pre-existing).
+- Where: `installer/core/router.php::handleOAuthAuthorize()`;
+  `installer/core/mcp/oauth-authorize-view.php:30`.
+- What failed, and it is not "nobody tested it": **five sprints of readers walked past it, including
+  two review subagents in this very slice and a fresh-context QA pass, because reading a call site
+  does not tell you which namespace resolves it.** `handleOAuthAuthorizeView($this->app)` looks
+  correct in isolation and is correct in every file that declares the function in the SAME namespace.
+  Worse, the audit already had an entry about this page — **NEW-38**, "the consent screen cannot
+  complete a 2FA login" — derived carefully from source, describing the behaviour of a page that
+  could not render. A finding written from reading can be perfectly reasoned and still describe
+  something unreachable.
+- The near-miss that makes it a lesson rather than a bug report: had the CSRF fix been shipped without
+  requesting the URL, this slice would have "closed" a vulnerability on a page that fatals, the fatal
+  would have survived, and the audit would have carried NEW-51 as CLOSED and NEW-38 as the only
+  problem with a screen nobody could open.
+- Working solution: fix the call (`MCP\handleOAuthAuthorizeView(...)`, fully qualified, with the
+  reason at the call site so it is not "simplified" back), and pin the page with an HTTP test that
+  drives the real authorize URL — built from a real client through the product's own
+  `OAuthServer::createClient()` and PKCE, because an invented URL is refused before the form renders
+  and the test would then pass on the error page. Proven by reverting the qualification: the harness's
+  own `formSession()` fails loudly with *"issued no klytos_session cookie"* — the fatal page.
+- Rule for next time: **before adding a control to a surface, REQUEST that surface once.** Not the
+  function, not the file — the URL, over HTTP, as a client reaches it. If it does not answer, the
+  control being added is decoration and the real defect is underneath it. This is L-005 ("verify
+  through the product's own API") and L-014 ("drive the FEATURE, not the finding") applied to the
+  cheapest possible check, and it costs one `curl`. Corollary, from the same session: an audit entry
+  about a surface is not evidence that the surface works — check reachability before inheriting its
+  description.

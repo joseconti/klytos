@@ -3,7 +3,14 @@
 - **Planned:** 2026-07-26 (plan mode, approved by the user). Kickoff re-validation ran in the
   planning session; every claim below was re-derived from source in the session that wrote it, not
   carried from the audit (L-015).
-- **Status:** **SLICE 2 CLOSED 2026-07-26** — NEW-41 is closed at the trigger it named: a suspended
+- **Status:** **SLICE 4 CLOSED 2026-07-27** — a fourth slice, added to this sprint by explicit user
+  decision (**D-061**) and run BEFORE slice 3: the three anonymous login surfaces verify CSRF, closing audit
+  **NEW-47**, **NEW-26** and — found by execution while proving the first — **NEW-50**, the
+  `hash_equals( '', '' )` hole in the CSRF primitive itself. The review round then found a **third**
+  anonymous login form (**NEW-51**, the OAuth consent screen) and requesting it found **NEW-52**: that
+  screen had **never rendered**, because the router called its function from the wrong namespace.
+  Suite **276 tests / 1331 assertions**.
+  **Slice 3 (NEW-42) is the only one left.** Previously: **SLICE 2 CLOSED 2026-07-26** — NEW-41 is closed at the trigger it named: a suspended
   user's OAuth token answers **401 on the next request**, at authentication rather than at the gate
   (D-060). Active revocation is **not** built and both the reference doc and the audit entry say so
   in those words, pinned by a test that reactivates the account and watches the same token work
@@ -22,6 +29,13 @@
   OAuth token keeps working for up to an hour); audit **NEW-42** (four rough edges in the passkey
   assertion path Sprint 5 made reachable). Decisions: **D-059** (slice 1's shape and fail direction)
   and **D-060** (the layer NEW-41 refuses at).
+- **Scope changed 2026-07-27 (D-061), by explicit user decision:** audit **NEW-47** (the
+  password-login POST runs no CSRF check) and **NEW-26** (the password-reset form has none either)
+  were pulled forward into a **fourth slice**, run before slice 3. Three further findings were made
+  inside it and fixed in path: **NEW-50** (the `hash_equals( '', '' )` hole that made the new checks
+  inert), **NEW-51** (the OAuth consent screen's own login form had no check either — the other of the
+  product's two `Auth::login()` call sites) and **NEW-52** (that screen fataled on every request and
+  had never rendered). Estimate **v7**; lesson **L-027**.
 - **Sprint start baseline, measured this session:** `OK (248 tests, 1152 assertions)`, 0 skips.
 
 ## Why this sprint exists
@@ -113,6 +127,7 @@ baseline suite ran — the playground is a single-tenant resource (L-025).
 |---|-------|--------|--------|-------------------|-------|
 | 1 | The counters are atomic, and the login endpoint has a ceiling | **NEW-40**, **NEW-20**, **NEW-44** | **CLOSED 2026-07-26** | suite **248 → 262 tests / 1152 → 1237 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly (192/488, 113/109, 0/0, 0/0, 0/2) | One promoted file-transaction primitive consumed by `Auth`'s lockout and `MCP\RateLimiter`; `recordFailedAttempt()` returns its post-increment count; the IP ceiling **reuses** the shipped `recordAuthFailure()`/`isAuthBlocked()` with no constant changed. **NEW-20 measured, not argued: 20 concurrent `check()` calls recorded 2–4 before, 20/20 after.** The three owed tests found a defect in the slice's own code (the 429 carried the wrong message — D-059 note 1) and one instrument failure in the test itself (the log-directory measurement passed alone and failed in the suite) |
 | 2 | Suspension takes effect on OAuth too | **NEW-41** | **CLOSED 2026-07-26** | suite **262 → 268 tests / 1237 → 1272 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly (192/488, 113/109, 0/0, 0/0, 0/2) | `resolveUserActor()` reads `status`; the OAuth branch requires a non-null actor → **401**, where D-056 put application passwords. Proven over the real MCP surface on **8109** with a token minted through the product's own OAuth+PKCE flow; **3 of 4 tests observed failing first** (200 where 401 was required; 403 for the deleted-user case) and the fourth is the recorded positive control. One existing test pinned the OLD layer in its precondition and was **tightened, not weakened**, as a recorded spec correction (D-060 note 1). **Both reviews returned no blocking finding**; two items taken — **NEW-49** (a refused OAuth request now feeds the shared IP-keyed auth-failure bucket, so a suspended integration's retry loop can 429 its NAT neighbours; LOW, verified against source, trigger = NEW-17's slice) and a **sixth test** pinning the fall-through that note 2 had only argued, proven in both directions by a reverted TEMP-BREAK |
+| 4 | The three anonymous login surfaces verify CSRF | **NEW-47**, **NEW-26**, **NEW-50**, **NEW-51**, **NEW-52** | **CLOSED 2026-07-27** | suite **268 → 276 tests / 1272 → 1331 assertions**; keel-verify `10 check(s) run: 8 passed, 2 warning(s)`; upgrade from real v0.30.1 PASS; all five D-025 baselines held exactly | Added to this sprint by user decision (**D-061**) and run before slice 3. `klytos_csrf_field()` + `klytos_verify_csrf()` on the password-login and password-reset POSTs, refusing **403** with `auth.session_expired` in all 20 catalogues, worded from the single mapping D-059 note 1 established. **NEW-50 found by execution:** the new check was a no-op until `Auth::validateCsrf()` stopped accepting an empty token against an empty session — `hash_equals( '', '' )` is true. Slice 1's source-parity test fired exactly as designed and both login test classes now fetch session and token from the page itself. **The review round found a THIRD anonymous login form** (the OAuth consent screen — **NEW-51**), and requesting that page to prove the fix found **NEW-52**: `/oauth/authorize` fataled on every request, so the consent screen **had never rendered for anybody**. Both fixed in path; **L-027** recorded |
 | 3 | The passkey assertion path | **NEW-42** | planned | — | Clone detection (both counters non-zero only), the `origin` check, the length guard, and the setup-wizard skip-list moved onto gate-map keys |
 
 ### Slice 1 — the counters are atomic, and the login endpoint has a ceiling

@@ -62,7 +62,13 @@ if (isset($_GET['magic_token']) && $auth->is2faPending()) {
 // ─── Handle 2FA verification POST ───────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $auth->is2faPending()) {
     if ( ! klytos_verify_csrf() ) {
-        $error = __('common.error');
+        // Same condition, same words as the password branch below (NEW-47 /
+        // D-061). This branch has verified CSRF since before that slice and
+        // answered the generic common.error; leaving it would mean one form on
+        // one page explaining the problem and its sibling saying "Error" — an
+        // inconsistency created by the change itself, so it is corrected with
+        // it rather than left for a reader to file as a fresh defect.
+        $error = __( 'auth.session_expired' );
     } else {
         $method = $_POST['2fa_method'] ?? '';
         $code   = trim($_POST['2fa_code'] ?? '');
@@ -123,66 +129,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$auth->is2faPending() && !isset($_
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // ─── IP ceiling (audit NEW-40, second half; D-059) ──────────
-    // The per-account lockout bounds attempts against ONE account. Nothing
-    // bounded the endpoint itself, so a burst of invented usernames was
-    // limited only by the pruning window — and every request in it paid a
-    // bcrypt verify, because authenticate() equalizes its cost on all branches
-    // (the NEW-39 fix). That makes the login form a CPU amplifier as well as a
-    // credential-stuffing surface.
+    // ─── CSRF (audit NEW-47; D-061) ─────────────────────────────
+    // Login CSRF is not "an attacker logs into your account" — it is the
+    // reverse, and that is why it is easy to dismiss: an attacker holding
+    // their OWN account on this install forces the victim's browser to submit
+    // the attacker's credentials, and everything the victim then writes,
+    // uploads or connects lands in an account the attacker controls.
+    // SameSite=Strict does not prevent it, because the victim has no session
+    // cookie to withhold — the request that creates one is the attack.
     //
-    // MCP\RateLimiter is REUSED rather than forked: its auth-failure tracking
-    // is already exactly this policy (10 failures per 60 s, IP-keyed) and
-    // core/mcp/server.php:87,101 already consumes it, so no constant moves.
-    // D-056's note 3 rejected this class for the per-ACCOUNT lockout because
-    // expressing 5-attempts/15-minutes through it would have meant changing
-    // those constants for the MCP surface too; that objection does not apply
-    // here, which is why this is reuse and not a second limiter.
-    $loginLimiter = new \Klytos\Core\MCP\RateLimiter( $app->getDataPath() );
-    $clientIp     = \Klytos\Core\MCP\RateLimiter::getClientIp();
-
-    // The decision is filterable, and the filter is the operator's remedy for
-    // audit NEW-17 rather than a convenience: behind a non-loopback proxy every
-    // visitor collapses into one bucket, so a whole office on one NAT address
-    // shares this ceiling and can lock itself out of its own site. A listener
-    // returning false for a known address range exempts it.
+    // The 2FA branch above has verified CSRF since before this slice; the
+    // password branch never did. The token comes from the same session the
+    // page's own klytos_csrf_field() writes when it renders the form, so a
+    // first-time visitor gets one from the GET that shows them the form.
     //
-    // It is deliberately applied HERE and not inside MCP\RateLimiter: D-056's
-    // implementation note 3 and D-059 both turn on that class's constants not
-    // moving, because core/mcp/server.php shares them — filtering inside it
-    // would weaken the MCP surface to loosen the login form.
-    //
-    // Like every other weakenable control in this project (admin.gate_map
-    // D-032, http.safe.* D-041, security.hsts D-044), a plugin CAN switch this
-    // off; plugins already run as first-party code here. What it cannot do is
-    // weaken the per-ACCOUNT lockout, which is a separate control with its own
-    // counter and no filter.
-    $ipIsBlocked = (bool) klytos_apply_filters(
-        'auth.login_ip_blocked',
-        $loginLimiter->isAuthBlocked( $clientIp ),
-        $clientIp
-    );
+    // ORDER IS DELIBERATE: this runs BEFORE the IP ceiling, so a forged or
+    // token-less request never touches the shared per-address counter. It
+    // costs no bcrypt either (Auth::login() is never reached), so the ceiling's
+    // CPU-amplifier rationale does not apply to it. A credential-stuffing bot
+    // is unaffected — it holds its own session and token, so it passes here
+    // and is counted below, which is where the ceiling is meant to bite.
+    if ( ! klytos_verify_csrf() ) {
+        http_response_code( 403 );
 
-    if ( $ipIsBlocked ) {
-        klytos_do_action( 'auth.login_throttled', $clientIp );
-        header( 'Retry-After: 60' );
-        http_response_code( 429 );
-
-        // The MESSAGE is not set here. Every refusal on this page is worded in
-        // the single mapping below, from $result['error'] — the first version
-        // of this branch set $error itself and the mapping then overwrote it
-        // with auth.login_failed, so the response carried a 429 status and the
-        // words "Incorrect username or password", and the auth.too_many_attempts
-        // key added to all 20 catalogues in the same slice could never be
-        // rendered at all. Found by the HTTP test, not by reading.
-        $result = [ 'success' => false, 'error' => 'throttled', 'requires_2fa' => false, 'user_id' => null ];
+        // Again, the MESSAGE is not set here. This page has exactly ONE place
+        // that turns a refusal into words (D-059 implementation note 1), and a
+        // second one is how the 429 came to render "Incorrect username or
+        // password".
+        $result = [ 'success' => false, 'error' => 'csrf', 'requires_2fa' => false, 'user_id' => null ];
     } else {
-        $result = $auth->login($username, $password);
+        // ─── IP ceiling (audit NEW-40, second half; D-059) ──────────
+        // The per-account lockout bounds attempts against ONE account. Nothing
+        // bounded the endpoint itself, so a burst of invented usernames was
+        // limited only by the pruning window — and every request in it paid a
+        // bcrypt verify, because authenticate() equalizes its cost on all branches
+        // (the NEW-39 fix). That makes the login form a CPU amplifier as well as a
+        // credential-stuffing surface.
+        //
+        // MCP\RateLimiter is REUSED rather than forked: its auth-failure tracking
+        // is already exactly this policy (10 failures per 60 s, IP-keyed) and
+        // core/mcp/server.php:87,101 already consumes it, so no constant moves.
+        // D-056's note 3 rejected this class for the per-ACCOUNT lockout because
+        // expressing 5-attempts/15-minutes through it would have meant changing
+        // those constants for the MCP surface too; that objection does not apply
+        // here, which is why this is reuse and not a second limiter.
+        $loginLimiter = new \Klytos\Core\MCP\RateLimiter( $app->getDataPath() );
+        $clientIp     = \Klytos\Core\MCP\RateLimiter::getClientIp();
 
-        // Counted on failure only, so a legitimate user logging in repeatedly
-        // never approaches the ceiling.
-        if ( ! $result['success'] ) {
-            $loginLimiter->recordAuthFailure( $clientIp );
+        // The decision is filterable, and the filter is the operator's remedy for
+        // audit NEW-17 rather than a convenience: behind a non-loopback proxy every
+        // visitor collapses into one bucket, so a whole office on one NAT address
+        // shares this ceiling and can lock itself out of its own site. A listener
+        // returning false for a known address range exempts it.
+        //
+        // It is deliberately applied HERE and not inside MCP\RateLimiter: D-056's
+        // implementation note 3 and D-059 both turn on that class's constants not
+        // moving, because core/mcp/server.php shares them — filtering inside it
+        // would weaken the MCP surface to loosen the login form.
+        //
+        // Like every other weakenable control in this project (admin.gate_map
+        // D-032, http.safe.* D-041, security.hsts D-044), a plugin CAN switch this
+        // off; plugins already run as first-party code here. What it cannot do is
+        // weaken the per-ACCOUNT lockout, which is a separate control with its own
+        // counter and no filter.
+        $ipIsBlocked = (bool) klytos_apply_filters(
+            'auth.login_ip_blocked',
+            $loginLimiter->isAuthBlocked( $clientIp ),
+            $clientIp
+        );
+
+        if ( $ipIsBlocked ) {
+            klytos_do_action( 'auth.login_throttled', $clientIp );
+            header( 'Retry-After: 60' );
+            http_response_code( 429 );
+
+            // The MESSAGE is not set here. Every refusal on this page is worded in
+            // the single mapping below, from $result['error'] — the first version
+            // of this branch set $error itself and the mapping then overwrote it
+            // with auth.login_failed, so the response carried a 429 status and the
+            // words "Incorrect username or password", and the auth.too_many_attempts
+            // key added to all 20 catalogues in the same slice could never be
+            // rendered at all. Found by the HTTP test, not by reading.
+            $result = [ 'success' => false, 'error' => 'throttled', 'requires_2fa' => false, 'user_id' => null ];
+        } else {
+            $result = $auth->login($username, $password);
+
+            // Counted on failure only, so a legitimate user logging in repeatedly
+            // never approaches the ceiling.
+            if ( ! $result['success'] ) {
+                $loginLimiter->recordAuthFailure( $clientIp );
+            }
         }
     }
 
@@ -191,7 +227,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$auth->is2faPending() && !isset($_
     } elseif ($result['success'] && $result['requires_2fa']) {
         // 2FA required — page will render the 2FA form below.
     } else {
-        if ($result['error'] === 'throttled') {
+        if ($result['error'] === 'csrf') {
+            // The CSRF refusal above (NEW-47). The wording is deliberately about
+            // the SESSION and not about the credentials: the token is missing or
+            // stale for a legitimate user whose page sat open too long, and
+            // "incorrect username or password" would send them to change a
+            // password that was never wrong.
+            $error = __( 'auth.session_expired' );
+        } elseif ($result['error'] === 'throttled') {
             // The IP ceiling above. Worded here rather than at the branch that
             // sets it, so this page has exactly ONE place that turns a refusal
             // into words and no later branch can overwrite an earlier one.
@@ -272,6 +315,7 @@ if ($show2fa) {
         <!-- ─── Password Login Form ─── -->
             <?php klytos_do_action('login.before_form'); ?>
         <form method="post">
+            <?php echo klytos_csrf_field(); ?>
             <input type="hidden" name="redirect_to" value="<?php echo klytos_esc_attr( $redirectTo ); ?>">
             <div class="form-group">
                 <label for="username"><?php echo __( 'auth.username' ); ?></label>

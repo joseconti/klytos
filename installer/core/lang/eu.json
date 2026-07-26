@@ -51,7 +51,8 @@
     "remember_me": "Gogoratu",
     "login_failed": "Erabiltzaile-izena edo pasahitza okerra",
     "account_locked": "Kontua blokeatuta. Saiatu berriro {minutes} minutu barru.",
-    "too_many_attempts": "Helbide honetatik saioa hasteko saiakera gehiegi. Saiatu berriro minutu batean."
+    "too_many_attempts": "Helbide honetatik saioa hasteko saiakera gehiegi. Saiatu berriro minutu batean.",
+    "session_expired": "Zure saioa iraungi da inprimakia bidali aurretik. Kargatu orria berriro eta saiatu berriz."
   },
   "dashboard": {
     "title": "Panela",

@@ -74,6 +74,62 @@ klytos_app()->getUserManager()->update( $viewerId, [ 'status' => 'suspended' ] )
 klytos_app()->getUserManager()->update( $ownerId,  [ 'status' => 'suspended' ] );  // RuntimeException
 ```
 
+## CSRF on the anonymous forms
+
+**All three** forms a person can reach without logging in verify a CSRF token (audit **NEW-47**,
+**NEW-26** and **NEW-51**, closed by **D-061**):
+
+| Form | Where | Finding |
+|---|---|---|
+| The admin login form | `admin/login.php` | NEW-47 |
+| The password-reset form | `admin/reset-password.php` | NEW-26 |
+| **The OAuth consent screen's own login form** | `core/mcp/oauth-authorize-view.php` | NEW-51 |
+
+The third one is easy to miss and was: `Auth::login()` has exactly **two** call sites in the product,
+and the consent screen is the other one — so closing NEW-47 on the admin form alone would have left
+the same forced-login attack available through a different URL while the audit entry said CLOSED.
+Both review passes of the slice found it independently.
+
+The token is the ordinary one: `klytos_csrf_field()` renders it, `klytos_verify_csrf()` checks it,
+and it lives in the session `admin/bootstrap.php` (or, for the consent screen, its own
+`startSession()`) begins for every request, so the GET that shows a visitor the form is what mints
+their token.
+
+**Why the login form needs it at all**, since the usual objection is that there is no session to
+protect: the attack runs the other way. An attacker holding **their own** account on the install can
+make a victim's browser POST the attacker's credentials; the victim carries on working inside an
+account the attacker controls, and everything they write or paste there is the attacker's to read.
+`SameSite=Strict` does not help — the victim has no session cookie to withhold, because the request
+that creates one *is* the attack.
+
+A refusal answers **HTTP 403** and re-renders the form with `auth.session_expired`:
+
+> Your session expired before the form was sent. Reload the page and try again.
+
+The wording is deliberate. The realistic trigger for a legitimate user is a page left open too long;
+telling them their password was wrong would send them to change a password that works.
+
+**Ordering, because it is load-bearing:** the CSRF check runs **before** the IP ceiling, so a forged
+or token-less request never touches the shared per-address counter and never pays a bcrypt verify. A
+credential-stuffing bot is unaffected — it holds its own session and token, passes the check, and is
+counted where the ceiling is meant to bite.
+
+**The consent screen had never rendered at all (audit NEW-52), and that is worth knowing before
+anyone reads the paragraph above as routine.** `Router::handleOAuthAuthorize()` called
+`handleOAuthAuthorizeView()` unqualified from namespace `Klytos\Core`, while the function is declared
+in `Klytos\Core\MCP`. PHP falls back to the **global** namespace, never to a sibling, so every request
+to `/oauth/authorize` died with *"Call to undefined function
+Klytos\Core\handleOAuthAuthorizeView()"* — the OAuth authorization-code flow could not be completed
+by any client, ever. Found by requesting the URL while proving NEW-51's fix, and fixed in the same
+slice; **NEW-38** (this screen cannot complete a 2FA login) was written from source and describes a
+page that, at the time, could not render either.
+
+**The empty-token trap (audit NEW-50), stated here because it is the kind of thing that gets
+"simplified" back:** `hash_equals( '', '' )` returns **true**. Until D-061, `Auth::validateCsrf()`
+compared a missing token against a session that held none and accepted it — so adding the check to
+the login branch changed nothing at all until the primitive itself refused empty values. Both sides
+are now required to be non-empty, in `validateCsrf()` rather than at any call site.
+
 ## No account oracle
 
 Every failure answers identically. A wrong password, a suspended account and a username that does
@@ -273,7 +329,9 @@ looks like a broken authenticator rather than a broken string.
   returns `success => true`, so its only check (`! $result['success']`) is not taken, and the screen
   selector — which asks `isAuthenticated()`, false while pending — silently re-renders the login form
   with no error. A 2FA-enabled account loops. Pre-existing; recorded with a trigger, not fixed here.
-- **The password-reset form has no CSRF field or check** (audit **NEW-26**, out of scope per D-057).
+- ~~**The password-reset form has no CSRF field or check**~~ (audit **NEW-26**) and ~~**the
+  password-login POST has none either**~~ (audit **NEW-47**) — **both CLOSED by D-061 (Sprint 6,
+  slice 4)** and described in "CSRF on the anonymous forms" above rather than here.
 - **No step-up authentication before privileged actions**, except the encryption-level change in
   `admin/security.php`, which re-authenticates against this same authority. Recorded as **NEW-13**
   for the identity-key export; out of scope per D-057.
@@ -305,6 +363,11 @@ looks like a broken authenticator rather than a broken string.
 | A non-owner application password carries its own role | `tests/Integration/McpActorResolutionTest.php` |
 | A suspended user's application password is refused | `McpActorResolutionTest` |
 | A suspended user's OAuth token is refused with 401 on the next request, and works again once the account is reactivated | `tests/Integration/OAuthSuspensionHttpTest.php` |
+| A login POST with no CSRF token is refused, and the browser it hands back is not logged in | `tests/Integration/LoginCsrfHttpTest.php` |
+| A CSRF token minted for another session is refused | `LoginCsrfHttpTest` |
+| An empty token is refused even when the session holds none either (NEW-50) | `LoginCsrfHttpTest` |
+| The form still logs in when submitted the way the shipped page submits it | `LoginCsrfHttpTest` |
+| The password reset is refused without its token, and completes with it — the new password then logs in | `LoginCsrfHttpTest` |
 | Recovery restores access through the real gate | `tests/Integration/OwnerRepairTest.php` |
 | A real passkey completes a second-factor login end to end | `tests/Integration/PasskeyLoginTest.php` |
 | Passkey **registration** is refused while 2FA is merely pending | `PasskeyLoginTest` (the D-036 takeover proof) |
@@ -312,5 +375,6 @@ looks like a broken authenticator rather than a broken string.
 | A tampered assertion is refused | `PasskeyLoginTest` |
 
 ---
-D-021 · D-055 · **D-056** · D-057 · **D-060** · NEW-09 · NEW-11 (closed) · NEW-13 · NEW-26 ·
-NEW-37 (closed) · NEW-38 · NEW-41 (closed) · L-024
+D-021 · D-055 · **D-056** · D-057 · **D-060** · **D-061** · NEW-09 · NEW-11 (closed) · NEW-13 ·
+NEW-26 (closed) · NEW-37 (closed) · NEW-38 · NEW-41 (closed) · NEW-47 (closed) · NEW-50 (closed) ·
+L-024 · L-026

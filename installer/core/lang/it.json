@@ -51,7 +51,8 @@
     "remember_me": "Ricordami",
     "login_failed": "Nome utente o password errati",
     "account_locked": "Account bloccato. Riprova tra {minutes} minuti.",
-    "too_many_attempts": "Troppi tentativi di accesso da questo indirizzo. Riprova tra un minuto."
+    "too_many_attempts": "Troppi tentativi di accesso da questo indirizzo. Riprova tra un minuto.",
+    "session_expired": "La tua sessione è scaduta prima dell'invio del modulo. Ricarica la pagina e riprova."
   },
   "dashboard": {
     "title": "Pannello",
