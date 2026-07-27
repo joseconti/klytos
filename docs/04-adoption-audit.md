@@ -2146,9 +2146,11 @@ verified test point with a recorded files-updated count.
        recalled. The two rules differ in exactly one case, **stored non-zero and presented zero**,
        which the spec calls a cloning signal and Klytos accepts. **So a cloned credential can skip
        this check by presenting a counter of zero.** The recorded scope (`sprint-6.md`, approved)
-       says AND, so AND ships; the gap is carried as an open question in **D-063** with its
-       trade-off stated, because the spec's rule would permanently refuse an authenticator that
-       legitimately resets its counter.
+       says AND, so AND ships — and the question was then **put to the project owner and settled on
+       2026-07-27: the permissive rule stays** (D-063 note 2). Deciding fact: a determined attacker
+       bypasses clone detection under **either** rule, because holding the cloned credential means
+       choosing the counter it presents; OR catches only a careless clone, while permanently
+       refusing an authenticator that legitimately resets is a real cost to real users.
   2. **The `origin` check** now runs on assertion, through the SAME `originIsAcceptable()` the
      registration path was refactored onto — one rule rather than two copies, so the symmetry is
      structural instead of remembered. It cannot lock anyone out: every stored credential was

@@ -385,8 +385,14 @@ from then on, which is D-044's trap in a narrower population.
 The specification leaves the **response** to the Relying Party — *"Whether the Relying Party updates
 `storedSignCount` in this case, or not, or fails the authentication ceremony or not, is Relying
 Party-specific"* — but it does **not** leave the **condition** to the Relying Party. This is therefore
-a deliberate divergence, not conformance, and it is recorded as an open question in **D-063** rather
-than settled inside the slice that found it.
+a deliberate divergence, not conformance. **It was put to the project owner with the trade-off and
+settled on 2026-07-27: the permissive rule stays** (D-063 note 2). The reasoning is worth keeping
+because it is easy to reach the opposite conclusion from the table alone — **clone detection does not
+stop a determined attacker under either rule**, because whoever holds the cloned credential also
+chooses the counter it presents and can simply present *stored + 1*. OR therefore catches only a
+*careless* clone, while its cost lands on real users whose authenticator legitimately resets. The
+specification agrees with that framing: the counter is input to **risk scoring**, not a gate —
+*"Relying Parties should incorporate this information into their risk scoring"*.
 
 When a clone is detected the **`user.passkey_clone_detected`** action fires with
 `( $userId, $credentialId, $storedCount, $presentedCount )`. **Nothing in core subscribes to it** —
