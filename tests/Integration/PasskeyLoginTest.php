@@ -53,6 +53,24 @@ final class PasskeyLoginTest extends AdminHttpTestCase
     /** The rpId the server derives from this harness's Host header. */
     private const RP_ID = '127.0.0.1';
 
+    /**
+     * The signature counter this fixture's authenticator reports at enrolment.
+     *
+     * Until slice 3 the fixture emitted 1 at enrolment AND 1 at every assertion,
+     * i.e. it modelled an authenticator that never increments — which is
+     * precisely the condition WebAuthn's counter exists to flag. Nothing noticed,
+     * because nothing compared the two. Now that clone detection is in place the
+     * fixture has to be faithful to what a real authenticator does, so the two
+     * counts are named and distinct. This is a fixture correction, not a
+     * loosened assertion: the property `testAPasskeyCompletesASecondFactorLogin`
+     * asserts is unchanged, and it is now the POSITIVE CONTROL for the
+     * incrementing case (recorded in D-063).
+     */
+    private const ENROLLED_COUNT = 1;
+
+    /** What the same authenticator reports on the NEXT ceremony. */
+    private const NEXT_COUNT = 2;
+
     /** @var \OpenSSLAsymmetricKey|null The authenticator's private key. */
     private $privateKey = null;
 
@@ -128,14 +146,15 @@ final class PasskeyLoginTest extends AdminHttpTestCase
      *
      * @param bool   $attested     Include attested credential data (registration).
      * @param string $credentialId Raw credential id.
+     * @param int    $signCount    Signature counter this ceremony reports.
      */
-    private function authData( bool $attested, string $credentialId = '' ): string
+    private function authData( bool $attested, string $credentialId = '', int $signCount = self::ENROLLED_COUNT ): string
     {
         $flags = $attested ? 0x41 : 0x01;   // UP, plus AT when attesting.
 
         $data = hash( 'sha256', self::RP_ID, true )
             . chr( $flags )
-            . pack( 'N', 1 );
+            . pack( 'N', $signCount );
 
         if ( ! $attested ) {
             return $data;
@@ -148,21 +167,31 @@ final class PasskeyLoginTest extends AdminHttpTestCase
             . $this->coseKey();
     }
 
-    private function clientData( string $type, string $challenge ): string
+    /**
+     * @param string      $type      Ceremony type.
+     * @param string      $challenge Challenge the product minted.
+     * @param string|null $origin    Override; defaults to this RP's own origin.
+     */
+    private function clientData( string $type, string $challenge, ?string $origin = null ): string
     {
         return json_encode( [
             'type'      => $type,
             'challenge' => $challenge,
-            'origin'    => 'https://' . self::RP_ID,
+            'origin'    => $origin ?? 'https://' . self::RP_ID,
         ], JSON_UNESCAPED_SLASHES );
     }
 
     /**
      * Enrol a passkey through the product's own registration path.
      *
+     * @param  string $userId    User to enrol against.
+     * @param  int    $signCount Counter the authenticator reports at enrolment.
+     *                           Zero models a SYNCED platform passkey (iCloud
+     *                           Keychain, Google Password Manager), which reports
+     *                           0 permanently and must still be able to log in.
      * @return string The raw credential id.
      */
-    private function enrolPasskey( string $userId ): string
+    private function enrolPasskey( string $userId, int $signCount = self::ENROLLED_COUNT ): string
     {
         $this->privateKey = openssl_pkey_new( [
             'private_key_type' => OPENSSL_KEYTYPE_EC,
@@ -187,7 +216,8 @@ final class PasskeyLoginTest extends AdminHttpTestCase
         $attestationObject = chr( ( 5 << 5 ) | 3 )        // map of 3
             . self::cborText( 'fmt' ) . self::cborText( 'none' )
             . self::cborText( 'attStmt' ) . chr( ( 5 << 5 ) | 0 )
-            . self::cborText( 'authData' ) . self::cborBytes( $this->authData( true, $credentialId ) );
+            . self::cborText( 'authData' )
+            . self::cborBytes( $this->authData( true, $credentialId, $signCount ) );
 
         $stored = $twoFactor->completePasskeyRegistration( $userId, [
             'clientDataJSON'    => self::b64u( $clientDataRaw ),
@@ -206,12 +236,23 @@ final class PasskeyLoginTest extends AdminHttpTestCase
     /**
      * Sign an authentication challenge exactly as an authenticator would.
      *
+     * @param  string      $credentialId Raw credential id.
+     * @param  string      $challenge    Challenge the product minted.
+     * @param  int         $signCount    Counter this ceremony reports. The
+     *                                   default EXCEEDS the enrolment count,
+     *                                   because that is what a real hardware
+     *                                   authenticator does.
+     * @param  string|null $origin       Override; defaults to this RP's origin.
      * @return array<string, string> The assertion, as the browser posts it.
      */
-    private function signAssertion( string $credentialId, string $challenge ): array
-    {
-        $clientDataRaw = $this->clientData( 'webauthn.get', $challenge );
-        $authData      = $this->authData( false );
+    private function signAssertion(
+        string $credentialId,
+        string $challenge,
+        int $signCount = self::NEXT_COUNT,
+        ?string $origin = null
+    ): array {
+        $clientDataRaw = $this->clientData( 'webauthn.get', $challenge, $origin );
+        $authData      = $this->authData( false, '', $signCount );
 
         $signature = '';
         openssl_sign(
@@ -299,17 +340,10 @@ final class PasskeyLoginTest extends AdminHttpTestCase
         $credentialId = $this->enrolPasskey( $owner['id'] );
         $pending      = $this->pendingTwoFactorSessionFor( 'owner' );
 
-        $challenge = json_decode(
-            $this->postJson( self::ENDPOINT, [ 'action' => 'auth_challenge' ], 'owner', $pending )['body'],
-            true
-        )['challenge'] ?? null;
-        self::assertIsString( $challenge, 'No challenge to sign.' );
-
-        $response = $this->post( self::LOGIN, [
-            '2fa_method' => 'passkey',
-            '2fa_code'   => json_encode( $this->signAssertion( $credentialId, $challenge ) ),
-            'csrf'       => self::CSRF_TOKEN,
-        ], null, [ 'Cookie: klytos_session=' . $pending ] );
+        $response = $this->postAssertion(
+            $pending,
+            $this->signAssertion( $credentialId, $this->authChallenge( $pending ) )
+        );
 
         self::assertSame(
             302,
@@ -395,13 +429,7 @@ final class PasskeyLoginTest extends AdminHttpTestCase
         $credentialId = $this->enrolPasskey( $owner['id'] );
         $pending      = $this->pendingTwoFactorSessionFor( 'owner' );
 
-        $challenge = json_decode(
-            $this->postJson( self::ENDPOINT, [ 'action' => 'auth_challenge' ], 'owner', $pending )['body'],
-            true
-        )['challenge'] ?? null;
-        self::assertIsString( $challenge );
-
-        $assertion = $this->signAssertion( $credentialId, $challenge );
+        $assertion = $this->signAssertion( $credentialId, $this->authChallenge( $pending ) );
 
         // Flip one byte of the signature: still a well-formed assertion, no longer
         // a valid one.
@@ -409,12 +437,399 @@ final class PasskeyLoginTest extends AdminHttpTestCase
         $raw[ strlen( $raw ) - 1 ] = chr( ord( $raw[ strlen( $raw ) - 1 ] ) ^ 0xFF );
         $assertion['signature'] = self::b64u( $raw );
 
-        $response = $this->post( self::LOGIN, [
+        $response = $this->postAssertion( $pending, $assertion );
+
+        self::assertSame( 200, $response['status'], 'A tampered assertion logged the caller in.' );
+    }
+
+    // ─── Slice 3 — audit NEW-42 (D-063) ─────────────────────────────────────
+
+    /**
+     * THE ONE THAT WOULD HAVE BROKEN REAL USERS. A synced platform passkey
+     * reports signCount = 0 forever, and it must still log in.
+     *
+     * iCloud Keychain, Google Password Manager and every other authenticator
+     * that exists in more than one place by design report a permanent zero, so
+     * the obvious spelling of clone detection — "the new count must exceed the
+     * stored one" — would have refused the second login of most authenticators
+     * in use today: a security fix that breaks authentication, which is the
+     * trap D-044 recorded.
+     *
+     * Note on the rule this pins, because the docblock originally got it wrong:
+     * Klytos requires BOTH counters to be non-zero, while WebAuthn §7.2 guards
+     * on OR. The two differ only for "stored non-zero, presented zero", and the
+     * divergence is deliberate and recorded in D-063 implementation note 2.
+     * This test is unaffected either way — under both rules a 0/0 authenticator
+     * skips the comparison entirely, which is exactly the property here.
+     *
+     * This test is written first among the slice's tests for that reason, and it
+     * fails against the naive rule while the clone test below still passes.
+     */
+    public function testASyncedPasskeyReportingZeroForeverStillCompletesLogin(): void
+    {
+        $owner = $this->users->getByUsername( 'owner' );
+        self::assertNotNull( $owner );
+
+        $credentialId = $this->enrolPasskey( $owner['id'], 0 );
+        $pending      = $this->pendingTwoFactorSessionFor( 'owner' );
+
+        $response = $this->postAssertion(
+            $pending,
+            $this->signAssertion( $credentialId, $this->authChallenge( $pending ), 0 )
+        );
+
+        self::assertSame(
+            302,
+            $response['status'],
+            'A synced passkey (signCount 0 at enrolment AND at login) was refused. Clone detection '
+            . 'must not fire when either counter is zero. Body: ' . substr( $response['body'], 0, 400 )
+        );
+
+        // Not "it did not say no" — it is actually logged in (D-061's rule).
+        $granted = [];
+        preg_match( '/^Set-Cookie:\s*klytos_session=([^;\s]+)/mi', $response['headers'], $granted );
+        self::assertNotEmpty( $granted[1] ?? '', 'The success handed back no session cookie.' );
+
+        self::assertSame(
+            200,
+            $this->request( '/installer/admin/', null, $granted[1] )['status'],
+            'The 302 was not a login: the session it returned does not reach the dashboard.'
+        );
+    }
+
+    /**
+     * A counter that goes BACKWARDS, with both counters non-zero, is refused —
+     * the condition the sign counter exists to reveal.
+     */
+    public function testACounterRegressionIsRefusedWhenBothCountersAreNonZero(): void
+    {
+        $owner = $this->users->getByUsername( 'owner' );
+        self::assertNotNull( $owner );
+
+        $credentialId = $this->enrolPasskey( $owner['id'], 5 );
+        $pending      = $this->pendingTwoFactorSessionFor( 'owner' );
+
+        // 4 < 5: a second authenticator answering for one credential.
+        $response = $this->postAssertion(
+            $pending,
+            $this->signAssertion( $credentialId, $this->authChallenge( $pending ), 4 )
+        );
+
+        self::assertSame(
+            200,
+            $response['status'],
+            'A cloned authenticator (stored counter 5, presented 4) completed the login.'
+        );
+
+        self::assertSame(
+            302,
+            $this->request( '/installer/admin/', null, $pending )['status'],
+            'The refused assertion left the browser logged in anyway.'
+        );
+    }
+
+    /**
+     * A REPEATED counter is refused too — equal is not "greater than".
+     *
+     * Separated from the regression above because they are different real-world
+     * events: a replayed ceremony rather than a second device, and an
+     * implementation that used `<` instead of `<=` would pass that test and fail
+     * this one.
+     */
+    public function testARepeatedCounterIsRefusedToo(): void
+    {
+        $owner = $this->users->getByUsername( 'owner' );
+        self::assertNotNull( $owner );
+
+        $credentialId = $this->enrolPasskey( $owner['id'], 5 );
+        $pending      = $this->pendingTwoFactorSessionFor( 'owner' );
+
+        $response = $this->postAssertion(
+            $pending,
+            $this->signAssertion( $credentialId, $this->authChallenge( $pending ), 5 )
+        );
+
+        self::assertSame( 200, $response['status'], 'A repeated counter (5 then 5) completed the login.' );
+    }
+
+    /**
+     * Clone detection fires its action, carrying BOTH counters.
+     *
+     * Driven in-process because the HTTP tests above run the product in another
+     * process, where a listener registered here could never be reached — and
+     * "an action exists" is not the same as "an action fires", which is L-019's
+     * whole subject. Nothing in core subscribes to this hook; a deployment that
+     * wants to be told registers a listener, and this is the proof that one
+     * would actually hear about it.
+     */
+    public function testCloneDetectionFiresItsActionWithBothCounters(): void
+    {
+        $owner = $this->users->getByUsername( 'owner' );
+        self::assertNotNull( $owner );
+
+        $credentialId = $this->enrolPasskey( $owner['id'], 9 );
+        $twoFactor    = $this->app->getTwoFactor();
+
+        $heard = [];
+        $this->addTemporaryAction(
+            'user.passkey_clone_detected',
+            function ( string $userId, string $credential, int $stored, int $presented ) use ( &$heard ): void {
+                $heard = [
+                    'user'      => $userId,
+                    'stored'    => $stored,
+                    'presented' => $presented,
+                ];
+            }
+        );
+
+        $challenge = $twoFactor->createPasskeyAuthChallenge( $owner['id'], self::RP_ID )['challenge'];
+
+        self::assertFalse(
+            $twoFactor->verifyPasskeyAssertion(
+                $owner['id'],
+                $this->signAssertion( $credentialId, $challenge, 3 ),
+                self::RP_ID
+            ),
+            'A counter regression was accepted.'
+        );
+
+        self::assertSame(
+            [ 'user' => $owner['id'], 'stored' => 9, 'presented' => 3 ],
+            $heard,
+            'user.passkey_clone_detected did not fire with the two counters that caused the refusal.'
+        );
+    }
+
+    /**
+     * An assertion produced for a DIFFERENT origin is refused, exactly as the
+     * enrolment that created the credential would have been.
+     *
+     * The asymmetry this closes favoured the path that runs once per enrolment
+     * over the path that runs at every login (audit NEW-42 item 2).
+     */
+    public function testAnAssertionFromAnotherOriginIsRefused(): void
+    {
+        $owner = $this->users->getByUsername( 'owner' );
+        self::assertNotNull( $owner );
+
+        $credentialId = $this->enrolPasskey( $owner['id'] );
+        $pending      = $this->pendingTwoFactorSessionFor( 'owner' );
+
+        $response = $this->postAssertion(
+            $pending,
+            $this->signAssertion(
+                $credentialId,
+                $this->authChallenge( $pending ),
+                self::NEXT_COUNT,
+                'https://attacker.example'
+            )
+        );
+
+        self::assertSame(
+            200,
+            $response['status'],
+            'An assertion carrying origin https://attacker.example completed the login.'
+        );
+
+        self::assertSame(
+            302,
+            $this->request( '/installer/admin/', null, $pending )['status'],
+            'The refused cross-origin assertion left the browser logged in anyway.'
+        );
+    }
+
+    /**
+     * The SAME rule accepts registration's own localhost allowance, so this
+     * slice cannot have tightened the assertion path past its sibling.
+     *
+     * One direction is half a test (L-010): without this, an origin check that
+     * refused everything would look identical to a correct one, and the local
+     * development login it would break is not exercised anywhere else.
+     */
+    public function testTheLocalhostDevelopmentAllowanceSurvivesOnBothPaths(): void
+    {
+        $method = new \ReflectionMethod( \Klytos\Core\TwoFactor::class, 'originIsAcceptable' );
+        $method->setAccessible( true );
+
+        foreach ( [ 'https://localhost', 'https://localhost:8443', 'https://' . self::RP_ID ] as $origin ) {
+            self::assertTrue(
+                $method->invoke( null, $origin, self::RP_ID ),
+                $origin . ' was refused, which would break local development logins.'
+            );
+        }
+
+        foreach ( [ 'http://' . self::RP_ID, 'https://localhost.evil.example', 'https://evil.example', '' ] as $origin ) {
+            self::assertFalse(
+                $method->invoke( null, $origin, self::RP_ID ),
+                var_export( $origin, true ) . ' was accepted as an origin.'
+            );
+        }
+
+        // THE WEAKNESS, ASSERTED ON PURPOSE — audit NEW-53, raised by this
+        // slice's security-auditor pass.
+        //
+        // The development allowance is a PREFIX match, not a format check, so
+        // strings that are not origins at all satisfy it: a userinfo component
+        // (`localhost:8443` read as user:password, host `evil.example`) and a
+        // path both slip through. A browser never serialises an origin that
+        // way — origin is scheme://host[:port] and nothing else — and a
+        // non-browser caller must still produce a valid ES256 signature over
+        // clientDataJSON, so this is not a login bypass. It is a control that
+        // is looser than it reads.
+        //
+        // It is PRE-EXISTING: the rule was carried over byte for byte from the
+        // registration path, which has always had it, and the equivalence was
+        // proven rather than assumed. Tightening it changes registration's
+        // behaviour and belongs to its own decision, so the boundary is pinned
+        // here instead — the D-044 precedent, where a test asserts style-src's
+        // 'unsafe-inline' on purpose so that removing it shows up as a
+        // deliberate change rather than as a mystery failure.
+        foreach ( [ 'https://localhost:8443@evil.example', 'https://localhost:8443/path', 'https://localhost:notaport' ] as $origin ) {
+            self::assertTrue(
+                $method->invoke( null, $origin, self::RP_ID ),
+                var_export( $origin, true ) . ' is now REFUSED. If that was deliberate, NEW-53 has '
+                . 'been closed and this assertion should be inverted with its decision recorded.'
+            );
+        }
+    }
+
+    /**
+     * A 32-byte authenticatorData fails closed AND emits no PHP warning.
+     *
+     * It already failed closed before this slice — but by way of
+     * `ord($authData[32])` reading past the end of the string, which raises
+     * "Uninitialized string offset 32". The user-visible defect is therefore the
+     * warning, not the refusal, and the warning is what this asserts: phpunit.xml
+     * has carried failOnWarning="true" since D-054, so a PHP warning raised here
+     * fails this test rather than scrolling past.
+     *
+     * That is also why it runs IN-PROCESS. Over HTTP the warning would be raised
+     * in the server's process and land in a log nobody reads, which is exactly
+     * the shape of an assertion that cannot fail.
+     *
+     * 32 bytes is not an arbitrary length: authenticatorData begins with
+     * sha256(rpId) and the rpId is public, so this input is trivially
+     * precomputable by anyone.
+     */
+    public function testATruncatedAuthenticatorDataIsRefusedWithNoPhpWarning(): void
+    {
+        $owner = $this->users->getByUsername( 'owner' );
+        self::assertNotNull( $owner );
+
+        $credentialId = $this->enrolPasskey( $owner['id'] );
+        $twoFactor    = $this->app->getTwoFactor();
+
+        $challenge     = $twoFactor->createPasskeyAuthChallenge( $owner['id'], self::RP_ID )['challenge'];
+        $clientDataRaw = $this->clientData( 'webauthn.get', $challenge );
+
+        // Exactly the rpIdHash and nothing else: 32 bytes, so the flags byte at
+        // offset 32 does not exist. The origin and the challenge are VALID, so
+        // this test isolates the length guard instead of being refused earlier
+        // for an unrelated reason.
+        $truncated = hash( 'sha256', self::RP_ID, true );
+        self::assertSame( 32, strlen( $truncated ) );
+
+        self::assertFalse(
+            $twoFactor->verifyPasskeyAssertion( $owner['id'], [
+                'credentialId'      => self::b64u( $credentialId ),
+                'clientDataJSON'    => self::b64u( $clientDataRaw ),
+                'authenticatorData' => self::b64u( $truncated ),
+                'signature'         => self::b64u( 'not-checked-this-far' ),
+            ], self::RP_ID ),
+            'A 32-byte authenticatorData was accepted.'
+        );
+    }
+
+    /**
+     * During an INCOMPLETE setup the endpoint answers its JSON contract instead
+     * of a 302 into the setup wizard (audit NEW-42 item 4).
+     *
+     * The two skip-lists in admin/bootstrap.php did not move together: D-058
+     * keyed the pre-auth list on klytos_admin_gate_key() and left this one
+     * matching a basename, which cannot express an `api/` path at all. So on a
+     * fresh install the passkey ceremony's fetch() received a redirect where it
+     * expects a JSON body.
+     *
+     * This is the one property in the slice that no existing test could reach,
+     * because it needs `setup_completed => false` — so the config is written,
+     * the request is made, and the ORIGINAL is written back in a finally. The
+     * comparison D-039's guard makes is on decrypted content, so a net-zero
+     * rewrite passes it; anything else would fail this test in teardown rather
+     * than leak into the next one.
+     */
+    public function testTheWebauthnEndpointAnswersJsonDuringAnIncompleteSetup(): void
+    {
+        $configDir = KLYTOS_INSTALLER_PATH . '/config';
+        $original  = $this->storage->readFrom( $configDir, 'config.json.enc' );
+
+        self::assertNotSame(
+            false,
+            $original['setup_completed'] ?? null,
+            'This seed already has setup_completed = false, so the test would prove nothing.'
+        );
+
+        $incomplete                    = $original;
+        $incomplete['setup_completed'] = false;
+        $this->storage->writeTo( $configDir, 'config.json.enc', $incomplete );
+
+        try {
+            $pending  = $this->pendingTwoFactorSessionFor( 'owner' );
+            $response = $this->postJson( self::ENDPOINT, [ 'action' => 'auth_challenge' ], 'owner', $pending );
+
+            self::assertSame(
+                200,
+                $response['status'],
+                'The endpoint answered ' . $response['status'] . ' (Location: ' . $response['location']
+                . ') during an incomplete setup, where its callers parse JSON.'
+            );
+            self::assertArrayHasKey(
+                'challenge',
+                json_decode( $response['body'], true ) ?? [],
+                'The body was not the challenge the endpoint contracts to return.'
+            );
+        } finally {
+            $this->storage->writeTo( $configDir, 'config.json.enc', $original );
+        }
+    }
+
+    // ─── Shared drivers ─────────────────────────────────────────────────────
+
+    /**
+     * Ask the product for an authentication challenge, through its own endpoint.
+     *
+     * @param  string $pendingSession A 2FA-pending session id.
+     * @return string The challenge the product minted and stored.
+     */
+    private function authChallenge( string $pendingSession ): string
+    {
+        $response = $this->postJson( self::ENDPOINT, [ 'action' => 'auth_challenge' ], 'owner', $pendingSession );
+
+        self::assertSame(
+            200,
+            $response['status'],
+            'The challenge endpoint refused, so nothing below measures the assertion path: '
+            . substr( $response['body'], 0, 200 )
+        );
+
+        $challenge = json_decode( $response['body'], true )['challenge'] ?? null;
+        self::assertIsString( $challenge, 'No challenge to sign.' );
+
+        return $challenge;
+    }
+
+    /**
+     * Post an assertion to the real login form, the way the shipped page does.
+     *
+     * @param  string               $pendingSession A 2FA-pending session id.
+     * @param  array<string,string> $assertion      A signed assertion.
+     * @return array{status:int, body:string, headers:string, location:string, content_type:string}
+     */
+    private function postAssertion( string $pendingSession, array $assertion ): array
+    {
+        return $this->post( self::LOGIN, [
             '2fa_method' => 'passkey',
             '2fa_code'   => json_encode( $assertion ),
             'csrf'       => self::CSRF_TOKEN,
-        ], null, [ 'Cookie: klytos_session=' . $pending ] );
-
-        self::assertSame( 200, $response['status'], 'A tampered assertion logged the caller in.' );
+        ], null, [ 'Cookie: klytos_session=' . $pendingSession ] );
     }
 }

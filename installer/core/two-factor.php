@@ -500,14 +500,11 @@ class TwoFactor
             throw new \RuntimeException('Challenge mismatch.');
         }
 
-        // Verify origin.
-        $expectedOrigin = 'https://' . $rpId;
-        $origin = $clientData['origin'] ?? '';
-        if ($origin !== $expectedOrigin && $origin !== 'https://localhost') {
-            // Allow localhost for development.
-            if (!str_starts_with($origin, 'https://localhost:')) {
-                throw new \RuntimeException('Origin mismatch.');
-            }
+        // Verify origin. The rule itself moved into originIsAcceptable() so the
+        // assertion path can apply the SAME one (audit NEW-42 item 2); the
+        // behaviour here is unchanged, including the localhost allowance.
+        if ( ! self::originIsAcceptable( $clientData['origin'] ?? '', $rpId ) ) {
+            throw new \RuntimeException('Origin mismatch.');
         }
 
         // Parse attestation object (CBOR-encoded).
@@ -657,6 +654,31 @@ class TwoFactor
             return false;
         }
 
+        // Verify origin — the SAME rule registration applies, in the same
+        // position in the ceremony (audit NEW-42 item 2). Without this, an
+        // assertion produced for another origin against the same credential was
+        // accepted here although the enrolment that created it would have been
+        // refused: the asymmetry favoured the path that runs once per enrolment
+        // over the path that runs at every login.
+        if ( ! self::originIsAcceptable( $clientData['origin'] ?? '', $rpId ) ) {
+            return false;
+        }
+
+        // Length guard, mirroring registration's identical check (audit NEW-42
+        // item 3). rpIdHash(32) + flags(1) + signCount(4) = 37 is the minimum
+        // authenticatorData this method reads, and every read below assumes it.
+        //
+        // It already failed CLOSED without this — but it did so by way of a PHP
+        // warning from ord($authData[32]) on a 32-byte input, which is trivially
+        // precomputable because authenticatorData begins with sha256(rpId) and
+        // the rpId is public. The user-visible outcome being fixed is therefore
+        // the warning, not the refusal, which is why the regression test asserts
+        // the warning's ABSENCE (phpunit.xml has carried failOnWarning since
+        // D-054).
+        if ( strlen( $authData ) < 37 ) {
+            return false;
+        }
+
         // Verify RP ID hash.
         $rpIdHash = substr($authData, 0, 32);
         if (!hash_equals(hash('sha256', $rpId, true), $rpIdHash)) {
@@ -708,8 +730,60 @@ class TwoFactor
             return false;
         }
 
+        // ─── Clone detection (see WebAuthn Level 2 §7.2, "Verifying an
+        //     Authentication Assertion", the signature-counter step) ──────────
+        //
+        // The sign counter exists for exactly one purpose: to reveal that two
+        // authenticators are answering for one credential. This method wrote the
+        // new value and never compared it to the stored one, so the data was
+        // produced and discarded (audit NEW-42 item 1).
+        //
+        // Synced platform passkeys — iCloud Keychain, Google Password Manager,
+        // every authenticator that exists in more than one place by design —
+        // report signCount = 0 permanently. So a naive "the new count must
+        // exceed the stored one" rule would refuse most real authenticators on
+        // their second login: a security fix that breaks authentication, the
+        // trap D-044 recorded.
+        //
+        // THIS GUARD IS DELIBERATELY MORE PERMISSIVE THAN THE SPEC, AND THE
+        // DIFFERENCE IS WRITTEN DOWN RATHER THAN IMPLIED. The spec's guard is
+        // OR — verbatim: "If authData.signCount is nonzero *or* storedSignCount
+        // is nonzero, then run the following sub-step" — whereas this is AND.
+        // The two agree everywhere except one case: stored non-zero, presented
+        // ZERO. The spec calls that a cloning signal; this does not, so an
+        // attacker holding a cloned credential can skip the check by presenting
+        // 0. The cost of the spec's rule is the mirror image: an authenticator
+        // that legitimately stops incrementing (a firmware reset, a credential
+        // migrated into a synced store) would be refused from then on.
+        //
+        // AND is what docs/sprints/sprint-6.md recorded and the user approved,
+        // so it is what ships; the gap and its consequence are stated in
+        // docs/reference/authentication.md and carried as an open question
+        // rather than decided here (D-063). The spec itself leaves the response
+        // to the RP: "Whether the Relying Party updates storedSignCount in this
+        // case, or not, or fails the authentication ceremony or not, is Relying
+        // Party-specific." It does NOT leave the CONDITION to the RP.
+        $newSignCount    = unpack('N', substr($authData, 33, 4))[1];
+        $storedSignCount = (int) ( $storedPasskey['sign_count'] ?? 0 );
+
+        if ( $newSignCount > 0 && $storedSignCount > 0 && $newSignCount <= $storedSignCount ) {
+            // Fire-and-forget, and NOTHING IN CORE SUBSCRIBES TO THIS — said in
+            // those words here and in docs/reference/authentication.md, because
+            // L-019 was recorded when "it goes to the audit log" was true of a
+            // hook and false of the system. The login is refused either way; a
+            // deployment that wants to be told about it registers a listener.
+            klytos_do_action(
+                'user.passkey_clone_detected',
+                $userId,
+                $credentialIdB64,
+                $storedSignCount,
+                $newSignCount
+            );
+
+            return false;
+        }
+
         // Update sign count and last used.
-        $newSignCount = unpack('N', substr($authData, 33, 4))[1];
         $passkeys[$matchedIndex]['sign_count'] = $newSignCount;
         $passkeys[$matchedIndex]['last_used']  = Helpers::now();
 
@@ -1115,6 +1189,35 @@ class TwoFactor
     {
         $padded = str_pad($data, strlen($data) + (4 - strlen($data) % 4) % 4, '=');
         return base64_decode(strtr($padded, '-_', '+/'), true) ?: '';
+    }
+
+    /**
+     * Whether a client-supplied WebAuthn origin is acceptable for this RP.
+     *
+     * ONE definition, consulted by both ceremonies. It exists as a method rather
+     * than as two copies because registration validated the origin and assertion
+     * did not (audit NEW-42 item 2), and the asymmetry favoured the path that
+     * runs once per enrolment over the path that runs at every login. Copying
+     * the four lines into the assertion would have closed the gap and left the
+     * two free to drift on the next edit — the S-04 shape this project has
+     * already paid for once. Same reason `Helpers::webauthnRpId()` exists (D-058).
+     *
+     * The `https://localhost[:port]` allowance is carried over verbatim from the
+     * registration path rather than tightened here: dropping it would refuse
+     * every local development login, and narrowing the development allowance is
+     * a decision of its own, not a rider on a hardening slice.
+     *
+     * @param  string $origin Client-supplied origin from clientDataJSON.
+     * @param  string $rpId   Relying Party ID.
+     * @return bool   True when the origin may be accepted.
+     */
+    private static function originIsAcceptable( string $origin, string $rpId ): bool
+    {
+        if ( $origin === 'https://' . $rpId || $origin === 'https://localhost' ) {
+            return true;
+        }
+
+        return str_starts_with( $origin, 'https://localhost:' );
     }
 
     // ================================================================

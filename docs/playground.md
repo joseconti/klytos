@@ -4,7 +4,18 @@
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
 >
-> **last verified: 2026-07-26 (Sprint 6 slice 2)** — the Start section was run verbatim again on
+> **last verified: 2026-07-27 (Sprint 6 slice 3)** — the Start section was run verbatim on
+> `KPORT=8115`: seed (`--reset`) clean, `php -S` bound cleanly with the log checked for
+> `failed to listen`, owning PID confirmed by `lsof` (php83, 17804), the two documented responses
+> reproduced exactly (admin `302`, MCP `401`), and `curl -D -` carried **no `Server:` header** — the
+> L-011 tell. Two things were learned here and are now written into the document rather than left to
+> the next session: a bare `GET /installer/mcp` answers **200** `{"name":"klytos","status":"ok"}` (a
+> health response, not a regression — §3's documented check is a **POST**, and running the wrong
+> command was my instrument being wrong, not the product); and the §3 401 probe **writes** to the
+> auth-failure bucket, which then failed `LoginCeilingHttpTest` on unmodified code until the
+> playground was reseeded (**L-028**).
+>
+> Previously — **2026-07-26 (Sprint 6 slice 2)** — the same section on
 > `KPORT=8113`: seed (`--reset`) clean, `php -S` bound cleanly with the log checked for
 > `failed to listen`, owning PID confirmed by `lsof` (php83, 73855), the two documented responses
 > reproduced exactly (admin `302`, MCP `401`), `curl -D -` carried **no `Server:` header** — the
@@ -112,6 +123,13 @@ rm -rf /tmp/klytos-sessions
 # Wipe all runtime state and seed again from scratch
 XDEBUG_MODE=off php scripts/dev/seed-playground.php --reset
 ```
+
+> **Run `--reset` after any walkthrough and BEFORE the automated suite.** Stopping the server is not
+> enough: refusals provoked by the commands above (401s, 403s, 429s) persist on disk in
+> `installer/data/rate_limits.json` and `installer/data/login_lockouts.json` by design, and the
+> suite's ceiling tests assert exact counts against those buckets. Sequential is not the same as
+> isolated — L-025 covers running the suite and a QA pass *concurrently*; **L-028** covers the residue
+> one leaves for the other. Neither `lsof` nor a free port can see this.
 
 `--reset` deletes the contents of `installer/config/` and `installer/data/` and the generated site,
 **preserving the tracked `.htaccess` guards** in those directories — those are production access
@@ -303,6 +321,13 @@ failed on that same probe for having no map entry, and CI runs keel-verify. So: 
 its map entry, include bootstrap — and let the build tell you if you forgot.
 
 ### 3. The MCP endpoint
+
+> **This probe WRITES.** A 401 is an authentication failure, so it adds an entry to the product's
+> persistent, IP-keyed auth-failure bucket (`installer/data/rate_limits.json`) — that is the control
+> Sprint 6 built, working as designed. The ceiling is 10 failures per 60 s and
+> `LoginCeilingHttpTest` spends all ten, so **one leftover entry is enough to fail that test on
+> perfectly good code**. Reseed with `--reset` before running the suite (L-028). The same applies to
+> every 403 and 429 below: in this product, provoking a refusal is a write, not a read.
 
 ```bash
 # Unauthenticated — must be 401

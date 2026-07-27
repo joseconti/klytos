@@ -2106,7 +2106,7 @@ verified test point with a recorded files-updated count.
     own OAuth flow; three of the four tests observed failing first (200 where 401 was required, and
     403 where 401 was required for the deleted-user case).
 
-### NEW-42 — Four rough edges in the passkey assertion path, now that it is reachable — **LOW–MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 2 review passes)* — recorded, NOT fixed
+### NEW-42 — Four rough edges in the passkey assertion path, now that it is reachable — **LOW–MEDIUM** *(found 2026-07-25 by the Sprint 5 slice 2 review passes)* — **CLOSED 2026-07-27 (Sprint 6 slice 3, D-063)**
 - **Where:** `installer/core/two-factor.php::verifyPasskeyAssertion()`; `installer/admin/bootstrap.php` (the setup-wizard skip-list)
 - **What (four, each verified against source):**
   1. **No clone detection.** The new signature count is stored without being compared to the stored
@@ -2131,6 +2131,43 @@ verified test point with a recorded files-updated count.
   narrowing is what keeps that from becoming an argument for widening it further.
 - **Trigger:** the next slice touching the WebAuthn path, or the first report of a passkey failing
   after an authenticator restore.
+- **Resolution (2026-07-27, Sprint 6 slice 3, D-063).** All four are closed, and each was proven to
+  fail first with its own reverted TEMP-BREAK:
+  1. **Clone detection** compares the presented signature counter with the stored one and refuses
+     when it does not exceed it — **only when both are non-zero**. That condition is the item, not a
+     detail: synced platform passkeys report `signCount = 0` permanently, so the naive "must
+     increase" rule would refuse the second login of most authenticators in use. **Measured, not
+     argued** — with the naive rule installed, exactly one test failed and it was the synced-passkey
+     login. A new `user.passkey_clone_detected` action fires with both counters; **nothing in core
+     subscribes**, and the reference doc says so in those words (L-019).
+     - **This is a deliberate divergence from WebAuthn, and the first draft of this entry cited the
+       spec as its authority, which was wrong.** §7.2's guard is **OR** — *"If `authData.signCount`
+       is nonzero **or** `storedSignCount` is nonzero"* — verified against the published text, not
+       recalled. The two rules differ in exactly one case, **stored non-zero and presented zero**,
+       which the spec calls a cloning signal and Klytos accepts. **So a cloned credential can skip
+       this check by presenting a counter of zero.** The recorded scope (`sprint-6.md`, approved)
+       says AND, so AND ships; the gap is carried as an open question in **D-063** with its
+       trade-off stated, because the spec's rule would permanently refuse an authenticator that
+       legitimately resets its counter.
+  2. **The `origin` check** now runs on assertion, through the SAME `originIsAcceptable()` the
+     registration path was refactored onto — one rule rather than two copies, so the symmetry is
+     structural instead of remembered. It cannot lock anyone out: every stored credential was
+     enrolled through that identical check.
+  3. **The length guard** refuses a short `authenticatorData` before any offset is read. The
+     regression test asserts the **absence** of the PHP warning, and the TEMP-BREAK reproduced it
+     exactly as described here — `Uninitialized string offset 32`, exit code 1 under
+     `failOnWarning`.
+  4. **The setup-wizard skip-list** moved off basename matching onto `klytos_admin_gate_key()`,
+     exactly as `$preAuthScripts` did in D-058, and gained `api/webauthn-challenge.php`. The
+     `$currentScript` variable that fed the old match is gone, after establishing repo-wide that
+     nothing read it (bootstrap's file-scope variables leak into every admin file that requires it —
+     L-007).
+- **One correction of record, found by running the break rather than reading it:** this entry says
+  the endpoint "302s to the wizard". It does, but to
+  **`/installer/admin/api/setup-wizard.php`** — a path that does not exist — because the redirect is
+  built from `dirname( $_SERVER['SCRIPT_NAME'] )` and the script lives in `api/`. So the caller
+  received a redirect to a 404 rather than to the wizard. Substance unchanged; the description was
+  incomplete (L-015).
 
 ### NEW-43 — `klytos_delete_page` describes an action it did not perform — **LOW** *(found 2026-07-25 by the Sprint 5 sprint-close playground-QA pass)* — recorded, NOT fixed
 - **Where:** `installer/core/mcp/tools/page-tools.php` (the `klytos_delete_page` handler)
@@ -2396,6 +2433,53 @@ verified test point with a recorded files-updated count.
 - **How it was found, which is the transferable part:** by requesting the URL. Two review subagents,
   a `docs-verifier` and five sprints of work had read past it, because reading a call site does not
   tell you which namespace resolves it. Recorded as **L-027**.
+
+### NEW-53 — The WebAuthn localhost origin allowance is a prefix match, so strings that are not origins satisfy it — **LOW** *(found 2026-07-27 by the Sprint 6 slice 3 `security-auditor` pass; I had reached the same conclusion independently while proving the refactor)* — recorded, NOT fixed
+- **Where:** `installer/core/two-factor.php::originIsAcceptable()`
+- **What:** the development allowance is `str_starts_with( $origin, 'https://localhost:' )` — a raw
+  prefix test with no check that what follows is a port and that the string ends there. So
+  `https://localhost:8443@evil.example` (where `localhost:8443` is **userinfo** and the host is
+  `evil.example`), `https://localhost:8443/path` and `https://localhost:notaport` are all accepted.
+- **Severity is LOW and the reason is specific, not a shrug.** A browser never serialises an origin
+  with userinfo or a path — an origin is `scheme://host[:port]` and nothing else — so this cannot be
+  produced by the case the origin check actually defends. A non-browser caller can put any string in
+  `clientDataJSON`, but that document is folded into the SHA-256 the ES256 signature covers, so
+  reaching the check with a chosen origin already requires the credential's private key, at which
+  point the origin test is not what is standing between the attacker and the account.
+- **Pre-existing, and that was proven rather than asserted.** The rule was carried into
+  `originIsAcceptable()` byte for byte from the registration path, which has had it since before
+  Sprint 5. A differential run of the old inline expression against the new helper over 63
+  origin/rpId combinations produced **zero** behaviour differences, so this slice neither introduced
+  the looseness nor widened it — it applied an existing rule to a second call site, which is what
+  NEW-42 item 2 asked for.
+- **Why it is not fixed here:** tightening it (`preg_match( '#^https://localhost(?::[0-9]+)?$#', … )`)
+  changes the **registration** path's behaviour, which is outside NEW-42's four items and outside the
+  approved slice scope — D-031's narrowing. The boundary is instead **pinned by a test that asserts
+  the current, loose behaviour on purpose** (`PasskeyLoginTest::testTheLocalhostDevelopmentAllowanceSurvivesOnBothPaths`),
+  the D-044 precedent, so tightening it later appears as a deliberate inverted assertion rather than
+  as a mystery failure.
+- **Trigger:** the next slice touching the WebAuthn ceremonies, or the decision that settles whether
+  the `http://localhost` development case should be supported at all (see `docs/reference/authentication.md`
+  "Known limits") — the two are one edit.
+
+### NEW-54 — A failed passkey assertion does not consume its challenge — **LOW** *(found 2026-07-27 by the Sprint 6 slice 3 `security-auditor` pass; verified against source before recording)* — recorded, NOT fixed
+- **Where:** `installer/core/two-factor.php::verifyPasskeyAssertion()`
+- **What:** `deleteWebAuthnChallenge()` is called on the **success** path only. All **12** `return
+  false` branches leave the stored challenge in place until it expires on its own
+  (`WEBAUTHN_CHALLENGE_LIFETIME = 300` seconds), so a captured, genuinely-valid assertion can be
+  replayed against the same still-live challenge within that window.
+- **Why LOW, stated precisely rather than by severity feel:** every check that can fail *before*
+  signature verification rejects an assertion that is not valid in the first place, and a **valid**
+  assertion consumes its challenge on success. So the replay window only exists for an assertion that
+  is correctly signed and refused for some *other* reason — which, before this slice, was no case at
+  all, and after it is exactly one: clone detection. A cloned authenticator retrying with the same
+  counter is refused again, and retrying with a higher one would be accepted with a fresh challenge
+  anyway. The remaining scenario needs an attacker who has **intercepted** a valid assertion, which is
+  a materially stronger position than forging one.
+- **Pre-existing and not introduced by slice 3**, but slice 3 is what created the first refusal that
+  happens after a valid signature, so the entry is written now rather than left implicit.
+- **Trigger:** the next slice touching `verifyPasskeyAssertion()`, or the first slice that adds
+  another post-signature refusal to that method.
 
 ---
 

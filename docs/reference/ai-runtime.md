@@ -112,7 +112,7 @@ It is typed rather than bare so a caller can distinguish *"this host cannot run 
 ```php
 klytos_add_action( 'ai.runtime_unsupported', function ( $reason, $required, $running ) {
     error_log( "Klytos AI disabled: {$reason} (needs {$required}, running {$running})" );
-}, 10, 3 );
+}, 10 );
 ```
 
 **An action, never a filter.** A listener must not be able to talk this refusal into proceeding,

@@ -3285,6 +3285,118 @@ in the approved plan. Its own acceptance is D-061: both anonymous forms refuse a
 token they emit, both still work when submitted the way the shipped page submits them, and a token
 minted for another session is refused.
 
+### Slice 3 — the passkey assertion path — evidence (commands and output, 2026-07-27)
+
+Closes audit **NEW-42**'s four items under **D-063**. The sprint's last slice.
+
+**L-027 FIRST, BEFORE ANY CONTROL WAS WRITTEN.** The rule that lesson bought is *request the surface
+once, over HTTP, as a client reaches it* — so both surfaces this slice hardens were requested before
+they were touched:
+
+```
+$ curl -s -o /dev/null -w "GET status=%{http_code}\n" http://127.0.0.1:8115/installer/admin/login.php
+  GET status=200                       # renders, with a name="csrf" field
+$ curl -s -X POST http://127.0.0.1:8115/installer/admin/api/webauthn-challenge.php \
+    -H 'Content-Type: application/json' -d '{"action":"auth_challenge"}'
+  {"error":"Unauthorized"}   [401]     # reachable, answers its JSON contract
+```
+
+Neither fatals, so unlike slice 4 there was nothing hiding underneath. Also measured up front, because
+item 4 needs it: this seed carries `setup_completed = true`, so the wizard branch is not reachable
+without writing config.
+
+**THE HEADLINE IS A MEASUREMENT, NOT AN ARGUMENT.** The sprint plan says clone detection must fire
+only when both counters are `> 0`, because synced passkeys report `0` forever. That claim was tested
+by installing the naive rule and running the class:
+
+```
+# TEMP-BREAK 1 — the naive rule: if ( $newSignCount <= $storedSignCount )
+$ XDEBUG_MODE=off vendor/bin/phpunit --filter PasskeyLoginTest
+  1) testASyncedPasskeyReportingZeroForeverStillCompletesLogin
+     Failed asserting that 200 is identical to 302.
+  Tests: 13, Assertions: 71, Failures: 1
+```
+
+Exactly one failure, and it is the synced-passkey login — while both clone tests still passed. That
+is the shape a correct rule must have, and it is what a "must increase" implementation would have
+shipped: a security fix refusing the second login of most authenticators in use (the D-044 trap).
+
+**Five TEMP-BREAK cycles, each reverted from a byte-for-byte backup confirmed with `cmp`:**
+
+```
+# 2 — clone detection removed entirely
+  1) testCloneDetectionFiresItsActionWithBothCounters   Failed asserting that true is false.
+  2) testARepeatedCounterIsRefusedToo                   Failed asserting that 302 is identical to 200.
+  3) testACounterRegressionIsRefusedWhenBothCounters…   Failed asserting that 302 is identical to 200.
+  Tests: 13, Failures: 3        # the synced-passkey control stayed green — correct
+
+# 3 — the assertion path's origin check removed (registration keeps its own)
+  1) testAnAssertionFromAnotherOriginIsRefused          Failed asserting that 302 is identical to 200.
+  Tests: 13, Failures: 1
+
+# 4 — the length guard removed
+  1) installer/core/two-factor.php:674  Uninitialized string offset 32
+     * testATruncatedAuthenticatorDataIsRefusedWithNoPhpWarning
+  Tests: 13, Assertions: 73, Warnings: 1        EXIT CODE = 1
+
+# 5 — the basename setup-wizard skip-list restored
+  1) testTheWebauthnEndpointAnswersJsonDuringAnIncompleteSetup
+     The endpoint answered 302 (Location: /installer/admin/api/setup-wizard.php) …
+  Tests: 13, Failures: 1
+$ cmp installer/core/two-factor.php  …/two-factor.php.fixed   # restored, byte-identical
+$ cmp installer/admin/bootstrap.php  …/bootstrap.php.fixed    # restored, byte-identical
+```
+
+Two things in break 4 are worth keeping. The warning is **exactly** the one the audit predicted
+(`Uninitialized string offset 32`), and PHPUnit's summary line reads *"OK, but there were issues!"* —
+so the honest signal is the **exit code 1** that `failOnWarning="true"` produces, not the word "OK". A
+reader skimming the summary would have called that run green.
+
+**Break 5 sharpened the audit entry rather than merely confirming it.** The redirect goes to
+`/installer/admin/api/setup-wizard.php` — a path that does not exist — because it is built from
+`dirname( $_SERVER['SCRIPT_NAME'] )` and the script lives in `api/`. The caller was redirected to a
+404, not to the wizard. Corrected in the audit entry (L-015).
+
+**Full harness:**
+
+```
+$ XDEBUG_MODE=off vendor/bin/phpunit            OK (284 tests, 1385 assertions)      # was 276 / 1331
+$ php scripts/keel-verify                       OK — 10 check(s) run: 8 passed, 2 warning(s)
+$ XDEBUG_MODE=off bash scripts/dev/upgrade-test.sh
+                                                == UPGRADE TEST PASSED (v0.30.1 -> 0.31.1-beta.1)
+```
+
+**Lint — each scope run DIRECTLY and separately, never through a shell loop (L-016, which has now
+produced a bogus result in three separate sessions):**
+
+| Scope | Result | Baseline |
+|---|---|---|
+| `installer/core installer/admin` | **191 errors / 488 warnings** in 112 files | 192/488 — **improved by 1**, never rebaselined |
+| `installer/plugins` | 113 errors / 109 warnings in 17 files | 113/109 — exact |
+| `tests` | no total line; **46 / 46 files processed** | 0/0 — exact |
+| `installer/public` | no total line; **2 / 2 files processed** | 0/0 — exact |
+| `scripts scripts/keel-verify` | 0 errors / 2 warnings in 1 file | 0/2 — exact |
+
+The `-1` was **attributed by measurement, not assumed**: linting the pre-slice copy of the two touched
+files showed `bootstrap.php` at 1 error / 2 warnings and it is now 0 / 2, so the improvement is the
+`$currentScript` removal and nothing drifted elsewhere. The two 0/0 scopes are read by their
+**processed-file count**, because phpcs prints no TOTAL line when there is nothing to report and a
+silent run is indistinguishable from a clean one.
+
+**Docs:** `docs/reference/authentication.md` gains "What the assertion path checks" and "The
+setup-wizard skip-list", and three "Known limits" bullets (the `http://` vs `https://localhost`
+allowance, and that a counter regression is not proof of a clone); `docs/api/INDEX.md` gains the
+`user.passkey_clone_detected` row, Actions 311 → **312**, total 968 → **969**;
+`.claude/skills/klytos-hooks-reference/references/complete-hooks.md` gains that hook **and
+`user.passkey_enrolled`**, which had been missing since Sprint 5 slice 2 — the same table, the same
+subject, so both went in (L-004).
+
+**Coverage of the sprint's acceptance criteria by this slice:** criterion 5 in full — a
+`signCount = 0` authenticator still logs in, a counter regression with both counters non-zero is
+refused (and a repeated counter too), a wrong `origin` is refused, and a 32-byte `authenticatorData`
+fails closed **with no PHP warning**. Criterion 7 (suite, keel-verify, upgrade, five baselines) is
+evidenced above.
+
 ## Session-start freshness
 
 At the **first** test point of every working session, the playground is booted from the commands in
@@ -3311,6 +3423,7 @@ the playground are a defect caught here, not by the user.
 | 2026-07-25 (Sprint 3 slice 1 session) | documented commands on a verified-free **8083** (`nc -z` first; **8080, 8081, 8082 and 8090 all held by the same unrelated container for the SIXTH consecutive session**) | admin **302**, MCP **401** unauthenticated, and `curl -D -` checked for the L-011 tell — no `Server: Apache/...` header, so the responses were our own `php -S` and not the squatter's. The seeder declined to overwrite the existing install, as documented, so the session ran against the standing playground | yes |
 | 2026-07-26 (Sprint 6 slice 1 close session) | documented Start section run verbatim on a `nc -z`-verified-free **8112** (8080 skipped — Docker for the ninth consecutive session, established at the kickoff earlier the same day) | seed (`--reset`) clean; `php -S` backgrounded with its log grepped for `Failed to listen` → **bound cleanly**; owning PID confirmed by `lsof` (php83, 63899) rather than assumed (L-021); admin **302**, MCP **401** unauthenticated; `curl -D -` carried **no `Server:` header**, the L-011 tell, checked before any response was believed. Server stopped by port before the suite ran — the playground is single-tenant (L-025) | yes |
 | 2026-07-26 (Sprint 6 slice 2 session) | documented Start section run verbatim on a `nc -z`-verified-free **8113** | seed (`--reset`) clean; backgrounded `php -S` with its log grepped for `Failed to listen` → **bound cleanly on 8113**; owning PID confirmed by `lsof` (php83, 73855); admin **302**, MCP **401** unauthenticated; `curl -D -` carried **no `Server:` header**. Stopped by port (`kill $(lsof -tiTCP:8113 -sTCP:LISTEN)`) and the port re-checked free **before** the suite ran (L-025) | yes |
+| 2026-07-27 (Sprint 6 slice 3 session) | documented Start section run verbatim on a `nc -z`-verified-free **8115** (8113/8114/8116 also checked free) | seed (`--reset`) clean; backgrounded `php -S` with its log grepped for `failed to listen` → **bound cleanly on 8115**; owning PID confirmed by `lsof` (php83, 17804); admin **302**; MCP **401** unauthenticated; `curl -D -` carried **no `Server:` header**. **Two instrument corrections, both mine, both settled by re-running rather than by reasoning:** (1) a bare `GET /installer/mcp` answered **200** `{"name":"klytos","status":"ok"}` where the document says 401 — the document's check is a **POST** with a JSON-RPC body, so I had run the wrong command; re-run as written it answered **401**, and the GET health response is now noted in `docs/playground.md` so the next reader does not file it as a regression. (2) The suite then failed **1 test** on unmodified code (`LoginCeilingHttpTest`, "attempt 10 of 10 refused before the ceiling") — because that documented 401 probe **is an authentication failure** and had written one entry into `installer/data/rate_limits.json` (`ip:127.0.0.1`, read from the file, not inferred). Reseeded and re-ran: **276 tests / 1331 assertions green**, no test and no product file touched. Recorded as **L-028** and written into `docs/playground.md` at both places a reader meets it. Server stopped and port re-checked free before the suite (L-025) | yes |
 
 ## Cross-cutting verification (Phase 5 §4 — before Phase 6)
 

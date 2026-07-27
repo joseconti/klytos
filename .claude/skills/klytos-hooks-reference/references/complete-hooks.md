@@ -35,6 +35,8 @@
 | `user.login` | action | `array $user` | core/user-manager.php |
 | `user.logout` | action | `string $username, string $userId` | core/auth.php |
 | `user.ownership_transferred` | action | `string $currentOwnerId, string $newOwnerId` | core/user-manager.php |
+| `user.passkey_enrolled` | action | `string $userId, string $credentialId, string $label` | admin/api/webauthn-challenge.php |
+| `user.passkey_clone_detected` | action | `string $userId, string $credentialId, int $storedCount, int $presentedCount` | core/two-factor.php |
 
 #### Login Page
 

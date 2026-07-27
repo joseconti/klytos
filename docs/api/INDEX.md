@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 146 |
 | Classes and interfaces | 103 |
-| Actions | 311 |
+| Actions | 312 |
 | Filters | 122 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **968** |
+| **Total** | **969** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -581,6 +581,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | user.login | action | installer/core/user-manager.php | — | Fired when credentials authenticate successfully; receives the sanitized user record |
 | user.logout | action | installer/core/auth.php | — | Fired before the session is destroyed; receives the session username and user ID |
 | user.ownership_transferred | action | installer/core/user-manager.php | — | Fired when site ownership moves to another account; receives previous and new owner IDs |
+| user.passkey_clone_detected | action | installer/core/two-factor.php | docs/reference/authentication.md | Fired when a passkey assertion presents a signature counter that does not exceed the stored one and both are non-zero; receives user ID, credential ID, stored count and presented count. The login is refused either way. **No core listener** |
 | user.passkey_enrolled | action | installer/admin/api/webauthn-challenge.php | docs/reference/authentication.md | Fired after an authenticator is enrolled; receives user ID, credential ID and label. No core listener — the account holder is emailed separately |
 | user.role_changed | action | installer/core/user-manager.php | — | Fired on update only when the role actually differs; receives user ID, new role and old role |
 | user.updated | action | installer/core/user-manager.php | — | Fired once account changes are persisted; receives the sanitized updated user record |

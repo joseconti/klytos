@@ -306,13 +306,115 @@ it is a seam, and saying otherwise would be the L-019 defect.
 ```php
 klytos_add_action( 'user.passkey_enrolled', function ( $userId, $credentialId, $label ) {
     error_log( "passkey '{$label}' enrolled for {$userId}" );
-}, 10, 3 );
+}, 10 );
 ```
 
 The Relying Party ID comes from `Helpers::webauthnRpId()` — the host without its port — and both
 registration and verification derive it from that one function. A credential is bound to the rpId it
 was registered under, so a divergence of one character silently invalidates every stored passkey and
 looks like a broken authenticator rather than a broken string.
+
+#### What the assertion path checks
+
+`TwoFactor::verifyPasskeyAssertion()` verifies, in this order: the stored challenge exists, the
+ceremony type is `webauthn.get`, the challenge matches, **the origin is acceptable**, **the
+authenticator data is long enough**, the rpId hash matches, the user-presence flag is set, the
+credential is one of this user's, the ES256 signature verifies, and **the signature counter does not
+indicate a clone**. Any failure returns `false` and the login is refused.
+
+The three emphasised checks landed in Sprint 6 slice 3 (audit **NEW-42**, **D-063**). Before that the
+assertion path was the weaker sibling of the registration path it is supposed to mirror — and the
+asymmetry ran the wrong way, since registration happens once per authenticator and assertion happens
+at every login.
+
+**Origin.** Registration and assertion now apply the *same* rule, `originIsAcceptable()`, rather than
+two copies of it: the origin must be `https://{rpId}`, `https://localhost`, or `https://localhost:`
+plus a port. Stated plainly so nobody has to wonder whether this can lock out an existing user: it
+cannot. Every stored credential was enrolled through the identical check, so an origin that passes
+enrolment passes assertion by construction — and one that would fail assertion could never have
+produced a credential in the first place.
+
+**Length.** A 32-byte `authenticatorData` is refused before any offset is read. This already failed
+closed, but it did so via `ord($authData[32])` reading past the end of the string, which raises a PHP
+warning — and the input is trivially precomputable, because authenticator data begins with
+`sha256(rpId)` and the rpId is public. The regression test therefore asserts the **absence of the
+warning**, which is the part a user or an operator actually meets.
+
+**Clone detection.** WebAuthn's signature counter exists to reveal that two authenticators are
+answering for one credential. The stored counter is compared with the presented one, and the
+assertion is refused when the presented value does not exceed the stored value — **but only when both
+values are non-zero**.
+
+That condition is the design, not a caveat:
+
+> Synced platform passkeys — iCloud Keychain, Google Password Manager, and every authenticator that
+> exists in more than one place by design — report `signCount = 0` permanently. The obvious spelling
+> of this check, "the new count must be greater than the stored one", would refuse the **second login
+> of most authenticators in use today**. That is a security fix that breaks authentication, and it is
+> the failure mode this project recorded in D-044.
+
+`PasskeyLoginTest::testASyncedPasskeyReportingZeroForeverStillCompletesLogin` is the test that holds
+that line, and it fails against the naive rule while the clone tests still pass.
+
+##### Where this deliberately differs from the WebAuthn specification
+
+Klytos requires **both** counters to be non-zero. The specification requires **either**. Verbatim,
+from §7.2 *Verifying an Authentication Assertion*:
+
+> If `authData.signCount` is nonzero **or** `storedSignCount` is nonzero, then run the following
+> sub-step […] **less than or equal to** `storedSignCount`: This is a signal that the authenticator
+> may be cloned […]
+
+The two rules agree in every case but one — **stored non-zero, presented zero** — and the
+consequences run in opposite directions:
+
+| Case | Spec (OR) | Klytos (AND) |
+|---|---|---|
+| stored 0, presented 0 (synced passkey) | no check | no check |
+| stored 0, presented 5 | accepted, counter stored | accepted, counter stored |
+| stored 5, presented 6 | accepted, counter stored | accepted, counter stored |
+| stored 5, presented 4 | cloning signal | refused |
+| **stored 5, presented 0** | **cloning signal** | **accepted** |
+
+So, said plainly rather than left for a reader to work out: **an attacker holding a cloned credential
+can skip this check by presenting a counter of zero.** The reason Klytos accepts that today is the
+mirror-image cost of the spec's rule — an authenticator that legitimately *stops* incrementing (a
+firmware reset, or a credential migrated from a hardware key into a synced store) would be refused
+from then on, which is D-044's trap in a narrower population.
+
+The specification leaves the **response** to the Relying Party — *"Whether the Relying Party updates
+`storedSignCount` in this case, or not, or fails the authentication ceremony or not, is Relying
+Party-specific"* — but it does **not** leave the **condition** to the Relying Party. This is therefore
+a deliberate divergence, not conformance, and it is recorded as an open question in **D-063** rather
+than settled inside the slice that found it.
+
+When a clone is detected the **`user.passkey_clone_detected`** action fires with
+`( $userId, $credentialId, $storedCount, $presentedCount )`. **Nothing in core subscribes to it** —
+it is a seam, not a sink, and saying otherwise would be the L-019 defect. The login is refused with
+or without a listener; a deployment that wants to be told registers one:
+
+```php
+klytos_add_action( 'user.passkey_clone_detected', function ( $userId, $credentialId, $stored, $presented ) {
+    error_log( "passkey clone suspected for {$userId}: stored {$stored}, presented {$presented}" );
+}, 10 );
+```
+
+What clone detection does **not** do, said rather than implied: it does not disable the credential, it
+does not notify the account holder, and it does not lock the account. It refuses that one assertion
+and announces it. A counter regression is also not proof of cloning — a restored authenticator backup
+produces the same signal — which is why the response is a refusal plus a hook rather than an automatic
+revocation.
+
+#### The setup-wizard skip-list
+
+`admin/bootstrap.php` carries two lists of surfaces that bypass a redirect: the pre-auth list (which
+skips the authentication guard) and the setup-wizard list (which skips the first-login redirect).
+Both are keyed on `klytos_admin_gate_key()` — the path relative to `admin/`, resolved from
+`SCRIPT_FILENAME`. The wizard list moved onto that key in slice 3; it had been matching a **basename**,
+which cannot express an `api/` path at all, so `api/webauthn-challenge.php` could not be listed and an
+install whose setup was still incomplete answered the passkey ceremony with a 302 into the wizard
+where its caller parses JSON. Six filenames exist in both `admin/` and `admin/api/`, which is why a
+basename key is wrong in principle and not only in this instance (**D-032**, **D-058**).
 
 ## Known limits
 
@@ -321,9 +423,18 @@ looks like a broken authenticator rather than a broken string.
   one. The account holder is notified by email, which is the compensating control rather than a
   substitute for step-up authentication (see **NEW-13**, out of scope per D-057).
 - **Passkey login needs HTTPS in practice.** Browsers only expose WebAuthn on a secure context, and
-  `completePasskeyRegistration()` accordingly expects an `https://` origin, allowing `localhost` for
-  development. The automated tests drive the protocol directly, so they prove the server's
-  verification without a browser — they do not prove any particular browser's UI.
+  **both** ceremonies expect an `https://` origin, allowing `localhost` for development — one rule,
+  `originIsAcceptable()`, applied by registration and assertion alike since D-063. The automated tests
+  drive the protocol directly, so they prove the server's verification without a browser — they do not
+  prove any particular browser's UI.
+- **The origin allowance is `https://localhost[:port]`, not `http://`.** A browser on plain
+  `http://localhost:8080` sends `http://localhost:8080` and is refused. This is pre-existing behaviour
+  of the registration path that the assertion path now mirrors rather than something slice 3
+  introduced, and it is symmetric — a credential that cannot be enrolled cannot be asserted — so no
+  working flow is affected. Narrowing or widening the development allowance is a decision of its own.
+- **A counter regression is not proof of a clone**, and the product does not treat it as one: a
+  restored authenticator backup produces the same signal. The assertion is refused and
+  `user.passkey_clone_detected` fires; the credential is not revoked and the account is not locked.
 - **The OAuth consent screen cannot complete a 2FA login** (audit **NEW-38**).
   `core/mcp/oauth-authorize-view.php` has no second-factor branch at all: on the 2FA path `login()`
   returns `success => true`, so its only check (`! $result['success']`) is not taken, and the screen
@@ -365,6 +476,12 @@ looks like a broken authenticator rather than a broken string.
 | A suspended user's OAuth token is refused with 401 on the next request, and works again once the account is reactivated | `tests/Integration/OAuthSuspensionHttpTest.php` |
 | A login POST with no CSRF token is refused, and the browser it hands back is not logged in | `tests/Integration/LoginCsrfHttpTest.php` |
 | A CSRF token minted for another session is refused | `LoginCsrfHttpTest` |
+| A synced passkey reporting `signCount = 0` forever still completes login | `tests/Integration/PasskeyLoginTest.php` |
+| A counter regression is refused when both counters are non-zero, and a repeated counter too | `PasskeyLoginTest` |
+| `user.passkey_clone_detected` fires carrying both counters | `PasskeyLoginTest` |
+| An assertion carrying another origin is refused, and the localhost allowance still holds | `PasskeyLoginTest` |
+| A 32-byte `authenticatorData` is refused with no PHP warning | `PasskeyLoginTest` |
+| The WebAuthn endpoint answers JSON during an incomplete setup instead of redirecting | `PasskeyLoginTest` |
 | An empty token is refused even when the session holds none either (NEW-50) | `LoginCsrfHttpTest` |
 | The form still logs in when submitted the way the shipped page submits it | `LoginCsrfHttpTest` |
 | The password reset is refused without its token, and completes with it — the new password then logs in | `LoginCsrfHttpTest` |

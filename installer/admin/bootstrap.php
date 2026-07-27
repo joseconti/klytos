@@ -281,7 +281,14 @@ klytos_add_filter( 'notice.condition.encryption_key_not_backed_up', function ( b
 // on. It also made the isAuthenticated() re-checks inside 20 of those
 // endpoints unreachable, and with them the 401 contract they advertise.
 // Recorded next to S-07 in docs/04-adoption-audit.md.
-$currentScript = basename( $_SERVER['SCRIPT_NAME'] );
+//
+// There used to be a `$currentScript = basename( $_SERVER['SCRIPT_NAME'] )`
+// here, read by the two skip-lists below. It is gone because both of them now
+// key on klytos_admin_gate_key() instead — the pre-auth list since D-058, the
+// setup-wizard list as of this slice — so nothing read it any more. Removed
+// only after establishing that: bootstrap.php's file-scope variables leak into
+// every admin file that requires it, so "unused here" is not the same as
+// unused, and the whole tree was searched before deleting (L-007).
 
 // api/webauthn-challenge.php is deliberately NOT exempt, although the passkey
 // second-factor flow needs it to be. Slice 4 added the exemption and then
@@ -329,7 +336,7 @@ $currentScript = basename( $_SERVER['SCRIPT_NAME'] );
 // endpoint still answers 401 to a caller with neither a session nor a pending
 // challenge.
 // Matched on the gate-map KEY (path relative to admin/), not on the basename.
-// $currentScript above is a basename, and six filenames exist in BOTH admin/ and
+// This list used to match a basename, and six filenames exist in BOTH admin/ and
 // admin/api/ -- ai-chat, logs, plugins, tasks, terminal, translations -- which is
 // exactly why D-032 keyed the gate map by path. A basename entry here would
 // exempt every file with that name, so adding the first api/ entry to this list
@@ -372,11 +379,33 @@ klytos_enforce_admin_gate();
 // ─── Setup wizard redirect (first-login only) ──────────────
 // Fresh installations set 'setup_completed' => false in config.
 // Existing/upgraded installs don't have this key, so they skip the wizard.
-if ( $currentScript !== 'setup-wizard.php'
-    && $currentScript !== 'login.php'
-    && $currentScript !== 'logout.php'
-    && $currentScript !== 'reset-password.php'
-) {
+//
+// Keyed on the gate-map KEY, exactly as $preAuthScripts was in D-058 — and for
+// the same reason, arrived at the same way. This was the SECOND list matching by
+// basename, and it did not move when the first one did, so `api/` entries were
+// unrepresentable here and six filenames exist in both admin/ and admin/api/
+// (ai-chat, logs, plugins, tasks, terminal, translations): a basename entry
+// would exempt every file of that name. Now the two lists cannot diverge by
+// construction rather than by anyone remembering to update both.
+//
+// api/webauthn-challenge.php joins it because it is the one pre-auth surface
+// that answers JSON rather than HTML (audit NEW-42 item 4). Without the entry,
+// an install whose setup is still incomplete answers a 302 to the wizard where
+// the endpoint's contract promises a JSON body, so the passkey ceremony's fetch()
+// parses a redirect and the login silently cannot proceed.
+//
+// A script that does NOT resolve inside admin/ yields null, matches nothing, and
+// is redirected — the same fail-closed direction the auth guard above takes for
+// the same value.
+$wizardSkipScripts = [
+    'setup-wizard.php',
+    'login.php',
+    'logout.php',
+    'reset-password.php',
+    'api/webauthn-challenge.php',
+];
+
+if ( $currentSurface === null || ! in_array( $currentSurface, $wizardSkipScripts, true ) ) {
     $klytosConfig = $app->getConfig();
     if ( isset( $klytosConfig['setup_completed'] ) && $klytosConfig['setup_completed'] === false ) {
         $wizardUrl = dirname( $_SERVER['SCRIPT_NAME'] ) . '/setup-wizard.php';

@@ -143,7 +143,7 @@ would put anti-spam policy in third-party hands.
 // Allow one comment per minute instead of two.
 klytos_add_filter( 'comment.rate_limit', function ( int $max, string $ip ): int {
     return 1;
-}, 10, 2 );
+}, 10 );
 
 // Log every bot the honeypot catches.
 klytos_add_action( 'comment.honeypot_rejected', function ( array $context ): void {

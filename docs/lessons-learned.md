@@ -831,3 +831,42 @@
   cheapest possible check, and it costs one `curl`. Corollary, from the same session: an audit entry
   about a surface is not evidence that the surface works — check reachability before inheriting its
   description.
+
+## L-028 — The session-start freshness check fed the counter that a later test measures, and the suite failed on code that was fine
+- Problem: the first full-suite run of this session reported **1 failure** —
+  `LoginCeilingHttpTest::testTheIpCeilingRefusesABurstOfInventedUsernamesThroughTheShippedForm`,
+  *"Attempt 10 of 10 was refused before the ceiling was reached"*. The tree was at HEAD, unmodified,
+  and the same suite had been recorded green at 276 tests / 1331 assertions at the previous session's
+  close.
+- Where: `docs/playground.md` §3's documented MCP probe, versus
+  `installer/data/rate_limits.json` and `tests/Integration/LoginCeilingHttpTest.php`.
+- What actually happened: Phase 5 §4 requires booting the playground from its documented commands at
+  the first test point of every session. One of those documented commands is *"Unauthenticated — must
+  be 401"*. **A 401 IS an authentication failure**, so the probe did exactly what it is written to do
+  and, in doing so, wrote one entry into the product's persistent, IP-keyed auth-failure bucket —
+  `{"auth_failures":{"ip:127.0.0.1":[…]}}`. The ceiling is 10 per 60 s and the test spends all ten, so
+  a single leftover entry moves the refusal one attempt earlier and the test's own guard fires.
+  Verified by reading the file, not by reasoning: exactly **one** entry, for exactly the address the
+  test uses.
+- Why the existing rules did not cover it: **L-025** is about two passes running at the SAME TIME over
+  one playground, and its remedy is "wait for the other process to exit". Here nothing was concurrent
+  — the server had been stopped and the port re-checked free before the suite started. The
+  interference was *sequential residue* in on-disk application state, which no port check, no `lsof`,
+  and no waiting can see. `PlaygroundState` did not help either, and could not: it snapshots at the
+  start of each test, so it faithfully preserved the pollution it found.
+- How it was caught: by refusing to act on the failure. One test, failing on unmodified code that was
+  green at the last close, with exactly one new variable in the environment — that is a hypothesis
+  about the instrument, not about the product (L-008). Reseeding with
+  `seed-playground.php --reset` and re-running returned **276 tests / 1331 assertions green, with no
+  test and no product file touched**. Had it been "fixed", the fix would have been permanent and the
+  defect imaginary — the same near-miss L-025 records, arriving by a different route.
+- Working solution: **reseed between the freshness check and the suite.** The freshness boot proves the
+  document and the environment; `--reset` then returns the product to a known state before anything
+  measures it. `docs/playground.md` now says so at both places a reader meets it, so the next session
+  does not rediscover this.
+- Rule for next time: **any verification that provokes a refusal is a WRITE, not a read.** A 401, a
+  403 and a 429 all leave persistent state behind in this product by design — that is what the
+  hardening sprints built — so the session-start ritual is not free, and the suite must start from a
+  reseeded playground rather than from "whatever the freshness check left". Generally: before treating
+  a single unexplained failure as a defect, ask what the SESSION did to the environment, not only what
+  the code did — the answer here was a command the project's own documentation told me to run.
