@@ -3,6 +3,84 @@
 > Append-only. A session NEVER re-opens a decision recorded here on its own initiative;
 > only the user reverses a decision (append the reversal as a new entry).
 
+> **HOW TO READ THIS FILE (D-064) — the index below is the session-start read, not this whole file.**
+> At 63 entries this file is ~78 k tokens and it grew ninefold in eight days; re-reading it in full
+> was the project's single largest per-session cost. So: **read the INDEX in full — it is one line per
+> decision and it is the part that prevents re-litigation — then open the BODY of only (a) the entries
+> the current work touches, (b) every entry added since your last session, and (c) anything the index
+> line makes you unsure about.** The bodies are unchanged and nothing has been archived; only the
+> reading discipline changed. If in doubt, open it: the failure this file exists to prevent
+> (re-opening a settled decision) is far more expensive than one extra read.
+
+## Index
+
+| # | Date | Decision |
+|---|------|----------|
+| **D-001** | 2026-07-18 | Keel adopted in an existing project (brownfield) |
+| **D-002** | 2026-07-18 | Embedded Keel updated v1.11.0 → v3.3.0, in both trees |
+| **D-003** | 2026-07-18 | Project type: web app + MCP server (both security profiles) |
+| **D-004** | 2026-07-18 | Adopted as-is: stack and conventions |
+| **D-005** | 2026-07-18 | Adopted as-is: license GPL-3.0-or-later |
+| **D-006** | 2026-07-18 | Adopted as-is: i18n is multi-language, base English, custom JSON mechanism |
+| **D-007** | 2026-07-18 | Accessibility target: WCAG 2.2 AA + European Accessibility Act |
+| **D-008** | 2026-07-18 | Docs language: English |
+| **D-009** | 2026-07-18 | Design system: existing, token-based; current look is the baseline |
+| **D-010** | 2026-07-18 | Assistant config package: full, for six tools |
+| **D-011** | 2026-07-18 | Model binding: default role→model map |
+| **D-012** | 2026-07-18 | Website intent: yes, Phase 8 deferred |
+| **D-013** | 2026-07-18 | No client budget |
+| **D-014** | 2026-07-18 | Competitive scan run at adoption |
+| **D-015** | 2026-07-18 | Confidential-data pre-commit gate installed and verified |
+| **D-016** | 2026-07-18 | Export-ignore extended to every assistant config container |
+| **D-017** | 2026-07-18 | Repositioning: lead with the PHP + MCP + static + multilingual intersection; x402 leaves the marketing |
+| **D-018** | 2026-07-18 | Adoption audit triaged |
+| **D-019** | 2026-07-18 | Competitive scan recorded as partial; no user-supplied competitors |
+| **D-020** | 2026-07-18 | MCP tool authorization deferred to Sprint 2, not folded into Sprint 1 |
+| **D-021** | 2026-07-18 | `klytos_current_user()` fails closed, with a migration for the installed base |
+| **D-022** | 2026-07-18 | Dev-only `composer.json`, plus a manifest for the vendored dependencies |
+| **D-023** | 2026-07-18 | Theme becomes an installable, validated package; design enters via an authoring skill |
+| **D-024** | 2026-07-18 | The design agent connects over MCP as an authoring loop, package-scoped and preview-only |
+| **D-025** | 2026-07-18 | Gate zero is baseline-locked, not "phpcs clean" |
+| **D-026** | 2026-07-18 | NEW-03 and NEW-04 are fixed after Sprint 1, not inside it |
+| **D-027** | 2026-07-19 | PHPUnit is pinned to ^11.5, and `composer.lock` is tracked |
+| **D-028** | 2026-07-19 | The `vendor-ai/` manifest pins every package exactly, transitive ones included, and does not block on advisories |
+| **D-029** | 2026-07-19 | NEW-05's five CVEs are remediated in a dedicated slice AFTER Sprint 1, not inside it |
+| **D-030** | 2026-07-19 | The integration tier isolates by snapshot/restore of the whole playground, and fails loudly where it cannot |
+| **D-031** | 2026-07-19 | A crash on the migration path is fixed inside slice 3, not deferred like NEW-03/NEW-05 |
+| **D-032** | 2026-07-19 | Authorization is enforced centrally, keyed by executed file, and denies by default |
+| **D-033** | 2026-07-19 | Four live bugs found by the slice-4 survey are fixed inside the slice |
+| **D-034** | 2026-07-19 | A plugin admin page that declares no capability is denied, not waved through |
+| **D-035** | 2026-07-19 | `ai.use` is owner+admin while NEW-02 is open, and deliberately excludes editor |
+| **D-036** | 2026-07-19 | The `webauthn-challenge.php` auth-guard exemption is reverted: it opened an account takeover |
+| **D-037** | 2026-07-19 | The locale catalogues are confirmed safe; the gate's `api_key` pattern is narrowed |
+| **D-038** | 2026-07-19 | Keel's build-assets source-first contract is overridden, with Phase 7 as the trigger |
+| **D-039** | 2026-07-19 | The config-mutation guard was inert; it now compares decrypted content, minus volatile keys |
+| **D-040** | 2026-07-19 | The identity export becomes POST + CSRF, and its false docblock is corrected rather than implemented |
+| **D-041** | 2026-07-19 | SSRF is refused by one class applied at the influenced call sites, and redirects are walked by hand |
+| **D-042** | 2026-07-19 | The integration tier records a hook baseline and fails a test that leaks one |
+| **D-043** | 2026-07-20 | The public comment handler moves OUT of the admin tree instead of being exempted from its guard |
+| **D-044** | 2026-07-20 | Security headers get ONE enforcement point, HSTS is HTTPS-only and subdomain-free, and the CSP fails closed |
+| **D-045** | 2026-07-20 | keel-verify gains six checks and a WARN tier; two release-packaging defects are made detectable, not fixed |
+| **D-046** | 2026-07-22 | MCP tool authorization is one enforcement point in `ToolRegistry::call()`, default-deny, with a per-request actor and a JSON-RPC refusal |
+| **D-047** | 2026-07-22 | MCP credentials carry a role, resolved from the credential, with an idempotent boot migration; unknown or absent role denies |
+| **D-048** | 2026-07-22 | A central MCP tool→capability map governs both `tools/call` and `tools/list`; absent = deny; keel-verify check 10 enforces coverage |
+| **D-049** | 2026-07-22 | `integrity-tools.php` is wired in and gated, and the tool loader fails loudly on a missing or misnamed registration |
+| **D-050** | 2026-07-23 | NEW-30 resolved by making filter-injected tools callable over HTTP; slice-3 capability assignments and playground plugin activation |
+| **D-051** | 2026-07-24 | `ai.use` widens to `editor` now that MCP tools are gated; D-035's trigger fired and is closed |
+| **D-052** | 2026-07-25 | D-029's version floors are stale and are raised to reach its own "audit to zero"; the re-vendor is three packages plus a seventeenth |
+| **D-053** | 2026-07-25 | The AI stack refuses an unsupported PHP before loading it, and advisories get standing detection in CI |
+| **D-054** | 2026-07-25 | Actions are fire-and-forget, enforced at registration; page data is modified through a filter |
+| **D-055** | 2026-07-25 | Owner recovery is a CLI command that works without a session; refusals exit non-zero |
+| **D-056** | 2026-07-25 | The user RECORD is the sole login authority; the v1 config credential survives only as the seed |
+| **D-057** | 2026-07-25 | Sprint 5 scope: NEW-09 rides along; NEW-26, NEW-32 and NEW-13 do not |
+| **D-058** | 2026-07-25 | Passkey second-factor login is completed in the order that makes D-036's exemption safe, and the pre-auth list stops being keyed by basename |
+| **D-059** | 2026-07-26 | The counters become atomic within themselves, not under one wide lock; a lock that cannot be taken refuses the attempt |
+| **D-060** | 2026-07-26 | A suspended user's OAuth token is refused at authentication, not at the gate |
+| **D-061** | 2026-07-27 | NEW-47 and NEW-26 are pulled into Sprint 6 as slice 4, and the CSRF primitive itself is fixed in path |
+| **D-062** | 2026-07-27 | The road to v1 is recorded, in this order |
+| **D-063** | 2026-07-27 | Clone detection only when both counters are non-zero; the origin rule becomes one rule; the second skip-list stops matching basenames |
+| **D-064** | 2026-07-27 | The state files get an index and a reading rule; PROGRESS.md's narrative moves to history.md |
+
 ## D-001 — Keel adopted in an existing project (brownfield)
 - Date / phase: 2026-07-18 / Adoption
 - Decision: Klytos CMS is brought under the Keel workflow via the adoption entry mode (`references/adoption.md`). Adoption documents reality and changes no code.
@@ -850,3 +928,14 @@
   - **Both reviewers ran without a shell and said so unprompted**, so every number in this slice was measured in the main session. The `code-reviewer` explicitly flagged the one axis it could not close: whether `originIsAcceptable()` is byte-for-byte equivalent to the pre-refactor inline expression, since it could not run `git diff`. **That gap was closed by execution rather than left open** — the old expression and the new helper were run against 63 origin/rpId combinations and produced **zero** behaviour differences, which is also what makes NEW-53 provably pre-existing rather than something this slice introduced.
   - **Confirmed sound against source by the reviewers, not merely read:** the clone check sits after `openssl_verify()`, so a forged assertion can neither spam the hook nor advance the stored counter; `<=` (not `<`) correctly refuses a repeated counter as well as a regression; a missing or non-integer `sign_count` degrades to 0 rather than crashing or wrongly refusing; **37 is exactly the minimum for the three offsets the method reads** (0–31, 32, 33–36) with no off-by-one; the new wizard condition is fail-closed in the same direction as the code it replaces and `$currentSurface` is assigned on every path that reaches it; `$currentScript` has zero remaining PHP references repo-wide; the new tests differentiate real boundaries and the refusal tests additionally prove the session never reaches the dashboard; the ordered list of checks in `docs/reference/authentication.md` matches the code's actual order; the INDEX row matches the real call signature; and the slice introduces no new user-facing string, so the 20-catalogue rule does not apply.
   - **One false alarm the auditor raised and resolved itself, recorded so the next reader does not re-raise it:** several documents still say `verifyPasskeyAssertion()` "has zero call sites". They describe the state at the moment NEW-09 was found and are followed by their own CLOSED resolution text — the project's "original entry follows, unchanged" convention, not an L-002 defect.
+
+## D-064 — The state files get an index and a reading rule; PROGRESS.md's narrative moves to history.md
+- Date / phase: 2026-07-27 / Phase 5, Sprint 6 close (**explicit user decision**, taken on a question put with measured numbers and three options)
+- Decision: **(a)** `docs/decisions.md` and `docs/lessons-learned.md` each gain a one-line-per-entry **Index** at the top, immediately under a short paragraph stating the reading rule: read the index in full, then open the BODY of only the entries the current work touches, the entries added since the last session, and anything the index line leaves uncertain. **(b)** `docs/PROGRESS.md`'s narrative — the per-slice record under "Current position" and the whole "Last updated"/"Previously" chain — moves verbatim to a new **`docs/history.md`**, which is explicitly NOT part of the session-start read. PROGRESS.md keeps the project card, the phase status, a short current position, the open and deferred items, and the next action. **(c) Nothing is archived, nothing is trimmed, and no entry body is edited.**
+- **The numbers, because this decision is about a cost and it was measured rather than felt.** The mandatory session-start read was `docs/PROGRESS.md` + `docs/decisions.md` + `docs/lessons-learned.md` = **517 KB ≈ 129,300 tokens**, of which `decisions.md` alone was **314 KB ≈ 78,600 tokens across 63 entries**. That file went from **35 KB to 314 KB in eight days** — ninefold. After this change the same read is **≈ 28,100 tokens** (PROGRESS.md 122 KB → **21 KB**; the decisions index is **8 KB**), a saving of roughly **101,000 tokens every session, for the life of the project**.
+- **Why an index and not an archive, which is the option that was rejected.** Splitting closed decisions into a `decisions-archive.md` saves more, and it requires judging at every close which entries no longer govern — a judgement that is wrong more often than it looks. **D-023, D-031 and D-036 are among the oldest entries here and all three still bind daily work.** "Closed" and "no longer governing" are different properties, and a session that skips a decision because someone mis-sorted it is exactly the re-litigation this file exists to prevent. The index keeps every entry equally reachable and costs one line each.
+- **Why the reading rule lives in the file rather than in the lock.** `CLAUDE.md`'s Keel block is Keel's canonical text and is refreshed only from the skill, so it is not the place for a project convention. Putting the rule in the header of the file being read means the instruction arrives with the thing it governs and cannot drift away from it.
+- **The failure mode is named rather than left to be discovered:** a session reads an index line, decides an entry is irrelevant, and proceeds against a decision that binds it. The header therefore says, in those words, that when in doubt the entry gets opened — re-opening a settled decision costs far more than one extra read. The index lines carry the full decision title, not a shortened label, precisely so the judgement is made on the real subject.
+- **Verified, not assumed.** After the rewrite, the region of each file from its first entry onward was hashed and compared with a pre-change backup: **byte-identical** in both files (SHA-256 match), so the index and header are strictly additive. Entry counts re-checked at 63 and 27. `PROGRESS.md` + `history.md` sum to more than the original only by the new header text.
+- Alternatives rejected (and why): **an era split into `decisions-archive.md`** (saves more; requires a per-close judgement about what still governs, which the three examples above show is not mechanical, and the cost of getting it wrong is the exact failure the file prevents); **splitting only `PROGRESS.md`** (safest and cheapest, saves ~25 k instead of ~101 k, and leaves the largest file untouched — which is what the previous four closes did, and is why this was still owed); **subject-based files** (`decisions-security.md` etc. — most decisions here span subjects, and a decision filed under the wrong subject is invisible).
+- Supersedes: none. Discharges the item the Sprint 5 close deferred and `docs/roadmap.md` records as owed at the Sprint 6 close.

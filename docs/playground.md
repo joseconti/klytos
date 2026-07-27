@@ -28,7 +28,7 @@
 >
 > Previously — **2026-07-25 (Sprint 4 close)** — a fresh-context pass ran this document end to end
 > on `KPORT=8110` / `RPORT=8111`, ~45 commands, and every product claim it checked held: the 5×4
-> per-role table reproduced exactly, `tools/list` sizes 206/197/56/19 exact, all nine router
+> per-role table reproduced exactly, `tools/list` sizes 206/197/56/19 exact, all **eight** router
 > protections 403, the full security-header set present, suite `OK (227 tests, 1059 assertions)` with
 > no skips, and `keel-verify` 10 checks exit 0. Six DOCUMENT defects were found and fixed here.
 > 8080 was squatted for the **eighth** consecutive session (2026-07-25).
@@ -81,7 +81,7 @@ php -S 127.0.0.1:$KPORT -t . scripts/dev/router.php
 ```
 
 > **`$KPORT` is not decoration — set it.** 8080 is the default and it has been occupied by an
-> unrelated Docker container in **every session since 2026-07-19** (nine consecutive) of this project. Every URL below is
+> unrelated Docker container in **every session since 2026-07-19** (ten consecutive, most recently 2026-07-27) of this project. Every URL below is
 > written `http://127.0.0.1:$KPORT/...` so that changing the port in step 2 is the only edit you
 > ever make. A fresh reader following this document with 8080 busy previously had no path forward,
 > because the rest of the page hardcoded 8080 — found by the sprint-1 playground-QA pass and fixed
@@ -177,20 +177,29 @@ Without a browser — the same walk, and the one command that proves the sprint'
 Every other claim in this document ships a runnable command and this one did not, so a terminal-only
 reader had to derive the form fields themselves (found by the Sprint 5 fresh-context pass):
 
+**The login form verifies a CSRF token (Sprint 6 slice 4, D-061), so the POST alone is not enough:**
+you have to GET the form first, keep the session cookie it sets, and send back the token that page
+actually rendered. That is exactly what a browser does. The cookie jar (`-c` then `-b`) carries the
+session; `sed` lifts the token out of the returned HTML.
+
 ```bash
 for u in owner admin editor viewer; do
-  code=$( curl -s -o /dev/null -w '%{http_code}' -c /tmp/klytos-$u.jar \
-    -d "username=$u" -d "password=playground-$u-2026" \
+  jar=/tmp/klytos-$u.jar; rm -f "$jar"
+  # 1. GET the form: this issues the session AND mints the token that belongs to it.
+  csrf=$( curl -s -c "$jar" "http://127.0.0.1:$KPORT/installer/admin/login.php" \
+    | sed -n 's/.*name="csrf" value="\([^"]*\)".*/\1/p' | head -1 )
+  # 2. POST the credentials WITH that token, on that same session.
+  code=$( curl -s -o /dev/null -w '%{http_code}' -b "$jar" -c "$jar" \
+    -d "username=$u" -d "password=playground-$u-2026" -d "csrf=$csrf" \
     "http://127.0.0.1:$KPORT/installer/admin/login.php" )
-  dash=$( curl -s -o /dev/null -w '%{http_code}' -b /tmp/klytos-$u.jar \
+  dash=$( curl -s -o /dev/null -w '%{http_code}' -b "$jar" \
     "http://127.0.0.1:$KPORT/installer/admin/" )
   echo "$u: login $code, dashboard $dash"
 done
 rm -f /tmp/klytos-*.jar
 ```
 
-Expected — **all four identical**; before Sprint 5 only `owner` reached the dashboard and the other
-three answered `login 200` (the refusal re-renders the form):
+Expected — **all four identical**:
 
 ```
 owner: login 302, dashboard 200
@@ -198,6 +207,24 @@ admin: login 302, dashboard 200
 editor: login 302, dashboard 200
 viewer: login 302, dashboard 200
 ```
+
+> **If you get `login 403, dashboard 302` on all four, the token is the reason** — either the `sed`
+> found nothing (check `echo "$csrf" | wc -c`; it should be 65, a 64-hex token plus the newline) or
+> the GET and the POST did not share a session. The 403 body re-renders the form carrying *"Your
+> session expired before the form was sent."* — that message is about the **token**, not about your
+> password, and it is the only refusal on this page that is not a credential problem.
+>
+> **This block was wrong for one sprint and a fresh-context pass caught it**, which is worth stating
+> because the same trap is waiting for the next reader: the command was added in Sprint 5 (a pass
+> found that a terminal-only reader had to derive the form fields), and Sprint 6 slice 4 then added
+> the CSRF check to the very form it drives — so the document's own headline command answered **403
+> four times** and told a newcomer the role system was broken. Both were correct changes; neither
+> session ran this block afterwards. Anything here that drives a form is only as current as the last
+> time somebody executed it.
+>
+> Historical note, corrected in the same pass: an older version of this section said a pre-Sprint-5
+> refusal answered `login 200`. A **credential** refusal does re-render the form with 200; a **CSRF**
+> refusal answers **403**, a status this section did not previously mention at all.
 
 ### All four roles log in (since Sprint 5)
 
@@ -478,9 +505,19 @@ curl -s -o /dev/null -w 'revoked token now answers %{http_code} (expect 401)\n' 
 # unknown — which is exactly why the confirmation above is not optional.
 ```
 
-A 200 with `"isError":true` in the body is the tool reporting a domain error (a missing slug, say) —
-that is the tool running, i.e. the gate **allowed** it. The gate's refusal is always a 403 with a
-JSON-RPC `error` object and no `result`.
+A 200 with `"isError":true` in the body is the tool reporting a domain error — that is the tool
+running, i.e. the gate **allowed** it. The gate's refusal is always a 403 with a JSON-RPC `error`
+object and no `result`.
+
+> **Do not take `isError` as a reliable "did it work" signal — it is not, and the example this
+> paragraph used to give was the counter-example.** It said "a missing slug, say"; the walk above
+> deletes the non-existent `index` page, and that answers **`"isError":false`** with
+> `"success": false` in the payload. Other tools do set it: `klytos_get_page` on a missing slug
+> answers `"isError":true`. Two separate defects sit underneath, both recorded and neither fixed:
+> **NEW-43** (`klytos_delete_page` returns `success:false` beside the sentence *"Page moved to
+> trash…"*, so one field says nothing happened and the other says something did) and **NEW-55**
+> (`klytos_get_page` reports a page that does not exist as *"An internal error occurred"*). **Read
+> the payload, not the flag.**
 
 Two things worth trying, because they are the properties that were actually hard to get right:
 
@@ -833,7 +870,9 @@ and it is what produced D-029 and D-052.
 > dishonesty as the reverse.
 
 The manifest also regenerates the tree reproducibly, but **do not run that in a checkout you care
-about** — it rewrites 482 tracked files:
+about** — it rewrites every tracked file under `installer/vendor-ai/` — **509** of them at the time of
+writing (`git ls-files installer/vendor-ai | wc -l`, which is how to check it rather than trusting
+this number; it was 482 before the Sprint 3 re-vendor added a seventeenth package):
 
 ```bash
 # Lock only, touches nothing vendored (this is what slice 2 ran):
@@ -865,7 +904,46 @@ do not: they fire the audit **actions** `auth.access_denied` and `mcp.access_den
 listener subscribes to either** — the hooks are the seam, not the sink (recorded as audit
 **NEW-32**). So a walkthrough full of 401s, 403s and MCP permission denials can legitimately leave
 `installer/data/logs-*/` empty. To make refusals self-log while you test, subscribe one line from a
-plugin:
+plugin.
+
+**Where the snippet goes, because this section used to give the code and not the location** (found
+by the Sprint 6 fresh-context pass — a terminal-only reader was left between a code block and a
+verification they could not reach). A Klytos plugin is a directory under `installer/plugins/` whose
+name, entry file and PHP header all match — that identity is the plugin contract and it is not
+negotiable. Three commands create one, and the server picks it up on the next request:
+
+```bash
+mkdir -p installer/plugins/qa-log-probe
+
+cat > installer/plugins/qa-log-probe/qa-log-probe.php <<'PHP'
+<?php
+/**
+ * Plugin Name: QA log probe
+ * Description: Temporary playground probe — subscribes the refusal actions so they reach the log.
+ * Version: 1.0.0
+ */
+PHP
+
+# Activate it the way the SEEDER does — write the plugin state directly. That is
+# deliberate and it is the seeder's own recorded reason: PluginLoader::activate()
+# has side effects (it is the admin path), while loadPlugin() at boot only cares
+# that the state says active. Note this REPLACES plugins.json.enc, so the two
+# shipped MCP plugins are carried through explicitly — drop them and the MCP tool
+# count in §3 falls from 206 to 180.
+XDEBUG_MODE=off php -r '
+define("KLYTOS_INSTALLER_PATH", __DIR__ . "/installer");
+require "installer/core/app.php";
+$app = \Klytos\Core\App::getInstance(); $app->boot();
+$now = \Klytos\Core\Helpers::now();
+$app->getStorage()->write( "plugins.json.enc", [
+    "active"       => [ "klytos-forms" => true, "klytos-importer" => true, "qa-log-probe" => true ],
+    "activated_at" => [ "klytos-forms" => $now, "klytos-importer" => $now, "qa-log-probe" => $now ],
+    "logs_enabled" => [],
+] );
+echo "activated\n";'
+```
+
+Then put the listener in that file (append it below the header):
 
 ```php
 klytos_add_action( 'mcp.access_denied', function ( string $tool, ?string $role, string $reason ): void {
@@ -879,10 +957,36 @@ klytos_add_action( 'mcp.access_denied', function ( string $tool, ?string $role, 
 }, 10 );
 ```
 
-Confirm it actually wrote something rather than trusting the absence of an error:
+Now provoke a refusal and confirm it actually wrote something, rather than trusting the absence of an
+error. `createBearerToken()` returns an **array** — the token is under `["token"]`, and forgetting
+that mints nothing and answers **401**, which looks like a broken gate and is a broken command:
 
 ```bash
-php installer/cli.php logs | head -5     # must show the entry, not "No hay archivos de log."
+VTOK=$(XDEBUG_MODE=off php -r 'require "installer/core/app.php";
+  $a=\Klytos\Core\App::getInstance(); $a->boot();
+  echo $a->getAuth()->createBearerToken( "qa-probe-viewer", "viewer" )["token"];')
+
+# A viewer asking for a destructive tool: must be 403, and must now be logged.
+curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:$KPORT/installer/mcp \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $VTOK" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"klytos_delete_page","arguments":{"slug":"home"}}}'
+
+XDEBUG_MODE=off php installer/cli.php logs | head -5   # must show the entry, not "No hay archivos de log."
+```
+
+Verified 2026-07-27, verbatim — `403`, then:
+
+```
+Log: debug-2026-07-27.log (ultimas 50 lineas):
+
+[2026-07-27 00:58:56] [WARNING] [core] MCP refused klytos_delete_page for role viewer: role 'viewer' lacks the required capability 'pages.delete'
+```
+
+**Clean up when you are done** — the probe plugin and the token both persist:
+
+```bash
+rm -rf installer/plugins/qa-log-probe
+XDEBUG_MODE=off php scripts/dev/seed-playground.php --reset   # drops the token and the plugin state
 ```
 
 Also note the log directory name is **randomized per install** (`data/logs-<12 hex>/`), and a reset
@@ -920,6 +1024,37 @@ listener is now a filter (`page.save_data`), and a by-reference listener is refu
 `failOnWarning="true"`, so ANY PHP warning anywhere reddens the suite, and
 `tests/Integration/HookMutationTest.php` asserts specifically that creating a page emits no
 diagnostic. If you see a warning here, it is a new defect, not known noise.
+
+**Run it yourself** — this section stated a regression criterion for two sprints without shipping a
+command to trigger it, which is the one thing the rest of this document does not do (found by the
+Sprint 6 fresh-context pass). Over MCP, using the app password from §3:
+
+```bash
+APPPW=$(grep -A1 "application password" installer/config/.playground-access | tail -1 | tr -d ' ')
+
+curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:$KPORT/installer/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"klytos_create_page",
+       "arguments":{"slug":"qa-warning-probe","title":"QA warning probe",
+       "content":"<!-- wp:paragraph --><p>probe</p><!-- /wp:paragraph -->"}}}'
+
+# Then read the SERVER's output, which is where a PHP warning would land — not this
+# terminal. If you started the server backgrounded per the Start section:
+grep -i 'warning\|must be passed by reference' /tmp/klytos-kport.log || echo "no warning — correct"
+
+# Clean up (the page is real; leaving it changes what later sections count):
+curl -s -u "owner:$APPPW" -X POST http://127.0.0.1:$KPORT/installer/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"klytos_permanent_delete_page",
+       "arguments":{"slug":"qa-warning-probe"}}}' > /dev/null
+ls installer/data/pages/     # back to: about.json.enc contact.json.enc home.json.enc
+```
+
+> **Where the warning would appear is the part that is easy to get wrong.** A PHP warning raised
+> while serving a request goes to the server process's own output, so with a foreground `php -S` it
+> prints in *that* terminal and with a backgrounded one it lands in the log file the Start section
+> redirects to. It never comes back in the `curl` response body, so a clean-looking JSON answer
+> proves nothing on its own.
 
 `XDEBUG_MODE=off` is still worth using on every command in this document — with Xdebug loaded, any
 diagnostic that does appear prints tens of kilobytes of stack trace, and a seeder that succeeded

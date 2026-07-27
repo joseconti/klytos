@@ -2483,6 +2483,30 @@ verified test point with a recorded files-updated count.
 - **Trigger:** the next slice touching `verifyPasskeyAssertion()`, or the first slice that adds
   another post-signature refusal to that method.
 
+### NEW-55 — A page that does not exist is reported to the AI as an internal error — **LOW–MEDIUM** *(found 2026-07-27 by the Sprint 6 close playground-QA pass; reproduced and traced before recording)* — recorded, NOT fixed
+- **Where:** `installer/core/mcp/tool-registry.php` (the generic `catch (\Exception)` in `call()`) as reached by `klytos_get_page` in `installer/core/mcp/tools/page-tools.php`
+- **What, measured:** `klytos_get_page` with `slug=no-such-slug-xyz` answers HTTP 200 with
+  `"isError": true` and the body **`Error: An internal error occurred while executing the tool.`**
+  The handler is `return $app->getPages()->get( $params['slug'] ?? '' );`, which throws for a missing
+  page; `ToolRegistry::call()` catches **every** `\Exception` and maps it to that one sentence, by
+  design ("Internal errors — log but don't expose details"). So a **domain miss is indistinguishable
+  from a real internal failure**.
+- **Why it matters more here than the same wart would in a human-facing string:** the caller is an
+  agent. "An internal error occurred" invites a retry, an escalation, or a bug report; the truth is
+  "that page does not exist", which is ordinary and actionable. The refusal-vs-error distinction the
+  MCP surface is otherwise careful about (a gate refusal is 403 with a JSON-RPC error object; a tool
+  running is 200) is undone one layer in.
+- **The mirror image of NEW-43, and they belong to one slice:** NEW-43 is a tool saying something
+  happened when it did not; this is a tool saying something broke when it merely was not found. Both
+  are the **L-002** shape on the MCP surface, and both are about the same thing — the published
+  contract of a tool not matching what it returns, which is also **NEW-35**'s subject.
+- **Not fixed here:** distinguishing a domain miss from an internal error means either a typed
+  not-found exception or a per-tool contract, and narrowing that catch changes the response shape of
+  **every** MCP tool — the D-034 treatment (recorded decision plus a release note), not a rider on a
+  documentation pass.
+- **Trigger:** the **NEW-43** slice or the **NEW-35** slice — whichever comes first should close all
+  three together.
+
 ---
 
 ## Next step

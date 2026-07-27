@@ -2,6 +2,45 @@
 
 > Append-only; never trim. A session never repeats a mistake recorded here.
 
+> **HOW TO READ THIS FILE (D-064).** Read the INDEX below in full — each line is the rule the lesson
+> bought, which is the part that stops the mistake recurring — then open the body of a lesson when the
+> current work is near its subject, or when it was recorded since your last session. Unlike the
+> decisions file this one is short (~20 k tokens), so reading it whole is still cheap and still
+> allowed; the index exists so that a session that is short of room reads the RULES rather than
+> skipping the file.
+
+## Index
+
+| # | Rule it bought |
+|---|----------------|
+| **L-001** | The embedded Keel copy silently rotted 20+ releases behind |
+| **L-002** | Documentation described intent the code did not implement |
+| **L-004** | An API was superseded in the code but in none of the skills, so two mental models shipped at once |
+| **L-005** | The first boot of the playground found a production bug that reading never did |
+| **L-006** | The fix for a crash nearly introduced a crash, on the same path, invisible to every test |
+| **L-007** | "Dead code, delete it" would have deleted the evidence of a live bug |
+| **L-008** | A test harness that lies about its own result costs more than the bug it was hiding |
+| **L-009** | A fatal hid a second fatal, and a status-only assertion would have hidden both |
+| **L-010** | A guard written to "fail loudly" was inert for two slices, and its own docblock argued for it |
+| **L-011** | The verification tested a stranger's server for three checks, and reported it as findings |
+| **L-012** | A test tier reset its hooks and its sibling did not, and it took a year of slices to notice |
+| **L-013** | The reviewer said "very likely already handled"; testing found a live bypass in the control I had just shipped |
+| **L-014** | The audit's recorded fix was refuted by the audit's own recorded test point, and the feature was broken at three independent layers |
+| **L-015** | A review is a snapshot of the moment it READ, and the "12 blocks" I wrote were never counted |
+| **L-016** | Three measurements lied in one session, and every one of them read as green |
+| **L-017** | A migration returned a count of what it stamped and persisted none of it |
+| **L-018** | A "does not disclose" assertion written as a word blocklist measured the wrong property |
+| **L-019** | "It goes to the audit log" was true of the hook and false of the system: a seam is not a sink |
+| **L-020** | A drift guard was built against an artifact it had never produced, so its one hardcoded assumption rode along untested for three sprints |
+| **L-021** | The squatter was our own leftover server, and every L-011 tell agreed with it |
+| **L-022** | The CI workflow has never run, so its second matrix leg had been broken for two sprints |
+| **L-023** | Two of my own measurements of the same thing disagreed, and the disagreement was the finding |
+| **L-024** | I quoted L-014 in the docblock and then tested the manager instead of the gate |
+| **L-025** | The close-out suite and the fresh-context QA pass shared one playground, and each corrupted the other |
+| **L-026** | The test harness sent a header the product never sends, so a feature that could not work in any browser had a green suite |
+| **L-027** | I was hardening a page that had never served a request |
+| **L-028** | The session-start freshness check fed the counter that a later test measures, and the suite failed on code that was fine |
+
 ## L-001 — The embedded Keel copy silently rotted 20+ releases behind
 - Problem: The repo carried `.claude/skills/keel/` at v1.11.0 while the installed skill was at v3.3.0, and the `CLAUDE.md` lock block was stamped v1.11.0. Any session reading the embedded copy was running an obsolete protocol, and `AGENTS.md` did not exist at all — so a fork opened in Codex/Copilot/Cursor/Gemini was bound by nothing.
 - Where: Adoption step 2 / repo root
@@ -743,7 +782,19 @@
 - Working solution: wait for the concurrent pass to exit (watch for its server to disappear), then
   re-run. Sequential, not parallel, for anything that shares the playground.
 - Rule for next time: **the playground is a single-tenant resource — never run the close-out suite and
-  the fresh-context QA pass at the same time.** Parallelising the review subagents is free because they
+  the fresh-context QA pass at the same time.**
+- **SECOND OCCURRENCE, 2026-07-27, Sprint 6 close — and I caused it myself, in the same session that
+  recorded L-028 about this very resource.** I launched the fresh-context playground-QA agent in the
+  background, then ran the close-out suite while it was still walking `docs/playground.md`. Five
+  `PublicCommentTest` failures: three `429 != 201`, one empty string, one `0 > 0`. Identical shape to
+  the first occurrence — the QA pass was submitting comments, which consumes the persistent IP-keyed
+  bucket the test measures. `lsof` showed two live `php83` servers on 8117 and 8118 that were not
+  mine to be running alongside a suite. **No assertion was touched**; the tell was the same one this
+  lesson names: failures confined to one class, unrelated to the diff (which was documentation only),
+  on code that was green minutes earlier. What this occurrence adds: the danger is no longer only a
+  human running two things — **a background agent counts as the second tenant**, and launching one is
+  as much a commitment of the playground as starting a server by hand. The close-out sequence is
+  therefore ordered, not parallel: QA pass → wait for it to exit → reseed (L-028) → suite. Parallelising the review subagents is free because they
   only READ; parallelising anything that EXERCISES the product is not. And the general form, which is
   L-008's rule with a new cause: when results change without the code changing, enumerate what else
   changed in the environment before touching a single assertion — a green suite that was green an hour
