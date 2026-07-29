@@ -171,15 +171,63 @@
       `ks-chevron_right`, **theme toggle text-only with no glyph**.
     - Five nav labels differ from their `<h1>` on purpose (Overview, Assets, Theme, MCP, Agent
       payments) and three prototype counts were removed with reasons (Transactions, Logs, Options).
-  - **NEXT ACTION — stage 2, the shell**, now against `template-shell.md` **+ `navigation.md`:**
-    `templates/header.php` + `sidebar.php` + `footer.php`. **One question is the user's first**, and
-    it is not a design gap: `navigation.md` lists **Comments (14)** and **Health (22)** as nav items,
-    and **D-072 deferred both out of Phase 4** — so the nav would link to screens that do not exist.
-    Omit the two items until their Phase 5 slices, or render them and accept a 404 on the primary
-    navigation? Also recorded, not blocking: `navigation.md` §6's plugin example names a **Klytos
-    SEO** plugin **this install does not have** (the tree ships `hello-ai`, `klytos-forms`,
-    `klytos-importer`, `klytos-x402-coinbase`, `klytos-x402-stripe`) — a wrong example inside a
-    correct rule, so the rule is built and the example is not.
+  - **Stage 2 of 6 — THE SHELL — DONE 2026-07-29 (D-075, D-076).** Built against
+    `template-shell.md` (behaviour) **and** `SPEC/navigation.md` (contents), and **verified by
+    driving a running install**, not by reading source.
+    - **Files:** `templates/header.php` + `sidebar.php` + `footer.php` rewritten; **new**
+      `core/admin-nav.php` (the nav model), `assets/css/klytos-shell.css`,
+      `assets/js/klytos-shell.js`, `admin/api/theme.php`. `klytos-sidebar.css` left the chain —
+      it styled markup that no longer exists.
+    - **The two user decisions taken BEFORE the first line, not discovered inside it:**
+      **(1)** Comments (14) and Health (22) are **OMITTED** from the nav until their Phase 5
+      slices — rendering them would 404 the primary navigation of every screen. They stay in the
+      definition marked `'deferred' => true`, so restoring each is deleting one line.
+      **(2)** the shipped extras are triaged **"design wins, hooks preserved"**: all 30 hooks keep
+      firing (released plugins use them), the recovery banner and dev bar stay, and the JS search
+      filter / collapse-to-60px / hover tooltips are replaced by the design's own ⌘K and 56px rail.
+    - **Driven evidence (playground `KPORT=8137`, bind + owning PID + no `Server:` header checked,
+      reseeded `--reset`):** all **39** shell-using screens driven as owner with **0 PHP errors, 0
+      fatals, 0 product-log errors** (the 8 non-200s each checked: 4 are the screens' own
+      "no id → list" redirect present at HEAD, plus login 302, bootstrap 403, plugin-page 400) ·
+      the capability rule driven as **all four roles** — owner 8 groups/35 items, admin 8/30,
+      editor 6/12, viewer 4/4, **0 `disabled` markers at any role**, empty groups vanishing,
+      **Overview present for all four** (checked against the real matrix: `pages.view` is held by
+      every role, so §7 is not a widening) · 8 groups in the fixed order, `Blocks` under **Design**,
+      `Guides` absent, Settings last · landmark uniqueness 1/1/1 and **no `tabindex` above 0** ·
+      `page-editor.php` highlights **Pages** (§5 parentage) · the theme toggle flips
+      `<html data-theme>` **server-side from the cookie with no JS**, no-CSRF **403**, GET **405**,
+      invalid value ignored, open-redirect refused.
+    - **Three things the driving caught that reading would not have:** a fatal from
+      `klytos_kses()` called with one argument where it takes two (the suite found it on
+      `security.php`); **"1 post types"** — this i18n mechanism has no plural forms, so all 20
+      catalogues' count phrases were rewritten to `navigation.md`'s own number-neutral wording; and
+      **`keel-verify` check 16 was passing on ZERO references** while the shell plainly drew icons,
+      because it scanned only `installer/admin/` for a literal `#ks-*` and the ids live in the core
+      nav model as quoted strings. **That is L-030's failure mode reappearing inside the check
+      written to close it.** Fixed, now sees **36 ids all resolving**, and **re-proven to FAIL** on
+      a planted bad id before being trusted again.
+    - **i18n: 64 new keys × 20 catalogues**, pure additions (74 lines per file, 0 deletions),
+      parity **PASS** at 729 keys each.
+    - **Tree state:** suite **304 tests / 1526 assertions** (was 284/1393 — `AdminNavTest` adds 20),
+      `keel-verify` **17 checks: 13 pass, 4 warnings** (unchanged, all owned elsewhere),
+      `keel-doctor --check` green, lint baseline **188/485 — it went DOWN**, never up (D-025 records
+      191/488). `docs/api/INDEX.md` **986** rows, Summary and data rows both 986.
+    - **NOT verified, and it needs the user's word:** everything JavaScript-dependent — the command
+      palette's open/close and combobox keyboard behaviour, the drawer's focus trap, the rail's
+      Expand button, the offline status. **Playwright is absent** (`keel-doctor` marks it MISSING,
+      optional) and installing it is not a call the assistant makes unilaterally. The server-rendered
+      half is fully driven; the JS half is `⚠ unverified` until Playwright is installed.
+    - **One pre-existing defect recorded and deliberately NOT fixed here:** `ai-chat.php` prints
+      **two** `<h1>`s against `accessibility.md` §4.2. It belongs to the conversation template in
+      stage 6; folding the fix into a shell slice would hide it from the stage that owns it.
+      `$pageEmitsOwnH1` stops the shell adding a third.
+  - **NEXT ACTION — stage 3 of 6: the component layer** (`assets/css/klytos-components.css` —
+    button, badge, chip, card, table, field, switch, checkbox, radio, stat card, progress, code
+    block, empty/error state), then stages 4–6 (list screens → form screens → the specialised four:
+    editor, terminal, AI chat, preview). **Two things are the user's first:** whether to send
+    **DR-004** (the sidebar search form's JS-off destination is named in no file — the specified
+    half is built, the form carries no `action`), and whether to install **Playwright** so the
+    shell's JavaScript can actually be driven rather than left unverified.
 - **Phase 4 — the gate PASSED on 2026-07-29 (D-069) and the build is authorised.** The re-delivery
   was downloaded by the user, installed as a wholesale swap, diffed against the archived delivery,
   and re-audited with evidence in `docs/BUILD-SPEC.md` §1c. `screens/**` byte-identical; six token
@@ -220,7 +268,13 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **none.** DR-003 is **RESOLVED 2026-07-29 (D-074)** — the sprite went
+- Open Design Requests: **DR-004 — drafted, NOT sent (2026-07-29, D-076).** `template-shell.md` §1
+  says the sidebar's search field "also works as a plain search submit with JS off", and **no file
+  in the delivery names the screen that submit goes to**; this codebase has no admin-wide search
+  surface either. Choosing one is inventing product behaviour (Phase 4 rule 2), so it is registered
+  rather than guessed. It blocks **one control**: the specified half is built and verified, and the
+  form carries no `action`. Three answers are offered, one of which is simply withdrawing the
+  clause. **Sending it is the user's call.** DR-003 is **RESOLVED 2026-07-29 (D-074)** — the sprite went
   **67 → 87 `<symbol>`s** (the 19 missing nav glyphs + `ks-menu`, 0 removed, geometry identical) and
   the sidebar's contents are now normative in the new **`SPEC/navigation.md`** (eight groups, 34
   items, glyphs, targets, counts, plugin placement, capability rule, and §8's three shell controls).

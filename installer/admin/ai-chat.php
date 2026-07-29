@@ -77,6 +77,12 @@ if ($panel !== null) {
     klytos_require_permission($panelCapabilities[$panel], 'ai-chat.php?panel=' . $panel);
 }
 
+// This screen prints its own heading, so the shell must not add a second one
+// (accessibility.md 4.2: exactly one <h1> per screen, in main). It currently
+// prints TWO — a pre-existing defect this stage does not silently fix; the
+// conversation template owns it in stage 6.
+$pageEmitsOwnH1 = true;
+
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
@@ -95,11 +101,14 @@ require_once __DIR__ . '/templates/sidebar.php';
     ?>
 
 <style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
-    .admin-sidebar  { display: none !important; }
-    .admin-topbar   { display: none !important; }
-    .admin-content  { margin-left: 0 !important; }
-    .admin-main     { padding: 0 !important; }
-    .admin-layout   { display: block !important; }
+    /* Stage 2 (the shell) renamed these nodes; the intent is unchanged and
+       whether this screen keeps the shell chrome at all is decided in stage 6
+       against its own template, not here. */
+    .k-sidebar   { display: none !important; }
+    .k-toolbar   { display: none !important; }
+    .k-statusbar { display: none !important; }
+    .k-main      { padding: 0 !important; }
+    .k-shell     { display: block !important; }
 </style>
 
 <?php

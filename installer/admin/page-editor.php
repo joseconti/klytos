@@ -322,11 +322,14 @@ include __DIR__ . '/templates/sidebar.php';
 
 <!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
 <style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
-    .admin-sidebar  { display: none !important; }
-    .admin-topbar   { display: none !important; }
-    .admin-content  { margin-left: 0 !important; }
-    .admin-main     { padding: 0 !important; }
-    .admin-layout   { display: block !important; }
+    /* Stage 2 (the shell) renamed these nodes; the intent is unchanged and
+       whether this screen keeps the shell chrome at all is decided in stage 6
+       against its own template, not here. */
+    .k-sidebar   { display: none !important; }
+    .k-toolbar   { display: none !important; }
+    .k-statusbar { display: none !important; }
+    .k-main      { padding: 0 !important; }
+    .k-shell     { display: block !important; }
 </style>
 
         <?php if ( isset( $success ) ): ?>

@@ -63,7 +63,7 @@ require_once __DIR__ . '/templates/sidebar.php';
 <?php klytos_do_action('admin.system_options.before'); ?>
 
 <div class="content-header">
-    <h1><?php echo klytos_esc_html($pageTitle); ?></h1>
+    <?php // The <h1> is emitted by the shell from $pageTitle (stage 2). ?>
     <p class="text-muted mt-1">
         <?php echo __('options.description'); ?>
     </p>

@@ -337,6 +337,13 @@ class App
         // functions and returns data; it enforces nothing until
         // klytos_enforce_admin_gate() is called.
         require_once $this->corePath . '/admin-gate.php';
+        // The primary-navigation model (Phase 4 stage 2, SPEC/navigation.md).
+        // Loaded here for the same reason as the gate map above: the test suite
+        // and scripts/keel-verify reason about the nav without booting an admin
+        // request, and a plugin registering a nav item needs the capability →
+        // group table. The file defines functions and returns data; it renders
+        // nothing until the sidebar template asks it to.
+        require_once $this->corePath . '/admin-nav.php';
         require_once $this->corePath . '/timezone-cache.php';
         require_once $this->corePath . '/helpers-time.php';
         require_once $this->corePath . '/asset-usage-hooks.php';

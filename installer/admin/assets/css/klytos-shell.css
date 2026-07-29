@@ -1,0 +1,653 @@
+/*
+ * Klytos Admin — the shell.
+ *
+ * Phase 4 Step 4, stage 2 of 6. Implements `SPEC/screens/template-shell.md`
+ * (behaviour, states, responsive) and `SPEC/navigation.md` (contents) against
+ * the delivered token layer. Every value here traces to the handoff: geometry
+ * and colour come from the README's "The shell" section, states from
+ * template-shell.md §1, the two responsive modes from §2, and the landmark
+ * structure from SPEC/accessibility.md §4.1.
+ *
+ * This file styles the `.k-*` shell only. Components (button, badge, card,
+ * table, field…) are stage 3 and live in klytos-components.css.
+ *
+ * Loaded AFTER the delivered token files and after klytos-admin.css, which
+ * owns :focus-visible, the 24px hit target, reduced-motion and forced-colors.
+ * Nothing here redeclares those — the delivered enforcement layer is the one
+ * that must win.
+ *
+ * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
+ */
+
+/* ============================================================
+   Utilities the shell needs
+   ============================================================ */
+
+/* Visually hidden but available to assistive technology. Used for the sidebar
+   group captions at the 56px rail, and for the polite live region — both of
+   which must stay in the accessibility tree while leaving the drawing alone. */
+.k-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ============================================================
+   Skip links — the first two focusable nodes in <body>
+   (template-shell.md §1, accessibility.md §3.2 item 1)
+   ============================================================ */
+
+.k-skip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    padding: var(--esp-8) var(--esp-12);
+    background: var(--fondo-elevado);
+    color: var(--texto-primario);
+    font: var(--type-body);
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-control);
+    box-shadow: var(--sombra-popover);
+    transform: translateY(-150%);
+}
+
+/* Pinned top-left over the toolbar once focused. The standard focus ring comes
+   from klytos-admin.css; this only makes the link visible. */
+.k-skip:focus,
+.k-skip:focus-visible {
+    transform: translateY(0);
+}
+
+/* ============================================================
+   Shell frame
+   ============================================================ */
+
+.k-shell {
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    grid-template-rows: 50px 1fr auto;
+    grid-template-areas:
+        "sidebar toolbar"
+        "sidebar main"
+        "sidebar statusbar";
+    min-height: 100vh;
+    background: var(--fondo-ventana);
+    color: var(--texto-primario);
+}
+
+/* Screens that own the full viewport (the page editor and the AI chat) opt out
+   of the content padding without leaving the shell. This replaces the
+   `.admin-main { padding: 0 !important }` overrides those two pages carried
+   against the previous layout. */
+.k-shell--full-bleed .k-main {
+    padding: 0;
+    overflow: hidden;
+}
+
+/* ============================================================
+   Sidebar — 232px (README "The shell")
+   ============================================================ */
+
+.k-sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--glass-fallback-sidebar);
+    border-right: 1px solid var(--separador);
+}
+
+/* Brand row — the Klytos lockup at 16px plus the version in mono, tertiary,
+   right. Its link target is the overview (template-shell.md §3). */
+.k-brand {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--esp-8);
+    padding: var(--esp-16) var(--esp-12) var(--esp-12);
+    text-decoration: none;
+    color: var(--texto-primario);
+    border-radius: var(--radio-control);
+}
+
+.k-brand-name {
+    font: var(--type-card-heading);
+    font-size: 16px;
+}
+
+.k-brand-version {
+    font: var(--type-numeric);
+    color: var(--texto-sutil);
+}
+
+/* Search field — 30px, with the ⌘K pill absolutely positioned right. */
+.k-search {
+    position: relative;
+    padding: 0 var(--esp-12) var(--esp-12);
+}
+
+.k-search-input {
+    width: 100%;
+    height: 30px;
+    padding: 0 46px 0 var(--esp-8);
+    font: var(--type-body);
+    color: var(--texto-primario);
+    background: var(--fondo-ventana);
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-control);
+}
+
+.k-search-input::placeholder {
+    color: var(--texto-sutil);
+}
+
+.k-search-hint {
+    position: absolute;
+    top: 50%;
+    right: calc(var(--esp-12) + var(--esp-6));
+    transform: translateY(-50%);
+    padding: 1px var(--esp-4);
+    font: var(--type-numeric);
+    color: var(--texto-sutil);
+    background: var(--fondo-elevado);
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-control);
+    pointer-events: none;
+}
+
+/* ============================================================
+   Nav — groups, items, counts (navigation.md §1–§2)
+   ============================================================ */
+
+.k-nav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 var(--esp-8) var(--esp-12);
+}
+
+.k-nav-caption {
+    padding: var(--esp-12) var(--esp-4) var(--esp-4);
+    font: var(--type-eyebrow);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--texto-sutil);
+}
+
+.k-nav ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Nav item — 30px tall, radius 6, 9px gap, 18px icon (template-shell.md §1). */
+.k-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 30px;
+    padding: 0 var(--esp-8);
+    border-radius: 6px;
+    font: var(--type-nav-item);
+    color: var(--texto-secundario);
+    text-decoration: none;
+}
+
+.k-nav-item:hover {
+    background: var(--fila-hover);
+}
+
+/* Active — colour is NOT the only cue: the active item is also the only one
+   whose weight is 500 and the only one carrying aria-current. */
+.k-nav-item[aria-current="page"] {
+    background: var(--fila-seleccion);
+    color: var(--color-acento);
+    font: var(--type-nav-item-active);
+}
+
+.k-nav-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+}
+
+.k-nav-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* A zero count is absent, not "0" — enforced in PHP, never printed here. */
+.k-nav-count {
+    flex: none;
+    font: var(--type-numeric);
+    color: var(--texto-sutil);
+}
+
+/* ============================================================
+   Account row — 26px avatar, name + role, theme toggle, log out
+   ============================================================ */
+
+.k-account {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-8);
+    padding: var(--esp-12);
+    border-top: 1px solid var(--separador);
+}
+
+.k-avatar {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--fila-seleccion);
+    color: var(--color-acento);
+    font: var(--type-numeric);
+}
+
+.k-account-identity {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--texto-primario);
+}
+
+.k-account-name {
+    font: var(--type-nav-item);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.k-account-role {
+    font: var(--type-eyebrow);
+    text-transform: uppercase;
+    color: var(--texto-sutil);
+}
+
+/* The theme toggle is text-only and carries no glyph — navigation.md §8 states
+   that as the decision, not an omission: an icon-only light/dark toggle is a
+   known "which one am I in?" trap, and the account row has room for the words. */
+.k-theme-toggle,
+.k-logout {
+    padding: var(--esp-4) var(--esp-6);
+    font: var(--type-nav-item);
+    color: var(--texto-secundario);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radio-control);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.k-theme-toggle:hover,
+.k-logout:hover {
+    background: var(--fila-hover);
+    color: var(--texto-primario);
+}
+
+/* ============================================================
+   Toolbar — 50px, sticky, breadcrumb + up to two actions
+   ============================================================ */
+
+.k-toolbar {
+    grid-area: toolbar;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: var(--esp-12);
+    height: 50px;
+    padding: 0 var(--esp-16);
+    background: var(--glass-fallback-toolbar);
+    border-bottom: 1px solid var(--separador);
+}
+
+.k-breadcrumb {
+    flex: 1;
+    min-width: 0;
+}
+
+.k-breadcrumb ol {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: var(--esp-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow: hidden;
+}
+
+.k-breadcrumb li {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-6);
+    white-space: nowrap;
+}
+
+/* The › separators are CSS, not text (template-shell.md §1). */
+.k-breadcrumb li + li::before {
+    content: "\203A";
+    color: var(--texto-sutil);
+}
+
+.k-breadcrumb a {
+    font: var(--type-body);
+    color: var(--texto-secundario);
+    text-decoration: none;
+}
+
+.k-breadcrumb a:hover {
+    color: var(--texto-primario);
+    text-decoration: underline;
+}
+
+.k-breadcrumb [aria-current="page"] {
+    font: 600 13px/17px var(--font-ui);
+    color: var(--texto-primario);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.k-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+}
+
+/* Save state — between the breadcrumb and the actions, on editor screens. */
+.k-save-state {
+    font: var(--type-numeric);
+    color: var(--texto-sutil);
+}
+
+/* The drawer trigger is the first control in the toolbar below 900px only. */
+.k-drawer-trigger {
+    display: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    color: var(--texto-secundario);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radio-control);
+    cursor: pointer;
+}
+
+.k-drawer-trigger:hover {
+    background: var(--fila-hover);
+}
+
+/* ============================================================
+   Main
+   ============================================================ */
+
+.k-main {
+    grid-area: main;
+    min-width: 0;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* ============================================================
+   Copilot dock — after main in the DOM, in every mode
+   ============================================================ */
+
+.k-copilot[hidden] {
+    display: none;
+}
+
+/* ============================================================
+   Status bar — ~33px of mono facts
+   ============================================================ */
+
+.k-statusbar {
+    grid-area: statusbar;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-12);
+    min-height: 33px;
+    padding: 0 var(--esp-16);
+    font: var(--type-numeric);
+    color: var(--texto-sutil);
+    background: var(--glass-fallback-toolbar);
+    border-top: 1px solid var(--separador);
+}
+
+.k-statusbar-left,
+.k-statusbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    min-width: 0;
+}
+
+/* Degraded — one extra fact with a link. It never becomes a banner and never
+   grows to two lines (template-shell.md §1). */
+.k-statusbar-degraded {
+    color: var(--sobre-tinte-aviso);
+    white-space: nowrap;
+}
+
+/* Offline — the right side only; the rest of the shell is unchanged and the
+   admin never throws up a full-screen offline state. */
+.k-statusbar-offline {
+    color: var(--sobre-tinte-peligro);
+}
+
+/* ============================================================
+   Command palette (⌘K / Ctrl+K)
+   ============================================================ */
+
+.k-palette[hidden] {
+    display: none;
+}
+
+.k-palette {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    padding-top: 12vh;
+    background: rgb(0 0 0 / 45%);
+}
+
+.k-palette-window {
+    width: min(560px, calc(100vw - var(--esp-32)));
+    background: var(--fondo-elevado);
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-popover);
+    box-shadow: var(--sombra-ventana);
+    overflow: hidden;
+}
+
+.k-palette-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 var(--esp-16);
+    font: var(--type-body);
+    color: var(--texto-primario);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--separador);
+}
+
+.k-palette-list {
+    margin: 0;
+    padding: var(--esp-4);
+    max-height: 46vh;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.k-palette-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 32px;
+    padding: 0 var(--esp-8);
+    border-radius: 6px;
+    font: var(--type-body);
+    color: var(--texto-secundario);
+    cursor: pointer;
+}
+
+.k-palette-option[aria-selected="true"] {
+    background: var(--fila-seleccion);
+    color: var(--color-acento);
+}
+
+.k-palette-empty {
+    padding: var(--esp-16);
+    font: var(--type-body);
+    color: var(--texto-sutil);
+}
+
+/* ============================================================
+   Responsive — the 56px rail and the drawer are the ONLY two
+   shell modes. There is no third. (template-shell.md §2)
+   ============================================================ */
+
+/* 900–1199 — 56px icon rail. */
+@media (min-width: 900px) and (max-width: 1199px) {
+    .k-shell:not(.k-shell--nav-expanded) {
+        grid-template-columns: 56px 1fr;
+    }
+
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-label,
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-count,
+    .k-shell:not(.k-shell--nav-expanded) .k-brand-version,
+    .k-shell:not(.k-shell--nav-expanded) .k-account-identity,
+    .k-shell:not(.k-shell--nav-expanded) .k-search-hint {
+        display: none;
+    }
+
+    /* Group captions become 1px rules; the <h2> stays, visually hidden, so the
+       nav is still navigable by heading. */
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-caption {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-group + .k-nav-group {
+        border-top: 1px solid var(--separador);
+        margin-top: var(--esp-8);
+        padding-top: var(--esp-8);
+    }
+
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-item {
+        justify-content: center;
+        padding: 0;
+    }
+
+    .k-shell:not(.k-shell--nav-expanded) .k-account {
+        justify-content: center;
+    }
+
+    .k-rail-expand {
+        display: grid;
+    }
+}
+
+/* The rail's "Expand navigation" button exists only in the rail mode. It points
+   right because it widens the rail; there is no matching collapse button —
+   collapsing is the breakpoint's job (navigation.md §8, template-shell.md §2). */
+.k-rail-expand {
+    display: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin: var(--esp-8) auto;
+    color: var(--texto-secundario);
+    background: none;
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-control);
+    cursor: pointer;
+}
+
+/* < 900 — off-canvas drawer. */
+@media (max-width: 899px) {
+    .k-shell {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "toolbar"
+            "main"
+            "statusbar";
+    }
+
+    .k-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 210;
+        width: 280px;
+        height: 100vh;
+        transform: translateX(-100%);
+        box-shadow: var(--sombra-hoja);
+    }
+
+    .k-shell--drawer-open .k-sidebar {
+        transform: translateX(0);
+    }
+
+    .k-drawer-trigger {
+        display: grid;
+    }
+
+    .k-drawer-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 205;
+        background: rgb(0 0 0 / 45%);
+    }
+
+    .k-drawer-scrim[hidden] {
+        display: none;
+    }
+
+    /* The breadcrumb collapses to the current page only. */
+    .k-breadcrumb li:not(:last-child) {
+        display: none;
+    }
+
+    .k-breadcrumb li + li::before {
+        content: none;
+    }
+
+    .k-main {
+        padding: var(--esp-12);
+    }
+}
+
+/* The status bar is hidden below 640px; its facts move to the foot of Health. */
+@media (max-width: 639px) {
+    .k-statusbar {
+        display: none;
+    }
+}

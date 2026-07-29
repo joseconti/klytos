@@ -7,15 +7,15 @@
 ## Summary
 | Kind | Count |
 |------|-------|
-| Global helper functions | 146 |
+| Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 312 |
-| Filters | 123 |
+| Actions | 313 |
+| Filters | 129 |
 | MCP tools | 206 |
-| HTTP routes | 34 |
+| HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **970** |
+| **Total** | **986** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -28,9 +28,17 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_add_notice() | function | installer/core/helpers-global.php | — | Queue a one-shot flash message for the admin UI, surviving a redirect |
 | klytos_add_persistent_notice() | function | installer/core/helpers-global.php | — | Store an admin notice by ID that persists across page loads and sessions |
 | klytos_add_shortcode() | function | installer/core/helpers-global.php | — | Bind a shortcode tag to a render callback |
-| klytos_admin_url() | function | installer/core/helpers-global.php | — | Build an absolute URL into the admin panel from a relative path |
 | klytos_admin_gate_key() | function | installer/core/admin-gate.php | docs/reference/authorization.md | Resolve the running admin script to its gate-map key, or null when it is outside admin/ |
 | klytos_admin_gate_map() | function | installer/core/admin-gate.php | docs/reference/authorization.md | The capability required by every admin surface; an absent entry means denied |
+| klytos_admin_icon() | function | installer/admin/templates/sidebar.php | docs/reference/admin-navigation.md | Print one <use> from the delivered sprite, keeping every icon reference in a single checkable shape |
+| klytos_admin_nav_capability_group() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | Map a plugin's primary capability onto its nav group; anything unrecognised lands in System |
+| klytos_admin_nav_counts() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | Nav counts, non-zero values only; an unwired count returns nothing rather than a fabricated zero |
+| klytos_admin_nav_definition() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | The full nav item definition before capability filtering; deferred items are marked, not removed |
+| klytos_admin_nav_group_order() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | The eight nav group ids in the fixed order SPEC/navigation.md declares |
+| klytos_admin_nav_groups() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | The admin primary navigation ready to render: eight groups, capability-filtered server-side, counts applied |
+| klytos_admin_nav_plugin_items() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | Plugin-contributed nav items, placed by capability, sorted after core items and bounded at five per group |
+| klytos_admin_nav_sprite_ids() | function | installer/core/admin-nav.php | docs/reference/admin-navigation.md | Every symbol id in the delivered icon sprite, so a glyph is checked before it is printed (L-030) |
+| klytos_admin_url() | function | installer/core/helpers-global.php | — | Build an absolute URL into the admin panel from a relative path |
 | klytos_app() | function | installer/core/helpers-global.php | — | Return the App singleton that owns all core services |
 | klytos_apply_filters() | function | installer/core/helpers-global.php | — | Pass a value through every callback registered on a filter and return the result |
 | klytos_auth() | function | installer/core/helpers-global.php | — | Return the authentication manager used for login and permission checks |
@@ -123,7 +131,6 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_register_dashboard_widget() | function | installer/core/helpers-global.php | — | Add a widget to the admin dashboard with a position and capability gate |
 | klytos_register_option() | function | installer/core/helpers-global.php | — | Declare an option and its data-sensitivity classification for privacy tooling |
 | klytos_register_route() | function | installer/core/helpers-global.php | — | Map a URL pattern to a plugin callback that renders the response |
-| klytos_require_permission() | function | installer/core/helpers-global.php | docs/reference/authorization.md | Require a capability or refuse and stop; the enforcing counterpart to klytos_has_permission |
 | klytos_register_template_part() | function | installer/core/helpers-global.php | — | Hook a callback that supplies or rewrites the markup of a template part |
 | klytos_register_templates() | function | installer/core/helpers-global.php | — | Make a plugin's page templates available to the template resolver |
 | klytos_register_translations() | function | installer/core/helpers-global.php | — | Point the translation loader at a plugin's language files directory |
@@ -132,6 +139,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | klytos_remove_all_filters() | function | installer/core/helpers-global.php | — | Unbind every callback from a filter hook, including other plugins' |
 | klytos_remove_filter() | function | installer/core/helpers-global.php | — | Unbind one specific callback from a filter hook |
 | klytos_render_form() | function | installer/plugins/klytos-forms/klytos-forms.php | — | Render a Klytos Forms form to HTML by its ID |
+| klytos_require_permission() | function | installer/core/helpers-global.php | docs/reference/authorization.md | Require a capability or refuse and stop; the enforcing counterpart to klytos_has_permission |
 | klytos_safe_http() | function | installer/core/helpers-global.php | docs/reference/safe-http.md | Return the SafeHttp fetcher for URLs an untrusted party influenced |
 | klytos_sanitize_email() | function | installer/core/helpers-security.php | — | Clean an email address, yielding an empty string when it is invalid |
 | klytos_sanitize_filename() | function | installer/core/helpers-security.php | — | Strip directory parts and unsafe characters from a filename before writing it |
@@ -371,6 +379,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.templates.before | action | installer/admin/templates.php | — | Emitted at the top of the templates screen; no payload, echo extra HTML |
 | admin.theme.after | action | installer/admin/theme.php | — | Emitted at the tail of the theme customization screen; no payload, echo extra HTML |
 | admin.theme.before | action | installer/admin/theme.php | — | Emitted at the top of the theme customization screen; no payload, echo extra HTML |
+| admin.theme_changed | action | installer/admin/api/theme.php | docs/reference/admin-navigation.md | Fired after a person's admin colour scheme cookie is set; receives the new theme |
 | admin.topbar_after | action | installer/admin/templates/sidebar.php | — | Emitted right after the admin top bar markup; no payload, echo extra HTML |
 | admin.topbar_before | action | installer/admin/templates/sidebar.php | — | Emitted right before the admin top bar markup opens; no payload, echo extra HTML |
 | admin.translations.after | action | installer/admin/translations.php | — | Emitted at the tail of the translations screen; no payload, echo extra HTML |
@@ -393,6 +402,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | ai.chat.tool_executed | action | installer/core/ai/chat-engine.php | — | Emitted around an MCP tool invocation from chat; gets tool name, input and user ID |
 | ai.key.configured | action | installer/core/ai/ai-key-manager.php | — | Emitted after an API key is stored for a provider; receives the provider ID |
 | ai.key.removed | action | installer/core/ai/ai-key-manager.php | — | Emitted after a provider's stored API key is deleted; receives the provider ID |
+| ai.runtime_unsupported | action | installer/core/app.php | docs/reference/ai-runtime.md | Fires before AI chat is refused on a PHP older than the vendored stack requires; audit seam with no core listener, cannot reverse the decision |
 | asset.after_delete | action | installer/core/asset-manager.php | — | Emitted once the media file is gone; receives its path and the deleted asset record |
 | asset.after_edit | action | installer/core/asset-manager.php | — | Emitted after image edits are written; gets absolute path, relative path and operations |
 | asset.after_upload | action | installer/core/asset-manager.php | — | Emitted once an uploaded file is stored; receives the upload result array and filename |
@@ -404,7 +414,6 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | asset_category.after_delete | action | installer/core/asset-manager.php | — | Emitted once a media category is removed; receives the deleted category ID |
 | asset_category.before_create | action | installer/core/asset-manager.php | — | Emitted before a media category is stored; receives the proposed name and slug |
 | asset_category.before_delete | action | installer/core/asset-manager.php | — | Emitted before a media category is removed; receives the category ID |
-| ai.runtime_unsupported | action | installer/core/app.php | docs/reference/ai-runtime.md | Fires before AI chat is refused on a PHP older than the vendored stack requires; audit seam with no core listener, cannot reverse the decision |
 | auth.access_denied | action | installer/core/helpers-global.php | docs/reference/authorization.md | Fires immediately before a request is refused; audit hook, cannot reverse the decision |
 | auth.after_login | action | installer/core/auth.php | — | Emitted on successful sign-in (also after 2FA); receives the username and user ID |
 | auth.before_login | action | installer/core/auth.php | — | Emitted before credentials are validated; receives the submitted username |
@@ -601,6 +610,10 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.gate_map | filter | installer/core/admin-gate.php | docs/reference/authorization.md | Filters the admin gate map so plugins can gate their own admin files |
 | admin.logs_file_list | filter | installer/admin/logs.php | — | Filters the list of log files shown on the admin Logs page |
 | admin.logs_toolbar | filter | installer/admin/logs.php | — | Filters extra HTML injected into the Logs page toolbar |
+| admin.nav_active_item | filter | installer/admin/templates/sidebar.php | docs/reference/admin-navigation.md | Which nav item carries aria-current=page, so a child screen can highlight its parent |
+| admin.nav_counts | filter | installer/core/admin-nav.php | docs/reference/admin-navigation.md | The nav counts after the core sources have run; a value of 0 or less removes the count |
+| admin.nav_groups | filter | installer/core/admin-nav.php | docs/reference/admin-navigation.md | The finished primary navigation after capability filtering; the last word on the sidebar's contents |
+| admin.nav_plugin_items | filter | installer/core/admin-nav.php | docs/reference/admin-navigation.md | Plugin-contributed nav items before placement; the capability declared here also chooses the group |
 | admin.page_title | filter | installer/admin/templates/header.php | — | Filters the admin page title before the header template renders it |
 | admin.plugin_page_capability | filter | installer/admin/plugin-page.php | — | Filters the capability required to view a plugin admin page before the access check |
 | admin.plugins_columns | filter | installer/admin/plugins.php | — | Filters the column set of the admin Plugins list table |
@@ -611,8 +624,10 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.sidebar_items | filter | installer/admin/templates/sidebar.php | — | Filters the admin sidebar menu items so plugins can add, remove or modify entries |
 | admin.sidebar_section_label | filter | installer/admin/templates/sidebar.php | — | Filters the displayed label of an admin sidebar section |
 | admin.sidebar_section_order | filter | installer/admin/templates/sidebar.php | — | Filters the display order of admin sidebar sections |
+| admin.statusbar_degraded | filter | installer/admin/templates/footer.php | docs/reference/admin-navigation.md | One extra fact on the status bar's left side when a subsystem is unhealthy; never becomes a banner |
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |
+| admin.theme_choice | filter | installer/admin/api/theme.php | docs/reference/admin-navigation.md | The admin colour scheme about to be persisted for this person, after validation |
 | admin.topbar_actions | filter | installer/admin/templates/sidebar.php | — | Filters extra HTML appended to the admin top bar actions area |
 | admin.topbar_ai_button | filter | installer/admin/templates/sidebar.php | — | Filters the HTML of the AI assistant button in the admin top bar |
 | admin.topbar_center | filter | installer/admin/templates/sidebar.php | — | Filters extra HTML rendered in the center zone of the admin top bar |
@@ -957,6 +972,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | /admin/api/options-management.php | endpoint | installer/admin/api/options-management.php | — | Lists, deletes and migrates stored options, including whole-domain deletion |
 | /admin/api/plugins.php | endpoint | installer/admin/api/plugins.php | — | Activates, deactivates, deletes, uninstalls, installs from ZIP and restores plugins |
 | /admin/api/post-lock.php | endpoint | installer/admin/api/post-lock.php | — | Acquires, renews, releases, checks and takes over concurrent editing locks |
+| /admin/api/theme.php | endpoint | installer/admin/api/theme.php | docs/reference/admin-navigation.md | Sets the acting person's admin colour scheme cookie so the SERVER renders the right theme next request; POST + CSRF |
 | /admin/api/sidebar-order.php | endpoint | installer/admin/api/sidebar-order.php | — | Saves, reads and resets each user's custom sidebar menu order |
 | /admin/api/tasks.php | endpoint | installer/admin/api/tasks.php | — | Creates, updates and lists tasks from the review widget and admin panel |
 | /admin/api/terminal-autocomplete.php | endpoint | installer/admin/api/terminal-autocomplete.php | — | Returns command-name matches for Tab completion in the web terminal |

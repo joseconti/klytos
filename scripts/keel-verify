@@ -1110,24 +1110,46 @@ if ( $guides === null ) {
         }
 
         $referenced = [];
-        $iterator   = new RecursiveIteratorIterator(
+        $files      = [];
+
+        $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator( $repoRoot . '/installer/admin', FilesystemIterator::SKIP_DOTS )
         );
-
         foreach ( $iterator as $file ) {
             if ( ! $file->isFile() || ! in_array( $file->getExtension(), [ 'php', 'html', 'js', 'css' ], true ) ) {
                 continue;
             }
-
             // The sprite itself defines the ids; it does not reference them.
             if ( str_contains( $file->getPathname(), '/assets/icons/' ) ) {
                 continue;
             }
+            $files[] = $file->getPathname();
+        }
 
-            preg_match_all( '/#(ks-[A-Za-z0-9_-]+)/', (string) file_get_contents( $file->getPathname() ), $uses );
+        // The primary-navigation model names 30+ glyphs and lives in core/, not
+        // admin/. Scanning only admin/ made this check pass on ZERO references
+        // while the sidebar drew a full set of icons — the check measuring
+        // nothing and reporting green, which is the very failure L-030 records.
+        // Found 2026-07-29 by reading the check's own "0 distinct id(s)" line
+        // against a shell that plainly had icons in it.
+        $files[] = $repoRoot . '/installer/core/admin-nav.php';
 
-            foreach ( $uses[1] as $id ) {
-                $referenced[ $id ][] = str_replace( $repoRoot . '/', '', $file->getPathname() );
+        foreach ( $files as $path ) {
+            if ( ! is_file( $path ) ) {
+                continue;
+            }
+
+            $source = (string) file_get_contents( $path );
+
+            // Two shapes, because the id reaches the browser two ways: written
+            // literally into markup (`<use href="…#ks-name">`), or carried as a
+            // PHP/JS string that a helper interpolates into that same markup.
+            // Only matching the first would miss every icon drawn from data.
+            preg_match_all( '/#(ks-[A-Za-z0-9_-]+)/', $source, $hashUses );
+            preg_match_all( '/[\'"](ks-[A-Za-z0-9_-]+)[\'"]/', $source, $quotedUses );
+
+            foreach ( array_merge( $hashUses[1], $quotedUses[1] ) as $id ) {
+                $referenced[ $id ][] = str_replace( $repoRoot . '/', '', $path );
             }
         }
 

@@ -185,6 +185,11 @@ function klytos_admin_gate_map(): array
         // ── API: per-user UI state ────────────────────────────────
         'api/notices.php'      => 'ui.preferences',
         'api/sidebar-order.php' => 'ui.preferences',
+        // The shell's theme toggle. A person's own colour scheme is per-user UI
+        // state exactly like the two above, and ui.preferences is the
+        // self-service capability every role holds — so choosing your own theme
+        // needs no privilege, but it is still a gated, CSRF-checked POST.
+        'api/theme.php'        => 'ui.preferences',
 
         // ── API: self-guarding ────────────────────────────────────
         // NULL because this endpoint serves users who are mid-2FA:

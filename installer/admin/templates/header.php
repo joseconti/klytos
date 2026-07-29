@@ -1,8 +1,18 @@
 <?php
 
 /**
- * Klytos Admin — Header Template
- * Shared header for all admin pages.
+ * Klytos Admin — Header Template (the shell, part 1 of 3).
+ *
+ * Phase 4 Step 4, stage 2 of 6. Implements the head, the skip links and the
+ * opening of the shell frame per `SPEC/screens/template-shell.md` §3 and
+ * `SPEC/accessibility.md` §4.1.
+ *
+ * The page supplies, before including this file:
+ *   $pageTitle      string  the screen's H1 and its last breadcrumb crumb
+ *   $breadcrumb     array   optional middle crumbs: [['label'=>…, 'url'=>…], …]
+ *   $pageEmitsOwnH1 bool    true when the page prints its own <h1> in main
+ *   $shellFullBleed bool    true when the screen owns the viewport (editor, chat)
+ *   $customCsp      string  optional replacement Content-Security-Policy
  *
  * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
@@ -30,9 +40,26 @@ $basePath    = Helpers::getBasePath();
 $adminPath   = $basePath . 'admin/';
 $pageTitle   = $pageTitle ?? __( 'dashboard.title' );
 $pageTitle   = klytos_apply_filters('admin.page_title', $pageTitle);
-$adminTheme  = $app->getSiteConfig()->getValue('admin_theme', 'dark');
-$adminTheme  = klytos_apply_filters('admin.theme', $adminTheme);
-$version   = $app->getVersion();
+$version     = $app->getVersion();
+
+/*
+ * Theme resolution — SERVER-SIDE, so there is never a flash of the wrong theme
+ * (template-shell.md §1, "Theme toggle"). The per-person cookie wins over the
+ * install-wide default because the toggle is in the person's own account row,
+ * not in Settings. An unrecognised cookie value is ignored rather than trusted.
+ */
+$adminTheme = $app->getSiteConfig()->getValue('admin_theme', 'dark');
+$cookieTheme = $_COOKIE['klytos_admin_theme'] ?? '';
+if ( in_array( $cookieTheme, [ 'light', 'dark' ], true ) ) {
+    $adminTheme = $cookieTheme;
+}
+$adminTheme = klytos_apply_filters('admin.theme', $adminTheme);
+
+$GLOBALS['klytos_admin_theme']    = $adminTheme;
+$GLOBALS['klytos_admin_page']     = $GLOBALS['klytos_admin_page'] ?? basename( $_SERVER['SCRIPT_NAME'] ?? '', '.php' );
+$GLOBALS['klytos_page_title']     = $pageTitle;
+$GLOBALS['klytos_breadcrumb']     = $breadcrumb ?? [];
+$GLOBALS['klytos_page_owns_h1']   = ! empty( $pageEmitsOwnH1 );
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $app->getI18n()->getLocale(); ?>" data-theme="<?php echo klytos_esc_attr($adminTheme); ?>">
@@ -78,7 +105,16 @@ $version   = $app->getVersion();
     }
     ?>
 <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-components.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
-    <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-sidebar.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
+    <?php
+    /*
+     * The shell's own stylesheet (stage 2). It loads AFTER klytos-admin.css so
+     * the delivered enforcement layer (:focus-visible, .k-hit-24, reduced
+     * motion, forced colors) keeps winning, and it replaces `klytos-sidebar.css`
+     * — that file styled the previous `.admin-sidebar` / `.admin-topbar` markup,
+     * which this stage no longer emits.
+     */
+    ?>
+    <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-shell.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
     <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-utilities.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
     <?php
     // Filter: plugins can add stylesheet URLs to this array.
@@ -90,4 +126,13 @@ $version   = $app->getVersion();
 <?php klytos_do_action('admin.head', $cspNonce); ?>
 </head>
 <body>
-<div class="admin-layout">
+<?php
+/*
+ * Skip links — the first focusable nodes in <body> (accessibility.md §3.2).
+ * "Skip to navigation" is only emitted where content precedes navigation in the
+ * DOM; in this shell the sidebar comes first, so the second link would point
+ * backwards and is deliberately absent (template-shell.md §1).
+ */
+?>
+<a class="k-skip" href="#main"><?php echo klytos_esc_html( __( 'shell.skip_to_content' ) ); ?></a>
+<div class="k-shell<?php echo ! empty( $shellFullBleed ) ? ' k-shell--full-bleed' : ''; ?>" id="k-shell" data-theme="<?php echo klytos_esc_attr($adminTheme); ?>">

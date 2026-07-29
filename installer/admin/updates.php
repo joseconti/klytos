@@ -90,7 +90,6 @@ require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<div class="admin-main">
 
 <?php if ( $success ): ?>
     <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
