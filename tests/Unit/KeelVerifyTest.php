@@ -68,6 +68,22 @@ final class KeelVerifyTest extends TestCase
         'every registered MCP tool has a capability-map entry',
         'version touchpoints in sync',
         'runtime assets survive the release archive',
+        // Added 2026-07-28 with the Keel v3.5.0 → v5.0.0 reconciliation (D-067).
+        // This test failing on the count is the guard doing its job, not a
+        // nuisance: six checks appeared and something had to notice. It is
+        // updated deliberately, which is the only way the count may ever move.
+        'code map: every [E] path exists on disk',
+        'internal documentation links resolve',
+        'README.md link backlog',
+        'every cited command exists',
+        'conformance sweep has no unexplained gap',
+        'first-party lint/analysis suppressions',
+        // Added 2026-07-29 with DR-003's resolution (D-074, L-030). A broken
+        // cross-document `<use href="…#ks-name">` renders NOTHING — no console
+        // error, no failed request — so it is the one icon defect that cannot be
+        // noticed by using the admin. Registered here deliberately, per the
+        // docblock above: the count may only move on purpose.
+        'every #ks-* the admin references resolves to a sprite <symbol>',
     ];
 
     /**
@@ -179,6 +195,20 @@ final class KeelVerifyTest extends TestCase
             $output,
             'installer/core/guides/ is no longer stripped from the release archive. If NEW-27 '
                 . 'was genuinely fixed (Phase 7 / H-02 owns it), update this test deliberately.'
+        );
+
+        // Added 2026-07-28 (D-067). Baseline-locked exactly like the lint
+        // baseline (D-025): the ten broken README links predate the check and
+        // the D-017 editorial pass owns them, so they WARN rather than fail —
+        // but a NEW broken link fails, so the number can only go down. This
+        // assertion exists so that "the backlog stopped being reported" cannot
+        // pass for "the backlog was fixed".
+        $this->assertStringContainsString(
+            'WARN  README.md link backlog',
+            $output,
+            'The README link backlog stopped being reported. If D-017\'s editorial pass '
+                . 'genuinely fixed the ten dead links, remove them from $knownBroken in '
+                . 'scripts/keel-verify and update this test deliberately.'
         );
     }
 }

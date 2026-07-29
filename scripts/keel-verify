@@ -819,6 +819,345 @@ if ( $guides === null ) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Checks 11–15 — Keel v4.0.0 + v5.0.0.
+//
+// The rule behind all five: documentation and reality drift while both keep
+// looking healthy, and prose asks for discipline once per reader while a check
+// enforces itself forever. Each of these was a defect found by hand in this
+// project at least once; each is now mechanical.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Check 11 — every `[E]` row of the code map actually exists on disk.
+ *
+ * The code map is a TARGET tree, not an inventory. A tree diagram and a
+ * directory listing look identical on the page, which is exactly how a path
+ * that was never created gets read as one that exists. `[A]` and `[G]` rows are
+ * NOT checked: they are declared absent, and treating them as present is the
+ * trap this marker was introduced to close.
+ */
+{
+    $problems = [];
+    $planPath = $repoRoot . '/docs/03-technical-plan.md';
+
+    if ( is_readable( $planPath ) ) {
+        $plan = (string) file_get_contents( $planPath );
+
+        // Rows look like: | `path`, `path2` | `[E]` | purpose |
+        if ( preg_match_all( '/^\|\s*(.+?)\s*\|\s*`\[E\]`\s*\|/m', $plan, $matches ) ) {
+            foreach ( $matches[1] as $cell ) {
+                if ( preg_match_all( '/`([^`]+)`/', $cell, $paths ) === 0 ) {
+                    continue;
+                }
+
+                foreach ( $paths[1] as $path ) {
+                    // Glob rows (installer/core/*.php) are checked as their directory.
+                    $probe = str_contains( $path, '*' ) ? dirname( $path ) : $path;
+
+                    if ( ! file_exists( $repoRoot . '/' . rtrim( $probe, '/' ) ) ) {
+                        $problems[] = sprintf(
+                            'code map marks `%s` as [E] (exists on disk) and it does not exist.',
+                            $path
+                        );
+                    }
+                }
+            }
+        }
+    } else {
+        $problems[] = 'docs/03-technical-plan.md is not readable — the code map cannot be verified.';
+    }
+
+    keel_report( 'code map: every [E] path exists on disk', $problems );
+}
+
+/**
+ * Check 12 — every internal Markdown link resolves.
+ *
+ * A broken link in the repository's own front door is the cheapest possible
+ * defect to find and one nobody finds by reading, because a link only fails
+ * when someone clicks it. Found by hand on 2026-07-28: ten dead links in
+ * README.md alone.
+ */
+{
+    $problems = [];
+    $targets  = [ 'README.md', 'CLAUDE.md', 'AGENTS.md' ];
+
+    $docs = glob( $repoRoot . '/docs/*.md' ) ?: [];
+    foreach ( $docs as $doc ) {
+        $targets[] = 'docs/' . basename( $doc );
+    }
+
+    foreach ( $targets as $relative ) {
+        $full = $repoRoot . '/' . $relative;
+
+        if ( ! is_readable( $full ) ) {
+            continue;
+        }
+
+        $body = (string) file_get_contents( $full );
+
+        if ( preg_match_all( '/\]\(([^)\s#]+\.md)(?:#[^)]*)?\)/', $body, $links ) === 0 ) {
+            continue;
+        }
+
+        foreach ( array_unique( $links[1] ) as $link ) {
+            if ( str_starts_with( $link, 'http' ) ) {
+                continue;
+            }
+
+            $resolved = $repoRoot . '/' . ltrim( dirname( $relative ) === '.' ? $link : dirname( $relative ) . '/' . $link, '/' );
+
+            if ( ! file_exists( $resolved ) && ! file_exists( $repoRoot . '/' . ltrim( $link, '/' ) ) ) {
+                $problems[] = sprintf( '%s links to %s, which does not exist.', $relative, $link );
+            }
+        }
+    }
+
+    // Baseline-locked, exactly like the lint baseline (D-025), and for the same
+    // reason: these ten predate the check, they are all in README.md, and the
+    // editorial pass that owns them is already recorded (D-017 — the same pass
+    // that owns the stale per-module tool table). Locking them is NOT the gate
+    // being loosened to get green: a NEW broken link FAILS, so the number can
+    // only go down. Unlocking happens when D-017's pass runs.
+    $knownBroken = [
+        'README.md -> docs/KLYTOS-ARCHITECTURE-V2.md',
+        'README.md -> docs/KLYTOS-HOOKS-API.md',
+        'README.md -> docs/KLYTOS-TEMPLATE-SYSTEM.md',
+        'README.md -> docs/PLUGINS-ARCHITECTURE.md',
+        'README.md -> docs/PLUGINS-ADMIN-UI.md',
+        'README.md -> docs/TEMPLATES-ARCHITECTURE.md',
+        'README.md -> docs/TERMINAL-ARCHITECTURE.md',
+        'README.md -> docs/DEVELOPER-MODE.md',
+        'README.md -> docs/consent-manager-spec.md',
+        'README.md -> docs/KLYTOS-X402.md',
+    ];
+
+    $newProblems = [];
+    $baselined   = [];
+
+    foreach ( $problems as $problem ) {
+        // Problems are phrased "<file> links to <target>, which does not exist."
+        if ( preg_match( '/^(\S+) links to (\S+),/', $problem, $m ) === 1
+            && in_array( $m[1] . ' -> ' . $m[2], $knownBroken, true )
+        ) {
+            $baselined[] = $problem;
+            continue;
+        }
+
+        $newProblems[] = $problem;
+    }
+
+    keel_report( 'internal documentation links resolve (no NEW broken link)', $newProblems );
+
+    keel_warn(
+        sprintf( 'README.md link backlog (%d known broken, baseline-locked)', count( $baselined ) ),
+        $baselined === [] ? [] : array_merge(
+            $baselined,
+            [ 'These ten are the repository front door pointing at documents that do not exist, in a '
+                . 'public repo. Owned by the D-017 README editorial pass, with the stale tool table. '
+                . 'The baseline may only shrink.' ]
+        )
+    );
+}
+
+/**
+ * Check 13 — every command cited in the docs exists as a real file.
+ *
+ * Trap 1 in references/anti-patterns.md: the declared tool that never runs. A
+ * command named in a document is a promise to the reader, and a promise to a
+ * reader is exactly the kind of thing that rots silently.
+ */
+{
+    $problems = [];
+    $cited    = [
+        'scripts/keel-verify',
+        'scripts/keel-doctor',
+        'scripts/dev/seed-playground.php',
+        'scripts/dev/router.php',
+        'scripts/dev/upgrade-test.sh',
+        'phpcs.xml',
+        '.github/workflows/ci.yml',
+    ];
+
+    foreach ( $cited as $path ) {
+        if ( ! file_exists( $repoRoot . '/' . $path ) ) {
+            $problems[] = sprintf( '%s is cited in the docs and does not exist.', $path );
+        }
+    }
+
+    keel_report( 'every cited command exists', $problems );
+}
+
+/**
+ * Check 14 — the conformance sweep has no unexplained gap.
+ *
+ * Keel v5.0.0, "Applying Keel completely": a project may not be reported as
+ * reconciled or released with a requirement that is neither applied, nor
+ * declined on the record, nor excluded by a stated condition. This is a WARN
+ * rather than a FAIL while Phase 6, 7 and 8 rows are legitimately ahead of the
+ * project's position — a fact the file itself states per row.
+ */
+{
+    $notes    = [];
+    $sweep    = $repoRoot . '/docs/keel-conformance.md';
+
+    if ( ! is_readable( $sweep ) ) {
+        $notes[] = 'docs/keel-conformance.md does not exist — the sweep has never been run.';
+    } else {
+        $body    = (string) file_get_contents( $sweep );
+        $missing = preg_match_all( '/\*\*missing\*\*/', $body );
+
+        if ( $missing > 0 ) {
+            $notes[] = sprintf(
+                '%d requirement(s) are still marked **missing** in docs/keel-conformance.md.',
+                $missing
+            );
+            $notes[] = 'Each must become present, declined with its decision entry, or n/a with its '
+                . 'condition. Rows belonging to a phase this project has not reached yet are '
+                . 'legitimately ahead — which is why this warns rather than fails.';
+        }
+    }
+
+    keel_warn( 'conformance sweep has no unexplained gap', $notes );
+}
+
+/**
+ * Check 15 — report the suppression count in FIRST-PARTY code.
+ *
+ * Never a failure: suppressions are legitimate. But the count may only fall
+ * deliberately, and it cannot fall deliberately if nobody knows what it is.
+ *
+ * Measured for the first time on 2026-07-28, and the first measurement was
+ * WRONG in the informative direction: a naive grep over `installer/` returned
+ * 119 and was read as this project's debt. All 119 are in
+ * `installer/vendor-ai/` — third-party vendored code Klytos does not author and
+ * may not edit. **Klytos's own first-party count is 0.** The two measurements
+ * disagreeing is what surfaced it (L-023), which is why the exclusion below is
+ * load-bearing rather than tidy: counting vendored suppressions would set a
+ * baseline of 119 that no Klytos change could ever move, training everyone to
+ * ignore the number.
+ *
+ * Baseline: 0. It may only grow deliberately.
+ */
+{
+    $count    = 0;
+    $patterns = [ 'phpcs:ignore', 'phpcs:disable', '@phpstan-ignore', 'codingStandardsIgnore' ];
+
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator( $repoRoot . '/installer', FilesystemIterator::SKIP_DOTS )
+    );
+
+    foreach ( $iterator as $file ) {
+        if ( ! $file->isFile() || $file->getExtension() !== 'php' ) {
+            continue;
+        }
+
+        if ( str_contains( $file->getPathname(), '/vendor-ai/' ) ) {
+            continue;
+        }
+
+        $body = (string) file_get_contents( $file->getPathname() );
+
+        foreach ( $patterns as $pattern ) {
+            $count += substr_count( $body, $pattern );
+        }
+    }
+
+    keel_warn(
+        sprintf( 'first-party lint/analysis suppressions (installer/, excluding vendor-ai): %d', $count ),
+        $count > 0
+            ? [ sprintf( 'the recorded baseline is 0; this run counts %d. A suppression is legitimate, '
+                . 'but it is added deliberately, with a written reason, or not at all.', $count ) ]
+            : []
+    );
+}
+
+/*
+ * Check 16 — every `#ks-*` the admin references resolves to a real `<symbol>`.
+ *
+ * Added 2026-07-29 as part of DR-003's resolution (D-074, L-030), and the
+ * timing is the point: it is added BEFORE the first `<use>` is written, not
+ * after someone screenshots an empty box.
+ *
+ * A broken cross-document `<use href="…#ks-name">` is not an error. The browser
+ * renders NOTHING — no console message, no failed request, no visual cue beyond
+ * a gap where an icon should be. It is the quietest possible defect, and the
+ * Phase 4 gate could not see it: the gate proved the sprite existed, was
+ * described by `SPEC/assets-index.md` and was byte-identical to the delivery —
+ * all true, and none of them the question that mattered, which is whether the
+ * glyph a screen DRAWS is one of the symbols the sprite CONTAINS. That gap cost
+ * a Design Request (19 of the sidebar's 35 nav glyphs had no symbol) and it is
+ * closed here mechanically instead of by remembering to look.
+ *
+ * On a tree with no `<use>` yet this PASSES on zero references. That is not a
+ * weakness of the check; it is the check waiting correctly. The first typo'd or
+ * hopeful id fails it.
+ *
+ * FAIL, not WARN: nobody owns this elsewhere, and the fix is always local — add
+ * the symbol to the sprite in the delivered geometry, or correct the id.
+ */
+{
+    $problems = [];
+    $sprite   = $repoRoot . '/installer/admin/assets/icons/klytos-ui-icons.svg';
+
+    if ( ! is_file( $sprite ) ) {
+        $problems[] = 'the icon sprite is missing at installer/admin/assets/icons/klytos-ui-icons.svg';
+    } else {
+        $known = [];
+        preg_match_all( '/<symbol[^>]+id="(ks-[A-Za-z0-9_-]+)"/', (string) file_get_contents( $sprite ), $ids );
+        foreach ( $ids[1] as $id ) {
+            $known[ $id ] = true;
+        }
+
+        $referenced = [];
+        $iterator   = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator( $repoRoot . '/installer/admin', FilesystemIterator::SKIP_DOTS )
+        );
+
+        foreach ( $iterator as $file ) {
+            if ( ! $file->isFile() || ! in_array( $file->getExtension(), [ 'php', 'html', 'js', 'css' ], true ) ) {
+                continue;
+            }
+
+            // The sprite itself defines the ids; it does not reference them.
+            if ( str_contains( $file->getPathname(), '/assets/icons/' ) ) {
+                continue;
+            }
+
+            preg_match_all( '/#(ks-[A-Za-z0-9_-]+)/', (string) file_get_contents( $file->getPathname() ), $uses );
+
+            foreach ( $uses[1] as $id ) {
+                $referenced[ $id ][] = str_replace( $repoRoot . '/', '', $file->getPathname() );
+            }
+        }
+
+        foreach ( $referenced as $id => $files ) {
+            if ( isset( $known[ $id ] ) ) {
+                continue;
+            }
+
+            $problems[] = sprintf(
+                '%s is referenced in %s but no <symbol id="%s"> exists in the sprite — '
+                    . 'this renders nothing, silently, with no console error',
+                $id,
+                implode( ', ', array_unique( $files ) ),
+                $id
+            );
+        }
+
+        if ( $problems === [] ) {
+            printf(
+                "  ....  icon sprite: %d symbol(s), %d distinct id(s) referenced, all resolving\n",
+                count( $known ),
+                count( $referenced )
+            );
+        }
+    }
+
+    keel_report( 'every #ks-* the admin references resolves to a sprite <symbol>', $problems );
+}
+
+// ─────────────────────────────────────────────────────────────
 
 echo "\n";
 
