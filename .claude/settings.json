@@ -7,7 +7,14 @@
     "cli.php build (NEW-04 — both are destructive to a checkout), and git push",
     "(the user has instructed that nothing is pushed until the project is stable).",
     "Personal, machine-local overrides belong in .claude/settings.local.json,",
-    "which is gitignored."
+    "which is gitignored.",
+    "",
+    "Extended 2026-07-28 (Keel v5.0.0, D-067) with the driver and doctor commands.",
+    "This is not housekeeping: a driver command missing from the allow-list is how",
+    "the whole 'the assistant drives the tests' contract quietly reverts to asking",
+    "the user to click through screens. keel-doctor --fix is DELIBERATELY absent —",
+    "it installs software, and that needs the user's explicit OK on the printed",
+    "plan, never a standing permission."
   ],
   "permissions": {
     "allow": [
@@ -18,6 +25,10 @@
       "Bash(vendor/bin/phpcs --standard=phpcs.xml:*)",
       "Bash(vendor/bin/phpcbf --standard=phpcs.xml:*)",
       "Bash(php scripts/keel-verify)",
+      "Bash(./scripts/keel-doctor)",
+      "Bash(./scripts/keel-doctor --check)",
+      "Bash(./scripts/keel-doctor --plan)",
+      "Bash(./scripts/keel-doctor --json)",
       "Bash(php scripts/dev/seed-playground.php:*)",
       "Bash(XDEBUG_MODE=off php scripts/dev/seed-playground.php:*)",
       "Bash(bash scripts/dev/upgrade-test.sh)",
@@ -27,6 +38,10 @@
       "Bash(nc -z 127.0.0.1:*)",
       "Bash(curl -D - http://127.0.0.1:*)",
       "Bash(curl -s -o /dev/null http://127.0.0.1:*)",
+      "Bash(curl -s -D - http://127.0.0.1:*)",
+      "Bash(lsof -nP -iTCP:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(npx playwright show-report:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",

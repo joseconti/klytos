@@ -2514,3 +2514,36 @@ verified test point with a recorded files-updated count.
 Triage every finding above with the user into **fix now** / **fix when touched** / **accepted**,
 record the buckets in the summary table, mirror them in `docs/PROGRESS.md`, and plan the fix-now
 set as Phase 5 Sprint 1.
+
+---
+
+## T-05 — Testability: could the assistant have driven the tests? (added 2026-07-28, Keel v5.0.0)
+
+- **Where:** the whole product surface, measured against `references/test-automation.md`.
+- **What:** the adoption audit recorded that the project had **no tests and no playground** (T-01,
+  T-02) and that both were built in Sprint 1. It never asked the question v5.0.0 makes central:
+  **when verification happens, who performs it?** The honest answer for sprints 1–6 is *mixed* —
+  284 automated tests plus a fresh-context playground pass, and alongside them a recurring pattern
+  of handing the user a numbered list of screens to visit and asking what appeared.
+- **Why it is a finding and not a preference:** a person walking a flow is slow, unrepeatable, leaves
+  no artifact, cannot be re-run on the next commit, and silently skips the empty, invalid and
+  permission-denied cases — which is exactly where this project's bugs have actually been found
+  (L-007, L-009, L-013, L-014). Every hour spent that way is subtracted from the only work that
+  genuinely needs the user: deciding what to build.
+- **Measured state on 2026-07-28:** the assistant **can** drive everything this project has. PHP
+  8.3.12 present, suite runs from a non-interactive session (284 tests / 1385 assertions OK), the
+  playground is `php -S` and takes no display, and every surface is web, HTTP or CLI — so **no test
+  run can ever take the user's screen**. What is missing is the browser tier (`tests/E2E/` is `[A]`,
+  Playwright and axe not installed), not the capability.
+- **Genuinely not drivable here**, exhaustively: the screen-reader pass (`ASSISTIVE-TECH`), a live
+  AI-provider call (`CREDENTIAL`, provider leg only), a real x402 settlement (`CREDENTIAL` +
+  `PRODUCTION-RISK`, settlement leg only), a product judgment over captured evidence (`JUDGMENT`),
+  and an upgrade from a not-yet-published release (`EXTERNAL-APPROVAL`). Nothing else.
+- **Remediation shape:** stand up `tests/E2E/` with Playwright + `@axe-core/playwright`; from the
+  next slice every user-visible `AC-nn` gets a driven test rather than an instruction; sprint closes
+  hand back verified evidence plus the short tagged list of what only the user can do.
+- **Severity:** MEDIUM — nothing shipped is wrong because of it; the cost is paid every sprint, by
+  the user, in time.
+- **Review trigger:** the admin redesign build (Phase 4 Step 4). That work renders 41 screens, which
+  is simultaneously the largest testing burden this project will ever have and the cheapest possible
+  moment to make it driven — the same argument D-065 made about accessibility, on a different axis.

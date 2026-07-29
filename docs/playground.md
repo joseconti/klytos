@@ -3,6 +3,28 @@
 > Disposable local verification environment. Keel Phase 5 requires that every runnable project can be
 > exercised for real, not only through automated tests. Every command below was executed and its
 > result recorded in `docs/05-test-points.md` (slice 0).
+
+## Step 0 — before anything else, in every session (Keel v5.0.0)
+
+```sh
+export PATH="/opt/local/bin:$HOME/.composer/vendor/bin:$PATH"   # see below — this is not optional
+./scripts/keel-doctor --check
+```
+
+**Why the PATH line comes first.** A non-interactive shell here starts with
+`PATH=/usr/bin:/bin:/usr/sbin:/sbin` and does **not** source the user's profile, so PHP, Composer and
+Node are all invisible to a bare `command -v`. A session that skips this concludes the machine has no
+PHP — which is wrong, and which would classify the session as unable to run anything and push every
+test back onto the user. `keel-doctor` widens PATH itself for exactly this reason; the export is for
+the commands you run by hand afterwards.
+
+**Why the doctor comes before the playground.** A green suite on an environment that could not
+actually run it is worse than no result at all. `--check` never installs anything and never needs
+sudo; `--plan` prints the literal commands it *would* run without running them; `--fix` runs them
+only after you say yes to the printed list.
+
+This applies to **maintenance sessions too**, not only development ones — a hotfix verified on a
+half-configured machine is the same defect as a feature verified that way.
 >
 > **last verified: 2026-07-27 (Sprint 6 slice 3)** — the Start section was run verbatim on
 > `KPORT=8115`: seed (`--reset`) clean, `php -S` bound cleanly with the log checked for
@@ -799,12 +821,21 @@ the exit code (D-045: a check that reddens the build for something you are not a
 check people learn to ignore). The current expected output is:
 
 ```
-OK — 10 check(s) run: 8 passed, 2 warning(s) carrying 9 note(s) (owned by another phase).
+OK — 17 check(s) run: 13 passed, 4 warning(s) carrying 22 note(s) (owned by another phase).
 ```
 
-Both WARNs belong to Phase 7: **H-01** (the version string disagrees across five touchpoints) and
-**NEW-27** (the blanket `*.md export-ignore` strips all 16 in-product guides from release archives).
-Seeing them is the expected state, not a regression.
+**This line was stale until 2026-07-29** — it still read `10 check(s) run: 8 passed, 2 warning(s)`,
+the figure from before the Keel v5.0.0 reconciliation added five checks (D-067) and DR-003 added a
+sixth (D-074). A fresh-context QA pass follows this document and reads that block as the expected
+state, so a stale expected output trains the reader to accept a wrong count — the L-016 defect
+living in the instructions instead of the instrument. Whoever changes the check set updates this
+line in the same slice.
+
+All four WARNs are owned elsewhere, and seeing them is the expected state, not a regression:
+**H-01** — the version string disagrees across five touchpoints (Phase 7) · **NEW-27** — the blanket
+`*.md export-ignore` strips all 16 in-product guides from release archives (Phase 7) · the
+**README.md link backlog** of 10 known-broken links (D-017's editorial pass) · the **conformance
+sweep** still carrying 6 `missing` rows (Phases 6/7/8, which have not run).
 
 ## Testing an upgrade from the real previous release
 

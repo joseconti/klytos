@@ -19,6 +19,12 @@ Verifies that `docs/api/INDEX.md` and the documents under `docs/api/` and `docs/
 2. List every file under `docs/api/` and `docs/reference/`. Confirm each has a row in `docs/api/INDEX.md`.
 3. Confirm each documented surface still exists in the code (grep `installer/core/**/*.php`, `installer/admin/**/*.php`, `installer/plugins/**/*.php`).
 4. Confirm each document carries a runnable example.
+5. **Check all three operations in the diff, not additions only.** A surface the diff **adds** has its
+   document and its INDEX row. A surface whose signature, parameters, return, errors or permissions the
+   diff **changes** has its document updated in the same diff — a document still describing the previous
+   signature is a finding. A surface the diff **removes** leaves no document and no row describing a
+   symbol the code no longer has, unless it is a released surface deliberately marked deprecated/removed
+   with its replacement.
 
 ## Recorded progressive-backfill rule — apply it, do not override it
 
@@ -32,6 +38,8 @@ Grouped, each entry with `file:line`:
 - Document with no INDEX row
 - Document with no runnable example
 - Documented surface missing from the code
+- Document or INDEX row describing a signature the code no longer matches (stale, not missing)
+- Document or INDEX row for a surface the diff removed, with no deliberate deprecation marking
 - Pre-existing backlog (not blocking)
 
 Findings only — do not edit the documentation unless asked.

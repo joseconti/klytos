@@ -186,3 +186,49 @@ test work above is exactly what makes a second contributor possible, and the rep
 makes anyone look.
 
 **User decision on the verdict:** [pending — to be recorded when the audit triage is agreed]
+
+## 9. Environment & test drivers (Keel §5a preflight — added 2026-07-28, v5.0.0 reconciliation)
+
+> This section exists to answer, before any test is planned, whether the machine can actually do the
+> job — and specifically whether the assistant can drive the tests itself instead of asking the user
+> to click through screens. **Measured, not assumed.** The exhaustive versioned table is
+> `docs/03-technical-plan.md` §4b; this is the verdict.
+
+**Which machine.** Three can be involved — the one the user works on, the one the repository lives
+on, the one that runs the tests. Here they are **one**: the user's Mac, arm64, not under Rosetta
+(`sysctl -n sysctl.proc_translated` = 0).
+
+**Can this session run commands where the repository lives? YES — and the honest answer took a
+correction to reach.** The assistant's shell starts with `PATH=/usr/bin:/bin:/usr/sbin:/sbin`; the
+user's profile is not sourced, so every tool this project uses is invisible to a bare `command -v`.
+The first probe therefore reported PHP, Composer and Node all absent, which would have classified
+this session `NO-EXECUTION` and pushed every test back onto the user. They are all present:
+
+| | |
+|---|---|
+| PHP | **8.3.12** (MacPorts, `/opt/local/bin/php`), plus **8.2.24** and **8.1.30** |
+| Suite | **runs from this session — 284 tests / 1385 assertions, OK** |
+| Node | **24.14.0** on PATH |
+| Playwright / axe | **absent** — the E2E tier does not exist yet (`tests/E2E/` is `[A]`) |
+| Docker | Docker Desktop installed, daemon not responding — **and not required**: the playground is `php -S` by decision |
+
+The working prefix is `export PATH="/opt/local/bin:$HOME/.composer/vendor/bin:$PATH"`, and
+`scripts/keel-doctor` widens PATH itself rather than trusting what it inherited, precisely so this
+mistake cannot be made twice. **`NO-EXECUTION` does not apply to this project.**
+
+**Whose screen would a non-headless test take? Nobody's.** Every surface is web, HTTP or CLI:
+Playwright is headless by default and `php -S` takes no display. There is no macOS, Windows or
+Android UI surface, so the screen-stealing mitigations those platforms require are genuinely not
+applicable — a property of the stack, not a promise.
+
+**What the assistant cannot drive here**, exhaustively, each tagged: a real screen-reader pass
+(`ASSISTIVE-TECH`), a live AI-provider call with the user's own key (`CREDENTIAL` — provider leg
+only), a real x402 settlement (`CREDENTIAL` + `PRODUCTION-RISK` — settlement leg only), "is this the
+behaviour you meant?" on a redesigned screen (`JUDGMENT`, asked over captured evidence after the
+driven test passed), and an upgrade from a not-yet-published release (`EXTERNAL-APPROVAL`). Nothing
+else. The full division of labour is `docs/03-technical-plan.md` §4a.
+
+**A finding, recorded not acted on.** `php81` and `php82` being installed bears directly on **D-027**
+(which assumes the 8.1 floor cannot be verified — true of PHPUnit 11, not of the interpreter) and on
+**L-022** (CI's 8.2 leg has never run because nothing is pushed — it can now be rehearsed locally).
+Both are inputs for whoever plans D-027's revisit, not decisions taken here.

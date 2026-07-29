@@ -47,6 +47,24 @@ decision = "allow"
 prefix = ["php", "scripts/keel-verify"]
 decision = "allow"
 
+# keel-doctor: --check/--plan/--json only. --fix installs software and needs the
+# user's explicit OK on the printed plan, never a standing permission.
+[[prefix_rule]]
+prefix = ["./scripts/keel-doctor", "--check"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["./scripts/keel-doctor", "--plan"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["./scripts/keel-doctor", "--json"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["npx", "playwright", "test"]
+decision = "allow"
+
 [[prefix_rule]]
 prefix = ["php", "scripts/dev/seed-playground.php"]
 decision = "allow"

@@ -6,6 +6,36 @@
 > An acceptance criterion without an automated test carries its one-line justification in the row.
 > "n/a" is a valid value where a column genuinely does not apply — but it is written, never left blank.
 
+## The two coverage columns (Keel v5.0.0 — in force from Sprint 7)
+
+From the next sprint table on, every row carries two further columns, and they exist for one reason:
+**without them the coverage rule is self-declared**, which is exactly the failure Keel v5.0.0 was
+written to end.
+
+| Column | Value |
+|---|---|
+| `Criterion` | The `AC-nn` ID from `docs/02-functional-spec.md` §4b, or `—` for a check that is not criterion-bound |
+| `Coverage` | Exactly one of: **`driven`** (a test drove it — its command and evidence are in the row) or one of the eight delegation tags: `CREDENTIAL` · `HARDWARE` · `ASSISTIVE-TECH` · `JUDGMENT` · `EXTERNAL-APPROVAL` · `PLATFORM-IMPOSSIBLE` · `PRODUCTION-RISK` · `NO-EXECUTION` |
+
+**Free text in `Coverage` is a defect.** The whole point of the enum is that a script can count the
+rows that are neither `driven` nor a valid tag. A tagged row carries the exact steps for whoever runs
+it; a tag with no steps, or `JUDGMENT` on a criterion with no driven test beside it, is the laziest
+escape in the contract and is caught at the sprint close.
+
+**The rule this serves, stated once so no later session softens it: the user is not the test runner.**
+Anything a machine can drive, the assistant drives — it starts the environment, fills every field
+with valid, empty and invalid values, clicks every branch including the failure paths, asserts what
+the interface actually shows, and reads back the console, the failed requests and
+`installer/data/logs-*/`. "Go to that screen and tell me what you see" is not a test; it is the
+assistant outsourcing its own work, and it silently skips the empty, invalid and permission-denied
+cases where the bugs live. The full protocol is `references/test-automation.md`; the project's driver
+table is `docs/03-technical-plan.md` §4a.
+
+**Sprints 1–6 are NOT retrofitted.** Their rows predate both the `AC-nn` IDs and this enum, and
+back-filling a `Coverage` value nobody recorded would be inventing evidence — the precise defect this
+column exists to prevent. Each area gets its IDs and its coverage value **in the slice that next
+touches it**.
+
 ## Sprint 1 — authorization axis
 
 | Slice | Acceptance criteria checked | Real run in playground | Security checks | Accessibility (automated + AT pass) | i18n (strings externalized) | Reuse checked (no new duplicate) | Docs updated (api/reference, example runs) | Extension points exposed | Evidence (commands + output summary + commit) | Result | Notes |

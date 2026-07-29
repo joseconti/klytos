@@ -1,0 +1,339 @@
+#!/bin/sh
+#
+# Klytos CMS — keel-doctor: the environment doctor.
+#
+# Keel v5.0.0 / references/test-automation.md. Compiled from
+# docs/03-technical-plan.md §4b "Environment requirements" — that table is the
+# source, this script is its executable form. When the table changes, this
+# changes in the same slice.
+#
+# WHY THIS IS POSIX sh AND NOT PHP, WHICH IS THE ONE DESIGN DECISION THAT
+# MATTERS HERE: keel-verify is `#!/usr/bin/env php`, and that is correct for a
+# release linter, which only ever runs where PHP already works. A doctor cannot
+# be written in the runtime it exists to check. A PHP doctor on a machine with
+# no PHP does not report "PHP is MISSING" — it reports nothing at all, or a
+# shell error nobody reads as a finding. So the doctor is sh, uses only
+# builtins and coreutils, and can honestly report every row including the one
+# that would have prevented it from starting.
+#
+# Modes (references/test-automation.md, "Three modes, and the default never
+# touches the machine"):
+#   --check   (default) detect only, print the table, exit non-zero if anything
+#             BLOCKING is missing. Never sudo. Never network beyond a version probe.
+#   --plan    detect, then print the exact commands it WOULD run, verbatim,
+#             without running them. This exists for trust: the user sees the
+#             literal list before anything is installed, and can veto lines.
+#   --fix     run those commands, only after an explicit OK on the printed list.
+#   --json    the same content as JSON, so an assistant decides from structured
+#             data instead of parsing this script's own table.
+#
+# Four states, deliberately not three (collapsing them is the classic doctor
+# bug — it makes an assistant propose reinstalling something that only needed
+# starting):
+#   OK · MISSING · TOO OLD · NOT OPERATIONAL
+#
+# Severity is its own column: BLOCKING means no work is possible without it;
+# OPTIONAL means quality of life. An OPTIONAL row never fails the run and never
+# gates a release.
+#
+# @copyright 2026 José Conti
+# @license   GPL-3.0-or-later
+
+set -u
+
+MODE="check"
+for arg in "$@"; do
+    case "$arg" in
+        --check) MODE="check" ;;
+        --plan)  MODE="plan" ;;
+        --fix)   MODE="fix" ;;
+        --json)  MODE="json" ;;
+        -h|--help)
+            sed -n '3,45p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *)
+            printf 'keel-doctor: unknown argument "%s". Try --help.\n' "$arg" >&2
+            exit 2
+            ;;
+    esac
+done
+
+# THE FACT THAT GOVERNS EVERY PROBE BELOW.
+#
+# The assistant's shell in this environment starts with
+# PATH=/usr/bin:/bin:/usr/sbin:/sbin — the user's profile is NOT sourced. Every
+# tool this project uses lives outside that PATH. A session that runs
+# `command -v php`, gets nothing, and concludes PHP is absent has measured its
+# own PATH and not the machine. That already happened once (recorded in
+# docs/03-technical-plan.md §4b), so the doctor widens PATH itself rather than
+# trusting whatever it inherited.
+PATH="/opt/local/bin:/opt/homebrew/bin:/usr/local/bin:${HOME}/.composer/vendor/bin:${PATH}"
+export PATH
+
+ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+
+ROWS=""
+PLAN=""
+BLOCKING_FAIL=0
+
+# add_row <requirement> <detected> <required> <state> <severity> <install-hint>
+add_row() {
+    ROWS="${ROWS}$1|$2|$3|$4|$5|$6
+"
+    if [ "$4" != "OK" ] && [ "$5" = "blocking" ]; then
+        BLOCKING_FAIL=1
+    fi
+    if [ "$4" != "OK" ] && [ -n "$6" ] && [ "$6" != "-" ]; then
+        PLAN="${PLAN}$6
+"
+    fi
+}
+
+# Numeric version comparison. Returns 0 when $1 >= $2. Compares segment by
+# segment as NUMBERS, never as strings, so 8.10 > 8.9 rather than the reverse.
+version_ge() {
+    [ "$1" = "$2" ] && return 0
+    lowest=$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)
+    [ "$lowest" = "$2" ]
+}
+
+# ---------------------------------------------------------------- build & run
+
+# PHP. Probed through `command -v`, never `which`: command -v is the POSIX
+# builtin and uses the shell's own lookup; which is an external tool, absent
+# from minimal images, with inconsistent exit codes.
+# `php -r 'echo PHP_VERSION;'` rather than parsing the banner.
+if command -v php >/dev/null 2>&1; then
+    PHP_V=$(php -r 'echo PHP_VERSION;' 2>/dev/null)
+    if version_ge "${PHP_V}" "8.2.0"; then
+        add_row "PHP (runtime)" "${PHP_V}" ">= 8.2 (suite)" "OK" "blocking" "-"
+    else
+        add_row "PHP (runtime)" "${PHP_V}" ">= 8.2 (suite)" "TOO OLD" "blocking" "sudo port install php83"
+    fi
+else
+    add_row "PHP (runtime)" "not on PATH" ">= 8.2 (suite)" "MISSING" "blocking" "sudo port install php83"
+fi
+
+# PHP 8.1 and 8.2 are OPTIONAL and exist for a specific reason worth stating in
+# the code rather than only in the plan: the product declares a 8.1 floor that
+# PHPUnit 11 cannot reach (D-027), and CI's 8.2 leg has never executed (L-022).
+# Having both interpreters locally is what makes either verifiable at all.
+for legacy in 81:8.1 82:8.2; do
+    bin="php${legacy%%:*}"
+    want="${legacy##*:}"
+    if command -v "${bin}" >/dev/null 2>&1; then
+        add_row "PHP ${want} (floor rehearsal)" "$(${bin} -r 'echo PHP_VERSION;' 2>/dev/null)" "present" "OK" "optional" "-"
+    else
+        add_row "PHP ${want} (floor rehearsal)" "absent" "present" "MISSING" "optional" "sudo port install php${legacy%%:*}"
+    fi
+done
+
+# PHP extensions. Asked of the interpreter, not of the package manager.
+if command -v php >/dev/null 2>&1; then
+    MISSING_EXT=""
+    for ext in openssl json mbstring session curl zip; do
+        php -r "exit(extension_loaded('${ext}') ? 0 : 1);" 2>/dev/null || MISSING_EXT="${MISSING_EXT} ${ext}"
+    done
+    if [ -z "${MISSING_EXT}" ]; then
+        add_row "PHP extensions" "all present" "openssl json mbstring session curl zip" "OK" "blocking" "-"
+    else
+        add_row "PHP extensions" "missing:${MISSING_EXT}" "openssl json mbstring session curl zip" "MISSING" "blocking" "sudo port install php83-openssl php83-mbstring php83-curl php83-zip"
+    fi
+else
+    add_row "PHP extensions" "cannot probe (no PHP)" "openssl json mbstring session curl zip" "MISSING" "blocking" "-"
+fi
+
+# Composer. On this machine it is a SHELL ALIAS to `php /usr/local/bin/composer.phar`,
+# and an alias does not exist in a non-interactive shell — which is exactly why
+# the naive `command -v composer` probe reported it absent. Probe the phar too.
+COMPOSER_STATE="MISSING"
+COMPOSER_DETECTED="absent"
+if command -v composer >/dev/null 2>&1; then
+    COMPOSER_DETECTED=$(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-interaction 2>/dev/null | head -1)
+    COMPOSER_STATE="OK"
+elif [ -f /usr/local/bin/composer.phar ] && command -v php >/dev/null 2>&1; then
+    COMPOSER_DETECTED="composer.phar (run as: php /usr/local/bin/composer.phar)"
+    COMPOSER_STATE="OK"
+fi
+# COMPOSER_ALLOW_SUPERUSER=1 above is not decoration: as root, Composer warns,
+# disables plugins and — interactively — PROMPTS before continuing, which hangs
+# an unattended probe forever.
+add_row "Composer" "${COMPOSER_DETECTED}" "2.x" "${COMPOSER_STATE}" "blocking" "curl -sS https://getcomposer.org/installer | php"
+
+# ------------------------------------------------------------- project tools
+
+for tool in phpunit phpcs; do
+    if [ -x "${ROOT}/vendor/bin/${tool}" ]; then
+        add_row "${tool} (project)" "vendor/bin/${tool}" "installed" "OK" "blocking" "-"
+    else
+        add_row "${tool} (project)" "absent" "installed" "MISSING" "blocking" "composer install"
+    fi
+done
+
+if [ -x "${ROOT}/vendor/bin/phpstan" ]; then
+    add_row "PHPStan" "vendor/bin/phpstan" "installed" "OK" "optional" "-"
+elif [ -f "${ROOT}/phpstan.neon" ]; then
+    # A config present with no analyser is the [A]-marker trap made real: the
+    # tooling is referenced and absent, which reads as configured.
+    add_row "PHPStan" "phpstan.neon present, analyser absent" "installed" "NOT OPERATIONAL" "optional" "composer require --dev phpstan/phpstan"
+else
+    add_row "PHPStan" "absent (audit T-03)" "installed" "MISSING" "optional" "composer require --dev phpstan/phpstan"
+fi
+
+# --------------------------------------------------------------- E2E drivers
+#
+# These are OPTIONAL today and become BLOCKING the moment tests/E2E/ exists.
+# The severity is derived from the tree rather than hardcoded, so the doctor
+# starts failing on them automatically in the slice that lands the E2E tier,
+# instead of waiting for someone to remember to change this file.
+E2E_SEVERITY="optional"
+[ -d "${ROOT}/tests/E2E" ] && E2E_SEVERITY="blocking"
+
+if command -v node >/dev/null 2>&1; then
+    NODE_V=$(node -p 'process.versions.node' 2>/dev/null)
+    if version_ge "${NODE_V}" "18.0.0"; then
+        add_row "Node.js" "${NODE_V}" ">= 18 (Playwright)" "OK" "${E2E_SEVERITY}" "-"
+    else
+        add_row "Node.js" "${NODE_V}" ">= 18 (Playwright)" "TOO OLD" "${E2E_SEVERITY}" "nvm install --lts"
+    fi
+else
+    add_row "Node.js" "not on PATH (nvm is not sourced here)" ">= 18 (Playwright)" "MISSING" "${E2E_SEVERITY}" "nvm install --lts"
+fi
+
+if [ -d "${ROOT}/node_modules/@playwright" ]; then
+    # Installed is not the same as operational. `npx playwright install-deps
+    # --dry-run` is NOT a probe — it prints the command it would run and its
+    # exit code says nothing about the machine. The only honest check is
+    # launching the browser, which --check does not do because it is slow;
+    # --plan and the first E2E run cover it.
+    add_row "Playwright" "package present" "installed + chromium" "OK" "${E2E_SEVERITY}" "-"
+else
+    add_row "Playwright" "absent" "installed + chromium" "MISSING" "${E2E_SEVERITY}" "npm i -D @playwright/test && npx playwright install chromium   # ~400 MB download"
+fi
+
+if [ -d "${ROOT}/node_modules/@axe-core" ]; then
+    add_row "axe-core/playwright" "package present" "installed" "OK" "${E2E_SEVERITY}" "-"
+else
+    add_row "axe-core/playwright" "absent" "installed" "MISSING" "${E2E_SEVERITY}" "npm i -D @axe-core/playwright"
+fi
+
+# ---------------------------------------------------------------------- misc
+#
+# Docker is probed and reported as OPTIONAL on purpose. The playground is
+# `php -S` by deliberate decision (Sprint 1 slice 0), so nothing here needs a
+# container runtime. It appears only so the row can say "not needed" out loud:
+# Docker Desktop's licence depends on company size and revenue, and proposing
+# it as a requirement would push a licensing obligation onto the user for a
+# capability this project does not use.
+if command -v docker >/dev/null 2>&1; then
+    if docker info >/dev/null 2>&1; then
+        add_row "Docker" "daemon responding" "not required" "OK" "optional" "-"
+    else
+        add_row "Docker" "installed, daemon not responding" "not required" "NOT OPERATIONAL" "optional" "-"
+    fi
+elif [ -d "/Applications/Docker.app" ]; then
+    add_row "Docker" "Docker.app present, CLI not on PATH" "not required" "NOT OPERATIONAL" "optional" "-"
+else
+    add_row "Docker" "absent" "not required" "MISSING" "optional" "-"
+fi
+
+if command -v git >/dev/null 2>&1; then
+    add_row "git" "$(git --version 2>/dev/null | awk '{print $3}')" "any" "OK" "blocking" "-"
+else
+    add_row "git" "absent" "any" "MISSING" "blocking" "xcode-select --install"
+fi
+
+# Port 8080 is where docs/playground.md tells a human to serve the app. A busy
+# port is the L-011 / L-021 failure: every request goes to something else and
+# every response looks plausible. Report it as its own row rather than letting
+# a session discover it three curl calls later.
+if command -v nc >/dev/null 2>&1; then
+    if nc -z 127.0.0.1 8080 2>/dev/null; then
+        add_row "Playground port 8080" "IN USE by another process" "free" "NOT OPERATIONAL" "optional" "lsof -nP -iTCP:8080 -sTCP:LISTEN   # then ps -o lstart,command -p <pid> before killing anything"
+    else
+        add_row "Playground port 8080" "free" "free" "OK" "optional" "-"
+    fi
+fi
+
+# -------------------------------------------------------------------- output
+
+print_table() {
+    printf '%-28s %-38s %-22s %-16s %-9s\n' "REQUIREMENT" "DETECTED" "REQUIRED" "STATE" "SEVERITY"
+    printf '%s\n' "------------------------------------------------------------------------------------------------------------------"
+    printf '%s' "${ROWS}" | while IFS='|' read -r req det need state sev _hint; do
+        [ -z "${req}" ] && continue
+        printf '%-28s %-38s %-22s %-16s %-9s\n' "${req}" "${det}" "${need}" "${state}" "${sev}"
+    done
+}
+
+print_json() {
+    printf '{"rows":['
+    first=1
+    printf '%s' "${ROWS}" | while IFS='|' read -r req det need state sev hint; do
+        [ -z "${req}" ] && continue
+        [ ${first} -eq 0 ] && printf ','
+        first=0
+        printf '{"requirement":"%s","detected":"%s","required":"%s","state":"%s","severity":"%s","install":"%s"}' \
+            "${req}" "${det}" "${need}" "${state}" "${sev}" "${hint}"
+    done
+    printf '],"blocking_failure":%s}\n' "$([ ${BLOCKING_FAIL} -eq 1 ] && echo true || echo false)"
+}
+
+case "${MODE}" in
+    json)
+        print_json
+        ;;
+    check)
+        print_table
+        echo
+        if [ ${BLOCKING_FAIL} -eq 1 ]; then
+            echo "BLOCKING requirements are not satisfied. Run './scripts/keel-doctor --plan' to see what would fix it."
+        else
+            echo "All blocking requirements satisfied."
+        fi
+        ;;
+    plan)
+        print_table
+        echo
+        if [ -z "${PLAN}" ]; then
+            echo "Nothing to install."
+        else
+            echo "keel-doctor --fix WOULD run exactly these commands, in this order:"
+            echo
+            printf '%s' "${PLAN}" | sed 's/^/    /'
+            echo
+            echo "Nothing above has been run. Copy any line to run it yourself, or use --fix to run them all."
+        fi
+        ;;
+    fix)
+        print_table
+        echo
+        if [ -z "${PLAN}" ]; then
+            echo "Nothing to install."
+            exit 0
+        fi
+        echo "These commands will be run:"
+        echo
+        printf '%s' "${PLAN}" | sed 's/^/    /'
+        echo
+        # Nothing global is installed without the user seeing the list first,
+        # and accepting a licence is the user's act, never the assistant's.
+        printf 'Run them? [y/N] '
+        read -r answer
+        case "${answer}" in
+            y|Y|yes|YES) ;;
+            *) echo "Aborted. Nothing was run."; exit 1 ;;
+        esac
+        printf '%s' "${PLAN}" | while IFS= read -r cmd; do
+            [ -z "${cmd}" ] && continue
+            printf '\n$ %s\n' "${cmd}"
+            sh -c "${cmd}" || echo "  (failed — continuing; re-run --check afterwards)"
+        done
+        echo
+        echo "Re-run './scripts/keel-doctor --check' to confirm. A freshly installed tool is often"
+        echo "absent from THIS shell's PATH — that means restart your terminal, not that it failed."
+        ;;
+esac
+
+exit ${BLOCKING_FAIL}

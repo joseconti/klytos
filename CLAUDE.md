@@ -1,4 +1,4 @@
-<!-- KEEL:BEGIN — v3.4.0 do not remove: binds every AI/session in this repo to the Keel workflow -->
+<!-- KEEL:BEGIN — v5.0.0 do not remove: binds every AI/session in this repo to the Keel workflow -->
 # Keel protocol (mandatory for ANY assistant working in this repository)
 
 This project is governed by the Keel workflow. Before reading code or changing ANYTHING:
@@ -24,7 +24,13 @@ This project is governed by the Keel workflow. Before reading code or changing A
    post-update reconciliation before continuing.
 3. Follow the recorded specs and design exactly: no reinterpretation, no silent
    deviation, no "improving" recorded decisions. Anything undefined → ask the user.
-   Design gaps → Design Request (Keel Phase 4).
+   Design gaps → Design Request (Keel Phase 4). Never claim something that was not
+   verified: the code map in `docs/03-technical-plan.md` is a TARGET tree, so a path
+   not marked `[E]` is absent until a slice creates it, and a control, check or test
+   is only described in the present tense once it is built and evidenced. A check
+   whose inputs do not exist yet is "not yet applicable", naming what is missing —
+   never "passed". Before changing anything, read the change map's row for that type
+   of change: it lists every artifact that must be touched.
 4. Update `docs/PROGRESS.md` and `docs/decisions.md` at the moment of every change.
    Commit at passed test points — never without first checking the staged files for
    confidential data (secrets, credentials, private keys, tokens, real personal or

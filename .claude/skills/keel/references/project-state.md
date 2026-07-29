@@ -14,7 +14,7 @@ Created the moment Phase 1 starts producing artifacts — NOT in Phase 5. Before
 | `docs/decisions.md` | Append-only log of decisions that shape the project (so no session re-litigates them) | Phase 1, first action | Whenever a decision is made |
 | `docs/lessons-learned.md` | Append-only problem → solution log (so no session repeats a mistake) | Phase 1, first action | Whenever something failed and a fix was found |
 | `docs/design/design-requests/DR-NNN.md` | One file per Design Request, numbered, with status | Phase 4, when the first gap appears | When a DR is sent / resolved |
-| `docs/api/INDEX.md` | One line per public surface — the cheap lookup layer for the reuse rule | Phase 5, first slice | Same slice that adds/changes a surface |
+| `docs/api/INDEX.md` | One line per public surface — the cheap lookup layer for the reuse rule | Phase 5, first slice | Same slice that adds, changes, or removes a surface |
 | `docs/issues.md` | Living log of forge issues: inventory + one entry per issue worked (diagnosis, resolution, commits, what remains) | First time forge issues are triaged or worked (any phase) | The moment an issue is triaged, worked, or closed |
 | `docs/token-ledger.md` | Actual token usage: one row per working session; final reconciliation (cost + deviation vs estimate) at release | With Estimate v1 (Phase 1 close), per `references/estimation-budget.md` | At the end of every working session; verified at phase/sprint closes |
 | `CLAUDE.md` + `AGENTS.md` (repo root) | The portability lock, the same Keel block mirrored in both: binds ANY assistant/environment opening the repo to the Keel workflow | Phase 1, first action (or adoption) | When Keel's protocol block changes (between its delimiters only) — verified every session by the lock-freshness check (version stamp on the BEGIN delimiter) |
@@ -113,14 +113,27 @@ Append-only; never trim.
 # Lessons Learned — [Project name]
 
 ## L-001 — [short title]
-- Problem: [what went wrong]
+- Symptom: [what was observed — the thing a future session would recognize]
+- Cause: [what was actually wrong, once diagnosed]
+- Fix: [what resolved it]
 - Where: [phase/slice/file]
-- What failed: [the attempt that didn't work]
-- Working solution: [what fixed it]
+- What failed first: [the attempt that didn't work — saves the next session from repeating it]
+- Check added: [the keel-verify check, test, or gate that now catches it — or "none possible: <reason>"]
 - Rule for next time: [one line a future session can apply directly]
 ```
 
-If a lesson came from a code bug, the fix gets a regression test in the same slice (Phase 5 rule) — the lesson entry links to it.
+The entry leads with **symptom → cause → fix** because that is how it gets read: a future session arrives holding a symptom, not a diagnosis, and an entry organized any other way is not found at the moment it would have helped.
+
+If a lesson came from a code bug, the fix gets a regression test in the same slice (Phase 5 rule) — the lesson entry links to it. And **"Check added" is a real field, not a formality**: whenever a lesson could have been caught mechanically, adding that check to `scripts/keel-verify` (or to the test suite) is part of closing the lesson, because a rule that lives only in prose is a rule that will be broken again by a session under pressure.
+
+**Where a lesson goes — two destinations, and the distinction is load-bearing:**
+
+| What happened | Destination |
+|---|---|
+| A problem specific to THIS project | `docs/lessons-learned.md` — this file. Memory. |
+| A trap that would bite ANY project of this class | Keel's `references/anti-patterns.md`. Prevention. |
+
+When something is clearly the second, propose codifying it into the skill — per SKILL.md, an improvement the user agrees to is codified into Keel, not only recorded in the project that found it. Recording it in both places is fine; recording a class-wide trap only in one project's log means the next project pays for it again.
 
 ## Design Request register (Phase 4)
 
@@ -178,7 +191,7 @@ The reuse rule ("search the existing internal API before writing new code") must
 | mcm/license-created | action | includes/api.php | docs/reference/hooks-and-extension-points.md | Fires after license creation |
 ```
 
-Updated in the same slice that adds or changes a surface — an INDEX row without its doc, or a doc without its row, is a slice defect.
+Updated in the same slice that adds, changes, or removes a surface — an INDEX row without its doc, or a doc without its row, is a slice defect. A changed surface has its row and its doc updated in that same slice; a removed surface has its row deleted (never released) or marked deprecated/removed with its replacement (already released), per SKILL.md "Document every public surface at the moment it changes". A row pointing at a symbol the code no longer has is a defect like any other.
 
 ## Sprint files (Phase 5) — template
 
@@ -210,7 +223,7 @@ The prompt must be self-sufficient: assume the new session knows nothing except 
 
 These rules exist so sessions are cheap, deterministic, and cache-friendly. Follow them literally.
 
-1. **Fixed session-start reading order.** On resume, read in this exact order and nothing more: `docs/PROGRESS.md` → `docs/decisions.md` → `docs/lessons-learned.md` → the current phase's reference file → only the inputs PROGRESS.md names for the current position. The same order every session keeps context predictable and maximizes prompt-cache reuse. While reading PROGRESS.md, compare the card's `Keel baseline:` with the running Keel version — if it is older or missing, offer the post-update reconciliation (see below) before continuing.
+1. **Fixed session-start reading order.** On resume, read in this exact order and nothing more: `docs/PROGRESS.md` → `docs/decisions.md` → `docs/lessons-learned.md` → the current phase's reference file → only the inputs PROGRESS.md names for the current position. On a runnable project, the first test point of the session also runs `scripts/keel-doctor --check` and boots the playground from `docs/playground.md` (the freshness stamp) — a session that assumes the environment still works is a session whose green results mean nothing. The same order every session keeps context predictable and maximizes prompt-cache reuse. While reading PROGRESS.md, compare the card's `Keel baseline:` with the running Keel version — if it is older or missing, offer the post-update reconciliation (see below) before continuing.
 2. **Read each static reference once per session.** Phase references and templates do not change mid-session — never re-read a file already loaded in this conversation; rely on the copy in context. Single exception: immediately after a Keel update, the copies in context belong to the old version — re-read the new `SKILL.md` and the current phase's reference (see "Post-update reconciliation").
 3. **Orient by state, not by scanning code.** The project's shape lives in `docs/03-technical-plan.md` (code map, conventions), `docs/architecture.md` (once it exists), and `docs/api/INDEX.md`. A session that needs to know "where is X / does Y exist" consults these first, then opens the one specific file it needs. Tree-wide code exploration is a signal that the state files are incomplete — fix the state files, don't normalize the scanning.
 4. **Surgical code reads.** When code must be read, read the specific file/function the state points to — not whole directories "for context".
@@ -245,7 +258,7 @@ The project root carries the Keel block below in TWO files, always: `CLAUDE.md` 
 One tool needs a third step: **Gemini CLI reads `GEMINI.md`, not `AGENTS.md`, by default.** If the user works with Gemini CLI, ask once and record the pick: mirror the same block in `GEMINI.md` (a third copy of the lock, refreshed with the others), or commit a `.gemini/settings.json` whose `context.fileName` includes `AGENTS.md` (no third copy to maintain). Either satisfies the lock.
 
 ```
-<!-- KEEL:BEGIN — v3.4.0 do not remove: binds every AI/session in this repo to the Keel workflow -->
+<!-- KEEL:BEGIN — v5.0.0 do not remove: binds every AI/session in this repo to the Keel workflow -->
 # Keel protocol (mandatory for ANY assistant working in this repository)
 
 This project is governed by the Keel workflow. Before reading code or changing ANYTHING:
@@ -271,7 +284,13 @@ This project is governed by the Keel workflow. Before reading code or changing A
    post-update reconciliation before continuing.
 3. Follow the recorded specs and design exactly: no reinterpretation, no silent
    deviation, no "improving" recorded decisions. Anything undefined → ask the user.
-   Design gaps → Design Request (Keel Phase 4).
+   Design gaps → Design Request (Keel Phase 4). Never claim something that was not
+   verified: the code map in `docs/03-technical-plan.md` is a TARGET tree, so a path
+   not marked `[E]` is absent until a slice creates it, and a control, check or test
+   is only described in the present tense once it is built and evidenced. A check
+   whose inputs do not exist yet is "not yet applicable", naming what is missing —
+   never "passed". Before changing anything, read the change map's row for that type
+   of change: it lists every artifact that must be touched.
 4. Update `docs/PROGRESS.md` and `docs/decisions.md` at the moment of every change.
    Commit at passed test points — never without first checking the staged files for
    confidential data (secrets, credentials, private keys, tokens, real personal or
@@ -346,10 +365,14 @@ Never skip it silently. If the user defers it, record `Reconciliation pending vX
 
 1. **Re-read the governing files from the NEW copy.** After an update, the `SKILL.md` and the current phase's reference in context belong to the old version — re-read both, and read the new `MANIFEST.md` (the parity manifest): its Table 2 names every skill file changed since the project's baseline (the exact re-read list), its Table 1 drives step 3's parity check, and its Table 3 is the per-version action list — the concrete actions to apply, so the reconciliation applies a delta instead of interpreting the changelog. This is the single exception to the read-once rule (context & cache discipline, rule 2).
 2. **Diff the versions via the changelog.** Read every new `CHANGELOG.md` entry after the baseline version, oldest → newest. The changelog is written to make this cheap — never re-read every reference to find what changed.
-3. **Extract what touches the PROJECT, not only the assistant's behavior.** From each entry: files/directories the project should now have; project-card lines that now exist; changes to the lock block (between its `KEEL:BEGIN/END` delimiters); questions a phase now asks that were never asked here; new one-time verifications or gates. Behavior-only changes need nothing — they apply by themselves from the new references. Then run `MANIFEST.md` Table 1 as the ABSOLUTE parity check: everything required at or before the project's current phase (conditions per the project card) must exist — anything missing joins the plan, whatever version introduced it.
-4. **Present ONE batched catch-up plan.** What would be created or refreshed, which new questions need answers, what the new version requires versus what is optional. The user approves, trims, or defers. Optional mechanisms stay optional: reconciliation asks their never-asked question (e.g. the assistant config package for a project older than v1.10.0) — it never force-installs.
+3. **Extract what touches the PROJECT, not only the assistant's behavior.** From each entry: files/directories the project should now have; project-card lines that now exist; changes to the lock block (between its `KEEL:BEGIN/END` delimiters); questions a phase now asks that were never asked here; new one-time verifications or gates. Behavior-only changes need nothing — they apply by themselves from the new references.
+
+   **Then run the conformance sweep — mechanically, from the manifest, not from memory (BLOCKING).** `MANIFEST.md` Table 1 is the ABSOLUTE parity check: walk EVERY row, decide whether it applies at this project's position under its recorded conditions, and give it a state. `MANIFEST.md` Table 3 adds the per-version action list for every version newer than the baseline — each action is a row too. Write the result to `docs/keel-conformance.md` (create it if this project predates it): one line per applicable requirement with exactly one state — `present` (and where), `missing`, `declined` (with its `docs/decisions.md` entry), or `n/a` (with the condition that excludes it). A row with no state is an unfinished sweep, and an unfinished sweep is not a reconciliation.
+
+   This exists because the failure mode is specific and repeated: an update is announced, part of the delta is applied, the rest is quietly not, and nobody notices until the user asks why something is missing. Deriving the list from the manifest instead of from what the session recalls makes that impossible — the assistant cannot forget a row it is reading off a table.
+4. **Present ONE batched catch-up plan — containing EVERY `missing` row, without curation.** What would be created or refreshed, which new questions need answers, what the new version requires versus what is optional, each with its one-line cost. The user approves, trims, or defers, row by row. Optional mechanisms stay optional: reconciliation asks their never-asked question (e.g. the assistant config package for a project older than v1.10.0) — it never force-installs. But **the assistant never decides on the user's behalf that a row is not worth mentioning**: applying is the user's choice, proposing is not optional. Anything the user declines becomes a `declined` row with its D-entry, so a refusal is a decision on the record and a gap can never be mistaken for one.
 5. **Apply.** Refresh the lock block between its delimiters (user OK — the existing safely-updatable mechanism); create missing files/directories from their templates; add new project-card lines without touching the rest; ask the batched questions and record their D-entries; run new one-time verifications where they apply.
-6. **Record.** One D-entry — `Keel vX → vY reconciliation: applied …; declined …` — update `Keel baseline:` to the running version, and update PROGRESS.md at the moment, as always.
+6. **Record and report.** One D-entry — `Keel vX → vY reconciliation: applied …; declined …` — update `Keel baseline:` to the running version, save the finished `docs/keel-conformance.md`, and update PROGRESS.md at the moment, as always. Then **report the sweep to the user in full**: applied / declined / not applicable, one line each, with the totals. A reconciliation reported as "done" without that table is a claim, and this skill does not accept claims.
 
 ### Rules
 
@@ -374,4 +397,4 @@ These NEVER move while the project is alive: `PROGRESS.md`, `decisions.md`, `les
 - From Phase 5: `docs/api/INDEX.md` exists and matches the docs; sprint files follow the template.
 - Any session ending mid-work produced a continuation prompt.
 - The project card carries `Keel baseline:`; a completed reconciliation updated it and left its D-entry; a deferred one is listed in PROGRESS.md open items.
-- Any reconciliation read `MANIFEST.md` and ran its Table 1 parity check; missing items entered the plan.
+- Any reconciliation read `MANIFEST.md`, ran the full conformance sweep (Table 1 parity plus Table 3's per-version delta) and left `docs/keel-conformance.md` complete — every applicable row `present`, `declined` with its D-entry, or `n/a` with its condition. Every `missing` row reached the batched plan and ended in a user decision; the sweep table was reported to the user in full.

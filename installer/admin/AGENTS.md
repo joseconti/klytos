@@ -82,6 +82,7 @@ Source of truth: docs/03-technical-plan.md §3 Conventions. On any conflict, the
 
 ## In the same slice as the code — never "later"
 - Every new public surface gets its doc in `docs/api/` or `docs/reference/` AND its row in `docs/api/INDEX.md`, with a runnable example.
+- Documentation follows the code through all three operations, in the same slice — never additions only. A surface whose signature, parameters, return, errors, permissions or behaviour CHANGES has its entry and its example updated then and there; a doc describing the previous signature is worse than a missing one, because the reader cannot tell it is stale. A surface that is REMOVED is resolved, never silently left behind: entry and INDEX row deleted if it was never released; kept and marked deprecated/removed with its version and replacement (plus a `docs/decisions.md` entry) if it was.
 - Update `docs/PROGRESS.md` and `docs/decisions.md` at the moment of the change, not at the end of the session.
 
 ## Tests — same slice, never "later"
