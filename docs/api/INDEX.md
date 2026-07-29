@@ -10,12 +10,12 @@
 | Global helper functions | 146 |
 | Classes and interfaces | 103 |
 | Actions | 312 |
-| Filters | 122 |
+| Filters | 123 |
 | MCP tools | 206 |
 | HTTP routes | 34 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **969** |
+| **Total** | **970** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -597,6 +597,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
 | admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
+| admin.design_tokens | filter | installer/admin/templates/header.php | docs/reference/design-tokens.md | Filters the ordered list of design-handoff token stylesheets loaded before the component layer |
 | admin.gate_map | filter | installer/core/admin-gate.php | docs/reference/authorization.md | Filters the admin gate map so plugins can gate their own admin files |
 | admin.logs_file_list | filter | installer/admin/logs.php | — | Filters the list of log files shown on the admin Logs page |
 | admin.logs_toolbar | filter | installer/admin/logs.php | — | Filters extra HTML injected into the Logs page toolbar |

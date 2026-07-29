@@ -9,6 +9,17 @@
 > allowed; the index exists so that a session that is short of room reads the RULES rather than
 > skipping the file.
 
+> **NEW ENTRIES USE A NEW SHAPE (Keel v4.0.0, adopted 2026-07-28 — D-067).** From L-029 on, every
+> entry carries, in this order: **Symptom** (what was actually observed, before anyone knew the
+> cause) · **Cause** (the mechanism, not the blame) · **Fix** (what was changed) · **Check added**
+> (the mechanical check that makes this class of defect fail loudly next time — a `keel-verify`
+> check, a test, a doctor row — or the explicit words *"none possible, and why"*). The last field is
+> the load-bearing one: **a lesson whose only defence is that someone read it is not yet defended.**
+> Prose asks for discipline once per reader; a check enforces itself forever.
+>
+> **L-001…L-028 are NOT rewritten.** They predate the shape, they are already correct, and rewriting
+> them would edit the record to look tidier than the history was. Their rules stand as written.
+
 ## Index
 
 | # | Rule it bought |
@@ -40,6 +51,8 @@
 | **L-026** | The test harness sent a header the product never sends, so a feature that could not work in any browser had a green suite |
 | **L-027** | I was hardening a page that had never served a request |
 | **L-028** | The session-start freshness check fed the counter that a later test measures, and the suite failed on code that was fine |
+| **L-029** | The probe measured its own missing tool and reported it as a missing world — twice in one session, and the throttle would have preserved the wrong answer for a day |
+| **L-030** | The gate proved the asset file was intact and never asked whether it contained what the screens draw |
 
 ## L-001 — The embedded Keel copy silently rotted 20+ releases behind
 - Problem: The repo carried `.claude/skills/keel/` at v1.11.0 while the installed skill was at v3.3.0, and the `CLAUDE.md` lock block was stamped v1.11.0. Any session reading the embedded copy was running an obsolete protocol, and `AGENTS.md` did not exist at all — so a fork opened in Codex/Copilot/Cursor/Gemini was bound by nothing.
@@ -921,3 +934,103 @@
   reseeded playground rather than from "whatever the freshness check left". Generally: before treating
   a single unexplained failure as a defect, ask what the SESSION did to the environment, not only what
   the code did — the answer here was a command the project's own documentation told me to run.
+
+## L-029 — The probe measured its own missing tool and reported it as a missing world
+
+- **Symptom.** Three confident negatives in one session, each of which read as a fact about the
+  machine or the network:
+  1. Keel's update check reported *"the remote lookup did not answer"*, and the project was
+     reconciled to **v3.5.0** — the copy that happened to be on disk — while **v4.0.0 and v5.0.0
+     already existed**.
+  2. The environment probe reported **PHP, Composer and Node all absent**. On that answer the
+     session is `NO-EXECUTION`, and every test in the project goes back to the user's hands.
+  3. A grep reported **Codex has no rule container**, and that was written into a decision entry.
+- **Cause.** In all three the instrument was broken and the subject was fine, but the *shape* is
+  sharper than that: **each probe measured its own environment and reported the result as a property
+  of the world.**
+  - `timeout` does not exist on macOS. `timeout 25 git ls-remote …` produced no output and exited 0,
+    so "the tool I invoked is absent" arrived looking exactly like "the network is absent".
+  - This shell starts with `PATH=/usr/bin:/bin:/usr/sbin:/sbin` and does not source the user's
+    profile. `command -v php` therefore measured **my PATH**, not the machine — which has PHP 8.3.12,
+    8.2.24 and 8.1.30 installed, and runs the whole suite.
+  - The grep searched `.codex/` and the root `AGENTS.md` — the two places Codex's rules were never
+    going to be. Its rules are three nested `AGENTS.md` files, exactly where `assistant-config.md`
+    says they go.
+- **Why this is worse than a false positive, which is the part worth keeping.** A false positive is
+  investigated, because a claim that something is broken invites a check. **A false negative is
+  filed.** "Not found", "no answer", "absent" all read as thorough — nobody re-derives an absence.
+  And the update check compounds it: its 24-hour throttle stamp would have suppressed the retry, so
+  the project would have sat two major versions behind *believing it was reconciled* until the user
+  happened to say "actualiza keel". L-016 said a broken measurement goes green; this adds that **a
+  broken measurement can also go red and still be believed, as long as the red is about the world
+  rather than about the work.**
+- **Fix.** `scripts/keel-doctor` widens `PATH` itself instead of trusting what it inherited, and
+  probes Composer through its phar because the `composer` on this machine is a shell alias that does
+  not exist in a non-interactive shell. The PATH trap is written into `docs/playground.md` Step 0,
+  `docs/01-discovery.md` §9 and `docs/03-technical-plan.md` §4b — three places a session actually
+  reads — rather than left as something to rediscover. D-066's Codex claim is corrected in place and
+  the three nested files were updated.
+- **Check added.** `scripts/keel-doctor --check` is now the first command of every session,
+  development or maintenance, and it fails loudly on a blocking row instead of letting a bare
+  `command -v` speak for the machine. Plus `keel-verify` check 13 ("every cited command exists"), so
+  a command named in a document cannot quietly stop existing. **What is NOT checkable mechanically,
+  said plainly:** nothing can verify that a probe searched the right place — that stays a habit, and
+  the habit is *state what the probe would print if the thing existed but you were looking in the
+  wrong place, and if the answer is "the same thing", look somewhere else too.*
+- **Rule for next time.** **A negative result is a claim about your instrument until you prove it is
+  a claim about the world.** Before recording an absence — of a tool, a file, a network, a rule —
+  run one command that would succeed if the thing were present somewhere you did not look:
+  `command -v` the tool itself, print `$PATH`, `ls` the parent directory, `git ls-remote` without the
+  wrapper. It costs seconds. Reporting an absence that turns out to be your own blindfold costs a
+  version, a decision entry, or a project's whole test discipline.
+
+## L-030 — The gate proved the asset file was intact and never asked whether it contained what the screens draw
+- **Symptom.** Stage 1 of the Phase 4 build placed the delivered icon sprite and verified it
+  byte-for-byte, 67 `<symbol>`s counted. Stage 2 opened the shell, went to write the sidebar's first
+  `<use href="…#ks-palette">`, and the id was not in the file. Nor were 18 others: 19 of the 35
+  glyphs the design's own prototypes draw in the sidebar are absent from the sprite that
+  `SPEC/assets-index.md` §3 calls "one `<symbol>` per glyph the design uses" and names as the
+  sidebar's icon source at 18px. The build had been one line away from shipping a navigation whose
+  icons render **nothing, silently, with no console error** — a broken `<use>` is not an error, it
+  is an empty box.
+- **Cause.** The Step 1 completeness gate asked *integrity* questions and never asked a *coverage*
+  question. Its evidence rows are all of the form "the asset in `assets-index.md` exists", "the SVG
+  is byte-identical", "the sprite has 67 symbols" — every one of them true, and none of them the
+  question that mattered, which is **"is the glyph this screen draws one of the 67?"** The same
+  blindness produced gap 2 of the same Design Request: `template-shell.md` is present and complete
+  *for what it claims to cover* (states, responsive, accessibility), so a presence-based gate passes
+  it without noticing that the sidebar's contents — which of the 44 entries sits in which of the
+  eight groups — are specified in no file at all. Both gaps are absence-shaped, and a checklist that
+  verifies things exist is structurally worst at absence. The delivery itself had already
+  demonstrated the right method and it was not generalised: `open-questions.md` item 18 asked "Does
+  the Dashboard need a new glyph?" and answered it by checking all eleven against the sprite — once,
+  for one screen, never for the shell.
+- **Fix.** No file was written. Stage 2 stopped before its first line (**D-073**), the two gaps went
+  to Design as **DR-003**, and the finding is recorded in `docs/BUILD-SPEC.md` §5.7 so the contract
+  carries it. The three tempting build-side outs were each refused on the record: substituting a
+  present glyph (`folder` for `perm_media`) changes what Design chose, drawing 19 Material Symbols
+  paths is authoring visual assets, and a CDN icon font is refused by build rule 4 and by the CSP.
+- **Check added.** **(a) BUILT 2026-07-29 with DR-003's resolution (D-074) — `keel-verify` check 16,
+  `every #ks-* the admin references resolves to a sprite <symbol>`.** It is a FAIL, not a WARN, and
+  it was **proven to fail before being trusted**: a deliberately bad `#ks-not_a_real_glyph` planted
+  in `installer/admin/index.php` turned it red with the file named and the exit code 1; the file was
+  restored from a backup and re-verified byte-identical (`git diff --stat` empty) and the exit code
+  returned to 0. It was added **before the first `<use>` was written**, which is the whole point —
+  today it passes on **zero** references, and that is the check waiting correctly, not a weakness.
+  Registered in `KeelVerifyTest::EXPECTED_CHECKS` so the count can only move deliberately.
+  **(b) STILL OWED:** the per-screen glyph-presence row in the Step 1 gate's evidence table, so a
+  future handoff cannot pass by *declaring* its sprite complete. Owner: the next Phase 4 Step 1 run.
+  The original wording follows, unedited, because a lesson that quietly rewrites its own promise is
+  the defect it was recording.
+
+  > **NOT YET BUILT, and it is owed by the DR-003 resolution pass — stated here so it
+  cannot become a promise nobody kept.** Two, both mechanical: (a) a `keel-verify` check that every
+  `#ks-*` referenced anywhere under `installer/admin/` resolves to a `<symbol id>` in
+  `assets/icons/klytos-ui-icons.svg` — today it would pass on zero references, which is the point:
+  it fails the moment the first bad `<use>` is written, instead of a year later when someone
+  screenshots an empty box; and (b) a **glyph-presence row per screen** in the Step 1 gate's evidence
+  table, so a future handoff cannot pass by declaring its sprite complete. What is **not** checkable
+  mechanically, said plainly: nothing can verify that a SPEC file covers everything it needed to
+  cover — `template-shell.md`'s silence about the nav's contents would satisfy any presence check.
+  That stays a habit, and the habit is: **for every artifact the gate proves EXISTS, ask separately
+  what CONSUMES it, and check the consumer's demands against the artifact's contents.**

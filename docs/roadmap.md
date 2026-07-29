@@ -16,6 +16,8 @@
 
 | # | Step | Why here | Closes / delivers |
 |---|------|----------|-------------------|
+| 0 | **Phase 4 — the admin redesign build** | In progress; the gate passed and the contract is written (`docs/BUILD-SPEC.md` §5). Runs ahead of everything below because it rewrites the surfaces the later steps would otherwise harden twice | 40 of the 44 manifest entries |
+| 0b | **The four deferred entries** (§0b below) | Split out of Phase 4 by **D-072** because each is product scope, not fidelity | entries **11 Verify** (+ NEW-38), **14 Comments**, **17 Setup wizard**, **22 Health** |
 | 1 | **The `.gitattributes` review** | One line of work that unblocks a shipped feature and a promise already made to a user | **NEW-27**, **NEW-28**, **H-02** |
 | 2 | **Finish the hardening** | The audit's remaining live findings, most already scoped with triggers | NEW-17, NEW-32, NEW-35, NEW-38, NEW-42, NEW-13 and the LOW tail |
 | 3 | **Accessibility** | The largest measured gap against a target the project has already committed to (D-007), with legal exposure that lands on Klytos's users | **A-01…A-07** |
@@ -23,6 +25,18 @@
 | 5 | **Phase 6 — documentation** | Consolidation, once the surfaces have stopped moving | D-01…D-06, the end-user guide, the bilingual in-product guides |
 | 6 | **Phase 7 — release** | The full release gate, which closes the hygiene bucket by construction | H-01, H-03, H-05, H-07, T-03, T-04, the D-038 asset contract, D-027's PHP floor |
 | 7 | **Phase 8 — the site** | Deferred by **D-012** until requested | klytos.io |
+
+## 0b. The four entries Phase 4 does not build (D-072)
+
+Deferred with reasons, not dropped. They remain manifest entries and remain in `BUILD-SPEC.md` §5.1;
+the redesign is **not reportable as complete** while they are outstanding.
+
+| Entry | Slice shape | Why it is not Phase 4 work |
+|---|---|---|
+| **17 Setup wizard** | Restructure `installer/install.php` from three steps to the manifest's seven | Product scope, not fidelity. **NEW-04 makes `install.php` destructive in a checkout**, so the slice must design a non-destructive way to drive it (a disposable copy) before it writes a line. `admin/setup-wizard.php` is a different screen the design says nothing about and keeps its current UI. Its deferral also means **`template-wizard.md` is not built in Phase 4** — entry 17 is that template's only consumer |
+| **11 Verify** | Split the pending-2FA branch out of `login.php` into its own screen — **paired with NEW-38** | Touches the authentication flow Sprint 5 closed (D-056…D-058). Pairing it with the OAuth consent screen's 2FA gap stops one slice hardening a path another is rebuilding |
+| **14 Comments** | A new admin screen over the existing `core/comment-manager.php` | No admin screen exists at all. **L-014** is this project's recorded history of what "the comment feature" actually costs — the manager working is not the same as the feature working end to end |
+| **22 Health** | A data source first, then the screen | No backing surface exists in the tree. A screen built before its source would be a design with nothing behind it |
 
 ## 1. The `.gitattributes` review — first, and it is one line
 
