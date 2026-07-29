@@ -1,0 +1,7 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Klytos">
+  <rect width="120" height="120" rx="27" fill="#0E8074"></rect>
+  <g transform="rotate(45 60 60)"><rect x="37" y="37" width="46" height="46" rx="11" fill="#FFFFFF"></rect></g>
+  <rect x="54.5" y="35.5" width="11" height="11" rx="2.6" transform="rotate(45 60 41)" fill="#0E8074"></rect>
+  <path d="M49 64 l9 9 16 -16" stroke="#0E8074" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>

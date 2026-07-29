@@ -1,0 +1,40 @@
+/* ============================================================
+   ORIGEN / ORIGIN — inherited, unmodified, from the PackDesk Design System
+   (José Conti), Paleta B "Mediterráneo". Source of truth:
+   PackDesk Design System › tokens/spacing.css. Do not fork; upstream owns these values.
+
+   SCOPE FOR THIS DELIVERY — Klytos admin panel (PHP multi-page app at
+   /<random>-admin/), light and dark. Target surfaces: the admin shell, all 41 admin screens, and the auth pages.
+   What is Klytos's own contract vs. inherited furniture the admin never
+   uses: SPEC/design-tokens.md.
+   ============================================================ */
+
+/* ============================================================
+   PackDesk — Espaciado y radios.  Base 4/8.
+   ============================================================ */
+
+:root {
+  /* Espaciado */
+  --esp-2:  2px;   /* hairlines y ajustes ópticos */
+  --esp-4:  4px;
+  --esp-6:  6px;   /* padding interno de chips/badges */
+  --esp-8:  8px;
+  --esp-12: 12px;
+  --esp-16: 16px;
+  --esp-24: 24px;
+  --esp-32: 32px;
+  --esp-48: 48px;
+
+  /* Radios (emulación del material del sistema) */
+  --radio-control: 6px;    /* botones pequeños, campos */
+  --radio-card:    10px;   /* tarjetas, filas destacadas */
+  --radio-popover: 12px;   /* popovers, hojas */
+  --radio-ventana: 12px;   /* esquina de ventana (la pone el sistema) */
+  --radio-pildora: 999px;  /* badges, cápsulas, conmutador */
+
+  /* Alias genéricos */
+  --radius-control: var(--radio-control);
+  --radius-card:    var(--radio-card);
+  --radius-popover: var(--radio-popover);
+  --radius-pill:    var(--radio-pildora);
+}

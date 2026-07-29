@@ -45,7 +45,39 @@ $version   = $app->getVersion();
     <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/vendor/fontawesome/css/all.min.css' ); ?>">
     <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-tokens.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
     <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-base.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
-    <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-components.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
+    <?php
+    /*
+     * Design-handoff token layer (Phase 4 Step 4, stage 1 — docs/BUILD-SPEC.md §5.9).
+     *
+     * The order is NOT free: it is the load order SPEC/design-tokens.md §"Load order"
+     * declares, and `klytos-admin.css` is LAST on purpose — it is the only Klytos-owned
+     * file of the set and it carries real enforcement rules (:focus-visible, .k-hit-24,
+     * reduced-motion, forced-colors), not just declarations. The delivered
+     * `tokens/klytos-components.css` consumer follows immediately after, as the SPEC says.
+     *
+     * `tokens/platform.css` is delivered but deliberately NOT loaded: SPEC/design-tokens.md
+     * lists "platform.css in full" under "Inherited and NOT used — do not implement" (native
+     * densities and touch targets; the admin is a browser surface). It is kept on disk so the
+     * set stays diffable against upstream.
+     */
+    $klytosDesignTokens = [
+        'colors.css',
+        'typography.css',
+        'spacing.css',
+        'effects.css',
+        'motion.css',
+        'glass.css',
+        'fonts.css',
+        'klytos-admin.css',
+    ];
+    $klytosDesignTokens = klytos_apply_filters( 'admin.design_tokens', $klytosDesignTokens );
+    foreach ( $klytosDesignTokens as $tokenFile ) {
+        echo '<link rel="stylesheet" href="'
+            . klytos_esc_url( $adminPath . 'assets/css/tokens/' . $tokenFile )
+            . '?v=' . klytos_esc_attr( $version ) . '">' . "\n    ";
+    }
+    ?>
+<link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-components.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
     <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-sidebar.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
     <link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-utilities.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
     <?php
