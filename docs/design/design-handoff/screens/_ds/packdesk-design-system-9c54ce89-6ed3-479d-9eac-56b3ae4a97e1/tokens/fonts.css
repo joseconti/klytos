@@ -1,0 +1,32 @@
+/* ============================================================
+   PackDesk — Fuentes de marca (AUTO-HOSPEDADAS).
+   UI:    Geist        (Apple nativo: SF Pro)
+   Mono:  Geist Mono   (Apple nativo: SF Mono) — cifras, SKU, importes, versiones.
+
+   Binarios en /fonts: woff2 VARIABLE (eje wght 100–900, un archivo por familia,
+   cubre todos los pesos que usa la escala: 400/500/600/700). Licencia SIL OFL
+   en /fonts/OFL.txt. Ya NO se depende de Google Fonts: la marca queda disponible
+   offline y en cualquier proyecto que herede el sistema, sin pedir los archivos.
+   Para pesos concretos estáticos, los .woff2 por peso están en el paquete Geist.
+   ============================================================ */
+
+@font-face {
+  font-family: "Geist";
+  src: url("../fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Las caras NATIVAS del SO (SF Pro en Apple, Segoe UI Variable en Windows 11,
+   Roboto en Android) NO se declaran aquí: no son webfonts, vienen con el
+   sistema operativo y no hay ningún archivo que subir. Se invocan con las
+   palabras clave -apple-system / system-ui en typography.css. */

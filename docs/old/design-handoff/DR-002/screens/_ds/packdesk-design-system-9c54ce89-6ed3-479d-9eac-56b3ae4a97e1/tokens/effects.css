@@ -1,0 +1,21 @@
+/* ============================================================
+   PackDesk — Sombras y foco.
+   Cuatro elevaciones. El foco de teclado es SIEMPRE visible.
+   ============================================================ */
+
+:root {
+  --sombra-card:    0 1px 3px rgba(0, 0, 0, 0.10);
+  --sombra-popover: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --sombra-hoja:    0 16px 48px rgba(0, 0, 0, 0.24);
+  --sombra-ventana: 0 24px 80px rgba(0, 0, 0, 0.35);
+
+  /* Anillo de foco: 2 px en acento, offset 2 px, sobre cualquier control */
+  --foco-grosor: 2px;
+  --foco-offset: 2px;
+
+  /* Alias genéricos */
+  --shadow-card:    var(--sombra-card);
+  --shadow-popover: var(--sombra-popover);
+  --shadow-sheet:   var(--sombra-hoja);
+  --shadow-window:  var(--sombra-ventana);
+}

@@ -1,0 +1,110 @@
+/* ============================================================
+   ORIGEN / ORIGIN — inherited, unmodified, from the PackDesk Design System
+   (José Conti), Paleta B "Mediterráneo". Source of truth:
+   PackDesk Design System › tokens/glass.css. Do not fork; upstream owns these values.
+
+   SCOPE FOR THIS DELIVERY — Klytos admin panel (PHP multi-page app at
+   /<random>-admin/), light and dark. Target surfaces: sidebar and toolbar fallbacks only (--glass-fallback-*). The admin is a browser surface: no Liquid Glass, no blur.
+   What is Klytos's own contract vs. inherited furniture the admin never
+   uses: SPEC/design-tokens.md.
+   ============================================================ */
+
+/* ============================================================
+   PackDesk — Materiales por plataforma. Liquid Glass (Apple 26+).
+
+   REGLA — NO SE INVENTA EL MATERIAL: en las apps nativas de Apple
+   el cristal lo pinta el SISTEMA con su API oficial de Liquid Glass
+   (SwiftUI .glassEffect / UIKit UIGlassEffect / AppKit
+   NSGlassEffectView). Jamás se implementa un cristal "a mano" con
+   blur propio en código nativo. Los tokens --cristal-* de este
+   archivo existen SOLO para que los prototipos HTML/web se
+   aproximen al aspecto real; no son una implementación.
+
+   Jerarquía de capas: 1) CONTENIDO (nunca cristal) · 2) NAVEGACIÓN
+   (Liquid Glass: barras, tab bar, sidebar, hojas, popovers, FAB,
+   controles flotantes) · 3) OVERLAY (texto/iconos vibrantes).
+   Reglas: nunca cristal sobre el contenido; nunca cristal sobre
+   cristal; tinte SOLO en la acción primaria de cada contexto.
+
+   El blur clásico (--glass-sidebar / --glass-toolbar en colors.css,
+   receta blur 28–30px) queda EXCLUSIVAMENTE como fallback: se usa
+   cuando el usuario activa "Reducir transparencia" o el OS es < 26.
+   El sistema cae solo; se diseñan siempre AMBAS versiones.
+
+   Nativo (el puente diseño → código):
+     superficie cristal      .glassEffect(.regular, in: <forma>)
+     acción primaria/secund. .buttonStyle(.glassProminent) / .glass
+     lozenge deslizable      .interactive() + glassEffectID
+                             + GlassEffectContainer + gesto
+     tab bar minimizable     .tabBarMinimizeBehavior(.onScrollDown)
+     fallback < 26           .regularMaterial / NSVisualEffectView
+   Otras plataformas: Windows = Mica/Acrylic (sidebar/toolbar);
+   Android = elevación Material (sin translucidez).
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+  /* --- Material (variante regular: por defecto en toda la navegación) --- */
+  --cristal-regular:      rgba(255, 255, 255, 0.55);
+  --cristal-blur:         blur(26px) saturate(170%); /* @kind other */
+
+  /* --- Variante clear: solo controles pequeños sobre media contrastada --- */
+  --cristal-clear:        rgba(255, 255, 255, 0.14);
+  --cristal-blur-clear:   blur(6px) saturate(150%); /* @kind other */
+
+  /* --- Lensing/rim (borde especular, luz superior) y sombra flotante --- */
+  --cristal-borde:        inset 0 1px 0 rgba(255, 255, 255, 0.60),
+                          inset 0 0 0 0.5px rgba(255, 255, 255, 0.30); /* @kind shadow */
+  --cristal-sombra:       0 10px 30px rgba(0, 0, 0, 0.14),
+                          0 2px 6px rgba(0, 0, 0, 0.06);
+  /* Canto/edge del cristal: trazo claro del borde (lensing) para la ventana
+     y superficies de cristal. Va como `border`, no como sombra inset. */
+  --cristal-canto:        rgba(255, 255, 255, 0.60);
+
+  /* --- Lozenge (burbuja deslizable del tab bar / segmented) --- */
+  --cristal-lozenge:      rgba(255, 255, 255, 0.78);
+  --cristal-lozenge-sombra: 0 2px 8px rgba(0, 0, 0, 0.14);
+
+  /* --- Prominente con tinte (SOLO la acción primaria) --- */
+  --cristal-acento:       color-mix(in srgb, var(--color-acento) 80%, transparent);
+  --cristal-sombra-acento: 0 10px 26px color-mix(in srgb, var(--color-acento) 38%, transparent),
+                           0 2px 6px rgba(0, 0, 0, 0.10);
+
+  /* --- Fallback sólido (Reducir transparencia / OS < 26) --- */
+  --cristal-fallback:         var(--glass-fallback-toolbar);
+  --cristal-fallback-sidebar: var(--glass-fallback-sidebar);
+}
+
+[data-theme="dark"] {
+  --cristal-regular:      rgba(30, 30, 36, 0.62);
+  --cristal-blur:         blur(26px) saturate(150%); /* @kind other */
+
+  --cristal-clear:        rgba(16, 16, 20, 0.20);
+  --cristal-blur-clear:   blur(6px) saturate(140%); /* @kind other */
+
+  --cristal-borde:        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+                          inset 0 0 0 0.5px rgba(255, 255, 255, 0.10); /* @kind shadow */
+  --cristal-sombra:       0 12px 34px rgba(0, 0, 0, 0.50),
+                          0 2px 6px rgba(0, 0, 0, 0.30);
+  --cristal-canto:        rgba(255, 255, 255, 0.32);
+
+  --cristal-lozenge:      rgba(255, 255, 255, 0.16);
+  --cristal-lozenge-sombra: 0 2px 8px rgba(0, 0, 0, 0.35);
+
+  --cristal-acento:       color-mix(in srgb, var(--color-acento) 82%, transparent);
+  --cristal-sombra-acento: 0 10px 28px color-mix(in srgb, var(--color-acento) 34%, transparent),
+                           0 2px 6px rgba(0, 0, 0, 0.30);
+
+  --cristal-fallback:         var(--glass-fallback-toolbar);
+  --cristal-fallback-sidebar: var(--glass-fallback-sidebar);
+}
+
+:root {
+  /* --- Alias genéricos (mismo valor, nombre portable) --- */
+  --liquid-glass:            var(--cristal-regular);
+  --liquid-glass-blur:       var(--cristal-blur);
+  --liquid-glass-rim:        var(--cristal-borde);
+  --liquid-glass-shadow:     var(--cristal-sombra);
+  --liquid-glass-tinted:     var(--cristal-acento);
+  --liquid-glass-fallback:   var(--cristal-fallback);
+}

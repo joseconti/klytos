@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/colors.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/typography.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/effects.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/motion.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/platform.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/glass.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+<script src="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:#E7E7EA;color:#1D1D1F;font-family:"Geist",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#0E8074;text-decoration:none}
+  a:hover{color:#0a6b61;text-decoration:underline}
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
+  @keyframes klytos-pulse{0%,100%{opacity:.35;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+</style>
+</helmet>
+
+<div style="padding:48px 48px 72px;display:flex;flex-direction:column;gap:18px;width:1536px">
+
+  <div>
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+      <span style="font:600 11px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:#6E6E73">Copilot dock · batch 4</span>
+      <h1 style="font:700 26px/32px var(--font-ui);letter-spacing:-0.02em;color:#1D1D1F">Integrations, the law, and the owner's own account</h1>
+    </div>
+    <p style="font:400 13px/20px var(--font-ui);color:#6E6E73;max-width:880px;text-wrap:pretty">The last of the admin surface: outbound webhooks with delivery history, the consent banner and its cookie audit, GDPR export and erasure, the profile, the licence, AI image generation, and the raw options store for when something has to be fixed by hand.</p>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ screenChips }}" as="s" hint-placeholder-count="7">
+      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ s.selected }}" on-click="{{ s.onClick }}" hint-size="auto,24px">{{ s.label }}</x-import>
+    </sc-for>
+    <span style="width:1px;height:20px;background:rgba(0,0,0,0.12);margin:0 6px"></span>
+    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" on-click="{{ toggleTheme }}" hint-size="auto,24px">{{ themeLabel }}</x-import>
+  </div>
+
+  <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ frameW }}" height="{{ frameH }}" url="{{ url }}" tabs="{{ tabs }}" hint-size="1440px,976px">
+    <div data-theme="{{ theme }}" data-screen-label="{{ label }}" style="width:100%;height:100%;display:flex;position:relative;background:var(--fondo-ventana);color:var(--texto-primario);font-family:var(--font-ui);overflow:hidden">
+
+      <aside style="width:232px;flex-shrink:0;background:var(--glass-fallback-sidebar);border-right:1px solid var(--separador);display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:8px;padding:16px 14px 12px">
+          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Logo" first="Kly" second="tos" icon="{{ yes }}" size="{{ logoSize }}" hint-size="auto,24px"></x-import>
+          <span style="margin-left:auto;font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">0.28.5</span>
+        </div>
+        <div style="padding:0 12px 10px;position:relative">
+          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.SearchField" placeholder="Search or ask" hint-size="100%,32px"></x-import>
+          <span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font:500 10px/14px var(--font-mono);color:var(--texto-terciario);padding:1px 5px;border-radius:4px;background:var(--fila-hover)">⌘K</span>
+        </div>
+        <nav style="flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ navGroups }}" as="group" hint-placeholder-count="5">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <div style="padding:6px 8px 4px;font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ group.label }}</div>
+              <sc-for list="{{ group.items }}" as="item" hint-placeholder-count="4">
+                <a href="#b4" onClick="{{ item.onClick }}" style="display:flex;align-items:center;gap:9px;height:30px;padding:0 8px;border-radius:6px;background:{{ item.bg }};color:{{ item.fg }};text-decoration:none">
+                  <span class="material-symbols-outlined" style="font-size:18px;flex-shrink:0">{{ item.icon }}</span>
+                  <span style="flex:1;font:{{ item.font }} 13px/16px var(--font-ui)">{{ item.label }}</span>
+                  <span style="font:500 10px/14px var(--font-mono);color:{{ item.countFg }}">{{ item.count }}</span>
+                </a>
+              </sc-for>
+            </div>
+          </sc-for>
+        </nav>
+        <div style="border-top:1px solid var(--separador);padding:10px 12px;display:flex;align-items:center;gap:9px">
+          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Avatar" initials="JC" size="{{ avatarSize }}" hint-size="24px,24px"></x-import>
+          <span style="flex:1;min-width:0;font:400 12px/15px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">José Conti · Owner</span>
+          <a href="logout.php" class="material-symbols-outlined" style="font-size:17px;color:var(--texto-terciario);text-decoration:none">logout</a>
+        </div>
+      </aside>
+
+      <main style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--fondo-ventana)">
+        <div style="height:50px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--glass-fallback-toolbar);border-bottom:1px solid var(--separador)">
+          <span style="font:400 12px/15px var(--font-ui);color:var(--texto-terciario)">klytos.io</span>
+          <span class="material-symbols-outlined" style="font-size:16px;color:var(--texto-terciario)">chevron_right</span>
+          <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">{{ title }}</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+            <sc-for list="{{ toolbarActions }}" as="a" hint-placeholder-count="2">
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="{{ a.variant }}" size="sm" hint-size="auto,28px">{{ a.label }}</x-import>
+            </sc-for>
+          </span>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:20px">
+
+          <sc-if value="{{ isWebhooks }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,330px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Endpoints</h2>
+                    <span style="font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">4</span>
+                    <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Add endpoint</x-import></span>
+                  </div>
+                  <sc-for list="{{ webhooks }}" as="w" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:flex-start;gap:13px;padding:13px 16px;border-top:1px solid var(--separador);background:{{ w.rowBg }}">
+                      <span style="width:8px;height:8px;border-radius:999px;background:{{ w.dot }};flex-shrink:0;margin-top:6px"></span>
+                      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                        <div style="display:flex;align-items:center;gap:9px">
+                          <span style="font:500 12px/17px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ w.url }}</span>
+                          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ w.tone }}" dot="{{ yes }}" hint-size="auto,20px">{{ w.state }}</x-import>
+                          <span style="margin-left:auto;font:400 11px/15px var(--font-mono);color:var(--texto-terciario)">{{ w.last }}</span>
+                        </div>
+                        <span style="font:400 11px/16px var(--font-ui);color:var(--texto-secundario)">{{ w.desc }}</span>
+                        <div style="display:flex;gap:5px;flex-wrap:wrap">
+                          <sc-for list="{{ w.events }}" as="e" hint-placeholder-count="3">
+                            <span style="font:400 11px/19px var(--font-mono);color:var(--texto-secundario);padding:0 7px;border-radius:5px;background:var(--fila-hover)">{{ e.label }}</span>
+                          </sc-for>
+                        </div>
+                      </div>
+                      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+                        <span style="font:400 11px/15px var(--font-ui);color:{{ w.failColor }}">{{ w.failures }}</span>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">{{ w.action }}</x-import>
+                      </div>
+                    </div>
+                  </sc-for>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,290px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:13px 16px 10px;border-bottom:1px solid var(--separador)">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Recent deliveries</h2>
+                    <span style="margin-left:auto;font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Retries use exponential backoff, then the endpoint is paused</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:80px 1fr 190px 70px 80px 90px;gap:12px;padding:8px 16px;border-bottom:1px solid var(--separador)">
+                    <sc-for list="{{ deliveryCols }}" as="c" hint-placeholder-count="6">
+                      <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:{{ c.align }}">{{ c.label }}</span>
+                    </sc-for>
+                  </div>
+                  <sc-for list="{{ deliveries }}" as="d" hint-placeholder-count="6">
+                    <div style="display:grid;grid-template-columns:80px 1fr 190px 70px 80px 90px;gap:12px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--separador)">
+                      <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ d.time }}</span>
+                      <span style="font:400 12px/16px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.event }}</span>
+                      <span style="font:400 11px/16px var(--font-mono);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.target }}</span>
+                      <span style="font:600 11px/16px var(--font-mono);color:{{ d.codeColor }};text-align:right">{{ d.code }}</span>
+                      <span style="font:400 11px/16px var(--font-mono);color:var(--texto-secundario);text-align:right">{{ d.ms }}</span>
+                      <span style="text-align:right;font:500 11px/16px var(--font-ui);color:{{ d.actionColor }}">{{ d.action }}</span>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" style="{{ panelW }}" hint-size="360px,420px">
+                <div style="padding:14px 16px 10px;border-bottom:1px solid var(--separador)">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="material-symbols-outlined" style="font-size:17px;color:var(--color-acento)">webhook</span>
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Payload signature</h2>
+                  </div>
+                  <p style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario);margin-top:5px;text-wrap:pretty">Every request carries an HMAC-SHA256 header. Verify it before you trust the body.</p>
+                </div>
+                <div style="padding:14px 16px;background:var(--fondo-ventana);display:flex;flex-direction:column;gap:2px">
+                  <sc-for list="{{ payload }}" as="l" hint-placeholder-count="10">
+                    <span style="font:400 12px/19px var(--font-mono);color:{{ l.color }};white-space:pre">{{ l.text }}</span>
+                  </sc-for>
+                </div>
+                <div style="padding:13px 16px;border-top:1px solid var(--separador);display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;font:500 12px/16px var(--font-ui);color:var(--texto-primario)">Signing secret</span>
+                    <span style="font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">whsec_••••9f2a</span>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ grow }}" hint-size="100%,30px">Reveal</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ grow }}" hint-size="100%,30px">Rotate</x-import>
+                  </div>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isConsent }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 420px;gap:14px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,230px">
+                  <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Banner</h2>
+                      <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="exito" dot="{{ yes }}" hint-size="auto,20px">Live</x-import></span>
+                    </div>
+                    <sc-for list="{{ consentToggles }}" as="t" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <span style="flex:1;min-width:0">
+                          <span style="display:block;font:500 12px/16px var(--font-ui);color:var(--texto-primario)">{{ t.label }}</span>
+                          <span style="display:block;font:400 11px/16px var(--font-ui);color:var(--texto-terciario);text-wrap:pretty">{{ t.hint }}</span>
+                        </span>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Switch" checked="{{ t.on }}" hint-size="38px,22px"></x-import>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,360px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Cookie and script audit</h2>
+                    <span style="margin-left:auto;font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Scanned 26 Jul · 09:12</span>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Re-scan</x-import>
+                  </div>
+                  <div style="display:grid;grid-template-columns:170px 120px 90px 1fr;gap:12px;padding:8px 16px;border-bottom:1px solid var(--separador)">
+                    <sc-for list="{{ cookieCols }}" as="c" hint-placeholder-count="4">
+                      <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ c.label }}</span>
+                    </sc-for>
+                  </div>
+                  <sc-for list="{{ cookies }}" as="k" hint-placeholder-count="6">
+                    <div style="display:grid;grid-template-columns:170px 120px 90px 1fr;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--separador)">
+                      <span style="font:400 12px/17px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ k.name }}</span>
+                      <span><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ k.tone }}" hint-size="auto,20px">{{ k.type }}</x-import></span>
+                      <span style="font:400 11px/17px var(--font-mono);color:var(--texto-secundario)">{{ k.duration }}</span>
+                      <span style="font:400 12px/17px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ k.desc }}</span>
+                    </div>
+                  </sc-for>
+                  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px">
+                    <span class="material-symbols-outlined" style="font-size:17px;color:var(--color-aviso)">warning</span>
+                    <span style="flex:1;font:400 12px/17px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">One script loads before consent is given — <span style="font-family:var(--font-mono)">vimeo.com/player.js</span> on /blog/ai-first-cms.</span>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">Gate it</x-import>
+                  </div>
+                </x-import>
+              </div>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="420px,420px">
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span class="material-symbols-outlined" style="font-size:17px;color:var(--color-acento)">visibility</span>
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Preview</h2>
+                    <span style="margin-left:auto;font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Bottom · Español</span>
+                  </div>
+                  <div style="border:1px solid var(--separador);border-radius:10px;overflow:hidden;background:var(--fondo-ventana)">
+                    <div style="height:96px;background:var(--fila-hover);display:flex;flex-direction:column;gap:6px;padding:14px">
+                      <span style="width:46%;height:8px;border-radius:3px;background:var(--separador)"></span>
+                      <span style="width:78%;height:6px;border-radius:3px;background:var(--separador)"></span>
+                      <span style="width:64%;height:6px;border-radius:3px;background:var(--separador)"></span>
+                    </div>
+                    <div style="padding:14px;background:var(--fondo-elevado);border-top:1px solid var(--separador);display:flex;flex-direction:column;gap:11px">
+                      <span style="font:600 13px/18px var(--font-ui);color:var(--texto-primario)">Cookies en klytos.io</span>
+                      <span style="font:400 12px/18px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">Usamos cookies propias para el funcionamiento del sitio y, si lo permites, de analítica. Puedes cambiar de opinión cuando quieras.</span>
+                      <div style="display:flex;gap:8px">
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ grow }}" hint-size="100%,30px">Rechazar</x-import>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ grow }}" hint-size="100%,30px">Preferencias</x-import>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" size="sm" style="{{ grow }}" hint-size="100%,30px">Aceptar</x-import>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:9px;padding-top:3px">
+                    <sc-for list="{{ consentStats }}" as="c" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="flex:1;font:400 12px/17px var(--font-ui);color:var(--texto-secundario)">{{ c.label }}</span>
+                        <span style="width:120px"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Progress" value="{{ c.value }}" show-value="{{ no }}" hint-size="120px,8px"></x-import></span>
+                        <span style="width:44px;text-align:right;font:500 12px/17px var(--font-mono);color:var(--texto-primario)">{{ c.pct }}</span>
+                      </div>
+                    </sc-for>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Last 30 days · 18,402 visitors · records kept for 24 months</span>
+                  </div>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isPrivacy }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:stretch;gap:20px;height:34px;border-bottom:1px solid var(--separador)">
+                <sc-for list="{{ privacyTabs }}" as="t" hint-placeholder-count="2">
+                  <span style="display:flex;align-items:center;font:{{ t.font }} 13px/16px var(--font-ui);color:{{ t.fg }};box-shadow:{{ t.underline }}">{{ t.label }}</span>
+                </sc-for>
+                <span style="margin-left:auto;display:flex;align-items:center;gap:10px">
+                  <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Requests are logged and answered within 30 days</span>
+                </span>
+              </div>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,110px">
+                <div style="display:flex;align-items:flex-end;gap:12px">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+                    <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Find the person</span>
+                    <div style="height:34px;padding:0 11px;border:1px solid var(--color-acento);border-radius:6px;background:var(--fondo-ventana);display:flex;align-items:center;gap:9px;outline:2px solid var(--color-acento);outline-offset:2px">
+                      <span class="material-symbols-outlined" style="font-size:16px;color:var(--texto-terciario)">search</span>
+                      <span style="flex:1;font:400 13px/34px var(--font-mono);color:var(--texto-primario)">laura@estudio.es</span>
+                    </div>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Email address or username. Matches across users, comments, form entries and logs.</span>
+                  </div>
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" hint-size="auto,34px">Search</x-import>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,360px">
+                <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--separador)">
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Avatar" initials="LM" tone="acento" size="{{ bigAvatar }}" hint-size="32px,32px"></x-import>
+                  <span style="min-width:0">
+                    <span style="display:block;font:600 13px/17px var(--font-ui);color:var(--texto-primario)">Laura Méndez</span>
+                    <span style="display:block;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">laura@estudio.es · subscriber since 2025-11-04</span>
+                  </span>
+                  <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Export JSON</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Export HTML</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Email to them</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="destructive" size="sm" hint-size="auto,28px">Erase selected</x-import>
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:30px 1fr 190px 130px 90px;gap:12px;padding:8px 16px;border-bottom:1px solid var(--separador)">
+                  <sc-for list="{{ privacyCols }}" as="c" hint-placeholder-count="5">
+                    <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:{{ c.align }}">{{ c.label }}</span>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ dataSections }}" as="d" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:30px 1fr 190px 130px 90px;gap:12px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--separador);background:{{ d.rowBg }}">
+                    <span style="width:13px;height:13px;border-radius:3px;border:1.5px solid {{ d.checkBorder }};background:{{ d.checkBg }}"></span>
+                    <span style="display:flex;align-items:center;gap:9px;min-width:0">
+                      <span class="material-symbols-outlined" style="font-size:16px;color:{{ d.color }};flex-shrink:0">{{ d.icon }}</span>
+                      <span style="font:500 13px/17px var(--font-ui);color:var(--texto-primario)">{{ d.name }}</span>
+                    </span>
+                    <span style="font:400 12px/17px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.method }}</span>
+                    <span><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ d.tone }}" hint-size="auto,20px">{{ d.status }}</x-import></span>
+                    <span style="font:500 12px/17px var(--font-mono);color:var(--texto-primario);text-align:right">{{ d.items }}</span>
+                  </div>
+                </sc-for>
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 16px">
+                  <span class="material-symbols-outlined" style="font-size:17px;color:var(--texto-terciario)">gavel</span>
+                  <span style="font:400 12px/17px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">Invoices are kept for six years — Spanish tax law overrides the erasure request for that section only.</span>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 400px;gap:14px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,340px">
+                  <div style="display:flex;flex-direction:column;gap:15px">
+                    <div style="display:flex;align-items:center;gap:14px">
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Avatar" initials="JC" tone="acento" size="{{ hugeAvatar }}" hint-size="56px,56px"></x-import>
+                      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                        <span style="font:600 15px/20px var(--font-ui);color:var(--texto-primario)">José Conti</span>
+                        <span style="font:400 12px/17px var(--font-mono);color:var(--texto-terciario)">jose@joseconti.com · owner · since 2025-09-01</span>
+                      </div>
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Change avatar</x-import>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                      <sc-for list="{{ profileFields }}" as="f" hint-placeholder-count="6">
+                        <div style="display:flex;flex-direction:column;gap:5px;grid-column:{{ f.span }}">
+                          <span style="font:600 12px/16px var(--font-ui);color:var(--texto-primario)">{{ f.label }}</span>
+                          <div style="min-height:34px;padding:{{ f.pad }};border:1px solid var(--separador);border-radius:6px;background:var(--fondo-ventana);font:400 13px/19px {{ f.family }};color:{{ f.fg }}">{{ f.value }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,240px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--separador)">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Active sessions</h2>
+                    <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Sign out everywhere</x-import></span>
+                  </div>
+                  <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--separador)">
+                      <span class="material-symbols-outlined" style="font-size:19px;color:var(--texto-secundario)">{{ s.icon }}</span>
+                      <span style="flex:1;min-width:0">
+                        <span style="display:block;font:500 12px/17px var(--font-ui);color:var(--texto-primario)">{{ s.device }}</span>
+                        <span style="display:block;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ s.meta }}</span>
+                      </span>
+                      <span style="font:400 11px/16px var(--font-ui);color:{{ s.stateColor }}">{{ s.state }}</span>
+                      <span style="font:500 11px/16px var(--font-ui);color:{{ s.actionColor }}">{{ s.action }}</span>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="400px,250px">
+                  <div style="display:flex;flex-direction:column;gap:13px">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Security</h2>
+                    <sc-for list="{{ securityRows }}" as="r" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:11px">
+                        <span style="width:26px;height:26px;border-radius:7px;background:{{ r.tint }};color:{{ r.color }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:15px">{{ r.icon }}</span></span>
+                        <span style="flex:1;min-width:0">
+                          <span style="display:block;font:500 12px/16px var(--font-ui);color:var(--texto-primario)">{{ r.label }}</span>
+                          <span style="display:block;font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">{{ r.hint }}</span>
+                        </span>
+                        <span style="font:500 11px/16px var(--font-ui);color:var(--color-acento);flex-shrink:0">{{ r.action }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="400px,200px">
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Preferences</h2>
+                    <sc-for list="{{ prefRows }}" as="p" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:12px">
+                        <span style="flex:1;font:400 12px/17px var(--font-ui);color:var(--texto-secundario)">{{ p.label }}</span>
+                        <span style="font:500 12px/17px var(--font-mono);color:var(--texto-primario)">{{ p.value }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isLicense }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 400px;gap:14px;align-items:start">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,220px">
+                  <div style="display:flex;flex-direction:column;gap:15px">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.AppIcon" size="{{ midIcon }}" gradient="{{ yes }}" hint-size="34px,34px"></x-import>
+                      <span style="min-width:0">
+                        <span style="display:block;font:600 15px/20px var(--font-ui);color:var(--texto-primario)">Klytos Agency</span>
+                        <span style="display:block;font:400 12px/17px var(--font-ui);color:var(--texto-secundario)">Unlimited sites · premium plugins · priority support</span>
+                      </span>
+                      <span style="margin-left:auto;display:flex;align-items:center;gap:9px">
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="exito" dot="{{ yes }}" hint-size="auto,20px">Active</x-import>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Check now</x-import>
+                      </span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                      <sc-for list="{{ licenseFacts }}" as="f" hint-placeholder-count="4">
+                        <div style="display:flex;flex-direction:column;gap:3px;padding:11px 12px;border-radius:8px;background:var(--fondo-ventana)">
+                          <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ f.label }}</span>
+                          <span style="font:500 13px/18px var(--font-mono);color:var(--texto-primario)">{{ f.value }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:var(--tinte-offline)">
+                      <span class="material-symbols-outlined" style="font-size:17px;color:var(--texto-secundario)">vpn_key</span>
+                      <span style="flex:1;font:400 12px/17px var(--font-mono);color:var(--texto-secundario)">babf4d60•••••••••••••••••••••••••••••••••ef0df234</span>
+                      <span style="font:500 12px/17px var(--font-ui);color:var(--color-acento)">Copy</span>
+                      <span style="font:500 12px/17px var(--font-ui);color:var(--color-peligro)">Deactivate</span>
+                    </div>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,260px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--separador)">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Activated domains</h2>
+                    <span style="margin-left:auto;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">4 of unlimited</span>
+                  </div>
+                  <sc-for list="{{ domains }}" as="d" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--separador)">
+                      <span style="width:7px;height:7px;border-radius:999px;background:{{ d.dot }};flex-shrink:0"></span>
+                      <span style="flex:1;min-width:0;font:400 12px/17px var(--font-mono);color:var(--texto-primario)">{{ d.host }}</span>
+                      <span style="width:120px;font:400 11px/16px var(--font-ui);color:var(--texto-secundario)">{{ d.role }}</span>
+                      <span style="width:110px;font:400 11px/16px var(--font-mono);color:var(--texto-terciario);text-align:right">{{ d.seen }}</span>
+                      <span style="font:500 11px/16px var(--font-ui);color:var(--color-acento)">Release</span>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="400px,320px">
+                <div style="display:flex;flex-direction:column;gap:13px">
+                  <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">What the licence unlocks</h2>
+                  <sc-for list="{{ entitlements }}" as="e" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:flex-start;gap:10px">
+                      <span class="material-symbols-outlined" style="font-size:16px;color:{{ e.color }};flex-shrink:0;margin-top:1px">{{ e.icon }}</span>
+                      <span style="flex:1;min-width:0">
+                        <span style="display:block;font:500 12px/17px var(--font-ui);color:var(--texto-primario)">{{ e.label }}</span>
+                        <span style="display:block;font:400 11px/16px var(--font-ui);color:var(--texto-terciario);text-wrap:pretty">{{ e.hint }}</span>
+                      </span>
+                    </div>
+                  </sc-for>
+                  <div style="padding:11px 12px;border-radius:8px;background:var(--tinte-acento);display:flex;flex-direction:column;gap:6px">
+                    <span style="font:500 12px/17px var(--font-ui);color:var(--texto-primario)">Renews 2027-03-14 · €390 / year</span>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">If the licence lapses the site keeps working — only updates and premium plugins stop.</span>
+                  </div>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isImages }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:400px 1fr;gap:14px;align-items:start">
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="400px,420px">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <span class="material-symbols-outlined" style="font-size:18px;color:var(--color-acento)">imagesmode</span>
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Generate an image</h2>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <span style="font:600 12px/16px var(--font-ui);color:var(--texto-primario)">Prompt</span>
+                    <div style="min-height:96px;padding:10px 11px;border:1px solid var(--color-acento);border-radius:6px;background:var(--fondo-ventana);font:400 13px/20px var(--font-ui);color:var(--texto-primario);outline:2px solid var(--color-acento);outline-offset:2px;text-wrap:pretty">Wide banner for the x402 docs page: an abstract toll gate made of thin teal lines on a dark background, no text, generous empty space on the right.</div>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Images land in the media library and are referenced by slug, never inlined.</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <sc-for list="{{ imageOpts }}" as="o" hint-placeholder-count="4">
+                      <div style="display:flex;flex-direction:column;gap:5px">
+                        <span style="font:600 12px/16px var(--font-ui);color:var(--texto-primario)">{{ o.label }}</span>
+                        <div style="height:34px;padding:0 11px;border:1px solid var(--separador);border-radius:6px;background:var(--fondo-ventana);display:flex;align-items:center;gap:8px">
+                          <span style="flex:1;font:400 12px/34px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.value }}</span>
+                          <span class="material-symbols-outlined" style="font-size:15px;color:var(--texto-terciario)">unfold_more</span>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Estimated <span style="font-family:var(--font-mono)">$0.04</span> · counts against the monthly cap</span>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" hint-size="auto,34px">Generate</x-import>
+                  </div>
+                </div>
+              </x-import>
+
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,300px">
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Last result</h2>
+                      <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">1536 × 640 · 214 KB · webp</span>
+                      <span style="margin-left:auto;display:flex;gap:8px">
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Regenerate</x-import>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" size="sm" hint-size="auto,28px">Use on /docs/x402</x-import>
+                      </span>
+                    </div>
+                    <image-slot id="klytos-ai-banner" placeholder="Generated banner for /docs/x402 — drop an image here" style="width:100%;height:210px;border-radius:10px"></image-slot>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,260px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:13px 16px 10px;border-bottom:1px solid var(--separador)">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">History</h2>
+                    <span style="margin-left:auto;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">$1.84 this month</span>
+                  </div>
+                  <sc-for list="{{ imageHistory }}" as="h" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--separador)">
+                      <span style="width:34px;height:26px;border-radius:5px;background:{{ h.tint }};flex-shrink:0"></span>
+                      <span style="flex:1;min-width:0;font:400 12px/17px var(--font-ui);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.prompt }}</span>
+                      <span style="width:150px;font:400 11px/16px var(--font-mono);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.model }}</span>
+                      <span style="width:130px;font:400 11px/16px var(--font-mono);color:var(--texto-terciario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.file }}</span>
+                      <span style="width:90px;text-align:right;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ h.date }}</span>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isOptions }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:var(--tinte-aviso)">
+                <span class="material-symbols-outlined" style="font-size:18px;color:var(--color-aviso)">warning</span>
+                <span style="flex:1;font:500 12px/17px var(--font-ui);color:var(--texto-primario);text-wrap:pretty">Raw options. Everything here has a proper screen somewhere else — edit by hand only when support asks you to.</span>
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" hint-size="auto,24px">core</x-import>
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" hint-size="auto,24px">klytos-x402</x-import>
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" hint-size="auto,24px">klytos-forms</x-import>
+              </div>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,480px">
+                <div style="display:flex;align-items:center;gap:10px;padding:13px 16px">
+                  <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Options</h2>
+                  <span style="font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">148</span>
+                  <span style="margin-left:auto;width:260px"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.SearchField" placeholder="Filter by key" hint-size="100%,30px"></x-import></span>
+                </div>
+                <div style="display:grid;grid-template-columns:130px 260px 1fr 120px 90px;gap:12px;padding:8px 16px;border-bottom:1px solid var(--separador)">
+                  <sc-for list="{{ optionCols }}" as="c" hint-placeholder-count="5">
+                    <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:{{ c.align }}">{{ c.label }}</span>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ options }}" as="o" hint-placeholder-count="9">
+                  <div style="display:grid;grid-template-columns:130px 260px 1fr 120px 90px;gap:12px;align-items:center;padding:9px 16px;border-bottom:1px solid var(--separador);background:{{ o.rowBg }}">
+                    <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.domain }}</span>
+                    <span style="font:500 12px/17px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.key }}</span>
+                    <span style="font:400 12px/17px var(--font-mono);color:{{ o.valueColor }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.value }}</span>
+                    <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ o.updated }}</span>
+                    <span style="text-align:right;font:500 11px/16px var(--font-ui);color:{{ o.actionColor }}">{{ o.action }}</span>
+                  </div>
+                </sc-for>
+              </x-import>
+            </div>
+          </sc-if>
+
+        </div>
+
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:9px 20px;border-top:1px solid var(--separador);background:var(--glass-fallback-toolbar)">
+          <span style="font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Klytos <span style="font-family:var(--font-mono)">0.28.5</span> · PHP <span style="font-family:var(--font-mono)">8.3.11</span></span>
+          <span style="margin-left:auto;font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Rendered in <span style="font-family:var(--font-mono)">{{ renderMs }}</span></span>
+        </div>
+      </main>
+
+    </div>
+  </x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1536}}">
+class Component extends DCLogic {
+  state = { screen: 'webhooks', theme: 'dark' };
+
+  go = (screen) => (e) => { if (e) e.preventDefault(); this.setState({ screen }); };
+
+  renderVals() {
+    const s = this.state.screen, theme = this.state.theme;
+    const A = 'var(--color-acento)', T1 = 'var(--texto-primario)', T2 = 'var(--texto-secundario)', T3 = 'var(--texto-terciario)';
+    const sel = 'var(--fila-seleccion)', DANGER = 'var(--color-peligro)';
+
+    const SCREENS = {
+      webhooks: { title: 'Webhooks',  url: 'klytos.io/a7f3k9-admin/webhooks.php', ms: '21 ms' },
+      consent:  { title: 'Consent',   url: 'klytos.io/a7f3k9-admin/consent.php', ms: '26 ms' },
+      privacy:  { title: 'Privacy',   url: 'klytos.io/a7f3k9-admin/privacy.php?tab=erasure', ms: '34 ms' },
+      profile:  { title: 'Profile',   url: 'klytos.io/a7f3k9-admin/profile.php', ms: '17 ms' },
+      license:  { title: 'Licence',   url: 'klytos.io/a7f3k9-admin/license.php', ms: '29 ms' },
+      images:   { title: 'AI images', url: 'klytos.io/a7f3k9-admin/ai-images.php', ms: '48 ms' },
+      options:  { title: 'Options',   url: 'klytos.io/a7f3k9-admin/system-options.php', ms: '22 ms' }
+    };
+    const cur = SCREENS[s];
+
+    const ACTIONS = {
+      webhooks: [{ label: 'Delivery log', variant: 'secondary' }, { label: 'Add endpoint', variant: 'primary' }],
+      consent:  [{ label: 'Export records', variant: 'secondary' }, { label: 'Publish banner', variant: 'primary' }],
+      privacy:  [{ label: 'Request log', variant: 'secondary' }],
+      profile:  [{ label: 'Discard', variant: 'secondary' }, { label: 'Save changes', variant: 'primary' }],
+      license:  [{ label: 'Billing portal', variant: 'secondary' }],
+      images:   [{ label: 'Media library', variant: 'secondary' }],
+      options:  [{ label: 'Export JSON', variant: 'secondary' }, { label: 'Add option', variant: 'primary' }]
+    };
+
+    const nav = (label, icon, screen, count) => ({
+      label, icon, count: count || '',
+      bg: s === screen ? sel : 'transparent',
+      fg: s === screen ? A : T2,
+      font: s === screen ? 500 : 400,
+      countFg: s === screen ? A : T3,
+      onClick: this.go(screen || s)
+    });
+    const navGroups = [
+      { label: 'Site', items: [nav('Overview', 'space_dashboard'), nav('Analytics', 'monitoring')] },
+      { label: 'Content', items: [nav('Pages', 'description', null, '24'), nav('Media', 'perm_media', null, '182'), nav('AI images', 'imagesmode', 'images')] },
+      { label: 'Intelligence', items: [nav('AI chat', 'auto_awesome'), nav('Connections', 'smart_toy', null, '2'), nav('Webhooks', 'webhook', 'webhooks', '4')] },
+      { label: 'Compliance', items: [nav('Consent', 'cookie', 'consent'), nav('Privacy', 'policy', 'privacy', '2')] },
+      { label: 'Account', items: [nav('Profile', 'account_circle', 'profile'), nav('Licence', 'workspace_premium', 'license'), nav('Options', 'data_object', 'options', '148')] }
+    ];
+
+    const chip = (label, screen) => ({ label, selected: s === screen, onClick: this.go(screen) });
+    const screenChips = [chip('Webhooks', 'webhooks'), chip('Consent', 'consent'), chip('Privacy', 'privacy'), chip('Profile', 'profile'), chip('Licence', 'license'), chip('AI images', 'images'), chip('Options', 'options')];
+
+    /* —— Webhooks —— */
+    const webhooks = [
+      ['https://hooks.slack.com/services/T04••/B07••/9f2a', 'Build notifications for the #site channel', ['page.published', 'build.failed'], 'Active', 'exito', 'var(--color-exito)', '2 min ago', 'No failures', T3, 'Send test', true],
+      ['https://api.vercel.com/v1/integrations/deploy/prj_9d', 'Trigger the docs mirror rebuild', ['page.published', 'page.deleted'], 'Active', 'exito', 'var(--color-exito)', '14 min ago', 'No failures', T3, 'Send test', false],
+      ['https://crm.estudio.es/klytos/leads', 'Push contact form entries into the CRM', ['form.submitted'], 'Retrying', 'aviso', 'var(--color-aviso)', '1 h ago', '3 failures', 'var(--color-aviso)', 'Retry now', false],
+      ['https://old-analytics.internal/collect', 'Legacy analytics collector', ['page.viewed'], 'Paused', 'offline', T3, '4 d ago', '17 failures', DANGER, 'Resume', false]
+    ].map(([url, desc, events, state, tone, dot, last, failures, failColor, action, active]) => ({
+      url, desc, state, tone, dot, last, failures, failColor, action,
+      rowBg: active ? sel : 'transparent',
+      events: events.map(label => ({ label }))
+    }));
+    const deliveryCols = [
+      { label: 'Time', align: 'left' }, { label: 'Event', align: 'left' }, { label: 'Endpoint', align: 'left' },
+      { label: 'Code', align: 'right' }, { label: 'Took', align: 'right' }, { label: '', align: 'right' }
+    ];
+    const deliveries = [
+      ['09:41:12', 'page.published', 'hooks.slack.com', '200', 'var(--color-exito)', '184 ms', 'Payload', A],
+      ['09:41:12', 'page.published', 'api.vercel.com', '201', 'var(--color-exito)', '412 ms', 'Payload', A],
+      ['09:12:04', 'form.submitted', 'crm.estudio.es', '502', DANGER, '9.8 s', 'Retry', DANGER],
+      ['08:58:31', 'build.failed', 'hooks.slack.com', '200', 'var(--color-exito)', '160 ms', 'Payload', A],
+      ['08:40:19', 'form.submitted', 'crm.estudio.es', '502', DANGER, '10.0 s', 'Retry', DANGER],
+      ['07:02:55', 'page.deleted', 'api.vercel.com', '201', 'var(--color-exito)', '398 ms', 'Payload', A]
+    ].map(([time, event, target, code, codeColor, ms, action, actionColor]) => ({ time, event, target, code, codeColor, ms, action, actionColor }));
+    const payload = [
+      ['POST /klytos/leads HTTP/1.1', T3],
+      ['X-Klytos-Event: form.submitted', T2],
+      ['X-Klytos-Signature: sha256=4f1c…', A],
+      ['X-Klytos-Delivery: dlv_8827a1', T2],
+      ['', T3],
+      ['{', T3],
+      ['  "event": "form.submitted",', T1],
+      ['  "site": "klytos.io",', T2],
+      ['  "form": "contact",', T2],
+      ['  "entry_id": 1842,', T2],
+      ['  "sent_at": "2026-07-27T09:12:04Z"', T2],
+      ['}', T3]
+    ].map(([text, color]) => ({ text, color }));
+
+    /* —— Consent —— */
+    const consentToggles = [
+      { label: 'Ask before any non-essential cookie', hint: 'Scripts stay blocked until the visitor chooses', on: true },
+      { label: 'Reject is as prominent as accept', hint: 'Required in the EU — both buttons same size', on: true },
+      { label: 'Remember the choice for 6 months', hint: 'Then ask again', on: true },
+      { label: 'Show a floating re-open button', hint: 'Small icon, bottom left, on every page', on: false }
+    ];
+    const cookieCols = [{ label: 'Cookie' }, { label: 'Type' }, { label: 'Duration' }, { label: 'Description' }];
+    const cookies = [
+      ['klytos_session', 'Essential', 'info', 'session', 'Keeps you signed in to the admin'],
+      ['klytos_consent', 'Essential', 'info', '6 months', 'Stores the consent choice itself'],
+      ['klytos_csrf', 'Essential', 'info', 'session', 'Protects forms against cross-site posts'],
+      ['_pk_id', 'Analytics', 'aviso', '13 months', 'Matomo visitor identifier, self-hosted'],
+      ['_pk_ses', 'Analytics', 'aviso', '30 minutes', 'Matomo session identifier'],
+      ['vuid', 'Marketing', 'peligro', '2 years', 'Vimeo player — loads before consent']
+    ].map(([name, type, tone, duration, desc]) => ({ name, type, tone, duration, desc }));
+    const consentStats = [
+      { label: 'Accepted everything', value: 62, pct: '62%' },
+      { label: 'Essential only', value: 31, pct: '31%' },
+      { label: 'Ignored the banner', value: 7, pct: '7%' }
+    ];
+
+    /* —— Privacy —— */
+    const tab = (label, on) => ({ label, font: on ? 600 : 400, fg: on ? T1 : T2, underline: on ? 'inset 0 -2px 0 0 ' + A : 'none' });
+    const privacyTabs = [tab('Export data', false), tab('Erase data', true)];
+    const privacyCols = [
+      { label: '', align: 'left' }, { label: 'Section', align: 'left' }, { label: 'Method', align: 'left' },
+      { label: 'Status', align: 'left' }, { label: 'Items', align: 'right' }
+    ];
+    const dataSections = [
+      ['Account', 'account_circle', A, 'Delete the record', 'Ready', 'info', '1', true],
+      ['Comments', 'forum', 'var(--color-sync)', 'Anonymise author, keep the text', 'Ready', 'info', '14', true],
+      ['Form entries', 'assignment', 'var(--color-conflicto)', 'Delete the record', 'Ready', 'info', '3', true],
+      ['Consent records', 'cookie', 'var(--color-aviso)', 'Delete the record', 'Ready', 'info', '2', true],
+      ['Access logs', 'monitor_heart', T2, 'Truncate the IP address', 'Done', 'exito', '812', false],
+      ['Invoices', 'receipt_long', T3, 'Retained — tax law, 6 years', 'Blocked', 'offline', '2', false]
+    ].map(([name, icon, color, method, status, tone, items, checked]) => ({
+      name, icon, color, method, status, tone, items,
+      rowBg: checked ? sel : 'transparent',
+      checkBorder: checked ? A : T3,
+      checkBg: checked ? A : 'transparent'
+    }));
+
+    /* —— Profile —— */
+    const pf = (label, value, span, mono, pad) => ({ label, value, span: span || 'span 1', family: mono ? 'var(--font-mono)' : 'var(--font-ui)', fg: value ? T1 : T3, pad: pad || '0 11px' });
+    const profileFields = [
+      pf('First name', 'José'),
+      pf('Last name', 'Conti'),
+      pf('Email', 'jose@joseconti.com', 'span 1', true),
+      pf('Website', 'https://joseconti.com', 'span 1', true),
+      pf('Bio', 'Building commerce tooling for WooCommerce and PrestaShop since 2009. Author of Klytos and the PackDesk family.', 'span 2', false, '9px 11px'),
+      pf('Admin language', 'English (en)', 'span 1'),
+      pf('Time zone', 'Europe/Madrid · UTC+2', 'span 1', true)
+    ];
+    const sessions = [
+      ['laptop_mac', 'MacBook Pro · Safari 19', 'Madrid, ES · 88.4.12.190 · started 08:31', 'This device', 'var(--color-exito)', '', T3],
+      ['smartphone', 'iPhone 17 Pro · Klytos app', 'Madrid, ES · 88.4.12.190 · started yesterday', 'Active', T2, 'Sign out', A],
+      ['dns', 'MCP client · Claude Desktop', 'Token kly_live_4c1e · last call 2 min ago', 'Machine', T2, 'Revoke', DANGER]
+    ].map(([icon, device, meta, state, stateColor, action, actionColor]) => ({ icon, device, meta, state, stateColor, action, actionColor }));
+    const securityRows = [
+      ['Password', 'Changed 4 months ago', 'Change', 'password', 'var(--tinte-offline)', T2],
+      ['Two-factor', 'Authenticator app · 8 recovery codes left', 'Manage', 'shield_lock', 'var(--tinte-exito)', 'var(--color-exito)'],
+      ['Passkeys', '2 devices registered', 'Add', 'fingerprint', 'var(--tinte-acento)', A],
+      ['Encryption key', 'Backed up 2026-07-04', 'Download', 'vpn_key', 'var(--tinte-sync)', 'var(--color-sync)']
+    ].map(([label, hint, action, icon, tint, color]) => ({ label, hint, action, icon, tint, color }));
+    const prefRows = [
+      { label: 'Appearance', value: theme === 'dark' ? 'Dark' : 'Light' },
+      { label: 'Row density', value: 'Comfortable' },
+      { label: 'Editor default', value: 'Blocks' },
+      { label: 'Email digest', value: 'Weekly · Monday' }
+    ];
+
+    /* —— Licence —— */
+    const licenseFacts = [
+      { label: 'Plan', value: 'Agency' },
+      { label: 'Activated', value: '2026-03-14' },
+      { label: 'Renews', value: '2027-03-14' },
+      { label: 'Last check', value: '4 h ago' }
+    ];
+    const domains = [
+      ['klytos.io', 'Production', 'seen 2 min ago', 'var(--color-exito)'],
+      ['staging.klytos.io', 'Staging', 'seen 1 h ago', 'var(--color-exito)'],
+      ['estudio.es', 'Client site', 'seen yesterday', 'var(--color-exito)'],
+      ['localhost:8080', 'Development', 'seen 6 d ago', T3]
+    ].map(([host, role, seen, dot]) => ({ host, role, seen, dot }));
+    const entitlements = [
+      ['check_circle', 'var(--color-exito)', 'Unlimited domains', 'Development and staging do not count'],
+      ['check_circle', 'var(--color-exito)', 'Premium plugins', 'x402 Stripe and Coinbase providers included'],
+      ['check_circle', 'var(--color-exito)', 'One-click updates', 'Signed packages, backup before install'],
+      ['check_circle', 'var(--color-exito)', 'Priority support', 'Answered within one business day'],
+      ['remove_circle', T3, 'White-label admin', 'Only on the OEM plan']
+    ].map(([icon, color, label, hint]) => ({ icon, color, label, hint }));
+
+    /* —— AI images —— */
+    const imageOpts = [
+      { label: 'Model', value: 'gpt-image-1' },
+      { label: 'Size', value: '1536 × 640' },
+      { label: 'Quality', value: 'High' },
+      { label: 'Filename', value: 'auto-generated' }
+    ];
+    const imageHistory = [
+      ['Abstract toll gate in thin teal lines, dark background', 'gpt-image-1', 'x402-banner.webp', 'Today 09:38', 'var(--tinte-acento)'],
+      ['Isometric server rack, single accent light, no text', 'gpt-image-1', 'hosting-card.webp', 'Today 09:02', 'var(--tinte-sync)'],
+      ['Soft gradient backdrop for the pricing hero', 'gemini-3-image', 'pricing-bg.webp', 'Yesterday', 'var(--tinte-conflicto)'],
+      ['Line illustration of a passkey on a keyring', 'gpt-image-1', 'passkey-spot.webp', 'Jul 24', 'var(--tinte-aviso)'],
+      ['Open book with a terminal cursor, monochrome', 'gpt-image-1', 'guides-cover.webp', 'Jul 22', 'var(--tinte-offline)']
+    ].map(([prompt, model, file, date, tint]) => ({ prompt, model, file, date, tint }));
+
+    /* —— Options —— */
+    const optionCols = [
+      { label: 'Domain', align: 'left' }, { label: 'Key', align: 'left' }, { label: 'Value', align: 'left' },
+      { label: 'Updated', align: 'left' }, { label: '', align: 'right' }
+    ];
+    const options = [
+      ['core', 'site_title', 'Klytos', '2026-03-14', false],
+      ['core', 'admin_path', 'a7f3k9-admin', '2026-03-14', false],
+      ['core', 'maintenance_mode', 'false', '2026-07-19', false],
+      ['core', 'default_locale', 'en', '2026-05-02', false],
+      ['core', 'build_concurrency', '4', '2026-07-26', true],
+      ['klytos-x402', 'provider', 'stripe', '2026-07-01', false],
+      ['klytos-x402', 'price_per_request', '0.025', '2026-07-01', false],
+      ['klytos-x402', 'exempt_user_agents', '["Googlebot","Bingbot","DuckDuckBot"]', '2026-07-14', false],
+      ['klytos-forms', 'spam_threshold', '0.82', '2026-06-08', false]
+    ].map(([domain, key, value, updated, active]) => ({
+      domain, key, value, updated,
+      valueColor: value === 'false' || value === 'true' ? A : T2,
+      rowBg: active ? sel : 'transparent',
+      action: 'Edit', actionColor: A
+    }));
+
+    return {
+      navGroups, screenChips,
+      theme, themeLabel: theme === 'dark' ? 'Dark' : 'Light',
+      toggleTheme: () => this.setState({ theme: theme === 'dark' ? 'light' : 'dark' }),
+      title: cur.title, url: cur.url, label: cur.title, renderMs: cur.ms,
+      toolbarActions: ACTIONS[s] || [],
+      isWebhooks: s === 'webhooks', isConsent: s === 'consent', isPrivacy: s === 'privacy',
+      isProfile: s === 'profile', isLicense: s === 'license', isImages: s === 'images', isOptions: s === 'options',
+      webhooks, deliveryCols, deliveries, payload,
+      consentToggles, cookieCols, cookies, consentStats,
+      privacyTabs, privacyCols, dataSections,
+      profileFields, sessions, securityRows, prefRows,
+      licenseFacts, domains, entitlements,
+      imageOpts, imageHistory,
+      optionCols, options,
+      yes: true, no: false, zero: 0, cardPad: 20,
+      logoSize: 16, midIcon: 34, avatarSize: 26, bigAvatar: 32, hugeAvatar: 56,
+      grow: { flex: 1 }, panelW: { width: 360, flexShrink: 0 },
+      frameW: 1440, frameH: 976,
+      tabs: [{ title: cur.title + ' — Klytos Admin' }, { title: 'klytos.io' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

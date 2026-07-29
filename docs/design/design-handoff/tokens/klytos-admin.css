@@ -1,0 +1,121 @@
+/* ============================================================
+   KLYTOS ADMIN — capa de accesibilidad del producto.
+   Klytos-owned. NOT inherited from PackDesk.
+
+   Load order (this file LAST, after every PackDesk token file):
+     colors.css → typography.css → spacing.css → effects.css →
+     motion.css → glass.css → fonts.css → klytos-admin.css
+
+   Why this file exists: PackDesk's palette is sacred (colors.css says so —
+   "ni un dígito hex"). The measured audit (SPEC/color-contrast-audit.md)
+   found pairs below WCAG 2.2 AA on the badge tint and on tertiary text.
+   The fix therefore changes the PATTERN, not the palette: the base
+   semantic hexes are untouched and this layer adds the derived tones that
+   text is actually painted in. Every value below is measured, never eyeballed.
+
+   Contract: in the Klytos admin, text is NEVER painted in a raw semantic
+   colour on top of that colour's own tint, and NEVER in --texto-terciario.
+   Use --sobre-tinte-* and --texto-sutil.
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+  /* --- Texto de badge/chip SOBRE su propio tinte (11 % en claro).
+         Base oscurecida lo justo para ≥ 4.5:1 sobre el tinte compuesto
+         encima de cualquier superficie del admin. Ratios en el audit. --- */
+  --sobre-tinte-acento:     #0C7166; /* 4.51–5.08:1 */
+  --sobre-tinte-info:       #0D6C86; /* 4.54–5.15:1 */
+  --sobre-tinte-exito:      #227231; /* 4.55–5.16:1 */
+  --sobre-tinte-aviso:      #8B5900; /* 4.55–5.16:1 */
+  --sobre-tinte-peligro:    #B33631; /* 4.53–5.11:1 */
+  --sobre-tinte-offline:    #646469; /* 4.55–5.12:1 */
+  --sobre-tinte-sync:       #2E62BB; /* 4.52–5.08:1 */
+  --sobre-tinte-conflicto:  #7738E4; /* 4.55–5.13:1 */
+  --sobre-tinte-reconectar: #A34909; /* 4.58–5.19:1 */
+
+  /* --- Texto pequeño de apoyo: hints, eyebrows, cabeceras de columna,
+         timestamps. Sustituye a --texto-terciario en TODO texto. --- */
+  --texto-sutil:            #6D6D71; /* ≥ 4.53:1 en toda superficie clara */
+
+  /* --- Borde de control (input, checkbox, radio, switch, botón
+         secundario). --separador (rgba(0,0,0,.08) = 1.19:1) NO identifica
+         un control: WCAG 1.4.11 pide 3:1. --separador sigue siendo el
+         separador entre filas y secciones; esto es el borde del control. --- */
+  --borde-control:          #86868B; /* ≥ 3.18:1 en toda superficie clara */
+
+  /* --- Deshabilitado. Exento de 1.4.3, pero Klytos fija un suelo de 3:1
+         para que un campo deshabilitado siga siendo legible. --- */
+  --texto-deshabilitado:    #86868B;
+  --borde-deshabilitado:    #B9B9BE;
+
+  /* --- Anillo de foco. 2px sólido + 2px offset, medido 4.23–4.82:1 contra
+         toda superficie clara (mínimo 3:1). --- */
+  --foco-grosor:            2px;
+  --foco-offset:            2px;
+}
+
+[data-theme="dark"] {
+  --sobre-tinte-acento:     #3EC4B3; /* 4.50–5.39:1 */
+  --sobre-tinte-info:       #4EBDD7; /* 4.54–5.39:1 */
+  --sobre-tinte-exito:      #56C96E; /* 4.56–5.47:1 — base, ya pasaba */
+  --sobre-tinte-aviso:      #E8A93C; /* 4.60–5.53:1 — base, ya pasaba */
+  --sobre-tinte-peligro:    #EC8E87; /* 4.54–5.35:1 */
+  --sobre-tinte-offline:    #ACACB0; /* 4.50–5.40:1 */
+  --sobre-tinte-sync:       #86AFF2; /* 4.54–5.39:1 */
+  --sobre-tinte-conflicto:  #B69FFB; /* 4.54–5.38:1 */
+  --sobre-tinte-reconectar: #F29851; /* 4.51–5.33:1 */
+
+  --texto-sutil:            #939397; /* ≥ 4.55:1 en toda superficie oscura */
+  --borde-control:          #757579; /* ≥ 3.04:1 en toda superficie oscura */
+  --texto-deshabilitado:    #757579;
+  --borde-deshabilitado:    #545458;
+}
+
+/* ============================================================
+   Reglas normativas. Copiarlas tal cual a klytos-components.css.
+   ============================================================ */
+
+/* Foco visible SIEMPRE — nunca outline:none sin sustituto.
+   :focus-visible en puntero, :focus en el resto. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--foco-grosor) solid var(--color-acento);
+  outline-offset: var(--foco-offset);
+  border-radius: inherit;
+}
+
+/* Objetivo táctil mínimo 24 × 24 px (WCAG 2.2 AA, 2.5.8). El dibujo NO
+   cambia de tamaño: el área de pulsación se amplía con un pseudo-elemento.
+   Aplicar a checkbox (13px), radio (14px) e iconos de acción en celda (15px). */
+.k-hit-24 { position: relative; }
+.k-hit-24::before {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 24px; height: 24px;
+  transform: translate(-50%, -50%);
+}
+
+/* Reducir movimiento — regla, no sugerencia. Toda transición y animación
+   del admin cae aquí; el punto de sync deja de pulsar y se queda encendido. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Alto contraste / colores forzados (Windows, Firefox). Los tintes
+   desaparecen: el estado no puede depender de ellos. Se fuerza borde. */
+@media (forced-colors: active) {
+  :where(button, input, select, textarea, .k-badge, .k-chip, .k-card) {
+    border: 1px solid currentColor;
+  }
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid CanvasText;
+    outline-offset: 2px;
+  }
+  .k-badge, .k-chip { forced-color-adjust: none; background: Canvas; color: CanvasText; }
+  .k-status-dot { forced-color-adjust: none; background: CanvasText; }
+}

@@ -1,0 +1,118 @@
+/* ============================================================
+   PackDesk — Color.  Paleta B "Mediterráneo".
+
+   COLOR SAGRADO — NO MODIFICAR. El acento y todas las paletas
+   (semánticos, estados de producto, tintes, neutros) son intocables:
+   ni un dígito hex. Los diseños SIEMPRE usan el token (var(--color-…)),
+   nunca un hex "parecido". Regla completa en /CLAUDE.md.
+
+   Par claro/oscuro vía [data-theme]; se re-resuelve solo al cambiar de
+   tema. Texto/icono cumplen WCAG AA sobre su FONDO de modo. Sobre el
+   TINTE de badge (soft) algunos tonos quedan al límite en un modo u otro
+   — detalle y estado en guidelines/auditoria-color-y-contraste.md.
+   Texto/figura sobre un relleno de color = var(--sobre-acento) (blanco
+   en claro, casi negro en oscuro); NUNCA #fff fijo (en oscuro el relleno
+   es claro y el blanco desaparece).
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+  /* --- Acento de marca y semánticos --- */
+  --color-acento:     #0E8074;
+  --color-info:       #0E7490;
+  --color-exito:      #257D36;
+  --color-aviso:      #9A6300;
+  --color-peligro:    #C03A35;
+
+  /* --- Estados propios del producto --- */
+  --color-offline:    #6E6E73;
+  --color-sync:       #3672D9;
+  --color-conflicto:  #7C3AED;
+  --color-reconectar: #C2570B;
+
+  /* --- Tintes (fondo de badge/pill: color base al 11 %) --- */
+  --tinte-acento:     rgba(14, 128, 116, 0.11);
+  --tinte-info:       rgba(14, 116, 144, 0.11);
+  --tinte-exito:      rgba(37, 125, 54, 0.11);
+  --tinte-aviso:      rgba(154, 99, 0, 0.11);
+  --tinte-peligro:    rgba(192, 58, 53, 0.11);
+  --tinte-offline:    rgba(110, 110, 115, 0.11);
+  --tinte-sync:       rgba(54, 114, 217, 0.11);
+  --tinte-conflicto:  rgba(124, 58, 237, 0.11);
+  --tinte-reconectar: rgba(194, 87, 11, 0.11);
+
+  /* --- Neutros --- */
+  --fondo-ventana:    #F0F0F2;
+  --fondo-contenido:  #FFFFFF;
+  --fondo-elevado:    #FFFFFF;
+  --glass-sidebar:    rgba(246, 246, 248, 0.78);
+  --glass-toolbar:    rgba(250, 250, 252, 0.72);
+  --texto-primario:   #1D1D1F;
+  --texto-secundario: #6E6E73;
+  --texto-terciario:  #86868B;
+  --separador:        rgba(0, 0, 0, 0.08);
+  --fila-hover:       rgba(0, 0, 0, 0.045);
+  --fila-seleccion:   rgba(14, 128, 116, 0.12);
+  --foco-anillo:      #0E8074;
+  --glass-fallback-sidebar: #F2F2F4;
+  --glass-fallback-toolbar: #F7F7F9;
+
+  /* Texto/figura SOBRE el acento (wordmark "Desk", botón primario) */
+  --sobre-acento:     #FFFFFF;
+
+  /* --- Alias genéricos (mismo valor, nombre portable) --- */
+  --brand:            var(--color-acento);
+  --on-brand:         var(--sobre-acento);
+  --focus-ring:       var(--foco-anillo);
+  --surface-window:   var(--fondo-ventana);
+  --surface:          var(--fondo-contenido);
+  --surface-elevated: var(--fondo-elevado);
+  --text:             var(--texto-primario);
+  --text-secondary:   var(--texto-secundario);
+  --text-tertiary:    var(--texto-terciario);
+  --border:           var(--separador);
+  --row-hover:        var(--fila-hover);
+  --row-selected:     var(--fila-seleccion);
+}
+
+[data-theme="dark"] {
+  --color-acento:     #3CC3B2;
+  --color-info:       #3FB7D4;
+  --color-exito:      #56C96E;
+  --color-aviso:      #E8A93C;
+  --color-peligro:    #E6685F;
+
+  --color-offline:    #98989D;
+  --color-sync:       #6FA0EF;
+  --color-conflicto:  #A78BFA;
+  --color-reconectar: #F08C3E;
+
+  /* Tintes (color base al 19 %) */
+  --tinte-acento:     rgba(60, 195, 178, 0.19);
+  --tinte-info:       rgba(63, 183, 212, 0.19);
+  --tinte-exito:      rgba(86, 201, 110, 0.19);
+  --tinte-aviso:      rgba(232, 169, 60, 0.19);
+  --tinte-peligro:    rgba(230, 104, 95, 0.19);
+  --tinte-offline:    rgba(152, 152, 157, 0.19);
+  --tinte-sync:       rgba(111, 160, 239, 0.19);
+  --tinte-conflicto:  rgba(167, 139, 250, 0.19);
+  --tinte-reconectar: rgba(240, 140, 62, 0.19);
+
+  --fondo-ventana:    #1E1E20;
+  --fondo-contenido:  #232326;
+  --fondo-elevado:    #2C2C2E;
+  --glass-sidebar:    rgba(40, 40, 44, 0.72);
+  --glass-toolbar:    rgba(36, 36, 40, 0.68);
+  --texto-primario:   #F5F5F7;
+  --texto-secundario: #98989D;
+  --texto-terciario:  #6E6E73;
+  --separador:        rgba(255, 255, 255, 0.10);
+  --fila-hover:       rgba(255, 255, 255, 0.06);
+  --fila-seleccion:   rgba(60, 195, 178, 0.24);
+  --foco-anillo:      #3CC3B2;
+  --glass-fallback-sidebar: #26262A;
+  --glass-fallback-toolbar: #2A2A2E;
+
+  /* En oscuro el texto sobre el acento es casi negro (AA) */
+  --sobre-acento:     #0B0B0C;
+}

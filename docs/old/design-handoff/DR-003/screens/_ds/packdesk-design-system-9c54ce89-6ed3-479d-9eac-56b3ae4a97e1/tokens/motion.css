@@ -1,0 +1,31 @@
+/* ============================================================
+   PackDesk — Motion, breakpoints y densidades.
+   Toda transición tiene variante "Reducir movimiento" (ver readme).
+   ============================================================ */
+
+:root {
+  /* Duraciones (todas con variante "Reducir movimiento") */
+  --dur-navegacion:    220ms;  /* @kind other */ /* cambio de sección; RM: corte directo */
+  --dur-cambio-tienda: 280ms;  /* @kind other */ /* crossfade de contexto; RM: fade 80 ms */
+  --dur-popover:       180ms;  /* @kind other */ /* scale 0.98->1 + fade; RM: solo fade 80 ms */
+  --dur-toast:         240ms;  /* @kind other */ /* entrada 8 px desde abajo; RM: fade 80 ms */
+  --dur-hover:         120ms;  /* @kind other */
+  --pulso-sync:        1200ms; /* @kind other */ /* parpadeo del punto de sync; RM: estático */
+
+  /* Curvas */
+  --easing-estandar: cubic-bezier(0.32, 0.72, 0, 1); /* @kind other */
+  --easing-salida:   cubic-bezier(0.16, 1, 0.3, 1);  /* @kind other */
+
+  /* Métricas de ventana y breakpoints (app de escritorio) */
+  --ventana-min-ancho: 980px;
+  --ventana-min-alto:  640px;
+  --ventana-def-ancho: 1280px;
+  --ventana-def-alto:  800px;
+  --bp-sidebar-iconos: 1180px; /* < 1180: sidebar a iconos con tooltip */
+  --bp-split-apilado:  1024px; /* < 1024: detalle se apila sobre la lista */
+
+  /* Densidades de fila */
+  --fila-media:   36px;
+  --fila-comoda:  52px;
+  --fila-picking: 68px;
+}

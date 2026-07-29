@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/colors.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/typography.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/effects.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/motion.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/platform.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/glass.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+<script src="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/_ds_bundle.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:#E7E7EA;color:#1D1D1F;font-family:"Geist",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#0E8074;text-decoration:none}
+  a:hover{color:#0a6b61;text-decoration:underline}
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
+  @keyframes klytos-dots{0%,80%,100%{transform:scale(.55);opacity:.35}40%{transform:scale(1);opacity:1}}
+  @keyframes klytos-shimmer{0%{background-position:-320px 0}100%{background-position:320px 0}}
+</style>
+</helmet>
+
+<div style="padding:48px 48px 72px;display:flex;flex-direction:column;gap:18px;width:1536px">
+
+  <div>
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+      <span style="font:600 11px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:#6E6E73">Copilot dock · batch 2</span>
+      <h1 style="font:700 26px/32px var(--font-ui);letter-spacing:-0.02em;color:#1D1D1F">Auth, AI chat, moderation — and the cross-cutting pieces</h1>
+    </div>
+    <p style="font:400 13px/20px var(--font-ui);color:#6E6E73;max-width:860px;text-wrap:pretty">Six more screens, plus the parts that fix the system rather than a page: light mode, the ⌘K palette inside this shell, toasts and confirm dialogs to replace the browser's <span style="font:500 12px/18px var(--font-mono)">confirm()</span>, the dock while it streams, and every empty / loading / error state.</p>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ screenChips }}" as="s" hint-placeholder-count="7">
+      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ s.selected }}" on-click="{{ s.onClick }}" hint-size="auto,24px">{{ s.label }}</x-import>
+    </sc-for>
+    <span style="width:1px;height:20px;background:rgba(0,0,0,0.12);margin:0 6px"></span>
+    <sc-for list="{{ overlayChips }}" as="o" hint-placeholder-count="4">
+      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ o.selected }}" on-click="{{ o.onClick }}" hint-size="auto,24px">{{ o.label }}</x-import>
+    </sc-for>
+    <span style="width:1px;height:20px;background:rgba(0,0,0,0.12);margin:0 6px"></span>
+    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" on-click="{{ toggleTheme }}" hint-size="auto,24px">{{ themeLabel }}</x-import>
+  </div>
+
+  <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ frameW }}" height="{{ frameH }}" url="{{ url }}" tabs="{{ tabs }}" hint-size="1440px,976px">
+    <div data-theme="{{ theme }}" data-screen-label="{{ label }}" style="width:100%;height:100%;display:flex;position:relative;background:var(--fondo-ventana);color:var(--texto-primario);font-family:var(--font-ui);overflow:hidden">
+
+      <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--fondo-ventana)">
+          <div style="width:400px;display:flex;flex-direction:column;gap:22px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.AppIcon" size="{{ bigIcon }}" gradient="{{ yes }}" hint-size="56px,56px"></x-import>
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Logo" first="Kly" second="tos" size="{{ bigLogo }}" hint-size="auto,28px"></x-import>
+              <span style="font:400 12px/16px var(--font-ui);color:var(--texto-secundario);text-align:center">{{ authSubtitle }}</span>
+            </div>
+
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,300px">
+              <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <sc-for list="{{ loginFields }}" as="f" hint-placeholder-count="2">
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                      <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">{{ f.label }}</span>
+                      <div style="height:34px;padding:0 11px;border:1px solid {{ f.border }};border-radius:6px;background:var(--fondo-ventana);font:400 13px/34px {{ f.family }};color:{{ f.fg }};outline:{{ f.ring }};outline-offset:2px">{{ f.value }}</div>
+                    </div>
+                  </sc-for>
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" style="{{ fullWidth }}" hint-size="100%,34px">Log in</x-import>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;height:1px;background:var(--separador)"></span>
+                    <span style="font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">or</span>
+                    <span style="flex:1;height:1px;background:var(--separador)"></span>
+                  </div>
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" style="{{ fullWidth }}" icon="{{ keyIcon }}" hint-size="100%,34px">Continue with a passkey</x-import>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ isTwofa }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  <div style="display:flex;gap:2px;padding:3px;border-radius:8px;background:var(--fila-hover)">
+                    <sc-for list="{{ methodTabs }}" as="m" hint-placeholder-count="4">
+                      <span style="flex:1;text-align:center;height:26px;border-radius:6px;background:{{ m.bg }};color:{{ m.fg }};font:{{ m.font }} 12px/26px var(--font-ui);box-shadow:{{ m.shadow }}">{{ m.label }}</span>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Enter the 6-digit code</span>
+                    <div style="display:flex;gap:8px">
+                      <sc-for list="{{ codeCells }}" as="c" hint-placeholder-count="6">
+                        <span style="flex:1;height:48px;border:1px solid {{ c.border }};border-radius:8px;background:var(--fondo-ventana);font:600 20px/48px var(--font-mono);color:var(--texto-primario);text-align:center;outline:{{ c.ring }};outline-offset:2px">{{ c.v }}</span>
+                      </sc-for>
+                    </div>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">From your authenticator app. Codes rotate every 30 seconds.</span>
+                  </div>
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" style="{{ fullWidth }}" hint-size="100%,34px">Verify</x-import>
+                  <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;background:var(--tinte-offline)">
+                    <span class="material-symbols-outlined" style="font-size:17px;color:var(--texto-secundario)">shield_lock</span>
+                    <span style="flex:1;font:400 11px/16px var(--font-ui);color:var(--texto-secundario)">Locked out? Use a recovery code, or the emergency email link.</span>
+                  </div>
+                </div>
+              </sc-if>
+            </x-import>
+
+            <div style="display:flex;align-items:center;justify-content:center;gap:14px">
+              <span style="font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Klytos <span style="font-family:var(--font-mono)">0.28.5</span></span>
+              <span style="width:3px;height:3px;border-radius:999px;background:var(--texto-terciario)"></span>
+              <span style="font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Session expires after 30 min</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isShell }}" hint-placeholder-val="{{ true }}">
+        <aside style="width:232px;flex-shrink:0;background:var(--glass-fallback-sidebar);border-right:1px solid var(--separador);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:8px;padding:16px 14px 12px">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Logo" first="Kly" second="tos" icon="{{ yes }}" size="{{ logoSize }}" hint-size="auto,24px"></x-import>
+            <span style="margin-left:auto;font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">0.28.5</span>
+          </div>
+          <div style="padding:0 12px 10px;position:relative">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.SearchField" placeholder="Search or ask" hint-size="100%,32px"></x-import>
+            <span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font:500 10px/14px var(--font-mono);color:var(--texto-terciario);padding:1px 5px;border-radius:4px;background:var(--fila-hover)">⌘K</span>
+          </div>
+          <nav style="flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ navGroups }}" as="group" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="padding:6px 8px 4px;font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ group.label }}</div>
+                <sc-for list="{{ group.items }}" as="item" hint-placeholder-count="4">
+                  <a href="#b2" onClick="{{ item.onClick }}" style="display:flex;align-items:center;gap:9px;height:30px;padding:0 8px;border-radius:6px;background:{{ item.bg }};color:{{ item.fg }};text-decoration:none">
+                    <span class="material-symbols-outlined" style="font-size:18px;flex-shrink:0">{{ item.icon }}</span>
+                    <span style="flex:1;font:{{ item.font }} 13px/16px var(--font-ui)">{{ item.label }}</span>
+                    <span style="font:500 10px/14px var(--font-mono);color:{{ item.countFg }}">{{ item.count }}</span>
+                  </a>
+                </sc-for>
+              </div>
+            </sc-for>
+          </nav>
+          <div style="border-top:1px solid var(--separador);padding:10px 12px;display:flex;align-items:center;gap:9px">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Avatar" initials="JC" size="{{ avatarSize }}" hint-size="24px,24px"></x-import>
+            <span style="flex:1;min-width:0;font:400 12px/15px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">José Conti · Owner</span>
+            <a href="logout.php" class="material-symbols-outlined" style="font-size:17px;color:var(--texto-terciario);text-decoration:none">logout</a>
+          </div>
+        </aside>
+
+        <main style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--fondo-ventana)">
+          <div style="height:50px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--glass-fallback-toolbar);border-bottom:1px solid var(--separador)">
+            <span style="font:400 12px/15px var(--font-ui);color:var(--texto-terciario)">klytos.io</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:var(--texto-terciario)">chevron_right</span>
+            <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">{{ title }}</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <sc-for list="{{ toolbarActions }}" as="a" hint-placeholder-count="2">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="{{ a.variant }}" size="sm" hint-size="auto,28px">{{ a.label }}</x-import>
+              </sc-for>
+            </span>
+          </div>
+
+          <div style="flex:1;overflow-y:auto;{{ padStyle }}">
+
+            <sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;height:100%">
+                <div style="width:230px;flex-shrink:0;border-right:1px solid var(--separador);background:var(--fondo-ventana);display:flex;flex-direction:column">
+                  <div style="padding:12px">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ fullWidth }}" icon="{{ addIcon }}" hint-size="100%,30px">New chat</x-import>
+                  </div>
+                  <div style="flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:12px">
+                    <sc-for list="{{ chatGroups }}" as="g" hint-placeholder-count="2">
+                      <div style="display:flex;flex-direction:column;gap:1px">
+                        <div style="padding:6px 8px 4px;font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ g.label }}</div>
+                        <sc-for list="{{ g.items }}" as="c" hint-placeholder-count="4">
+                          <span style="display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:6px;background:{{ c.bg }}">
+                            <span style="width:5px;height:5px;border-radius:999px;background:{{ c.dot }};flex-shrink:0"></span>
+                            <span style="flex:1;min-width:0;font:{{ c.font }} 12px/16px var(--font-ui);color:{{ c.fg }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.title }}</span>
+                          </span>
+                        </sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+                  <div style="flex:1;overflow-y:auto;padding:28px 24px">
+                    <div style="max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+                      <div style="align-self:flex-end;max-width:80%;background:var(--fondo-elevado);border-radius:14px 14px 4px 14px;padding:10px 14px;font:400 13px/20px var(--font-ui)">Audit every page for accessibility and fix what you safely can.</div>
+                      <div style="font:400 13px/20px var(--font-ui);color:var(--texto-primario)">Running the WCAG 2.1 AA checks across all 24 pages. I'll fix contrast, alt text and heading order automatically, and list anything that needs a human decision.</div>
+                      <sc-for list="{{ chatTools }}" as="t" hint-placeholder-count="3">
+                        <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid var(--separador);border-radius:8px;background:var(--fondo-contenido)">
+                          <span class="material-symbols-outlined" style="font-size:15px;color:{{ t.color }};flex-shrink:0;font-variation-settings:'wght' 500">{{ t.icon }}</span>
+                          <span style="font:500 12px/18px var(--font-mono);color:var(--texto-primario)">{{ t.name }}</span>
+                          <span style="flex:1;min-width:0;font:400 11px/14px var(--font-ui);color:var(--texto-terciario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.arg }}</span>
+                          <span style="font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">{{ t.ms }}</span>
+                        </div>
+                      </sc-for>
+                      <div style="font:400 13px/20px var(--font-ui);color:var(--texto-primario)">Fixed 31 issues. Three need you:</div>
+                      <div style="display:flex;flex-direction:column;gap:8px">
+                        <sc-for list="{{ chatFindings }}" as="f" hint-placeholder-count="3">
+                          <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--separador);border-radius:8px;background:var(--fondo-contenido)">
+                            <span style="width:20px;height:20px;border-radius:999px;background:{{ f.tint }};color:{{ f.color }};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px"><span class="material-symbols-outlined" style="font-size:13px">priority_high</span></span>
+                            <span style="flex:1;min-width:0">
+                              <span style="display:block;font:500 12px/17px var(--font-ui);color:var(--texto-primario)">{{ f.text }}</span>
+                              <span style="display:block;font:400 11px/16px var(--font-mono);color:var(--texto-terciario);margin-top:2px">{{ f.where }}</span>
+                            </span>
+                          </div>
+                        </sc-for>
+                      </div>
+                      <div style="display:flex;gap:5px;padding:2px 0">
+                        <span style="width:7px;height:7px;border-radius:999px;background:var(--color-acento);animation:klytos-dots 1.4s ease-in-out infinite"></span>
+                        <span style="width:7px;height:7px;border-radius:999px;background:var(--color-acento);animation:klytos-dots 1.4s ease-in-out .2s infinite"></span>
+                        <span style="width:7px;height:7px;border-radius:999px;background:var(--color-acento);animation:klytos-dots 1.4s ease-in-out .4s infinite"></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="padding:0 24px 22px">
+                    <div style="max-width:680px;margin:0 auto;border:1px solid var(--separador);border-radius:14px;background:var(--fondo-contenido);padding:12px 14px">
+                      <div style="font:400 13px/20px var(--font-ui);color:var(--texto-terciario)">Describe what the site should do…</div>
+                      <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" hint-size="auto,22px">All pages</x-import>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" hint-size="auto,22px">Claude Sonnet</x-import>
+                        <span style="margin-left:auto;display:flex;align-items:center;gap:10px">
+                          <span style="font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">Stop</span>
+                          <span style="width:30px;height:30px;border-radius:999px;background:var(--color-acento);display:flex;align-items:center;justify-content:center">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:var(--sobre-acento);font-variation-settings:'wght' 400">stop</span>
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isTasks }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                  <sc-for list="{{ taskStats }}" as="s" hint-placeholder-count="4">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.StatCard" value="{{ s.value }}" label="{{ s.label }}" hint-size="100%,74px"></x-import>
+                  </sc-for>
+                </div>
+                <div style="display:flex;align-items:stretch;gap:20px;height:34px;border-bottom:1px solid var(--separador)">
+                  <sc-for list="{{ taskTabs }}" as="t" hint-placeholder-count="4">
+                    <span style="display:flex;align-items:center;font:{{ t.font }} 13px/16px var(--font-ui);color:{{ t.fg }};box-shadow:{{ t.underline }}">{{ t.label }}</span>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{ tasks }}" as="t" hint-placeholder-count="5">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ taskPad }}" hint-size="100%,92px">
+                      <div style="display:flex;align-items:flex-start;gap:14px">
+                        <span style="width:8px;height:8px;border-radius:999px;background:{{ t.dot }};flex-shrink:0;margin-top:6px"></span>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+                          <div style="display:flex;align-items:center;gap:8px">
+                            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ t.prioTone }}" hint-size="auto,20px">{{ t.priority }}</x-import>
+                            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ t.statusTone }}" hint-size="auto,20px">{{ t.status }}</x-import>
+                            <span style="margin-left:auto;font:400 11px/14px var(--font-mono);color:var(--texto-terciario)">{{ t.date }}</span>
+                          </div>
+                          <div style="font:400 13px/19px var(--font-ui);color:var(--texto-primario);text-wrap:pretty">{{ t.description }}</div>
+                          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                            <span style="font:400 11px/15px var(--font-ui);color:var(--texto-terciario)">Page <span style="font-family:var(--font-mono);color:var(--color-acento)">{{ t.page }}</span></span>
+                            <span style="font:400 11px/15px var(--font-ui);color:var(--texto-terciario)">Element <span style="font-family:var(--font-mono)">{{ t.selector }}</span></span>
+                          </div>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-shrink:0">
+                          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">Dismiss</x-import>
+                          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" size="sm" hint-size="auto,26px">Complete</x-import>
+                        </div>
+                      </div>
+                    </x-import>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isComments }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:stretch;gap:20px;height:34px;border-bottom:1px solid var(--separador)">
+                  <sc-for list="{{ commentTabs }}" as="t" hint-placeholder-count="4">
+                    <span style="display:flex;align-items:center;font:{{ t.font }} 13px/16px var(--font-ui);color:{{ t.fg }};box-shadow:{{ t.underline }}">{{ t.label }}</span>
+                  </sc-for>
+                  <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" hint-size="auto,24px">2 selected</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">Approve</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">Spam</x-import>
+                  </span>
+                </div>
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,420px">
+                  <sc-for list="{{ comments }}" as="c" hint-placeholder-count="6">
+                    <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid var(--separador);background:{{ c.rowBg }};padding-left:{{ c.indent }}">
+                      <span style="width:13px;height:13px;border-radius:3px;border:1.5px solid {{ c.checkBorder }};background:{{ c.checkBg }};flex-shrink:0;margin-top:4px"></span>
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Avatar" initials="{{ c.initials }}" tone="{{ c.tone }}" size="{{ avatarSize }}" hint-size="26px,26px"></x-import>
+                      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                          <span style="font:600 13px/17px var(--font-ui);color:var(--texto-primario)">{{ c.author }}</span>
+                          <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ c.email }}</span>
+                          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ c.statusTone }}" hint-size="auto,20px">{{ c.status }}</x-import>
+                          <span style="margin-left:auto;font:400 11px/14px var(--font-mono);color:var(--texto-terciario)">{{ c.time }}</span>
+                        </div>
+                        <div style="font:400 13px/19px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">{{ c.body }}</div>
+                        <div style="display:flex;align-items:center;gap:12px;margin-top:2px">
+                          <span style="font:400 11px/15px var(--font-ui);color:var(--texto-terciario)">on <span style="font-family:var(--font-mono);color:var(--color-acento)">{{ c.page }}</span></span>
+                          <sc-for list="{{ c.actions }}" as="a" hint-placeholder-count="4">
+                            <span style="font:500 11px/15px var(--font-ui);color:{{ a.fg }}">{{ a.label }}</span>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isPlugins }}" hint-placeholder-val="{{ false }}">
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,460px">
+                <div style="padding:14px 16px 10px;display:flex;align-items:center;gap:10px">
+                  <h2 style="font:600 13px/16px var(--font-ui)">Installed plugins</h2>
+                  <span style="font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">5</span>
+                  <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Install from ZIP</x-import></span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 90px 150px 100px 110px 130px;align-items:center;gap:14px;height:32px;padding:0 16px;border-bottom:1px solid var(--separador)">
+                  <sc-for list="{{ pluginCols }}" as="c" hint-placeholder-count="6">
+                    <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:{{ c.align }}">{{ c.label }}</span>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ plugins }}" as="p" hint-placeholder-count="5">
+                  <div style="display:grid;grid-template-columns:1fr 90px 150px 100px 110px 130px;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--separador)">
+                    <span style="display:flex;align-items:flex-start;gap:11px;min-width:0">
+                      <span style="width:30px;height:30px;border-radius:7px;background:{{ p.tint }};color:{{ p.color }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:17px">{{ p.icon }}</span></span>
+                      <span style="min-width:0">
+                        <span style="display:block;font:600 13px/17px var(--font-ui);color:var(--texto-primario)">{{ p.name }}</span>
+                        <span style="display:block;font:400 11px/16px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.desc }}</span>
+                      </span>
+                    </span>
+                    <span style="font:400 12px/16px var(--font-mono);color:var(--texto-secundario)">{{ p.version }}</span>
+                    <span style="font:400 12px/16px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.author }}</span>
+                    <span><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ p.licTone }}" hint-size="auto,20px">{{ p.license }}</x-import></span>
+                    <span><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ p.stateTone }}" dot="{{ yes }}" hint-size="auto,20px">{{ p.state }}</x-import></span>
+                    <span style="display:flex;gap:6px;justify-content:flex-end">
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">{{ p.action }}</x-import>
+                    </span>
+                  </div>
+                </sc-for>
+              </x-import>
+            </sc-if>
+
+            <sc-if value="{{ isStates }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ statePad }}" hint-size="100%,220px">
+                  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:22px 8px">
+                    <span style="width:40px;height:40px;border-radius:999px;background:var(--tinte-acento);color:var(--color-acento);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px">auto_awesome</span></span>
+                    <span style="font:600 15px/20px var(--font-ui);color:var(--texto-primario)">No pages yet</span>
+                    <span style="font:400 12px/18px var(--font-ui);color:var(--texto-secundario);max-width:240px;text-wrap:pretty">Connect an AI assistant and describe the site you want — or start from a template.</span>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" size="sm" hint-size="auto,28px">Connect an assistant</x-import>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ statePad }}" hint-size="100%,220px">
+                  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+                    <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">Loading</span>
+                    <sc-for list="{{ skeletons }}" as="k" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="width:26px;height:26px;border-radius:6px;{{ k.shimmer }}"></span>
+                        <span style="height:9px;border-radius:999px;width:{{ k.w }};{{ k.shimmer }}"></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ statePad }}" hint-size="100%,220px">
+                  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+                    <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">Error — never a bare code</span>
+                    <sc-for list="{{ errorStates }}" as="e" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;background:{{ e.bg }}">
+                        <span class="material-symbols-outlined" style="font-size:17px;color:{{ e.color }};flex-shrink:0">{{ e.icon }}</span>
+                        <span style="flex:1;min-width:0;font:400 12px/17px var(--font-ui);color:var(--texto-primario);text-wrap:pretty">{{ e.text }}</span>
+                        <span style="font:600 12px/17px var(--font-ui);color:{{ e.color }};flex-shrink:0">{{ e.action }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ statePad }}" hint-size="100%,200px">
+                  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:22px 8px">
+                    <span style="width:40px;height:40px;border-radius:999px;background:var(--tinte-offline);color:var(--texto-secundario);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px">lock</span></span>
+                    <span style="font:600 15px/20px var(--font-ui);color:var(--texto-primario)">Not your permission level</span>
+                    <span style="font:400 12px/18px var(--font-ui);color:var(--texto-secundario);max-width:240px;text-wrap:pretty">Editors cannot manage plugins. Ask an owner, or switch to a page you can edit.</span>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ statePad }}" hint-size="100%,200px">
+                  <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:22px 8px">
+                    <span style="width:40px;height:40px;border-radius:999px;background:var(--tinte-aviso);color:var(--color-aviso);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px">construction</span></span>
+                    <span style="font:600 15px/20px var(--font-ui);color:var(--texto-primario)">Maintenance mode is on</span>
+                    <span style="font:400 12px/18px var(--font-ui);color:var(--texto-secundario);max-width:250px;text-wrap:pretty">Visitors get a 503. The admin and MCP keep working normally.</span>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Turn it off</x-import>
+                  </div>
+                </x-import>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ statePad }}" hint-size="100%,200px">
+                  <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+                    <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">Search returned nothing</span>
+                    <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:12px 8px">
+                      <span class="material-symbols-outlined" style="font-size:22px;color:var(--texto-terciario)">search_off</span>
+                      <span style="font:500 13px/18px var(--font-ui);color:var(--texto-primario)">No pages match “redsys”</span>
+                      <span style="font:400 12px/17px var(--font-ui);color:var(--texto-secundario)">Ask Klytos to write one instead.</span>
+                    </div>
+                  </div>
+                </x-import>
+              </div>
+            </sc-if>
+
+          </div>
+
+          <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:9px 20px;border-top:1px solid var(--separador);background:var(--glass-fallback-toolbar)">
+            <span style="font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Klytos <span style="font-family:var(--font-mono)">0.28.5</span> · PHP <span style="font-family:var(--font-mono)">8.3.11</span></span>
+            <span style="margin-left:auto;font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Rendered in <span style="font-family:var(--font-mono)">{{ renderMs }}</span></span>
+          </div>
+        </main>
+      </sc-if>
+
+      <div style="{{ toastStyle }}">
+        <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:11px;min-width:320px;padding:11px 13px;border-radius:10px;background:var(--fondo-elevado);border:1px solid var(--separador);box-shadow:var(--sombra-popover, 0 12px 32px rgba(0,0,0,0.34))">
+            <span style="width:22px;height:22px;border-radius:999px;background:{{ t.tint }};color:{{ t.color }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:14px">{{ t.icon }}</span></span>
+            <span style="flex:1;min-width:0;font:400 12px/17px var(--font-ui);color:var(--texto-primario)">{{ t.text }}</span>
+            <span style="font:600 12px/17px var(--font-ui);color:var(--color-acento)">{{ t.action }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="{{ paletteScrim }}">
+        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" style="{{ paletteCard }}" hint-size="640px,380px">
+          <div style="display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--separador)">
+            <span class="material-symbols-outlined" style="font-size:19px;color:var(--color-acento);flex-shrink:0">auto_awesome</span>
+            <span style="flex:1;font:400 15px/20px var(--font-ui);color:var(--texto-primario)">approve the two pending comments on the blog post</span>
+            <span style="font:500 10px/14px var(--font-mono);color:var(--texto-terciario);padding:2px 6px;border-radius:4px;background:var(--fila-hover)">↵</span>
+          </div>
+          <sc-for list="{{ paletteGroups }}" as="g" hint-placeholder-count="2">
+            <div>
+              <div style="padding:11px 18px 4px;font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ g.label }}</div>
+              <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:11px;height:40px;padding:0 18px;background:{{ i.bg }}">
+                  <span class="material-symbols-outlined" style="font-size:17px;color:{{ i.fg }}">{{ i.icon }}</span>
+                  <span style="flex:1;min-width:0;font:{{ i.font }} 13px/18px var(--font-ui);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ i.label }}</span>
+                  <span style="font:400 11px/15px var(--font-mono);color:var(--texto-terciario)">{{ i.hint }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+          <div style="display:flex;align-items:center;gap:14px;padding:10px 18px;border-top:1px solid var(--separador);background:var(--fondo-ventana);border-radius:0 0 10px 10px">
+            <span style="font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">↑↓ navigate · ↵ run · esc close</span>
+            <span style="margin-left:auto;font:400 10px/14px var(--font-ui);color:var(--texto-terciario)">Plain search when it is not a command</span>
+          </div>
+        </x-import>
+      </div>
+
+      <div style="{{ dialogScrim }}">
+        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" style="{{ dialogCard }}" hint-size="440px,220px">
+          <div style="padding:18px 20px 14px;display:flex;flex-direction:column;gap:9px">
+            <span style="width:34px;height:34px;border-radius:999px;background:var(--tinte-peligro);color:var(--color-peligro);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:19px">delete</span></span>
+            <span style="font:600 17px/22px var(--font-ui);color:var(--texto-primario)">Delete 3 pages permanently?</span>
+            <span style="font:400 13px/19px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">Their version history goes with them. Trashed pages are kept for 30 days if you would rather wait.</span>
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;padding:10px 12px;border-radius:8px;background:var(--fondo-ventana)">
+              <sc-for list="{{ dialogItems }}" as="d" hint-placeholder-count="3">
+                <span style="font:400 12px/18px var(--font-mono);color:var(--texto-secundario)">{{ d.slug }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;padding:0 20px 18px">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" style="{{ grow }}" hint-size="100%,34px">Keep them</x-import>
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="destructive" style="{{ grow }}" hint-size="100%,34px">Delete permanently</x-import>
+          </div>
+        </x-import>
+      </div>
+
+    </div>
+  </x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1536}}">
+class Component extends DCLogic {
+  state = { screen: 'login', overlay: 'none', theme: 'dark' };
+
+  go = (screen) => (e) => { if (e) e.preventDefault(); this.setState({ screen }); };
+
+  renderVals() {
+    const s = this.state.screen, ov = this.state.overlay, theme = this.state.theme;
+    const A = 'var(--color-acento)', T1 = 'var(--texto-primario)', T2 = 'var(--texto-secundario)', T3 = 'var(--texto-terciario)';
+    const sel = 'var(--fila-seleccion)';
+    const mono = 'var(--font-mono)', ui = 'var(--font-ui)';
+
+    const SCREENS = {
+      login:    { title: 'Log in',   url: 'klytos.io/a7f3k9-admin/login.php', ms: '12 ms', pad: 'padding:0' },
+      twofa:    { title: 'Verify',   url: 'klytos.io/a7f3k9-admin/login.php?step=2fa', ms: '14 ms', pad: 'padding:0' },
+      chat:     { title: 'AI Chat',  url: 'klytos.io/a7f3k9-admin/ai-chat.php', ms: '22 ms', pad: 'padding:0' },
+      tasks:    { title: 'Tasks',    url: 'klytos.io/a7f3k9-admin/tasks.php?status=open', ms: '26 ms', pad: 'padding:20px' },
+      comments: { title: 'Comments', url: 'klytos.io/a7f3k9-admin/comments.php?status=pending', ms: '33 ms', pad: 'padding:20px' },
+      plugins:  { title: 'Plugins',  url: 'klytos.io/a7f3k9-admin/plugins.php', ms: '41 ms', pad: 'padding:20px' },
+      states:   { title: 'States',   url: 'klytos.io/a7f3k9-admin/pages.php', ms: '19 ms', pad: 'padding:20px' }
+    };
+    const cur = SCREENS[s];
+    const isAuth = s === 'login' || s === 'twofa';
+
+    const ACTIONS = {
+      chat:     [{ label: 'Export chat', variant: 'secondary' }, { label: 'New chat', variant: 'primary' }],
+      tasks:    [{ label: 'Dismiss all', variant: 'secondary' }, { label: 'New task', variant: 'primary' }],
+      comments: [{ label: 'Settings', variant: 'secondary' }, { label: 'Empty spam', variant: 'primary' }],
+      plugins:  [{ label: 'Check for updates', variant: 'secondary' }, { label: 'Install plugin', variant: 'primary' }],
+      states:   [{ label: 'Rebuild', variant: 'secondary' }]
+    };
+
+    const nav = (label, icon, screen, count) => ({
+      label, icon, count: count || '',
+      bg: s === screen ? sel : 'transparent',
+      fg: s === screen ? A : T2,
+      font: s === screen ? 500 : 400,
+      countFg: s === screen ? A : T3,
+      onClick: this.go(screen || s)
+    });
+    const navGroups = [
+      { label: 'Site', items: [nav('Overview', 'space_dashboard'), nav('Analytics', 'monitoring')] },
+      { label: 'Content', items: [nav('Pages', 'description', 'states', '24'), nav('Comments', 'forum', 'comments', '6'), nav('Media', 'perm_media', null, '182'), nav('Tasks', 'checklist', 'tasks', '3')] },
+      { label: 'Design', items: [nav('Theme', 'palette'), nav('Templates', 'dashboard_customize'), nav('Blocks', 'widgets')] },
+      { label: 'Intelligence', items: [nav('AI chat', 'auto_awesome', 'chat'), nav('Connections', 'smart_toy', null, '2'), nav('Guides', 'menu_book', null, '16')] },
+      { label: 'System', items: [nav('Plugins', 'extension', 'plugins', '5'), nav('Security', 'shield'), nav('Settings', 'tune')] }
+    ];
+
+    const chip = (label, screen) => ({ label, selected: s === screen, onClick: this.go(screen) });
+    const screenChips = [chip('Login', 'login'), chip('2FA', 'twofa'), chip('AI Chat', 'chat'), chip('Tasks', 'tasks'), chip('Comments', 'comments'), chip('Plugins', 'plugins'), chip('States', 'states')];
+
+    const oChip = (label, key) => ({ label, selected: ov === key, onClick: () => this.setState({ overlay: ov === key ? 'none' : key }) });
+    const overlayChips = [oChip('⌘K palette', 'palette'), oChip('Toasts', 'toast'), oChip('Confirm dialog', 'dialog')];
+
+    /* —— Auth —— */
+    const field = (label, value, focused, m) => ({
+      label, value,
+      family: m ? mono : ui,
+      fg: value ? T1 : T3,
+      border: focused ? A : 'var(--separador)',
+      ring: focused ? '2px solid ' + A : 'none'
+    });
+    const loginFields = [field('Username', 'jose', false), field('Password', '••••••••••••', true)];
+    const methodTabs = [
+      { label: 'App', on: true }, { label: 'Passkey', on: false }, { label: 'Email', on: false }, { label: 'Recovery', on: false }
+    ].map(t => ({
+      label: t.label,
+      bg: t.on ? 'var(--fondo-contenido)' : 'transparent',
+      fg: t.on ? T1 : T2,
+      font: t.on ? 600 : 400,
+      shadow: t.on ? '0 1px 3px rgba(0,0,0,0.18)' : 'none'
+    }));
+    const codeCells = ['4', '8', '1', '', '', ''].map((v, i) => ({
+      v, border: i === 3 ? A : 'var(--separador)', ring: i === 3 ? '2px solid ' + A : 'none'
+    }));
+
+    /* —— AI chat —— */
+    const chatG = (title, active, dot) => ({ title, bg: active ? sel : 'transparent', fg: active ? T1 : T2, font: active ? 500 : 400, dot: dot || 'transparent' });
+    const chatGroups = [
+      { label: 'Today', items: [chatG('Accessibility audit', true, A), chatG('Launch the pricing page', false), chatG('Fix the hreflang warnings', false)] },
+      { label: 'Earlier', items: [chatG('Migrate the old WordPress site', false), chatG('Draft three blog posts', false)] }
+    ];
+    const chatTools = [
+      { name: 'klytos_get_guide', arg: 'accessibility', ms: '0.2s', icon: 'check', color: 'var(--color-exito)' },
+      { name: 'klytos_list_pages', arg: 'status: published · 19 results', ms: '0.4s', icon: 'check', color: 'var(--color-exito)' },
+      { name: 'klytos_bulk_update', arg: '31 fixes across 14 pages', ms: '6.1s', icon: 'progress_activity', color: A }
+    ];
+    const chatFindings = [
+      { text: 'Two decorative images have descriptive alt text that duplicates the caption', where: '/about · /docs/security', tint: 'var(--tinte-aviso)', color: 'var(--color-aviso)' },
+      { text: 'The pricing table headers are visual only — they need scope attributes I cannot infer', where: '/pricing · block klytos/pricing-tier', tint: 'var(--tinte-aviso)', color: 'var(--color-aviso)' },
+      { text: 'Video embed has no captions track', where: '/blog/ai-first-cms', tint: 'var(--tinte-peligro)', color: 'var(--color-peligro)' }
+    ];
+
+    /* —— Tasks —— */
+    const taskStats = [{ value: '3', label: 'Open' }, { value: '1', label: 'In progress' }, { value: '12', label: 'Completed' }, { value: '16', label: 'Total' }];
+    const tab = (label, on) => ({ label, font: on ? 600 : 400, fg: on ? T1 : T2, underline: on ? 'inset 0 -2px 0 0 ' + A : 'none' });
+    const taskTabs = [tab('Open (3)', true), tab('In progress (1)', false), tab('Completed (12)', false), tab('All', false)];
+    const PRIO = { Urgent: ['peligro', 'var(--color-peligro)'], High: ['aviso', 'var(--color-aviso)'], Medium: ['info', A], Low: ['exito', 'var(--color-exito)'] };
+    const tasks = [
+      ['Urgent', 'Open', 'The hero CTA overlaps the nav below 380 px — it is unreachable on an iPhone SE.', '/pricing', '.hero__cta', 'Jul 26, 09:12'],
+      ['High', 'In progress', 'Spanish translation of the security page still references the old encryption levels.', '/es/seguridad', 'section#levels', 'Jul 25, 17:40'],
+      ['Medium', 'Open', 'Add a comparison table between Studio and Agency — clients keep asking in support.', '/pricing', '—', 'Jul 24, 11:05'],
+      ['Low', 'Open', 'Changelog entries older than 2025 could collapse behind a "show more".', '/changelog', '.changelog-list', 'Jul 22, 08:30']
+    ].map(([priority, status, description, page, selector, date]) => ({
+      priority, status, description, page, selector, date,
+      prioTone: PRIO[priority][0], dot: PRIO[priority][1],
+      statusTone: status === 'In progress' ? 'aviso' : 'offline'
+    }));
+
+    /* —— Comments —— */
+    const commentTabs = [tab('Pending (6)', true), tab('Approved (48)', false), tab('Spam (12)', false), tab('Trash (3)', false)];
+    const act = (label, danger) => ({ label, fg: danger ? 'var(--color-peligro)' : A });
+    const comments = [
+      ['LM', 'Laura Méndez', 'laura@estudio.es', 'acento', 'Pending', 'aviso', 'Does the MCP endpoint work with self-hosted models through OpenRouter, or only the four listed providers?', '/docs/mcp-setup', '18 min', 0, true],
+      ['JC', 'José Conti', 'jose@joseconti.com', 'conflicto', 'Approved', 'exito', 'Any OpenRouter-compatible model works — the provider list is just the ones with first-class tool support.', '/docs/mcp-setup', '12 min', 1, false],
+      ['TK', 'Tomas K.', 'tk@mailinator.com', 'neutro', 'Pending', 'aviso', 'Great post! Check out my site for cheap backlinks and SEO services, guaranteed first page.', '/blog/ai-first-cms', '2 h', 0, true],
+      ['AR', 'Ana Ribas', 'ana@coop.cat', 'info', 'Pending', 'aviso', 'Is the Catalan translation maintained by hand or generated? Happy to proofread it if it helps.', '/ca/quant-a-nosaltres', '5 h', 0, false],
+      ['MS', 'Marc Serra', 'marc@dev.io', 'exito', 'Pending', 'aviso', 'The x402 flow diagram is missing the refund path. Is that intentional?', '/docs/x402', '1 d', 0, false]
+    ].map(([initials, author, email, tone, status, statusTone, body, page, time, depth, checked]) => ({
+      initials, author, email, tone, status, statusTone, body, page, time,
+      indent: (16 + depth * 40) + 'px',
+      rowBg: checked ? sel : 'transparent',
+      checkBorder: checked ? A : T3,
+      checkBg: checked ? A : 'transparent',
+      actions: status === 'Approved'
+        ? [act('Unapprove'), act('Reply'), act('Trash', true)]
+        : [act('Approve'), act('Reply'), act('Spam', true), act('Trash', true)]
+    }));
+
+    /* —— Plugins —— */
+    const pluginCols = [
+      { label: 'Plugin', align: 'left' }, { label: 'Version', align: 'left' }, { label: 'Author', align: 'left' },
+      { label: 'License', align: 'left' }, { label: 'Status', align: 'left' }, { label: '', align: 'right' }
+    ];
+    const plugins = [
+      ['klytos-forms', 'Form builder with 18 field types, conditional logic and webhooks.', '1.4.2', 'José Conti', 'Free', 'exito', 'Active', 'exito', 'Deactivate', 'assignment', 'var(--tinte-acento)', A],
+      ['klytos-importer', 'AI-powered migration from WordPress WXR, sitemaps or any URL.', '0.9.7', 'José Conti', 'Free', 'exito', 'Active', 'exito', 'Deactivate', 'cloud_download', 'var(--tinte-sync)', 'var(--color-sync)'],
+      ['klytos-x402-stripe', 'Charge AI bots per request with Stripe. HTTP 402 provider.', '1.0.1', 'PackDesk', 'Premium', 'aviso', 'Active', 'exito', 'Settings', 'payments', 'var(--tinte-conflicto)', 'var(--color-conflicto)'],
+      ['klytos-x402-coinbase', 'Blockchain micropayments through Coinbase CDP.', '1.0.0', 'PackDesk', 'Premium', 'aviso', 'Inactive', 'offline', 'Activate', 'currency_bitcoin', 'var(--tinte-aviso)', 'var(--color-aviso)'],
+      ['hello-ai', 'Demo plugin: translation and topbar integration in 60 lines.', '1.0.0', 'José Conti', 'Free', 'exito', 'Inactive', 'offline', 'Activate', 'waving_hand', 'var(--tinte-offline)', T2]
+    ].map(([name, desc, version, author, license, licTone, state, stateTone, action, icon, tint, color]) =>
+      ({ name, desc, version, author, license, licTone, state, stateTone, action, icon, tint, color }));
+
+    /* —— States —— */
+    const shimmerBase = theme === 'dark'
+      ? 'background:linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.10) 50%,rgba(255,255,255,0.04) 100%);background-size:320px 100%;animation:klytos-shimmer 1.3s linear infinite'
+      : 'background:linear-gradient(90deg,rgba(0,0,0,0.04) 0%,rgba(0,0,0,0.09) 50%,rgba(0,0,0,0.04) 100%);background-size:320px 100%;animation:klytos-shimmer 1.3s linear infinite';
+    const skeletons = ['72%', '54%', '81%', '46%'].map(w => ({ w, shimmer: shimmerBase }));
+    const errorStates = [
+      { icon: 'sync_problem', text: 'The page changed in the store while you were editing.', action: 'Refresh', bg: 'var(--tinte-aviso)', color: 'var(--color-aviso)' },
+      { icon: 'cloud_off', text: 'The build could not write to /public — check folder permissions.', action: 'Retry', bg: 'var(--tinte-peligro)', color: 'var(--color-peligro)' },
+      { icon: 'key_off', text: 'Anthropic rejected the API key. Nothing was charged.', action: 'Update key', bg: 'var(--tinte-peligro)', color: 'var(--color-peligro)' }
+    ];
+
+    /* —— Overlays —— */
+    const toasts = [
+      { text: 'Page “Pricing” published. Site rebuilt in 1.2 s.', action: 'View', icon: 'check', tint: 'var(--tinte-exito)', color: 'var(--color-exito)' },
+      { text: '3 comments marked as spam.', action: 'Undo', icon: 'block', tint: 'var(--tinte-offline)', color: T2 }
+    ];
+    const pItem = (icon, label, hint, on) => ({ icon, label, hint, bg: on ? sel : 'transparent', fg: on ? A : T2, font: on ? 500 : 400 });
+    const paletteGroups = [
+      { label: 'Klytos will run', items: [
+        pItem('auto_awesome', 'Approve 2 pending comments on /blog/ai-first-cms', 'klytos_moderate_comment', true),
+        pItem('bolt', 'Rebuild the affected page afterwards', 'klytos_build_page', false)
+      ] },
+      { label: 'Go to', items: [
+        pItem('forum', 'Comments — pending', '⌘4', false),
+        pItem('description', 'Why an AI-first CMS', 'page', false),
+        pItem('tune', 'Settings — Email', '', false)
+      ] }
+    ];
+    const dialogItems = [{ slug: '/old-landing-2024' }, { slug: '/es/oferta-verano' }, { slug: '/test-page-copy' }];
+
+    const scrim = (on, pt) => ({
+      position: 'absolute', inset: 0, zIndex: 40,
+      background: 'rgba(12,12,14,0.42)',
+      display: 'flex', justifyContent: 'center', alignItems: pt ? 'flex-start' : 'center',
+      paddingTop: pt || 0,
+      opacity: on ? 1 : 0, pointerEvents: on ? 'auto' : 'none',
+      transition: 'opacity .24s ease'
+    });
+
+    return {
+      navGroups, screenChips, overlayChips,
+      theme, themeLabel: theme === 'dark' ? 'Dark' : 'Light',
+      toggleTheme: () => this.setState({ theme: theme === 'dark' ? 'light' : 'dark' }),
+      title: cur.title, url: cur.url, label: cur.title, renderMs: cur.ms, padStyle: cur.pad,
+      toolbarActions: ACTIONS[s] || [],
+      isAuth, isShell: !isAuth,
+      isLogin: s === 'login', isTwofa: s === 'twofa',
+      isChat: s === 'chat', isTasks: s === 'tasks', isComments: s === 'comments',
+      isPlugins: s === 'plugins', isStates: s === 'states',
+      authSubtitle: s === 'twofa' ? 'One more step — verify it is you' : 'Sign in to your site',
+      loginFields, methodTabs, codeCells,
+      chatGroups, chatTools, chatFindings,
+      taskStats, taskTabs, tasks,
+      commentTabs, comments,
+      pluginCols, plugins,
+      skeletons, errorStates,
+      toasts, paletteGroups, dialogItems,
+      toastStyle: {
+        position: 'absolute', right: 20, bottom: 20, zIndex: 50,
+        display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end',
+        opacity: ov === 'toast' ? 1 : 0,
+        transform: ov === 'toast' ? 'none' : 'translateY(12px)',
+        pointerEvents: 'none',
+        transition: 'opacity .24s ease, transform .32s cubic-bezier(.32,.72,0,1)'
+      },
+      paletteScrim: scrim(ov === 'palette', 110),
+      dialogScrim: scrim(ov === 'dialog', 0),
+      paletteCard: { width: 640, height: 'fit-content', border: '1px solid var(--separador)', boxShadow: '0 32px 80px rgba(0,0,0,0.34)', overflow: 'hidden' },
+      dialogCard: { width: 440, height: 'fit-content', border: '1px solid var(--separador)', boxShadow: '0 32px 80px rgba(0,0,0,0.34)', overflow: 'hidden' },
+      yes: true, zero: 0, cardPad: 20, statePad: 0, taskPad: 14,
+      logoSize: 16, bigLogo: 26, bigIcon: 56, avatarSize: 26,
+      grow: { flex: 1 }, fullWidth: { width: '100%' },
+      addIcon: React.createElement('span', { className: 'material-symbols-outlined', style: { fontSize: 16 } }, 'add'),
+      keyIcon: React.createElement('span', { className: 'material-symbols-outlined', style: { fontSize: 17 } }, 'fingerprint'),
+      frameW: 1440, frameH: 976,
+      tabs: [{ title: cur.title + ' — Klytos Admin' }, { title: 'klytos.io' }]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

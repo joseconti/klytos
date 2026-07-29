@@ -1,0 +1,54 @@
+/* ============================================================
+   PackDesk — Tipografía.
+   UI:    Geist  (Apple nativo: SF Pro)
+   Mono:  Geist Mono  (Apple nativo: SF Mono) — cifras, SKU, importes, versiones.
+   La escala usa el shorthand `font:` (peso tamaño/línea familia).
+   1 px del prototipo = 1 pt nativo.
+   ============================================================ */
+
+:root {
+  /* Cara de marca: CONSTANTE en todas las plataformas (web, plugins y apps
+     nativas que embeban Geist). Los fallbacks son el font del sistema de cada SO. */
+  --font-ui:   "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, "Helvetica Neue", Helvetica, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
+  --font-brand: var(--font-ui);
+
+  /* Voz nativa por SO (cuando una app usa el font del sistema en vez de Geist).
+     Se usan las PALABRAS CLAVE del sistema, que ya resuelven a la fuente
+     nativa de cada SO —no son webfonts, no hay archivo que subir:
+       · Apple   → -apple-system / BlinkMacSystemFont = SF Pro (Text/Display)
+       · Windows → system-ui = Segoe UI Variable (Win11) · "Segoe UI" (Win10)
+       · Android → Roboto */
+  --font-native-apple:   -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-native-windows: system-ui, "Segoe UI", sans-serif;
+  --font-native-android: Roboto, "Noto Sans", system-ui, sans-serif;
+
+  /* Pesos */
+  --peso-regular:  400; /* @kind font */
+  --peso-medium:   500; /* @kind font */
+  --peso-semibold: 600; /* @kind font */
+  --peso-bold:     700; /* @kind font */
+
+  /* Escala (tamaño / interlineado / peso) */
+  --type-large-title:  700 26px/32px var(--font-ui);  /* .largeTitle */
+  --type-title-1:      700 22px/28px var(--font-ui);  /* .title      */
+  --type-title-2:      600 17px/22px var(--font-ui);  /* .title2     */
+  --type-headline:     600 13px/16px var(--font-ui);  /* .headline   */
+  --type-body:         400 13px/18px var(--font-ui);  /* .body       */
+  --type-callout:      400 12px/15px var(--font-ui);  /* .callout    */
+  --type-caption:      400 11px/14px var(--font-ui);  /* .caption    */
+  --type-mono-importe: 500 13px/18px var(--font-mono);
+  --type-mono-pedido:  600 15px/20px var(--font-mono);
+
+  /* Densidad XL de picking (legible a distancia en almacén) */
+  --type-picking-linea:  400 17px/24px var(--font-ui);
+  --type-picking-pedido: 600 22px/28px var(--font-mono);
+
+  /* Wordmark / nombres de producto: bicolor, Bold, tracking ajustado.
+     1ª parte en var(--text) · 2ª parte en var(--brand). */
+  --wordmark-weight:   700;
+  --wordmark-tracking: -0.035em;
+
+  /* Eyebrows / labels en mono mayúsculas */
+  --eyebrow-tracking:  0.06em;
+}
