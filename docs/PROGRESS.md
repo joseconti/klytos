@@ -381,6 +381,31 @@
     intact at 124; archives intact at 49 / 123 / 123. **The path itself joined `.gitignore`**,
     because this is the second time (DR-001, then DR-003) that tree was audited, recorded and then
     left to dirty the working tree for weeks — deleting it a third time by hand treats the symptom.
+  - **Entry 41 (Logs) STARTED — 2026-08-09 (D-084). Its prerequisite is built and committed; the
+    screen itself is NOT.** Logs is the one stage-4 surface DR-006 does not block. The first thing
+    the build needed was not markup: `template-console-stream.md` §2 specifies a **different state
+    and a different sentence** for an empty log and an unreadable one, and
+    `Logger::readLogFile()` answered both with an empty array — except in the unreadable case,
+    where `count( false )` raised a **TypeError** and took the request down. **The specified state
+    was unreachable by construction.** Fixed test-first (`tests/Unit/LoggerReadFailureTest.php`,
+    red observed at `logger.php:264` for the right reason), plus a new public
+    `Logger::isLogFileReadable()` — on the Logger, not in the page, because the path resolution it
+    needs is a security boundary. Recorded as **L-034**: stages 2–4A found design and code
+    disagreeing about *presentation*; this is the first disagreement about **what the data layer
+    can express at all**, and no amount of reading surfaced it — only trying to render the state did.
+    - Suite now **310 tests / 1541 assertions**, 0 skips (was 304 / 1526). `docs/api/INDEX.md`
+      stays at **986**: the index carries one row per class, not per method, so the `Logger` row's
+      description was corrected rather than a row invented.
+    - **Still to build for entry 41:** the screen itself (level chips as links, file `<select>`
+      with a visible label, search, Follow switch, Download), the `<pre>` stream in a labelled
+      focusable `role="group"` container, per-line `<button>`s with `aria-pressed` driving the
+      detail panel (`<h2>` + the line's context JSON), the polling counts on a 10-second floor with
+      **no `aria-live` on the stream**, truncation at 5,000 lines, the console-stream CSS in the
+      `.k-*` layer, the new i18n keys ×20, and the E2E spec. **Reuse, do not rebuild:**
+      `installer/admin/api/logs.php` already exposes a `read` action gated at `site.configure`,
+      CSRF-checked and rate-limited, returning `lines` + `total` — that is the Follow poll's source.
+      Download has no endpoint yet. Shipped delete/delete-all controls **stay** (D-076's rule:
+      removing shipped behaviour is not a fidelity decision).
   - **NEXT ACTION — stage 4 batch B, which needs DR-006 answered first.** With the widths in hand
     the remaining twelve are width-substitutions over machinery that is now built and driven:
     5 Users · 15 Plugins · 24 Webhooks · 27 Profile · 28 Licence · 30 Options · 32 Taxonomies ·

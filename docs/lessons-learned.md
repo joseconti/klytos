@@ -1182,3 +1182,45 @@
   navigate to.** A specimen proves the rule is written correctly. Only the product proves it wins.
   Corollary for the eleven list screens still to come: the legacy sheets are still loaded, so every
   ported screen re-opens this question, and every one of them measures its own colours.
+
+## L-034 — The design named a state the data layer could not express, and the method that should have reported it crashed instead
+- **Symptom.** Stage 4's remaining surface, manifest entry 41 (Logs), specifies two different
+  screens for a log with nothing on it, each with its own sentence:
+  *"`error.log` is empty. Nothing has been written since it was rotated on 24 July."* and
+  *"`error.log` cannot be read — permission denied on `/var/log/klytos/`."*
+  (`template-console-stream.md` §2). Neither could be built. `Logger::readLogFile()` answers **both**
+  with an empty array, so the screen had no way to tell them apart — and in the unreadable case it
+  did not return an empty array at all: `file()` answers `false` on a failed open, `count( false )`
+  is a **TypeError** under PHP 8, and the request died. **The state the design asks for was
+  unreachable by construction, and reaching for it was a fatal.**
+- **Cause.** Two defects sitting on top of each other, and the order matters.
+  **(a) A dead variable hid a live crash.** The line was `$total = count( $lines );` and `$total`
+  was never used again — it had no purpose except to be the thing that threw. A reader skims past an
+  unused assignment; PHP does not.
+  **(b) The reader collapsed three different answers into one.** "Missing", "empty" and "cannot be
+  opened" are three facts a log viewer must distinguish, and the method returned the same value for
+  all of them — so no caller could ever have rendered the specified states, however carefully it was
+  written. The screen was not missing a branch; the branch was not expressible.
+- **Why nothing had caught it.** Logging is written under Developer Mode and read by an admin whose
+  own process wrote the file, so in every path anyone had exercised the file was readable. The
+  unreadable case is the one that happens on a real host — a log rotated by root, a directory whose
+  mode changed, a file owned by another user — and it is exactly the case with no test.
+- **The general shape, which is the part worth keeping.** Stages 2, 3 and 4A each found the design
+  and the code disagreeing about **presentation**. This is the first time they disagreed about
+  **what the data layer can say at all**, and it did not surface at the gate, in the SPEC audit, or
+  in any amount of reading — it surfaced on the first attempt to render a state. A per-screen check
+  that every state in a template's §2 has a data source capable of distinguishing it would have
+  found this before the build, the same way the per-screen glyph-presence check (D-074) now finds
+  the missing-icon shape.
+- **Fix.** `readLogFile()` guards with `is_readable()` and re-checks `file() === false`, returning
+  no lines rather than fatalling; the dead `$total` is gone. The distinction the screen needs became
+  its own small public surface, **`Logger::isLogFileReadable()`**, placed on the Logger rather than
+  in the page because answering it means resolving a filename to a path inside the logs directory,
+  and that resolution is a security boundary (traversal refusal, prefix and extension validation) —
+  a second copy of it in a screen would be a second implementation of the same rule, free to drift.
+- **Check added.** `tests/Unit/LoggerReadFailureTest.php`, **written before the fix and observed
+  failing for the right reason** — `TypeError: count(): Argument #1 ($value) must be of type
+  Countable|array, false given` at `logger.php:264`, not a broken import. Six tests pin all three
+  answers apart, plus the ordinary offset/limit path and the traversal refusal that had to survive
+  the change. The unreadable fixture skips rather than lies where the running user can bypass mode
+  0000 (root), because a test that silently passes as root would be worse than none.

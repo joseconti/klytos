@@ -248,23 +248,59 @@ class Logger
     /**
      * Read lines from a log file.
      *
+     * A file that exists but cannot be opened returns an empty list, exactly
+     * like an empty one. It used to raise a TypeError instead: `file()` answers
+     * `false` on a failed open and the count that followed it was handed that
+     * `false`, so an unreadable log took the whole request down rather than
+     * producing a state the caller could render. Callers that must tell the two
+     * apart ask {@see isLogFileReadable()} — "no lines" alone cannot.
+     *
      * @param  string $filename Log file name (basename only, sanitized).
      * @param  int    $offset   Number of lines to skip from the start.
      * @param  int    $limit    Maximum lines to return (0 = all).
-     * @return array<int, string> Lines from the file.
+     * @return array<int, string> Lines from the file; empty if it is missing,
+     *                            empty, unreadable, or the name does not resolve.
      */
     public function readLogFile( string $filename, int $offset = 0, int $limit = 500 ): array
     {
         $filePath = $this->safeFilePath( $filename );
-        if ( $filePath === null || ! file_exists( $filePath ) ) {
+        if ( $filePath === null || ! file_exists( $filePath ) || ! is_readable( $filePath ) ) {
             return [];
         }
 
-        $lines    = file( $filePath, FILE_IGNORE_NEW_LINES );
-        $total    = count( $lines );
-        $lines    = array_slice( $lines, $offset, $limit > 0 ? $limit : null );
+        $lines = file( $filePath, FILE_IGNORE_NEW_LINES );
+        if ( $lines === false ) {
+            // is_readable() passed and the open still failed — a race, or a
+            // mode the check cannot see through. Same answer, no fatal.
+            return [];
+        }
 
-        return $lines;
+        return array_slice( $lines, $offset, $limit > 0 ? $limit : null );
+    }
+
+    /**
+     * Whether a log file exists and can actually be opened for reading.
+     *
+     * The log screen has to distinguish "this file is empty" from "this file
+     * cannot be read" — `template-console-stream.md` §2 specifies a different
+     * state, and a different sentence, for each — and {@see readLogFile()}
+     * answers both with an empty list. This is the question that separates
+     * them.
+     *
+     * It lives here rather than in the screen because answering it means
+     * resolving the filename to a path inside the logs directory, and that
+     * resolution is a security boundary (traversal refusal, extension and
+     * prefix validation). A second copy of it in a page would be a second
+     * implementation of the same rule, free to drift from this one.
+     *
+     * @param  string $filename Log file name (basename only, sanitized).
+     * @return bool   True only if the file resolves, exists, and is readable.
+     */
+    public function isLogFileReadable( string $filename ): bool
+    {
+        $filePath = $this->safeFilePath( $filename );
+
+        return $filePath !== null && is_file( $filePath ) && is_readable( $filePath );
     }
 
     /**
