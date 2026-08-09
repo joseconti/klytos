@@ -1,6 +1,6 @@
 # Test automation — the assistant drives every test it can drive
 
-Load this at five moments: (a) Phase 1 §5a, for the environment preflight as soon as the project type and target platforms are fixed; (b) Phase 2 §4/§4d, when the technical plan picks the drivers and writes the environment requirements table; (c) the Phase 5 scaffold, when `scripts/keel-doctor` is generated and the drivers are stood up; (d) every Phase 5 test point and sprint close, when the tests are actually driven; (e) the Phase 7 gate, for the clean-machine run.
+Load this at five moments: (a) Phase 1 §5a, for the environment preflight as soon as the project type and target platforms are fixed; (b) Phase 2 §4/§4d/§4e, when the technical plan picks the drivers, writes the environment requirements table and settles the test-first policy; (c) the Phase 5 scaffold, when `scripts/keel-doctor` is generated and the drivers are stood up; (d) every Phase 5 test point and sprint close, when the tests are actually driven; (e) the Phase 7 gate, for the clean-machine run.
 
 It is the operating manual for one rule. `references/playground-recipes.md` says WHAT environment each project type gets; this file says WHO exercises it and how that is proven.
 
@@ -53,11 +53,109 @@ Two of these need their own rule, because they are the ones that could otherwise
 
 **`NO-EXECUTION` is a fact about the session, not about the work — and it is never an excuse to hand the clicking to the user.** When the assistant has no command execution where the repository lives (a chat surface with no shell, a sandboxed session that cannot reach the user's machine), the response is NOT "please go to that screen and tell me what you see". It is: write the driven tests in full, write the exact commands that run them, record the affected criteria as `⚠ unverified — NO-EXECUTION`, and hand over a ready-to-paste prompt for a session that DOES have a shell (the continuation-prompt mechanism in `references/project-state.md`). The work moves to a capable environment; it does not turn into the user's clicking. Check this capability at Phase 1 §5a and at the first test point of every session — a session that assumes it can run commands and cannot will discover it at the worst moment.
 
+**`NO-EXECUTION` has a partial case, and it is the one that catches sessions out.** The tag as written names a session with no way to run commands where the repo lives. Some environments are neither that nor fully capable: they CAN execute, and they CAN touch the user's files, but not both at once, or not with a network. The measured case is Cowork's device bridge — the cloud container has network and no access to the user's files; the bridge has the files and no network, cannot delete anything (`rm` returns `Operation not permitted`, and the `.lock` files git leaves behind then block the user's own repository), and exposes no `localhost` of the user's machine, so a playground started there is invisible. A session in that shape can genuinely run the linters over the files it can see and genuinely cannot install a dependency, boot a playground, or fetch anything. Two rules follow:
+
+- **Say which half is missing, at Phase 1 §5a and at the first test point of the session** (Phase 1 §5a question 6), in the same breath as the capability itself. "This session can execute, but not where the network is" is a usable statement; "this session can execute" is a false one that produces a promise the session then breaks.
+- **Tag per leg, never per session.** A criterion whose verification needs the missing half is `⚠ unverified — NO-EXECUTION`, naming what was unreachable (network, the repository's own machine, a listening port) and handing over the ready-to-paste prompt for a session that has it. Everything the session CAN drive, it still drives — a partial capability is not a licence to hand the whole suite back, and it is never a licence to hand the clicking to the user.
+
 **The anti-escape rule.** A delegation without one of these eight tags is a protocol defect, caught at the test point and at the sprint close. "It is faster if the user checks it" and "I could not get the selector to work" are not reasons — the first is false and the second is a task, not an obstacle. If a flow resists automation, the fix is a stable identifier in the product (see "Make the product drivable"), not a message to the user.
 
 **The scope rule for `JUDGMENT`.** `JUDGMENT` never substitutes for functional verification. The criterion is driven and asserted exactly as any other; `JUDGMENT` covers only the product question that remains AFTER the test passed — "this is what it does now, is that what you meant?" — and it is asked over the captured evidence, never by asking the user to reproduce the flow to form an opinion. A `JUDGMENT` tag on a criterion that has no driven test beside it is the laziest escape in the whole contract, and it is a defect.
 
 **The scope rule for `CREDENTIAL`.** A credential blocks only the leg that needs it, never the whole flow. A checkout that cannot complete against a real gateway is still driven end to end against an offline payment method, with only the gateway leg delegated. Delegating the entire purchase because one payment method needs a key is the most common way this contract gets quietly broken.
+
+## When the test is written — the test-first policy
+
+Everything above settles WHO drives a test. This section settles WHEN it is written, and it exists for one failure the rest of this file cannot catch.
+
+**A test written after the implementation is written by someone who already knows how the implementation works.** It describes what the code does, not what the requirement asked for. Where those two differ — which is exactly the case worth catching — the difference is invisible, because it is present in both the code and the test. The suite goes green, stays green, and the defect is now protected by a passing test that everyone will read, correctly, as evidence. It is "declared is not delivered" (SKILL.md) in its most convincing disguise, and no amount of driving fixes it: a driven test that asserts the wrong thing is driven, recorded, reproducible and wrong.
+
+A test written BEFORE the code cannot copy the implementation, because there is nothing to copy. That is the whole argument, and it is the only one this section rests on. The classic case for test-first — design pressure on the API — carries much less weight here, since the shape of the code is already fixed by the technical plan; do not use it to justify going further than the scopes below.
+
+### It is a policy, not a doctrine — three values, one card line
+
+Test-first is deliberately NOT applied uniformly. Where it is cheap it is mandatory; where it is expensive it is opt-in and decided per project; where it is counterproductive it is forbidden outright, and "more rigour" is not a reason to overrule that. The project's choice is one line on the project card — `Test-first policy:` — asked once at Phase 2 §4e and recorded with the rest of the technical plan.
+
+Two levels are referred to throughout, and they are defined in full just below: **Level B** is test-first on pure logic (the cheap half), **Level A** is the slice's acceptance criterion turned into a failing check first (the expensive half).
+
+| Value | What it means |
+|---|---|
+| `pure-logic` | **Default for new projects.** Level B is mandatory; Level A is not applied. |
+| `pure-logic + acceptance` | Levels A and B are both mandatory. |
+| `none` | Neither level applies. Requires its own `docs/decisions.md` entry — the default is never dropped silently. |
+
+**The bug-reproduction rule below is not part of this policy and does not move with it.** It applies on every project, at every value, including `none`.
+
+### Level B — pure logic, test first (the half that always pays)
+
+Mandatory wherever the policy is not `none`. It covers code that is a function of its inputs, with a closed contract and no framework state to stand up:
+
+- signature computation and verification, token and hash derivation, cryptographic envelopes;
+- parsers, serializers, format converters, encoders;
+- validators (identifiers, bank codes, postal formats, schema checks);
+- state machines and their transition tables (subscription lifecycles, retry ladders, order status);
+- money: proration, tax, rounding, currency conversion, totals;
+- entitlement and expiry resolution (licences, trials, grace periods);
+- anything else whose test needs no environment beyond the language runtime.
+
+Here the test costs minutes to write, runs in milliseconds, and is where a defect costs the most in the field — a wrong signature or a wrong proration reaches real money. Writing it first is not a ceremony on this code; it is the cheapest verification the project will ever buy.
+
+### Level A — the acceptance criterion first (the opt-in half)
+
+Applied only where the card says `pure-logic + acceptance`. The slice begins by translating the acceptance criterion it implements — the `AC-nn` from `docs/02-functional-spec.md` §6, not a paraphrase of it — into ONE executable check that fails, at whatever level the criterion actually lives (integration, driven end-to-end, a real call against the playground). Then the slice is built until that check passes, and the rest of the slice's tests are written as usual.
+
+This is the level that carries the argument at the top of this section into user-visible behaviour, and it is also the expensive one: expect it to add materially to the front of each slice, concentrated in the slices that need a driver stood up. It is opt-in for exactly that reason. A project that wants it on one subsystem and not on the whole codebase records that scope in the technical plan's `## Testing`, beside the policy line, rather than pretending the card value covers it.
+
+### Where test-first is NOT applied — on any policy value
+
+Naming this is as much of the policy as the mandatory half is, because a rule with no boundary gets applied where it does damage and then gets abandoned entirely:
+
+| Not applied to | Because |
+|---|---|
+| UI markup, layout, styling, block editor markup | The assertion is a design judgment until the design exists; the test would encode the first guess |
+| Framework glue — hook registrations, service wiring, bootstrapping | Standing up the global state costs more than the check is worth, and the playground already exercises it |
+| Exploratory integration with a third party whose real behaviour is not yet known | See the spike rule below — a test written against a guessed response shape is a guess with an assertion on it |
+| One-line configuration, constants, generated files | There is nothing to get wrong that a compile or a lint does not catch |
+
+Coverage of these still exists — it comes from the driven tests, the playground and the static checks that the rest of this file already mandates. What changes is only the ORDER, and only where the order buys something.
+
+### The spike escape hatch (and its closing condition)
+
+When the real shape of a third-party response, a platform API or an undocumented behaviour is unknown, writing the test first is writing fiction. The correct move is a spike: explore against the real thing until the shape is known, in code that is understood to be disposable. **The escape hatch closes the moment the shape is known** — the behaviour is then pinned with a test, and the spike code is either deleted or rewritten behind it. A spike that quietly becomes the implementation, with its test written afterwards from the code it produced, is the exact failure this section exists to prevent, arriving by the one door left open for it. Record the spike and its closing in the slice's notes.
+
+### Guard 1 — the test is not edited to make it pass (UNBREAKABLE)
+
+When a test-first test fails, the cheapest available action is to change the test. It is also, almost always, the wrong one — and an assistant under pressure to reach a green gate will find it first.
+
+**A test derived from a recorded requirement — an `AC-nn`, or a reproduced bug — is NEVER modified to make it pass.** If the test is genuinely wrong, then the REQUIREMENT is wrong, and that is a decision the user makes: it takes a `docs/decisions.md` entry, or a Design Request where a design contract is involved (`references/phase-4-faithful-build.md`). The assistant proposes; it does not settle it by editing the assertion and moving on.
+
+What is NOT covered by this rule, and needs no entry: renaming a test, moving it between files, improving its failure message, fixing its own scaffolding (a broken import, a wrong fixture path, a flaky wait). The line is precise and it is about the assertion: **if the set of behaviours that would pass the test changes, the rule applies.** If it does not, the rule does not.
+
+This is the same rule as `references/phase-5-development.md`'s "never 'fix' the failure by deleting, skipping, or loosening the test" (§2, the three-attempt rule), stated for the one case where the loosening looks like authorship rather than damage — because the test was written minutes ago, by this session, and feels like its own to change.
+
+### Guard 2 — the red is observed, and for the right reason
+
+A test that has never failed is not evidence of anything, and a test that fails on a missing import is evidence of even less. Before the production code is written:
+
+1. **Run the test and observe the failure.** Not "expect it to fail" — run it.
+2. **Confirm the failure message matches the absent behaviour**, not a setup error, a syntax error, a missing dependency or a typo'd fixture. A red for the wrong reason is a green in waiting: it goes away when the setup is fixed, whether or not the behaviour was ever built.
+3. **Record the red beside the green.** The one-line failure output goes in the test point's evidence cell, and the row's `Red first` column says `observed`.
+
+Skip step 2 and the project accumulates tests that could never have failed — the most expensive failure mode in this whole file, because it produces confidence with nothing underneath it, and nobody ever re-examines a green test.
+
+### The bug-reproduction rule (every project, every policy value)
+
+**A bug fix begins with a test that reproduces the bug and fails, before the fix is written.** This applies on every project regardless of the `Test-first policy:` line, in Phase 5 slices, in maintenance and in hotfixes (`references/maintenance.md`).
+
+Keel already required that every fixed bug carry a regression test. The order is what this rule adds, and it is not cosmetic: a test written after the fix demonstrates that the code now does what the code now does. It never actually reproduced the bug, so nothing proves it would catch the bug's return — which is the only thing a regression test is for. The reproduction failing first is the proof that the test and the bug are about the same thing.
+
+Under time pressure — a production hotfix, an incident — this is the rule most likely to be skipped, and it is the one whose absence surfaces three versions later as the same report from the same customer. It costs minutes. It is not tradeable against urgency; if the fix is urgent enough to ship without it, that is a `docs/decisions.md` entry with the consequence stated, not a silent omission.
+
+### What is recorded, and what checks it
+
+- **The policy** — the project card's `Test-first policy:` line, plus any narrower scope in `docs/03-technical-plan.md` `## Testing`.
+- **The red** — `docs/05-test-points.md` gains a `Red first` column, holding exactly one of five values: `observed` (the failure line is in the evidence cell), `n/a — policy` (the card's `Test-first policy:` does not cover this row — `none`, or a Level A row on a `pure-logic` project), `n/a — out of scope` (the row is in the not-applied table above), `n/a — predates` (the row existed before the project adopted the policy — it is not retroactive), `n/a — delegated` (the row's `Coverage` is one of the eight tags, so nobody here ran it; on `NO-EXECUTION` the test is still WRITTEN first and handed over, and that goes in the delegation steps).
+- **`scripts/keel-verify`** checks three things, and the asymmetry between them is deliberate. It **FAILS** a row whose `Red first` cell is empty or holds anything outside the five values — the same enum check `Coverage` already gets, and the reason both enums are closed is that a script can only count what it can recognise. It **FAILS** a row claiming `observed` with no failure output in its evidence cell — a claim without its evidence, which is the one thing this skill never tolerates. And it **REPORTS**, never fails, every row whose value is not `observed` and not `n/a — delegated` — the delegated ones are already accounted for by their tag and their steps, and everything else is an escape valve. The rule is deliberately blunt for one reason: the script cannot decide whether a given piece of code is pure logic, so ANY judgment-bearing value has to be visible, or the assistant simply picks the mildest one that nobody looks at. The list goes in the sprint-close report for a person to judge. On a project whose card says `none` the report is one line naming the policy and its decision entry instead of a row list — there the escape was taken deliberately, once, on the record.
 
 ## Make the product drivable (this is a build requirement, not a test requirement)
 
@@ -97,14 +195,20 @@ Generated at the Phase 5 scaffold from the technical plan's environment requirem
 | Playwright browsers | chromium absent | chromium | MISSING | blocking | `npx playwright install chromium` |
 | ext-mbstring | present | required | OK | blocking | — |
 | phpMyAdmin | absent | — | MISSING | optional | (not needed for tests) |
+| Permission mode | `manual` | not `manual` | MISSING | advisory | write `.claude/settings.local.json` (`defaultMode: "auto"`) or start with `--permission-mode auto` |
+| Notification channel | none responding | a delivering channel | MISSING | advisory | authorize the recorded channel, or accept in-chat only (`references/notifications.md`) |
 
-The four states matter more than they look. Collapsing `NOT OPERATIONAL` into `MISSING` is the single most common doctor bug: it makes the assistant propose reinstalling Docker when all that was needed was to start it. Severity is its own column, not a footnote: **blocking** means no work is possible without it, **optional** means quality of life. An optional row that is missing never fails the run, and never gates a release.
+The four states matter more than they look. Collapsing `NOT OPERATIONAL` into `MISSING` is the single most common doctor bug: it makes the assistant propose reinstalling Docker when all that was needed was to start it. Severity is its own column, not a footnote: **blocking** means no work is possible without it, **optional** means quality of life, **advisory** means the work will complete but under friction the user should know about. Neither an optional nor an advisory row that is missing fails the run, and neither gates a release.
+
+**The permission-mode row is the standing advisory one.** The doctor reports the session's active permission mode and whether `.claude/settings.local.json` exists with a `permissions.defaultMode` other than `manual`. `manual` — or no file and no mode passed — is reported as MISSING at **advisory** severity, with the fix named: write the local settings file, or start with `claude --permission-mode auto`. It never exits non-zero on this row and never blocks a gate; it exists because a session in `manual` mode hits a dialog on every composite command and the driven-test protocol quietly degrades into asking the user, which is the failure this whole reference exists to prevent. The full procedure and the file's exact contents are in `references/keel-maintenance.md` ("Permission mode"). The notification-channel row is advisory for the same reason and reports the same way: the channel is PROBED, a compose-only connector is never counted as delivering, and "no channel" is a stated result rather than a silent one (`references/notifications.md`).
 
 Emit the same content as JSON (`--json`) so the assistant decides from structured data instead of parsing its own table.
 
 ### Detection rules that are not obvious
 
 - **Use `command -v`, never `which`.** `command -v` is the POSIX builtin and uses the shell's own lookup; `which` is an external tool, absent from minimal images, with inconsistent exit codes. On Windows/PowerShell, `Get-Command <name> -CommandType Application -ErrorAction SilentlyContinue`.
+- **A negative probe never concludes `MISSING` on its own — corroborate before writing the row.** The assistant's shell is frequently not the user's shell: a restricted `PATH` (a bare `/usr/bin:/bin:/usr/sbin:/sbin` is the measured case) hides `php`, `gh`, `docker`, `node` and `npm` that are installed and working in the user's login shell. A `MISSING` derived from that offers to install what is already there — the same class of bug as collapsing `NOT OPERATIONAL` into `MISSING`, and it spends the user's machine rather than their patience. Before writing `MISSING`, corroborate in this order: the login shell (`bash -lc 'command -v X'`, `zsh -lc` where that is the user's shell), the platform's known install locations for that tool, and any variable the tool itself exports — **Claude Code exports `CLAUDE_CODE_EXECPATH`, the absolute path of the running binary, and `CLAUDE_CODE_VERSION`, its version**, so a session running under it resolves its own CLI even with an empty `PATH`. A tool found outside `PATH` is **present**, and the row records the absolute path that works, because that is what any later command must use. Only an absence that survives every corroboration is `MISSING`.
+- **And a positive probe never concludes operational.** The command existing and the command working are two questions, and the second is the one the project depends on. The measured case: `npm install -g` accepts a package whose `engines` field demands a newer runtime than the one active and emits only an `EBADENGINE` warning, so the binary lands on `PATH`, the probe says yes, and whether it runs is still unknown. Always follow a positive `command -v` with the tool's own version probe, compare it against the requirement, and record `TOO OLD` or `NOT OPERATIONAL` rather than `OK` when it does not meet it. This is the same four-state discipline read in the other direction, and both directions are needed: the row states what is TRUE of the machine, never what the first command happened to return.
 - **Docker needs two questions, not one.** `command -v docker` answers "installed"; `docker info` (exit 0) answers "the daemon responds". `docker version --format '{{.Client.Version}}'` prints the client version *and exits non-zero* when the daemon is down, so exit code alone lies. Distinguish three causes in the message: daemon stopped, permission (user not in the `docker` group), and context/`DOCKER_HOST` pointing elsewhere (`docker context ls` works with the daemon down).
 - **Version probes that behave badly:** `java -version` writes to stderr (`java --version` on JDK 9+ writes to stdout); as root, Composer warns, disables plugins and — interactively — PROMPTS before continuing, which hangs an unattended probe; export `COMPOSER_ALLOW_SUPERUSER=1` so the version probe returns instead of waiting; `node -p "process.versions.node"` avoids the `v` prefix; `php -r 'echo PHP_VERSION;'` avoids parsing the banner.
 - **Architecture under emulation.** On Apple Silicon running under Rosetta, `uname -m` reports `x86_64`. Check `sysctl -n sysctl.proc_translated` (1 = translated, so the real arch is `arm64`) before choosing a download. On Windows, `RuntimeInformation.OSArchitecture` is honest where `$env:PROCESSOR_ARCHITECTURE` reports the process, not the machine.
@@ -139,7 +243,7 @@ Three machines can be involved and they are not always the same one: the machine
 
 So the requirements table names, per row, WHICH machine must satisfy it, and two questions get answered explicitly at Phase 1 §5a and again at the first test point of each session:
 
-- **Can this session run commands where the repository lives?** If not, that is `NO-EXECUTION` and the work moves to a session that can — it never becomes the user's clicking.
+- **Can this session run commands where the repository lives?** If not, that is `NO-EXECUTION` and the work moves to a session that can — it never becomes the user's clicking. And the question has a middle answer: a session that executes on one filesystem and reaches the user's files on another, or that reaches the files with no network, answers "partly" — see the partial case above, and say which half is missing rather than which capability exists.
 - **Whose screen would a non-headless test take?** The screen-stealing question is only about a machine with a human in front of it. A UI test on a dedicated runner steals nothing; the same test on the user's laptop steals their afternoon.
 
 ## Drivers by surface
@@ -148,8 +252,8 @@ The technical plan names one driver per surface the project has. What each one i
 
 | Surface | Driver | Steals the screen? | Evidence it produces |
 |---|---|---|---|
-| Web UI (any stack) | Playwright | No — headless by default | Trace, video, screenshots, JSON report |
-| WordPress / WooCommerce admin and storefront | Playwright against wp-env or Playground CLI | No | Same, plus WP debug log |
+| Web UI (any stack) | Playwright | No by default; **yes while a headed run lasts** | Trace, video, screenshots, JSON report |
+| WordPress / WooCommerce admin and storefront | Playwright against wp-env or Playground CLI | Same as above | Same, plus WP debug log |
 | REST / HTTP API | `curl` or the driver's request context | No | Status, body, headers per call |
 | MCP server | Inspector CLI (`--cli --method ...`) or scripted JSON-RPC over stdio | No | Request/response transcript |
 | CLI (non-interactive) | Direct execution plus output snapshot | No | stdout/stderr, exit code |
@@ -234,6 +338,10 @@ Every driven check writes one row in `docs/05-test-points.md` with: the exact co
 
 Artifacts live in the project's ignored artifacts directory, never committed — except the small ones a reviewer needs — and the row points at them.
 
+**On every browser surface the trace and the video are not optional extras, they are the evidence.** A headless run leaves nothing a human can inspect, so "the tests passed" is an assertion about work nobody watched. With `trace` and `video` on, the same run leaves a timeline carrying a DOM snapshot before and after each action, the selector used, the network call it triggered, the console at that instant — rewindable, and readable months later by someone who was not there. Configure both in the project's Playwright config, point the test-point row at the trace file, and open it with `npx playwright show-trace <path>` when a result is questioned. A driven check on a browser surface whose row has no trace path is incomplete in exactly the way an unrecorded command is.
+
+**Offering to run it headed is a courtesy, never a substitute.** When the user wants to watch the flow happen — a reasonable thing to want, and the honest answer to "I don't see a browser doing anything" — the assistant offers the documented headed script and says plainly what it costs: it takes over the screen while it runs, it is slower, and it proves nothing the recorded run did not already prove. What is never acceptable is the inverse: skipping the recording because the user could watch, or answering a doubt about coverage by inviting the user to run the tests themselves. That is the delegation this file exists to end, re-entering through the door marked "transparency".
+
 Where something could not be driven, the row records its tag, the exact steps for the person who will do it, and `⚠ unverified` until they report back. `docs/PROGRESS.md` carries the open item.
 
 **Two conventions turn all of this from prose into something `scripts/keel-verify` can actually check.** Without them the coverage rule is self-declared, which is the failure this whole file exists to end:
@@ -264,3 +372,8 @@ Recorded here so it is never rediscovered as a surprise mid-project:
 - Every acceptance criterion carries its `AC-nn` ID, and every ID appears in `docs/05-test-points.md` with a `Coverage` value that is either `driven` or one of the eight tags — never free text, never blank.
 - Every delegation to the user carries its tag and its exact steps; a delegation without a tag is a defect, and `JUDGMENT` or `PRODUCTION-RISK` on a criterion with no driven test beside it is the same defect wearing a label.
 - Anything that could not be driven is `⚠ unverified` with its reason — never silently absent and never reported as passing.
+- Where the session's environment is protected (no network where the files are, no deletion, no `localhost`, execution and files on separate filesystems), the limitation was stated at Phase 1 §5a and the affected legs carry `NO-EXECUTION` naming the missing half — not the whole suite, and never the user's clicking.
+- The project card carries a `Test-first policy:` value, and where it is `none` that value has its `docs/decisions.md` entry.
+- Every test written under the policy was seen to fail first, for the absent behaviour and not for a setup error, with the failure line recorded and its row's `Red first` column set.
+- No test derived from an `AC-nn` or from a reproduced bug was modified to make it pass without a decision entry or a Design Request behind the change.
+- Every bug fixed in this project — slice, maintenance or hotfix — was reproduced by a failing test BEFORE the fix, on any policy value.

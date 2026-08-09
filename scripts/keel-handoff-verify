@@ -1,0 +1,290 @@
+#!/usr/bin/env bash
+#
+# keel-handoff-verify — verify a Keel continuation hand-off before acting on it,
+# and own the single-lane lock that serialises who may WORK in this tree.
+#
+# Generated for Klytos CMS at the Keel v5.1.0 -> v5.3.0 reconciliation (D-080);
+# extended at the v5.3.0 -> v5.12.0 reconciliation (D-081) with the single-lane
+# lock (references/project-state.md, "The single-lane lock") required by
+# `Chaining: start`. Both from the contract in Keel's references/project-state.md.
+#
+# WHY THIS IS A SCRIPT AND NOT A LINE THE SESSION COMPOSES (v5.3.0, UNBREAKABLE):
+# a session that writes these checks inline produces one line of nested $(...),
+# the permission matcher cannot decompose it, the call returns `Parse error`, and
+# the project's allow-list is bypassed even though every git command inside it is
+# allowed. So the checks live here behind ONE allow-list entry:
+#
+#     Bash(./scripts/keel-handoff-verify:*)
+#
+# Output (verify mode): one line per check, then `VERDICT: CONTINUE` or
+# `VERDICT: STOP`. Exit status: 0 = CONTINUE, 1 = STOP, 2 = the file does not
+# exist (NOT an error — resume normally from docs/PROGRESS.md).
+#
+# Usage:
+#   scripts/keel-handoff-verify [path-to-continuation-prompt.md]   verify + take lock
+#   scripts/keel-handoff-verify --release                          release the lock
+#
+# The lock is only taken/checked when this project's `docs/PROGRESS.md` card
+# reads `Chaining: start` — on any other value it costs nothing and touches
+# nothing outside the repository. Lock state lives OUTSIDE the repo, in
+# `~/.keel/state/<repo-key>/`, keyed by the REAL path of the repository root
+# (never the root-commit hash — a shallow clone's root-commit is not stable).
+#
+# @license GPL-3.0-or-later
+# @copyright Copyright (c) 2026 José Conti
+
+set -u
+
+# ---------------------------------------------------------------------------
+# Shared: state directory keyed by the repo's real absolute path.
+# ---------------------------------------------------------------------------
+STATE_ROOT="${KEEL_STATE_DIR:-$HOME/.keel/state}"
+
+repo_key() {
+    local top
+    top="$( git rev-parse --show-toplevel 2>/dev/null )"
+    [ -z "$top" ] && return 1
+    top="$( cd "$top" && pwd -P )"
+    if command -v shasum >/dev/null 2>&1; then
+        printf '%s' "$top" | shasum -a 256 | cut -c1-16
+    else
+        printf '%s' "$top" | cksum | cut -d' ' -f1
+    fi
+}
+
+# This session's identity: the running Claude Code CLI process, exposed
+# directly as $CLAUDE_PID by the harness — far more reliable than walking
+# $PPID, which resolves to whatever wraps this one Bash call and dies with it.
+# Falls back to $PPID for any other tool that does not set it.
+session_pid() { printf '%s' "${CLAUDE_PID:-$PPID}"; }
+
+pid_start_time() {
+    ps -o lstart= -p "$1" 2>/dev/null | tr -s ' '
+}
+
+pid_alive() { kill -0 "$1" 2>/dev/null; }
+
+card_chaining_is_start() {
+    [ -f docs/PROGRESS.md ] || return 1
+    grep -qE '^- Chaining: \*\*start\*\*|^- Chaining: start\b' docs/PROGRESS.md
+}
+
+# ---------------------------------------------------------------------------
+# --release: give back the lane if THIS session is the recorded owner.
+# Idempotent, prints one line either way, always exits 0.
+# ---------------------------------------------------------------------------
+if [ "${1:-}" = "--release" ]; then
+    KEY="$( repo_key )" || { echo "release: not inside a git repository — nothing to release"; exit 0; }
+    LOCK="$STATE_ROOT/$KEY/lock"
+    if [ ! -f "$LOCK" ]; then
+        echo "release: no lane held for this repository — nothing to release"
+        exit 0
+    fi
+    HELD_PID="$( sed -n '1p' "$LOCK" )"
+    ME="$( session_pid )"
+    if [ "$HELD_PID" = "$ME" ]; then
+        rm -f "$LOCK"
+        echo "release: lane released (was held by this session, PID $ME)"
+    else
+        echo "release: lane held by PID $HELD_PID, not this session (PID $ME) — nothing released"
+    fi
+    exit 0
+fi
+
+FILE="${1:-docs/continuation-prompt.md}"
+STOP=0
+
+say() { printf '%-14s %s\n' "$1" "$2"; }
+fail() { say "$1" "FAIL — $2"; STOP=1; }
+
+if [ ! -f "$FILE" ]; then
+    echo "No hand-off at $FILE — resume normally from docs/PROGRESS.md."
+    echo "VERDICT: CONTINUE"
+    exit 2
+fi
+
+# ---------------------------------------------------------------------------
+# Portable stat/date. The first prototype of this script was BSD-only, which
+# makes a check that cannot be run on the machine that needs it — so both forms
+# are detected rather than assumed.
+# ---------------------------------------------------------------------------
+file_mtime_epoch() {
+    if stat -f %m "$1" >/dev/null 2>&1; then stat -f %m "$1"; else stat -c %Y "$1"; fi
+}
+
+iso_to_epoch() {
+    # TIMESTAMPS ARE COMPARED AS EPOCH SECONDS, NEVER AS STRINGS: the header
+    # writes +02:00 and stat reports +0200, so a string comparison of the same
+    # instant reports tampering on every single run.
+    #
+    # The offset is normalised to +HHMM BEFORE either date(1) is tried. The
+    # first version of this function probed BSD date with the UNCONVERTED
+    # string, so the probe always failed, it fell through to GNU `date -d`
+    # (absent on macOS), and every valid timestamp was reported "unparsable" —
+    # a FAIL for the wrong reason, which stops the session while telling it
+    # something untrue. Caught by running the script against a bad hand-off
+    # before trusting it, not by reading it.
+    local iso norm
+    iso="$1"
+    norm="$( printf '%s' "$iso" | sed -E 's/([+-][0-9]{2}):([0-9]{2})$/\1\2/; s/Z$/+0000/' )"
+
+    if date -j -f '%Y-%m-%dT%H:%M:%S%z' "$norm" +%s 2>/dev/null; then
+        return 0
+    fi
+    date -d "$iso" +%s 2>/dev/null
+}
+
+header_value() { sed -n "s/^- \*\*${1}:\*\* *//p; s/^${1}: *//p" "$FILE" | head -1; }
+
+# ---------------------------------------------------------------------------
+# 1. CONTAINMENT — runs FIRST, because it is the only check that catches a
+#    SECOND CHECKOUT of the same repository (a worktree, a second clone, a
+#    copied folder), where root commit and HEAD both legitimately match and
+#    every identity check therefore passes.
+# ---------------------------------------------------------------------------
+TOPLEVEL="$( git rev-parse --show-toplevel 2>/dev/null )"
+if [ -z "$TOPLEVEL" ]; then
+    fail "containment" "not inside a git repository"
+else
+    REAL="$( cd "$( dirname "$FILE" )" 2>/dev/null && pwd -P )/$( basename "$FILE" )"
+    REALTOP="$( cd "$TOPLEVEL" && pwd -P )"
+    case "$REAL" in
+        "$REALTOP"/*) say "containment" "OK — inside $REALTOP" ;;
+        *) fail "containment" "the hand-off at $REAL is OUTSIDE $REALTOP; it belongs to another working directory" ;;
+    esac
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Repo — the root-commit hash. Stable identity, unlike a remote URL, which
+#    may be absent or plural.
+# ---------------------------------------------------------------------------
+REPO_HDR="$( header_value 'Repo' )"
+if [ "$( git rev-parse --is-shallow-repository 2>/dev/null )" = "true" ]; then
+    say "repo" "UNVERIFIABLE — shallow clone; containment carries the weight"
+elif [ -z "$REPO_HDR" ]; then
+    fail "repo" "header missing"
+else
+    REPO_NOW="$( git rev-list --max-parents=0 HEAD 2>/dev/null | sort | head -1 )"
+    if [ "$REPO_HDR" = "$REPO_NOW" ]; then
+        say "repo" "OK — $REPO_NOW"
+    else
+        fail "repo" "hand-off is for $REPO_HDR, this repository is $REPO_NOW"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Commit — and HOW FAR behind, which is more useful than a yes/no.
+# ---------------------------------------------------------------------------
+COMMIT_HDR="$( header_value 'Commit' )"
+COMMIT_NOW="$( git rev-parse HEAD 2>/dev/null )"
+if [ -z "$COMMIT_HDR" ]; then
+    fail "commit" "header missing"
+elif [ "$COMMIT_HDR" = "$COMMIT_NOW" ]; then
+    say "commit" "OK — $COMMIT_NOW"
+elif git merge-base --is-ancestor "$COMMIT_HDR" HEAD 2>/dev/null; then
+    BEHIND="$( git rev-list --count "$COMMIT_HDR"..HEAD 2>/dev/null )"
+    fail "commit" "hand-off is $BEHIND commit(s) behind HEAD ($COMMIT_HDR -> $COMMIT_NOW)"
+else
+    fail "commit" "hand-off commit $COMMIT_HDR is not an ancestor of HEAD"
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Generated — against now AND the file's own mtime, which the header cannot
+#    forge.
+# ---------------------------------------------------------------------------
+GEN_HDR="$( header_value 'Generated' )"
+if [ -z "$GEN_HDR" ]; then
+    fail "generated" "header missing"
+else
+    GEN_EPOCH="$( iso_to_epoch "$GEN_HDR" )"
+    MTIME="$( file_mtime_epoch "$FILE" )"
+    NOW="$( date +%s )"
+    if [ -z "$GEN_EPOCH" ]; then
+        fail "generated" "unparsable timestamp: $GEN_HDR"
+    else
+        AGE=$(( NOW - GEN_EPOCH ))
+        DRIFT=$(( GEN_EPOCH - MTIME )); [ "$DRIFT" -lt 0 ] && DRIFT=$(( -DRIFT ))
+        if [ "$DRIFT" -gt 300 ]; then
+            fail "generated" "header says $GEN_HDR but the file was last written ${DRIFT}s away from that"
+        elif [ "$AGE" -gt 86400 ]; then
+            fail "generated" "hand-off is $(( AGE / 3600 ))h old — the repository has probably moved"
+        else
+            say "generated" "OK — $(( AGE / 60 ))m old"
+        fi
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Tree — a hand-off written `clean` on a tree that is now dirty, or the
+#    reverse, means work moved outside the hand-off's account of it.
+# ---------------------------------------------------------------------------
+TREE_HDR="$( header_value 'Tree' )"
+TREE_NOW="clean"
+[ -n "$( git status --porcelain 2>/dev/null )" ] && TREE_NOW="dirty ($( git status --porcelain | wc -l | tr -d ' ' ) path(s))"
+if [ -z "$TREE_HDR" ]; then
+    fail "tree" "header missing"
+else
+    case "$TREE_HDR:$TREE_NOW" in
+        clean:clean) say "tree" "OK — clean" ;;
+        clean:dirty*) fail "tree" "hand-off says clean, the tree is $TREE_NOW" ;;
+        *:clean) fail "tree" "hand-off says '$TREE_HDR', the tree is clean" ;;
+        *) say "tree" "OK — $TREE_HDR / now $TREE_NOW" ;;
+    esac
+fi
+
+# Position: is NOT checked. It is prose against prose, and a check that cannot
+# be run is a promise. It is a human-readable corroborator only.
+say "position" "not a mechanical check (prose) — read it yourself"
+
+# ---------------------------------------------------------------------------
+# Single-lane lock — taken by the ARRIVING session, only when this project's
+# card says `Chaining: start` (references/project-state.md, "The single-lane
+# lock"). On any other Chaining value this costs nothing.
+# ---------------------------------------------------------------------------
+if card_chaining_is_start; then
+    KEY="$( repo_key )"
+    if [ -n "$KEY" ]; then
+        LOCKDIR="$STATE_ROOT/$KEY"
+        mkdir -p "$LOCKDIR" 2>/dev/null
+        LOCK="$LOCKDIR/lock"
+        ME="$( session_pid )"
+        MY_START="$( pid_start_time "$ME" )"
+        if [ ! -f "$LOCK" ]; then
+            printf '%s\n%s\n' "$ME" "$MY_START" > "$LOCK"
+            say "lane" "OK — taken by this session (PID $ME)"
+        else
+            HELD_PID="$( sed -n '1p' "$LOCK" )"
+            HELD_START="$( sed -n '2p' "$LOCK" )"
+            LAUNCHER_PID=""
+            RECEIPTS="$LOCKDIR/receipts"
+            if [ -d "$RECEIPTS" ]; then
+                for r in "$RECEIPTS"/*/launcher-pid; do
+                    [ -f "$r" ] || continue
+                    if [ "$( cat "$r" 2>/dev/null )" = "$HELD_PID" ]; then LAUNCHER_PID="$HELD_PID"; break; fi
+                done
+            fi
+            if [ "$HELD_PID" = "$LAUNCHER_PID" ] && [ -n "$LAUNCHER_PID" ]; then
+                printf '%s\n%s\n' "$ME" "$MY_START" > "$LOCK"
+                say "lane" "OK — baton from launcher PID $HELD_PID (already closed out)"
+            elif ! pid_alive "$HELD_PID"; then
+                printf '%s\n%s\n' "$ME" "$MY_START" > "$LOCK"
+                say "lane" "OK — recovered orphan lock (PID $HELD_PID no longer exists)"
+            else
+                CUR_START="$( pid_start_time "$HELD_PID" )"
+                if [ "$CUR_START" != "$HELD_START" ] && [ -n "$CUR_START" ]; then
+                    printf '%s\n%s\n' "$ME" "$MY_START" > "$LOCK"
+                    say "lane" "OK — recovered orphan lock (PID $HELD_PID was reused)"
+                else
+                    fail "lane" "busy — held by PID $HELD_PID (started: $HELD_START). Close that window, or run 'scripts/keel-handoff-verify --release' in it, to free the lane."
+                fi
+            fi
+        fi
+    fi
+fi
+
+if [ "$STOP" -eq 0 ]; then
+    echo "VERDICT: CONTINUE"
+    exit 0
+fi
+echo "VERDICT: STOP"
+exit 1

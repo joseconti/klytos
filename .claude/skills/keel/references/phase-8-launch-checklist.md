@@ -9,7 +9,7 @@ Every check in this file lands as a row in `<site-docs>/launch-report.md`: item,
 - **Assistant-verifiable** — `curl` checks, fetching the well-known files, parsing each page's `<head>`, JSON-LD validation, sitemap coverage, the automated accessibility scan: the assistant executes them itself and records command + output in the row.
 - **User-guided** — checks needing the user's hands or accounts (OG/social debuggers that need a login, the real assistive-technology pass): run as guided one-step-at-a-time loops, each step's confirmation recorded in the row.
 
-When the environment provides the subagents defined in `references/assistant-config.md`, delegate: **`launch-verifier`** crawls the sitemap and returns the pass/fail table that feeds `launch-report.md`; **`a11y-auditor`** runs the automated accessibility pass and prepares the guided-loop script for the manual one. The main session validates and records their results; it does not re-crawl.
+When the environment provides the subagents defined in `references/assistant-config.md`, delegate: **`launch-verifier`** crawls the sitemap and returns the pass/fail table that feeds `launch-report.md`; **`a11y-auditor`** runs the automated accessibility pass and prepares the guided-loop script for the manual one. Both go out in ONE parallel block — they are independent passes and chaining them doubles the wait for the same answer (`references/assistant-config.md`, "Parallel fan-out") — with one guard, because they are two full crawls of a single freshly deployed origin: any `429` or `5xx` either agent returns is re-verified single-threaded before it becomes a `launch-report.md` row. A throttled request and a broken page look identical in a table, and the rate limiting in front of that origin is a control this very checklist expects to be working. The main session validates, merges and records their results; it does not re-crawl.
 
 ## Real-environment verification (hard gate)
 
@@ -107,6 +107,8 @@ Per the Web/HTML section of `references/accessibility.md` and the Phase 1 commit
 ## Faithfulness & hygiene (reuse keel)
 
 - Phase 4 faithfulness checklist still holds on the deployed site (it matches the design SPEC, no drift).
+- **Art direction verified on the live site:** every signature element declared in `SPEC/art-direction.md` is present and recurs where the SPEC says it does; the dial values are recognisable in what shipped (a site specced at `MOTION_INTENSITY` 6 that does not move, or at `EVIDENCE_RATIO` 9 with no real screenshots or figures, failed the direction regardless of how it looks); the blacklist holds on the rendered pages; and a grep for `—` and `–` across every string visible on the site returns **zero** (headlines, eyebrows, labels, buttons, body copy, quotes, attributions, captions, alt text, meta descriptions, structured-data strings). One occurrence fails this check.
+- **Anti-repetition ledger written:** this site's entry is appended to `~/.keel/art-ledger.md` (archetype, dials, type, palette, hero, grid, signature elements, date). The check is the entry's existence, not a promise to add it later — an unwritten entry means the next site is free to repeat this one, which is the whole failure the ledger exists to prevent (`references/anti-patterns.md` trap 24).
 - **Vanilla verified:** no framework/library/CDN crept in; no runtime third-party scripts; if a static-site generator was used it was the explicitly user-approved exception, recorded. **Fonts verified self-hosted:** no Google Fonts/CDN font requests on the live site (check network requests); every font loads from local `@font-face`; only the declared weights/styles shipped.
 - Phase 7 git/package hygiene done: `.gitignore`/`.gitattributes` correct, no secrets committed, distributable/deploy artifact clean.
 - Version and changelog updated (oldest → newest) if the site is itself versioned/released.
@@ -131,6 +133,8 @@ Launch is not the end state. Record the site's operational duties in `<site-docs
 - Accessibility verified on the live site with real assistive technology (WCAG 2.2 AA floor: keyboard, screen reader, contrast, reflow, honored user preferences) per `references/accessibility.md`; accessibility statement present and linked when EU scope applies.
 - No placeholder/legal gaps.
 - Faithfulness to design holds live; hygiene done.
+- Art direction verified live: signature elements present and recurring, dials recognisable in what shipped, blacklist holding, em-dash grep at zero across every visible string.
+- `~/.keel/art-ledger.md` carries this site's entry.
 - `<site-docs>/operations.md` produced: renewals, monitoring decision, backups, sitemap submission, standing freshness duty (`references/maintenance.md`).
 
 Only then is the site launched and the phase closed. Note completion back in the project tracking (docs/PROGRESS.md).

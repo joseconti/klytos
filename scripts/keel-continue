@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+#
+# keel-continue — fire (or print) the next chat's continuation, per the
+# contract in Keel's references/project-state.md ("scripts/keel-continue").
+#
+# Generated for Klytos CMS at the v5.3.0 -> v5.12.0 reconciliation (D-081),
+# once `Chaining: start` was chosen. Writes nothing and decides nothing beyond
+# this contract: detect the tool, look up its row, fire the recorded action
+# ONCE, or print. One script serves every tool; there is no per-tool branch
+# in the skill itself, only in the table below.
+#
+# A session NEVER composes this launch itself (UNBREAKABLE) — it runs this
+# script, or it prints. If this script does not exist, the session prints the
+# continuation prompt and stops; it never reaches for osascript/open directly.
+#
+# Called from exactly one place: the session close-out, unconditionally,
+# whenever the project card is not `Chaining: off` and a hand-off was just
+# written. This script's own exit code is not the session's decision to make —
+# whatever it prints IS what happened.
+#
+# Exit status: always 0 on a path that leaves the user with either an opened
+# chat or a printed prompt. Non-zero only when neither could be done.
+#
+# @license GPL-3.0-or-later
+# @copyright Copyright (c) 2026 José Conti
+
+set -u
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd -P )"
+REPO_ROOT="$( git rev-parse --show-toplevel 2>/dev/null )"
+if [ -z "$REPO_ROOT" ]; then
+    echo "keel-continue: not inside a git repository — printing the prompt is the fallback, but there is no hand-off file to print."
+    exit 1
+fi
+cd "$REPO_ROOT" || exit 1
+
+HANDOFF="$REPO_ROOT/docs/continuation-prompt.md"
+
+print_prompt() {
+    local reason="$1"
+    echo "keel-continue: $reason"
+    if [ -f "$HANDOFF" ]; then
+        echo "----------------------------------------------------------------------"
+        echo "Paste this into a new chat (or point the tool at the file):"
+        echo "Read $HANDOFF and continue."
+        echo "----------------------------------------------------------------------"
+        cat "$HANDOFF"
+    else
+        echo "keel-continue: no hand-off file at $HANDOFF either — nothing to print."
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# 1-2. Verify before firing — never composed inline, always the sibling script.
+# ---------------------------------------------------------------------------
+if [ ! -x "$SCRIPT_DIR/keel-handoff-verify" ]; then
+    print_prompt "scripts/keel-handoff-verify is missing — cannot verify, cannot chain."
+    exit 0
+fi
+
+VERIFY_OUT="$( "$SCRIPT_DIR/keel-handoff-verify" "$HANDOFF" 2>&1 )"
+VERIFY_STATUS=$?
+
+if [ "$VERIFY_STATUS" -eq 2 ]; then
+    print_prompt "no hand-off exists yet at $HANDOFF — nothing to chain."
+    exit 0
+fi
+
+if [ "$VERIFY_STATUS" -ne 0 ] || ! printf '%s\n' "$VERIFY_OUT" | grep -q '^VERDICT: CONTINUE$'; then
+    print_prompt "the hand-off did not verify clean — printing instead of chaining. Verifier said:
+$VERIFY_OUT"
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Handover: must be clean — read the header directly (the verifier proves
+#    the mechanical checks; this is the one prose field it deliberately
+#    leaves unchecked).
+# ---------------------------------------------------------------------------
+HANDOVER="$( sed -n 's/^- \*\*Handover:\*\* *//p; s/^Handover: *//p' "$HANDOFF" | head -1 )"
+case "$HANDOVER" in
+    clean|clean*) : ;;
+    *)
+        print_prompt "hand-off's own Handover field is '$HANDOVER', not clean — printing instead of chaining."
+        exit 0
+        ;;
+esac
+
+# ---------------------------------------------------------------------------
+# 4. Detect the tool. Match claude-vscode BY NAME; every other CLAUDECODE=1
+#    entrypoint is treated as the CLI (never enumerate the CLI's own values).
+# ---------------------------------------------------------------------------
+TIER=""    # prefill | start
+ACTION_DESC=""
+
+if [ "${CLAUDECODE:-}" = "1" ] && [ "${CLAUDE_CODE_ENTRYPOINT:-}" = "claude-vscode" ]; then
+    TIER="prefill"
+elif [ "${CLAUDECODE:-}" = "1" ]; then
+    TIER="start"
+else
+    print_prompt "no VERIFIED tool entrypoint detected (this is success, not failure) — printing the prompt."
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Downgrade to the card's own Chaining value; never upgrade.
+# ---------------------------------------------------------------------------
+CARD_CHAINING="$( sed -n 's/^- Chaining: \*\*\([a-z]*\)\*\*.*/\1/p; s/^- Chaining: \([a-z]*\).*/\1/p' docs/PROGRESS.md | head -1 )"
+case "$CARD_CHAINING" in
+    start) : ;;
+    prefill) [ "$TIER" = "start" ] && TIER="prefill" ;;
+    *)
+        print_prompt "project card's Chaining value ('$CARD_CHAINING') does not authorise chaining — printing the prompt."
+        exit 0
+        ;;
+esac
+
+PROMPT_TEXT="Lee $HANDOFF y continúa."
+
+if [ "$TIER" = "prefill" ]; then
+    # VS Code extension: pre-fills, never submits. No receipt/lane concerns —
+    # nothing has "fired" until the user presses Enter — but still one-shot
+    # per hand-off, so a runaway close-out cannot reopen four tabs either.
+    ENCODED="$( python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$PROMPT_TEXT" 2>/dev/null )"
+    if [ -z "$ENCODED" ]; then
+        print_prompt "could not percent-encode the prompt for the vscode:// URI — printing instead."
+        exit 0
+    fi
+    URI="vscode://anthropic.claude-code/open?prompt=${ENCODED}"
+else
+    # CLI, start tier only.
+    # 5a. Re-check `claude` on PATH LIVE — never trust a recorded Phase 1 answer.
+    if ! command -v claude >/dev/null 2>&1; then
+        print_prompt "'claude' is not on PATH in this shell right now — cannot fire a start action. (Phase 1 recorded it as present once; PATH can change between sessions.)"
+        exit 0
+    fi
+    if ! command -v osascript >/dev/null 2>&1; then
+        print_prompt "osascript is unavailable — start is verified on macOS/Terminal.app only. Printing instead."
+        exit 0
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Claim the launch receipt ATOMICALLY (mkdir), keyed by the hand-off's own
+#    identity (Generated + Commit), never by the clock or the repo alone.
+# ---------------------------------------------------------------------------
+GEN_HDR="$( sed -n 's/^- \*\*Generated:\*\* *//p; s/^Generated: *//p' "$HANDOFF" | head -1 )"
+COMMIT_HDR="$( sed -n 's/^- \*\*Commit:\*\* *//p; s/^Commit: *//p' "$HANDOFF" | head -1 )"
+if command -v shasum >/dev/null 2>&1; then
+    HANDOFF_ID="$( printf '%s|%s' "$GEN_HDR" "$COMMIT_HDR" | shasum -a 256 | cut -c1-16 )"
+    REPO_KEY="$( printf '%s' "$( cd "$REPO_ROOT" && pwd -P )" | shasum -a 256 | cut -c1-16 )"
+else
+    HANDOFF_ID="$( printf '%s|%s' "$GEN_HDR" "$COMMIT_HDR" | cksum | cut -d' ' -f1 )"
+    REPO_KEY="$( printf '%s' "$( cd "$REPO_ROOT" && pwd -P )" | cksum | cut -d' ' -f1 )"
+fi
+
+STATE_ROOT="${KEEL_STATE_DIR:-$HOME/.keel/state}"
+RECEIPT_DIR="$STATE_ROOT/$REPO_KEY/receipts/$HANDOFF_ID"
+
+if ! mkdir "$RECEIPT_DIR" 2>/dev/null; then
+    print_prompt "this exact hand-off (Generated: $GEN_HDR, Commit: $COMMIT_HDR) has already been launched once — never retried. Printing instead."
+    exit 0
+fi
+echo "$$" > "$RECEIPT_DIR/launcher-pid"
+
+# Circuit breaker: more than 3 receipts for this repo within the last hour
+# means a close-out is re-running, not that three genuine hand-offs happened.
+NOW_EPOCH="$( date +%s )"
+RECENT=0
+for d in "$STATE_ROOT/$REPO_KEY/receipts"/*/; do
+    [ -d "$d" ] || continue
+    RMTIME="$( stat -f %m "$d" 2>/dev/null || stat -c %Y "$d" 2>/dev/null )"
+    [ -z "$RMTIME" ] && continue
+    if [ $(( NOW_EPOCH - RMTIME )) -lt 3600 ]; then RECENT=$(( RECENT + 1 )); fi
+done
+if [ "$RECENT" -gt 3 ]; then
+    print_prompt "more than 3 launch receipts for this repository within the last hour — chaining looks like it is re-running, disabling it for this close. Printing instead."
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# 7. Hand the lane back IMMEDIATELY BEFORE firing — order matters, a release
+#    after the fire races the new window and loses silently.
+# ---------------------------------------------------------------------------
+"$SCRIPT_DIR/keel-handoff-verify" --release >/dev/null 2>&1
+
+# ---------------------------------------------------------------------------
+# 6/8. Fire once. Never retried past this point regardless of outcome.
+# ---------------------------------------------------------------------------
+if [ "$TIER" = "prefill" ]; then
+    if command -v open >/dev/null 2>&1; then
+        open "$URI" 2>/dev/null
+        STATUS=$?
+    elif command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$URI" 2>/dev/null
+        STATUS=$?
+    else
+        echo "keel-continue: no opener command (open/xdg-open) available for the vscode:// URI."
+        print_prompt "could not open the editor — printing instead."
+        exit 0
+    fi
+    if [ "$STATUS" -eq 0 ]; then
+        echo "keel-continue: fired prefill — VS Code should now have a new tab with the continuation prompt pre-filled. Press Enter there."
+        exit 0
+    fi
+    print_prompt "the open command exited non-zero — uncertain whether the tab appeared. Printing as the fallback (never retrying)."
+    exit 0
+fi
+
+# start tier: CLI via Terminal.app, macOS-verified only.
+# 6a. Never interpolate the command into osascript's string — write it to a
+#     real, executable script file and have `do script` run it BY PATH.
+LAUNCH_SCRIPT="$( mktemp "${TMPDIR:-/tmp}/keel-continue-launch.XXXXXX" )"
+{
+    printf '#!/usr/bin/env bash\n'
+    printf 'cd %q && claude %q\n' "$REPO_ROOT" "$PROMPT_TEXT"
+} > "$LAUNCH_SCRIPT"
+chmod +x "$LAUNCH_SCRIPT"
+
+osascript -e "tell application \"Terminal\" to do script \"$LAUNCH_SCRIPT\"" >/dev/null 2>&1
+STATUS=$?
+
+if [ "$STATUS" -eq 0 ]; then
+    echo "keel-continue: fired start — a new Terminal window should now be running claude in $REPO_ROOT with the continuation instruction. If the single lane is busy, that window will print the prompt instead of continuing."
+    exit 0
+fi
+
+print_prompt "osascript exited non-zero — uncertain whether the window opened or ran the intended command. Printing as the fallback (never retrying). The launch script that was attempted is at $LAUNCH_SCRIPT if you want to inspect or run it by hand."
+exit 0
