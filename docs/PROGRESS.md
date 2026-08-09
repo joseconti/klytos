@@ -365,6 +365,22 @@
     - **One transient worth recording rather than hiding:** the first PHP run of the block reported
       297/1480 with an error. It was **L-025 exactly** — the suite ran while the playground server
       was live and the integration tier shares it. Green at 304/1526 with the server stopped.
+  - **STAGES 3 AND 4A ARE NOW COMMITTED — 2026-08-09 (D-083), commit `a2f3614`, pushed to
+    `develop`.** They had been recorded here as done since 2026-07-29 while the code existed only in
+    one working tree, through two whole Keel sessions. **Nothing was taken on this file's word**:
+    every measurement above was re-run first and all four agree — `keel-doctor --check` green
+    (14 rows) · PHP **304 / 1526**, 0 skips · browser tier **111 passing** (playground `KPORT=8151`,
+    `--reset`, bind + owning PID 91922 + no `Server:` header all confirmed) · `keel-verify`
+    **17 checks: 13 pass, 4 warnings**. One commit rather than two: both stages edit
+    `klytos-components.css`, so the boundary is not recoverable from an accumulated tree and
+    inventing one would have been a fiction.
+  - **The design-download staging path is now gitignored (D-083).** `docs/klytos-cms-redesign/`
+    (168 files) was deleted on the user's instruction after verifying its
+    `design_handoff_klytos_admin/` subtree `diff -rq` clean against the installed delivery, with
+    `docs/BUILD-SPEC.md` §1e's file-by-file audit of the export root already on record. Delivery
+    intact at 124; archives intact at 49 / 123 / 123. **The path itself joined `.gitignore`**,
+    because this is the second time (DR-001, then DR-003) that tree was audited, recorded and then
+    left to dirty the working tree for weeks — deleting it a third time by hand treats the symptom.
   - **NEXT ACTION — stage 4 batch B, which needs DR-006 answered first.** With the widths in hand
     the remaining twelve are width-substitutions over machinery that is now built and driven:
     5 Users · 15 Plugins · 24 Webhooks · 27 Profile · 28 Licence · 30 Options · 32 Taxonomies ·

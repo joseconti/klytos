@@ -159,3 +159,15 @@ AGENTS.override.md
 
 # Keel v5.3.0 — ephemeral session hand-off, regenerated at every close, never in history.
 docs/continuation-prompt.md
+
+# ─── Design delivery downloads (staging only) ─────────────────
+# The standing path the user downloads a Claude Design export to. The DELIVERY
+# is installed at docs/design/design-handoff/ by a wholesale swap (handoff
+# contract rule 10) and superseded ones are archived under docs/old/, so both
+# are tracked. What lands here is the export around it — the .dc.html
+# prototypes, the PackDesk _ds bundle, the design tool's own README — plus a
+# second copy of the delivery already tracked once. Auditing it is a Phase 4
+# gate step and the findings go in docs/BUILD-SPEC.md §1; the bytes themselves
+# are never history. Twice now (DR-001, DR-003) this tree was left behind after
+# its audit and dirtied the working tree for weeks.
+docs/klytos-cms-redesign/
