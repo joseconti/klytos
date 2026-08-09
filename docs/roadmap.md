@@ -38,6 +38,23 @@ the redesign is **not reportable as complete** while they are outstanding.
 | **14 Comments** | A new admin screen over the existing `core/comment-manager.php` | No admin screen exists at all. **L-014** is this project's recorded history of what "the comment feature" actually costs — the manager working is not the same as the feature working end to end |
 | **22 Health** | A data source first, then the screen | No backing surface exists in the tree. A screen built before its source would be a design with nothing behind it |
 
+## 0c. The stage-5 cards Phase 4 does not build (D-088)
+
+Same rule as §0b and the same reason: these are **new product surfaces the design draws inside an
+existing screen**, not redesigns of anything shipped. They stay in `BUILD-SPEC.md` §5.1 and the
+redesign is **not reportable as complete** while they stand.
+
+| Entry | Card | Why it is not Phase 4 work |
+|---|---|---|
+| **3 Design** | **Preview** | The manifest names the card and no file says what it previews or in what form. Specifying it is Design's, building it is product |
+| **6 Security** | **Content-Security-Policy** | Klytos sends a CSP; it has no editor for one. A textarea with a validate action over a live security header is a slice with its own failure modes |
+| **6 Security** | **Integrity score** | The data lives on entry 34 (System integrity). A score summarised onto Security needs a source that summarises, which does not exist |
+| **37 x402 settings** | **Pricing rules** (repeatable) · **the 402 response body** | The product has one default price and no response-body editor. Both are features |
+| **39 Post type** | **Exposure** (REST · MCP · sitemap · feeds) | Per-post-type exposure switches do not exist. They change what the outside world can read, so they are a slice with an authorization review, not a card |
+| **9 Settings** | **URLs** · **Media** sections | Two of the seven designed sections have no shipped settings at all. They are omitted from the nav until they have content — one line each to restore (D-088 answer 3) |
+
+Review trigger, for all of them: **the close of the Phase 4 build**, exactly as §0b.
+
 ## 1. The `.gitattributes` review — first, and it is one line
 
 `.gitattributes` carries a blanket `*.md export-ignore`. Consequences, all measured:

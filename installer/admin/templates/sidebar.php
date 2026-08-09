@@ -324,10 +324,42 @@ if ( ! function_exists( 'klytos_admin_icon' ) ) {
      * it is checked per screen in stages 4–6.
      */
     ?>
+    <?php
+    /*
+     * The toolbar's own allow-list, and it exists because klytos_kses_post()
+     * cannot express this region. That list is written for post CONTENT — it
+     * has no <button> at all — so every action a screen put here was silently
+     * flattened to its own label: a Save that renders as the word "Save".
+     * Stage 2 built this seam and proved it exists; nothing had ever passed a
+     * control through it until stage 5's first form screen, which is L-030's
+     * shape once more (the artifact was verified, its CONSUMER was not).
+     *
+     * Deliberately narrow: the elements a toolbar action is made of and the
+     * attributes those need, including `form` (the Save button lives outside
+     * the <form> it submits — template-record-form.md §1) and `data-testid`.
+     * No event-handler attribute is listed, and kses drops every attribute
+     * that is not, so a plugin still cannot inject behaviour here.
+     */
+    $klytosToolbarTags = klytos_apply_filters( 'admin.toolbar_allowed_tags', [
+        'button' => [
+            'type' => true, 'class' => true, 'id' => true, 'name' => true, 'value' => true,
+            'form' => true, 'disabled' => true, 'aria-label' => true, 'aria-describedby' => true,
+            'aria-expanded' => true, 'aria-controls' => true, 'aria-pressed' => true,
+            'data-testid' => true,
+        ],
+        'a' => [
+            'href' => true, 'class' => true, 'id' => true, 'rel' => true, 'target' => true,
+            'aria-label' => true, 'aria-current' => true, 'data-testid' => true,
+        ],
+        'span' => [ 'class' => true, 'id' => true, 'aria-hidden' => true ],
+        'svg'  => [ 'class' => true, 'aria-hidden' => true, 'focusable' => true, 'width' => true, 'height' => true ],
+        'use'  => [ 'href' => true ],
+    ] );
+    ?>
     <div class="k-toolbar-actions">
-        <?php echo klytos_kses_post( klytos_apply_filters('admin.topbar_left', '') ); ?>
-        <?php echo klytos_kses_post( klytos_apply_filters('admin.topbar_actions', '') ); ?>
-        <?php echo klytos_kses_post( klytos_apply_filters('admin.topbar_right', '') ); ?>
+        <?php echo klytos_kses( klytos_apply_filters('admin.topbar_left', ''), $klytosToolbarTags ); ?>
+        <?php echo klytos_kses( klytos_apply_filters('admin.topbar_actions', ''), $klytosToolbarTags ); ?>
+        <?php echo klytos_kses( klytos_apply_filters('admin.topbar_right', ''), $klytosToolbarTags ); ?>
     </div>
 </header>
 <?php klytos_do_action('admin.topbar_after'); ?>

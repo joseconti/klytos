@@ -195,6 +195,19 @@ const KNOWN_DELIVERY_GAPS = [
     // excluding it everywhere would hide a real defect to silence a known one.
     '.k-filters .k-chip',
     '.k-console-chips .k-chip',
+
+    // DR-005 gap 3, dark theme: --color-peligro (#e6685f) on --fondo-elevado
+    // (#2c2c2e) measures 4.32:1. The request itself predicted the population —
+    // "every error message and destructive button inside a card" — and stage
+    // 5's first form screen is where that arrived: the field-level error
+    // message the record-form template puts under a control, inside the card.
+    //
+    // Registered rather than fixed: the palette is Design's (Phase 4 rule 2),
+    // and substituting a colour here would diverge the admin from the delivery
+    // on the one pair a Design Request is already open about. The floor is
+    // pinned by a test in design.spec.js, so a REGRESSION below 4.32 still
+    // fails while the request is open.
+    '.k-error',
 ];
 
 module.exports = { test, expect: base.expect, login, ROLES, passwordFor, KNOWN_DELIVERY_GAPS };

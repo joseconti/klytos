@@ -26,6 +26,14 @@ class ThemeManager
     private const COLLECTION = 'config';
     private const ID         = 'theme';
 
+    /**
+     * WCAG 2.2 AA for normal text. Named rather than repeated so the screen's
+     * refusal and the pair's verdict cannot drift apart.
+     *
+     * @var float
+     */
+    public const CONTRAST_THRESHOLD = 4.5;
+
     public function __construct(StorageInterface $storage)
     {
         $this->storage = $storage;
@@ -197,6 +205,87 @@ class ThemeManager
     /**
      * Default theme configuration.
      */
+    /**
+     * The text/background pairs the theme defines, each with its measured
+     * WCAG contrast ratio and its verdict.
+     *
+     * `SPEC/accessibility.md` §10.7 requires the Design screen to show the
+     * ratio next to every text/background pair the theme defines and to refuse
+     * to save a pair below 4.5:1 without a recorded override. Both halves need
+     * the same answer, so it is computed once here and the screen renders it
+     * and gates on it — never two implementations that could disagree.
+     *
+     * **The pair set is fixed and deliberate.** The theme declares two text
+     * colours (`text`, `text_muted`) and two surfaces text sits on
+     * (`background`, `surface`); those four combinations are what "every
+     * text/background pair it defines" means. `primary`, `accent` and the
+     * status colours are used as link, button and badge colours — real text
+     * over a background too, but pairings §10.7's wording does not fix, so
+     * guessing them would invent a rule the delivery does not state
+     * (`docs/BUILD-SPEC.md` §5.9, adaptation 13).
+     *
+     * Static because it is a pure function of the palette: the screen calls it
+     * on POSTED values, before anything is written, which an instance method
+     * reading stored state could not do.
+     *
+     * @param  array $colors The theme's `colors` array (or a posted candidate).
+     * @return array<int, array{
+     *     foreground: string, background: string,
+     *     foreground_hex: ?string, background_hex: ?string,
+     *     ratio: ?float, passes: bool, measurable: bool
+     * }> One entry per pair, in a stable order. `ratio` is null and
+     *    `measurable` false when either colour is missing or not a hex value —
+     *    an unmeasurable pair never counts as passing, and never throws: a
+     *    theme mid-edit must render, not 500 (L-034).
+     *
+     * @since 2.1.0
+     *
+     * Example:
+     *     $pairs = \Klytos\Core\ThemeManager::contrastPairs( $theme['colors'] );
+     *     $failing = array_filter( $pairs, fn( $p ) => ! $p['passes'] );
+     */
+    public static function contrastPairs(array $colors): array
+    {
+        $textKeys       = ['text', 'text_muted'];
+        $backgroundKeys = ['background', 'surface'];
+
+        $pairs = [];
+
+        foreach ($textKeys as $textKey) {
+            foreach ($backgroundKeys as $backgroundKey) {
+                $foregroundHex = $colors[$textKey] ?? null;
+                $backgroundHex = $colors[$backgroundKey] ?? null;
+
+                $ratio = null;
+
+                if (is_string($foregroundHex) && is_string($backgroundHex)) {
+                    try {
+                        $ratio = Helpers::contrastRatio($foregroundHex, $backgroundHex);
+                    } catch (\InvalidArgumentException $e) {
+                        // Not a colour: unmeasurable, which is a state the
+                        // screen renders. Swallowed here and nowhere else —
+                        // the helper still refuses invalid input to every
+                        // other caller.
+                        $ratio = null;
+                    }
+                }
+
+                $pairs[] = [
+                    'foreground'     => $textKey,
+                    'background'     => $backgroundKey,
+                    'foreground_hex' => is_string($foregroundHex) ? $foregroundHex : null,
+                    'background_hex' => is_string($backgroundHex) ? $backgroundHex : null,
+                    'ratio'          => $ratio,
+                    // The WCAG threshold is inclusive: exactly 4.5:1 passes.
+                    'passes'         => $ratio !== null && $ratio >= self::CONTRAST_THRESHOLD,
+                    'measurable'     => $ratio !== null,
+                ];
+            }
+        }
+
+        return klytos_apply_filters('theme.contrast_pairs', $pairs, $colors);
+    }
+
     private function getDefaults(): array
     {
         return [
@@ -252,6 +341,15 @@ class ThemeManager
         }
         if (isset($new['custom_css'])) {
             $current['custom_css'] = $new['custom_css'];
+        }
+        /*
+         * Contrast overrides (accessibility.md §10.7). Replaced wholesale, not
+         * merged: the caller passes the complete list it wants recorded, and
+         * array_merge on a list would renumber and duplicate entries rather
+         * than append them.
+         */
+        if (isset($new['contrast_overrides']) && is_array($new['contrast_overrides'])) {
+            $current['contrast_overrides'] = $new['contrast_overrides'];
         }
 
         return $current;

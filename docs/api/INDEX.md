@@ -10,12 +10,12 @@
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
 | Actions | 313 |
-| Filters | 129 |
+| Filters | 131 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **986** |
+| **Total** | **988** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -212,7 +212,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\ExportManager` | class | installer/core/export-manager.php | — | Exports site content to JSON, CSV and WXR files |
 | `Klytos\Core\FileLock` | class | installer/core/file-lock.php | docs/reference/file-lock.md | Runs a read-modify-write on a JSON file under ONE exclusive lock, with a bounded wait that fails closed |
 | `Klytos\Core\FileStorage` | class | installer/core/file-storage.php | — | Filesystem storage driver reading and writing encrypted records as files |
-| `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens and environment checks; `isHttps()` is the single TLS check (see the reference doc) and `webauthnRpId()` the single WebAuthn Relying Party ID (docs/reference/authentication.md) |
+| `Klytos\Core\Helpers` | class | installer/core/helpers.php | docs/reference/security-headers.md | Static utilities for URLs, slugs, sanitization, tokens, colour arithmetic (`contrastRatio()`, the WCAG ratio) and environment checks; `isHttps()` is the single TLS check (see the reference doc) and `webauthnRpId()` the single WebAuthn Relying Party ID (docs/reference/authentication.md) |
 | `Klytos\Core\HookContractException` | class | installer/core/hook-contract-exception.php | docs/reference/hooks.md | Thrown when a hook listener declares a by-reference parameter, which no dispatch path can bind |
 | `Klytos\Core\Hooks` | class | installer/core/hooks.php | docs/reference/hooks.md | Action and filter registry that dispatches the CMS extensibility events |
 | `Klytos\Core\HtmlToMarkdown` | class | installer/core/html-to-markdown.php | — | Converts HTML fragments into Markdown text |
@@ -254,7 +254,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\TaskManager` | class | installer/core/task-manager.php | — | CRUD, listing and completion tracking for editorial tasks |
 | `Klytos\Core\TemplateResolver` | class | installer/core/template-resolver.php | — | Resolves template and part names to the file that should render them |
 | `Klytos\Core\TerminalExecutor` | class | installer/core/terminal-executor.php | — | Executes web-terminal commands and keeps the command registry and history |
-| `Klytos\Core\ThemeManager` | class | installer/core/theme-manager.php | — | Stores theme colors, fonts and layout and generates the CSS variables |
+| `Klytos\Core\ThemeManager` | class | installer/core/theme-manager.php | — | Stores theme colors, fonts and layout, generates the CSS variables, and measures the theme's text/background contrast pairs (`contrastPairs()`, `CONTRAST_THRESHOLD`) for the Design screen's §10.7 guard |
 | `Klytos\Core\TranslationManager` | class | installer/core/translation-manager.php | — | Manages translation sources, reference keys and saved per-language strings |
 | `Klytos\Core\TwoFactor` | class | installer/core/two-factor.php | docs/reference/authentication.md | TOTP, magic-link, passkey and recovery-code second-factor authentication; `verifyPasskeyAssertion()` is what the login dispatcher calls and `sendPasskeyEnrolledEmail()` notifies the account holder on enrolment |
 | `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups |
@@ -628,6 +628,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |
 | admin.theme_choice | filter | installer/admin/api/theme.php | docs/reference/admin-navigation.md | The admin colour scheme about to be persisted for this person, after validation |
+| admin.toolbar_allowed_tags | filter | installer/admin/templates/sidebar.php | — | Filters the tag/attribute allow-list the admin toolbar renders its actions through |
 | admin.topbar_actions | filter | installer/admin/templates/sidebar.php | — | Filters extra HTML appended to the admin top bar actions area |
 | admin.topbar_ai_button | filter | installer/admin/templates/sidebar.php | — | Filters the HTML of the AI assistant button in the admin top bar |
 | admin.topbar_center | filter | installer/admin/templates/sidebar.php | — | Filters extra HTML rendered in the center zone of the admin top bar |
@@ -721,6 +722,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | terminal.category_labels | filter | installer/core/terminal-executor.php | — | Filters the terminal command category labels shown in the help output |
 | terminal.command_output | filter | installer/core/terminal-executor.php | — | Filters a terminal command's output before it is returned to the client |
 | terminal.commands | filter | installer/core/terminal-executor.php | — | Filters the registered terminal commands so plugins can add their own |
+| theme.contrast_pairs | filter | installer/core/theme-manager.php | docs/reference/design-tokens.md | Filters the measured text/background contrast pairs the Design screen shows and gates on (accessibility §10.7) |
 | theme.data | filter | installer/core/theme-manager.php | — | Filters the active theme data (colors, fonts, layout) when it is read |
 | time.now | filter | installer/core/helpers-time.php | — | Filters the current Unix timestamp returned by the time helper |
 | time.timezone_list | filter | installer/core/helpers-time.php | — | Short-circuits the timezone list: return an array to replace the generated list |

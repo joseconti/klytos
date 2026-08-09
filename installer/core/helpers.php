@@ -189,6 +189,96 @@ class Helpers
     }
 
     /**
+     * WCAG 2.x contrast ratio between two colours.
+     *
+     * The arithmetic is the standard's own and is deterministic: each sRGB
+     * channel is normalised and linearised, the relative luminance is the
+     * weighted sum, and the ratio is (lighter + 0.05) / (darker + 0.05). It is
+     * the same method `docs/design/design-handoff/SPEC/color-contrast-audit.md`
+     * uses, which is what `SPEC/accessibility.md` §10.7 requires of the theme
+     * editor — so a ratio shown to the user here and a ratio in the delivery's
+     * audit are comparable numbers rather than two independent opinions.
+     *
+     * Order does not matter: the standard divides the LIGHTER luminance by the
+     * darker one, never the first argument by the second.
+     *
+     * An 8-digit hex carries an alpha channel that this arithmetic cannot
+     * honour — a translucent colour's real ratio depends on what is behind it,
+     * which two colours alone do not say. The alpha is ignored and the RGB used.
+     *
+     * @param  string $foreground Hex colour, 3/4/6/8 digits, with leading '#'.
+     * @param  string $background Hex colour, same forms.
+     * @return float  The ratio, between 1.0 and 21.0.
+     * @throws \InvalidArgumentException If either value is not a hex colour.
+     *                                   Never defaulted to black: a typo would
+     *                                   then report 21:1 and pass a guard whose
+     *                                   entire purpose is to fail.
+     *
+     * @since 2.1.0
+     *
+     * Example:
+     *     $ratio = \Klytos\Core\Helpers::contrastRatio( '#767676', '#ffffff' );
+     *     // 4.54 — the darkest grey that still passes 4.5:1 for normal text.
+     */
+    public static function contrastRatio(string $foreground, string $background): float
+    {
+        $first  = self::relativeLuminance($foreground);
+        $second = self::relativeLuminance($background);
+
+        $lighter = max($first, $second);
+        $darker  = min($first, $second);
+
+        return ($lighter + 0.05) / ($darker + 0.05);
+    }
+
+    /**
+     * WCAG relative luminance of a hex colour.
+     *
+     * Private because the ratio is the useful surface: a luminance on its own
+     * has no threshold anyone reads, and exposing it would invite a second,
+     * divergent ratio implementation elsewhere in the tree.
+     *
+     * @param  string $hex
+     * @return float  Between 0.0 (black) and 1.0 (white).
+     * @throws \InvalidArgumentException If the value is not a hex colour.
+     */
+    private static function relativeLuminance(string $hex): float
+    {
+        if (!self::isValidHexColor($hex)) {
+            throw new \InvalidArgumentException('Not a hex colour: ' . $hex);
+        }
+
+        $digits = substr($hex, 1);
+
+        // 3- and 4-digit forms are shorthand: each digit is doubled. The 4th
+        // digit (and the 7th/8th of the long form) is alpha and is dropped
+        // above, so both are truncated to RGB after expansion, never before —
+        // truncating first would read '#abc' as the red channel alone.
+        if (strlen($digits) === 3 || strlen($digits) === 4) {
+            $expanded = '';
+            foreach (str_split($digits) as $digit) {
+                $expanded .= $digit . $digit;
+            }
+            $digits = $expanded;
+        }
+
+        if (strlen($digits) !== 6 && strlen($digits) !== 8) {
+            throw new \InvalidArgumentException('Not a hex colour: ' . $hex);
+        }
+
+        $channels = [];
+        foreach ([0, 2, 4] as $offset) {
+            $value = hexdec(substr($digits, $offset, 2)) / 255;
+            // The sRGB transfer function, exactly as WCAG 2.x states it.
+            $channels[] = $value <= 0.04045
+                ? $value / 12.92
+                : (($value + 0.055) / 1.055) ** 2.4;
+        }
+
+        return ( 0.2126 * $channels[0] ) + ( 0.7152 * $channels[1] ) + ( 0.0722 * $channels[2] );
+    }
+
+    /**
      * Get the base URL path of the Klytos installation (the PUBLIC web root).
      *
      * The admin directory has a randomized name (e.g. "b2aa9a98e70d-admin")

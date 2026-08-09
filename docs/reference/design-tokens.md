@@ -131,6 +131,81 @@ array unloads the whole token layer, including the accessibility enforcement in 
 For a stylesheet that is *not* a token file — an ordinary plugin stylesheet loaded after the
 component layer — use **`admin.stylesheets`** instead, which takes full URLs.
 
+## The theme's contrast guard (accessibility §10.7)
+
+The tokens above dress the ADMIN. The **theme** is the other palette — the one the
+generated site is painted with — and `SPEC/accessibility.md` §10.7 holds the Design screen
+(`installer/admin/theme.php`, manifest entry 3) to a rule the admin palette does not need:
+it shows the measured ratio next to every text/background pair the theme defines, and it
+**refuses to save a pair below 4.5:1** without an override that is recorded.
+
+Both halves come from one call, so the number a person reads and the verdict the save gates
+on can never disagree.
+
+**`Klytos\Core\Helpers::contrastRatio( string $foreground, string $background ): float`** —
+the WCAG 2.x arithmetic, the same method `SPEC/color-contrast-audit.md` uses. Order-independent
+(the standard divides the lighter luminance by the darker). Accepts 3/4/6/8-digit hex; the alpha
+channel of an 8-digit value is ignored, because a translucent colour's real ratio depends on what
+is behind it. Throws `InvalidArgumentException` on anything that is not a hex colour — never
+defaulted to black, which would report 21:1 for a typo and pass a guard whose purpose is to fail.
+
+```php
+\Klytos\Core\Helpers::contrastRatio( '#767676', '#ffffff' );   // 4.54 — the AA boundary grey
+```
+
+**`Klytos\Core\ThemeManager::contrastPairs( array $colors ): array`** — the pairs, measured.
+Static, because the screen calls it on POSTED values before anything is written. Returns one
+entry per pair in a stable order, each with `foreground`, `background`, their hex values,
+`ratio`, `passes` and `measurable`. A missing or invalid colour yields `ratio => null`,
+`measurable => false` and `passes => false` — never an exception, because a theme mid-edit has
+to render (L-034).
+
+```php
+$failing = array_filter(
+    \Klytos\Core\ThemeManager::contrastPairs( $theme['colors'] ),
+    fn( array $pair ): bool => ! $pair['passes']
+);
+```
+
+**The pair set is fixed at four and that is deliberate.** The theme declares two text colours
+(`text`, `text_muted`) over two surfaces (`background`, `surface`), so "every text/background
+pair it defines" is exactly those four. `primary` and `accent` are used as link and button
+colours — real text over a background too — but §10.7's wording does not fix those pairings,
+and inventing them would invent a rule the delivery does not state. Recorded in
+`docs/BUILD-SPEC.md` §5.9 as adaptation 13 rather than closed by guessing.
+
+**`theme.contrast_pairs`** — filter. Receives the finished pair list and the palette it was
+measured from. A plugin that adds theme colours can add their pairs here, and the Design
+screen will show and enforce them with no further change.
+
+```php
+klytos_add_filter( 'theme.contrast_pairs', function ( array $pairs, array $colors ) {
+    $pairs[] = [
+        'foreground'     => 'brand_text',
+        'background'     => 'background',
+        'foreground_hex' => $colors['brand_text'] ?? null,
+        'background_hex' => $colors['background'] ?? null,
+        'ratio'          => \Klytos\Core\Helpers::contrastRatio(
+            $colors['brand_text'], $colors['background']
+        ),
+        'passes'         => true,
+        'measurable'     => true,
+    ];
+    return $pairs;
+} );
+```
+
+**An override is a record, not a bypass.** When a person accepts a pair below the floor, the
+screen writes `contrast_overrides` into the theme document — the pair, its measured ratio, who
+accepted it and when — so a later reader can tell a considered exception from a mis-click.
+
+**The MCP path is NOT guarded, and that is stated rather than implied.** §10.7 binds the theme
+EDITOR; `ThemeManager::setColors()` is a released public method and an MCP tool can still write
+a failing pair through it. Adding the refusal there would change the behaviour of a released
+API on an installed base. Consequence, written down so nobody has to rediscover it: a site
+configured entirely over MCP can hold a palette this screen would have refused.
+
+
 ## Related
 
 - `docs/BUILD-SPEC.md` §5.2 (the canonical token table), §5.7 (asset map), §5.9 (integration plan)

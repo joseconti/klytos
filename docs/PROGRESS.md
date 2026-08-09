@@ -483,7 +483,66 @@
       ports unchanged. Proven both directions. One squatter was reclaimed after being identified as
       an orphan (parent PID 1); **the second was not, because it reappeared four minutes later** —
       that is a live session's harness, and taking a port from work in progress is not a test fix.
-  - **NEXT ACTION — stage 4 batch B, which needs DR-006 answered first.** With the widths in hand
+  - **Stage 5 of 6 — THE FORM SCREENS — BATCH A: entry 3 (Design), 2026-08-09 (D-088).**
+    The stage opened with a **survey of all thirteen form surfaces against the shipped product**,
+    and the survey is the finding: stage 4 was blocked by a missing VALUE, stage 5 is obstructed by
+    designed cards that describe **product which does not exist** — Security's CSP editor and
+    Integrity score, Post type's Exposure matrix, x402's repeatable pricing rules and 402-body
+    editor, Settings' URLs and Media sections, entry 3's own Preview. Four batched questions went to
+    the user **before the first line**; all four answers are recorded in D-088 and carried into
+    `docs/roadmap.md` **§0c**.
+    - **BUILT: the shared `record-form` layer + manifest entry 3 (Design), complete and driven.**
+      `.k-record-form` with the sticky section nav that becomes a chip row at 900–1199,
+      `.k-field-grid`, the swatch row and the pair display — base rules written BEFORE their media
+      queries, deliberately, with the reason in the file. `theme.php` rewritten against
+      `template-record-form.md`: three cards, the toolbar Save that submits a form it sits outside
+      of, the error summary that takes focus, field-level `aria-invalid` with hint-then-error in
+      `aria-describedby`.
+    - **`SPEC/accessibility.md` §10.7 is BUILT, not deferred** — the measured ratio beside every
+      pair and the refusal to save one below 4.5:1 without a **recorded** override (pair, ratio,
+      who, when — read back out of encrypted storage by its own test). Both halves come from one
+      call, so the number shown and the verdict gated on cannot disagree.
+      **`Helpers::contrastRatio()` and `ThemeManager::contrastPairs()` are both test-first**
+      (`red observed: Call to undefined method …`, twice).
+    - **TWO REAL DEFECTS, one of them in the shell.** (1) **The toolbar seam could not carry a
+      control at all**: `klytos_kses_post()`'s tag map is written for post CONTENT and has **no
+      `<button>`**, so the Save the template requires rendered as the bare word "Save". Stage 2
+      proved the seam exists; nothing had ever passed a control through it — **L-030's shape for the
+      fourth time**. Fixed behind a narrow new `admin.toolbar_allowed_tags` allow-list.
+      (2) **The pair specimen failed the rule it exists to report** — it drew the sample AS TEXT, so
+      a below-AA pair was real unreadable text at 2.32:1. The sample stopped being text.
+      Both proven by planting the defect back and watching the owning test go red.
+    - **Three TEST defects separated from those two**, which was again the work: an untrimmed
+      heading comparison, an expected 14.79:1 that belongs to the ADMIN palette and not the theme's
+      (the screen's **14.63:1** is right — recomputed independently in Python from the standard),
+      and **`page.reload()` used to check persistence**, which re-submits the POST and would have
+      passed whether or not anything was stored. Every persistence check is now a fresh GET.
+    - **DR-005 gap 3 reached the population DR-005 predicted** — `--color-peligro` on
+      `--fondo-elevado`, **4.32:1** dark, on the field-level error message. Excluded by selector
+      with its ratio **pinned as a floor** by its own test.
+    - **Two omissions recorded rather than left silent:** `setColors()` keeps its released
+      behaviour, so **a site configured entirely over MCP can hold a palette this screen refuses**
+      (written into `docs/reference/design-tokens.md`); and the four measured pairs are the four the
+      theme DEFINES — `primary`/`accent` as link colours are outside §10.7's wording and are not
+      guessed at.
+    - **One shipped defect fixed in passing:** the old screen gave the colour picker and the hex
+      field the **same name**, so the picker posted last and won and a JS-off edit was discarded
+      silently. It also asked for `theme.*` label keys that exist in no catalogue — every label
+      rendered as its own key; the strings were already translated under `design.*`.
+    - **i18n: 26 new keys × 20 catalogues**, pure additions, parity **PASS**.
+    - **Tree state (re-measured):** PHP **335 tests / 1628 assertions**, 0 skips (was 320/1581) ·
+      browser tier **172 passing** (was 141; +31 new), whole tier re-run because the shell change
+      touches every screen · `keel-verify` **20 checks: 15 pass, 5 warnings** (unchanged) ·
+      `keel-doctor --check` green, 14 rows · lint **182/474 — errors unchanged, warnings down 6**
+      (`theme.php` went 0/6 → 0/0) · `docs/api/INDEX.md` **986 → 988** (two new filters).
+  - **NEXT ACTION — stage 5 batch B: the remaining form screens, per screen.** Unblocked and
+    fully backed: **19 Content model** (`post-types.php`), **39 Post type** (`post-type-edit.php`,
+    minus the Exposure card), **6 Security** (`security.php`, minus CSP and Integrity score),
+    **25 Consent**, **9 Settings** (five sections, per D-088 answer 3), **37 x402 settings**
+    (wallet stays editable, minus pricing rules and the 402 body), plus the form halves of
+    **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose
+    TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview).
+  - **Stage 4 batch B still needs DR-006 answered first.** With the widths in hand
     the remaining twelve are width-substitutions over machinery that is now built and driven:
     5 Users · 15 Plugins · 24 Webhooks · 27 Profile · 28 Licence · 30 Options · 32 Taxonomies ·
     33 Scheduled · 34 System integrity · 35 Updates · 36 Transactions (**41 Logs is DONE** —

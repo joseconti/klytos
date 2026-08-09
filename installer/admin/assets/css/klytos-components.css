@@ -1704,3 +1704,188 @@ a.k-stat:hover {
         position: static;
     }
 }
+
+/* ============================================================
+   RECORD FORM — template-record-form.md §1 and §3
+   The layout the form screens share: an optional sticky section nav at the
+   left, a card stack beside it, and a content column that stops at 880px.
+   The FIELD itself is above; this is only what surrounds it.
+
+   Base rules come FIRST and the media queries after, deliberately. Build
+   rule 1 has now appeared six distinct ways in this build, twice as a base
+   declaration sitting AFTER the query that was meant to override it
+   (D-077's .k-rail-expand, D-085's line reset). Order is the mechanism
+   here, so it is written the safe way round and said out loud.
+   ============================================================ */
+
+.k-record-form {
+    display: grid;
+    /* §3: section nav 180px sticky at left, card stack fills the rest. */
+    grid-template-columns: 180px minmax(0, 1fr);
+    /* 20px is written literally, for the reason .k-card--padded already
+       records: the delivered scale jumps 16 -> 24 and no token carries 20.
+       Inventing --esp-20 here would be D-079's fifth defect again. */
+    gap: 20px;
+    align-items: start;
+}
+
+/* A form screen with no sections is the same template with one column —
+   the nav is absent from the DOM, not hidden, so there is no empty track. */
+.k-record-form--no-nav {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* §3: content column max 880px. On the stack, not on <main>, so the toolbar
+   and the status region still span the full width. */
+.k-record-form .k-card-stack {
+    max-width: 880px;
+}
+
+.k-section-nav {
+    position: sticky;
+    /* Clears the sticky toolbar rather than sliding under it. */
+    top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-4);
+}
+
+.k-section-nav-item {
+    display: flex;
+    align-items: center;
+    /* accessibility.md §7: 24 × 24 minimum. 34px matches the control height,
+       so a section link and a field are the same rhythm. */
+    min-height: 34px;
+    padding: 0 var(--esp-8);
+    border-radius: var(--radio-control);
+    color: var(--texto-secundario);
+    font: var(--type-body);
+    text-decoration: none;
+}
+
+.k-section-nav-item:hover {
+    background: var(--fila-hover);
+    color: var(--texto-primario);
+}
+
+/* The current section is aria-current="page" — the attribute is the state,
+   and this rule only paints it. Never a class the markup could forget to
+   keep in step with the attribute the screen reader reads. */
+.k-section-nav-item[aria-current="page"] {
+    background: var(--tinte-acento);
+    color: var(--sobre-tinte-acento);
+    font-weight: var(--peso-semibold);
+}
+
+/* §1: two-column field grids at >= 1200px only where both fields are short.
+   Single column is the base; the second column is added by the query below,
+   so a narrow viewport never has to undo anything. */
+.k-field-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--esp-12);
+}
+
+/* Entry 3's delta: colour inputs are <input type="color"> PLUS a mono hex
+   field with a visible label. The picker is the mirror and carries no name —
+   with JavaScript off the hex field is what posts, which is why the hex
+   field is the one with the label. */
+.k-swatch-row {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+}
+
+.k-swatch {
+    flex: none;
+    /* 24 × 24 is accessibility.md §7's floor for a pointer target; 34 keeps
+       it level with the hex field beside it. */
+    width: 34px;
+    height: 34px;
+    padding: 2px;
+    border: 1px solid var(--borde-control);
+    border-radius: var(--radio-control);
+    background: var(--fondo-ventana);
+}
+
+.k-swatch-row .k-control {
+    /* A hex value is 7 characters; the rest of the row is wasted on it. */
+    max-width: 140px;
+}
+
+/* The measured ratio beside a pair (accessibility.md §10.7). The number is
+   the channel; the badge beside it carries the word, because colour alone
+   never states a verdict (§1.3). */
+.k-ratio {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-6);
+    font: var(--type-body-mono);
+    color: var(--texto-secundario);
+}
+
+.k-pair {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    flex-wrap: wrap;
+}
+
+.k-pair-swatch {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 var(--esp-8);
+    border: 1px solid var(--borde-control);
+    border-radius: var(--radio-control);
+}
+
+/* The bar inside the swatch stands in for text without BEING text: a pair
+   this screen exists to show as failing would otherwise fail the contrast
+   rule in the specimen that reports it. */
+.k-pair-bar {
+    display: block;
+    width: 18px;
+    height: 4px;
+    border-radius: 2px;
+}
+
+/* §3, 900–1199: the section nav collapses from a left column to a horizontal
+   chip row above the cards. It stays a <nav> with the same label. */
+@media (max-width: 1199px) {
+    .k-record-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .k-section-nav {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: var(--esp-6);
+    }
+
+    .k-section-nav-item {
+        border: 1px solid var(--separador);
+    }
+}
+
+@media (min-width: 1200px) {
+    /* Two-column field grids at >= 1200px only. */
+    .k-field-grid--pair {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* §3, < 900: cards go full width, padding 20 -> 16. */
+@media (max-width: 899px) {
+    .k-record-form .k-card-stack {
+        max-width: none;
+    }
+
+    .k-record-form .k-card--padded {
+        padding: var(--esp-16);
+    }
+}
