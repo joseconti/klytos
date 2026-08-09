@@ -170,6 +170,17 @@ fi
 STATE_ROOT="${KEEL_STATE_DIR:-$HOME/.keel/state}"
 RECEIPT_DIR="$STATE_ROOT/$REPO_KEY/receipts/$HANDOFF_ID"
 
+# The PARENT is created with -p FIRST, and this line is load-bearing.
+# `mkdir` without -p fails for ENOENT (parent missing) exactly as it fails
+# for EEXIST (already claimed), and the shell sees one non-zero status for
+# both. Without this line, a project that has never chained has no
+# `receipts/` directory, so the very FIRST launch fails the claim and the
+# script reports "already launched, never retried" — a chain that can never
+# fire once, reporting itself as a chain that has already fired. Measured on
+# the first real close-out. The atomicity that matters is on the LEAF mkdir
+# below, which stays -p-free precisely so EEXIST still means "claimed".
+mkdir -p "$( dirname "$RECEIPT_DIR" )" 2>/dev/null
+
 if ! mkdir "$RECEIPT_DIR" 2>/dev/null; then
     print_prompt "this exact hand-off (Generated: $GEN_HDR, Commit: $COMMIT_HDR) has already been launched once — never retried. Printing instead."
     exit 0
