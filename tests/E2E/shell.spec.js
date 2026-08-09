@@ -293,3 +293,104 @@ test.describe( 'status bar — offline', () => {
         await expect( status ).not.toHaveClass( /k-statusbar-offline/ );
     } );
 } );
+
+test.describe( 'DR-005 addendum 2 — the current nav item\'s contrast floor', () => {
+    /*
+     * The sidebar's current item paints --color-acento on --fila-seleccion over
+     * the sidebar's own background, and that pair is below AA in BOTH themes:
+     *
+     *   dark   #3CC3B2 on #2B4C4B   4.31:1
+     *   light  #0E8074 on #D7E4E5   3.70:1
+     *
+     * Both recomputed independently from the token hexes; axe reports 4.3 and
+     * 3.69 and the arithmetic agrees. `template-shell.md` §2 specifies the pair,
+     * so the palette is Design's and the build substitutes nothing (Phase 4
+     * rule 2) — it is registered in DR-005 and excluded by selector from the
+     * axe passes in fixtures.js.
+     *
+     * The exclusion is what makes this test necessary. An excluded selector is
+     * an unchecked selector, and an open Design Request must never become a
+     * licence to regress: the measured ratios are pinned here as FLOORS, so the
+     * pair may only move UP while the request is open.
+     *
+     * It has been true on every ported screen since stage 2 and no pass saw it,
+     * because every earlier spec scoped axe to `#main`. The shell is the one
+     * component every screen carries and was the one component nothing scanned.
+     */
+    const FLOORS = { dark: 4.31, light: 3.70 };
+
+    for ( const theme of [ 'dark', 'light' ] ) {
+        test( `the current nav item is no worse than ${ FLOORS[ theme ] }:1 — ${ theme }`, async ( { page } ) => {
+            await login( page, 'owner' );
+            await page.context().addCookies( [ {
+                name: 'klytos_admin_theme',
+                value: theme,
+                url: new URL( page.url() ).origin,
+            } ] );
+            // Baked in before the first paint: a ratio read mid-transition is
+            // not the ratio (D-078), and a cookie the shell does not read makes
+            // every "light" run measure dark (L-035).
+            await page.goto( '/installer/admin/pages.php' );
+            expect(
+                await page.evaluate( () => document.documentElement.getAttribute( 'data-theme' ) ),
+                'the theme cookie did not take — this run measured the wrong theme'
+            ).toBe( theme );
+
+            const measured = await page.evaluate( () => {
+                const label = document.querySelector( '.k-nav-item[aria-current="page"] .k-nav-label' );
+                if ( ! label ) {
+                    return null;
+                }
+
+                // COMPOSITE the translucent selection tint over what is behind
+                // it rather than taking the first non-transparent background.
+                // Reading the first opaque ancestor reported 1.12:1 for a pair
+                // that measures 4.53:1 in D-085 — a false FAILURE, which is as
+                // much a tooling defect as a false pass (L-036).
+                const parse = ( value ) => {
+                    const n = value.match( /[\d.]+/g ).map( Number );
+                    return { r: n[ 0 ], g: n[ 1 ], b: n[ 2 ], a: n.length > 3 ? n[ 3 ] : 1 };
+                };
+                const over = ( top, bottom ) => ( {
+                    r: top.r * top.a + bottom.r * ( 1 - top.a ),
+                    g: top.g * top.a + bottom.g * ( 1 - top.a ),
+                    b: top.b * top.a + bottom.b * ( 1 - top.a ),
+                    a: 1,
+                } );
+
+                const stack = [];
+                for ( let el = label; el; el = el.parentElement ) {
+                    const bg = parse( getComputedStyle( el ).backgroundColor );
+                    if ( bg.a > 0 ) {
+                        stack.push( bg );
+                    }
+                    if ( bg.a === 1 ) {
+                        break;
+                    }
+                }
+                let background = stack.pop() || { r: 255, g: 255, b: 255, a: 1 };
+                while ( stack.length ) {
+                    background = over( stack.pop(), background );
+                }
+
+                const lum = ( c ) => {
+                    const ch = ( v ) => {
+                        const s = v / 255;
+                        return s <= 0.04045 ? s / 12.92 : Math.pow( ( s + 0.055 ) / 1.055, 2.4 );
+                    };
+                    return 0.2126 * ch( c.r ) + 0.7152 * ch( c.g ) + 0.0722 * ch( c.b );
+                };
+                const fg = parse( getComputedStyle( label ).color );
+                const a = lum( fg );
+                const b = lum( background );
+                return ( Math.max( a, b ) + 0.05 ) / ( Math.min( a, b ) + 0.05 );
+            } );
+
+            expect( measured, 'no current nav item was found to measure' ).not.toBeNull();
+            expect(
+                Number( measured.toFixed( 2 ) ),
+                `the current nav item regressed below DR-005 addendum 2's recorded floor in ${ theme }`
+            ).toBeGreaterThanOrEqual( FLOORS[ theme ] );
+        } );
+    }
+} );

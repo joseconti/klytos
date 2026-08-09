@@ -535,13 +535,83 @@
       touches every screen · `keel-verify` **20 checks: 15 pass, 5 warnings** (unchanged) ·
       `keel-doctor --check` green, 14 rows · lint **182/474 — errors unchanged, warnings down 6**
       (`theme.php` went 0/6 → 0/0) · `docs/api/INDEX.md` **986 → 988** (two new filters).
-  - **NEXT ACTION — stage 5 batch B: the remaining form screens, per screen.** Unblocked and
-    fully backed: **19 Content model** (`post-types.php`), **39 Post type** (`post-type-edit.php`,
-    minus the Exposure card), **6 Security** (`security.php`, minus CSP and Integrity score),
+  - **Stage 5 of 6 — BATCH B, screen 1: entry 19 (Content model) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-089), L-037, L-038.** `post-types.php` rewritten against
+    `template-record-form.md` and `SPEC/manifest.md` §19.
+    - **The per-screen survey was RE-RUN rather than taken on D-088's word, and it disagreed.**
+      D-088 recorded entry 19 as fully backed; reading the manifest against `PostTypeManager`
+      instead of against that record found **two things the product does not have**, both now
+      deferred under D-088's own standing answer 1 and carried into `roadmap.md` §0c:
+      the **Statuses (editable set)** card (there is no global editable status set — the four
+      system statuses are class CONSTANTS and every custom status belongs to ONE post type;
+      **entry 39 names the same card at the level where it IS backed** and `post-type-edit.php`
+      already manages it there), and the **"and orders"** half of the delta (`position` exists on
+      CUSTOM FIELDS alone; the only reorder surfaces are `reorderCustomFields()` and
+      `reorderStatuses()`). **A recorded survey is a record, not a licence to skip the check.**
+    - **Built:** the two backed cards — Post types (list + create) and Taxonomies (an AGGREGATION
+      across post types, each row carrying its post type because a taxonomy id alone is not
+      unique) — plus the **shared `.k-collection*` layer**, which is `template-record-form.md`
+      §2's "collection inside a form": named by the template, drawn by no file, and reused by
+      entries 39, 24 and 26. It is **not** a list-table, so DR-006 never applied to it.
+    - **Two adaptations, both logged in `BUILD-SPEC.md` §5.9 (21 and 22).** No toolbar Save — the
+      one card that would have had savable fields is deferred, and a Save that submits nothing is
+      a control that lies; restoring it is one block. And the destructive confirm's armed label
+      says **"the post type only. Records kept: {count}"** rather than §2's example "34 records
+      will be deleted", because `delete()` removes the type and **leaves the records** — the
+      shape is the design's, the consequence is the code's. The two-step is **server-side**, so
+      it works with JavaScript disabled, and is driven in that state.
+    - **ONE REAL DEFECT, and it is not on this screen — it is on EVERY screen (DR-005 ADDENDUM 2,
+      L-037).** This is the first spec in the build to run axe over the WHOLE PAGE rather than
+      `#main`. The sidebar's current nav item measures **4.31:1 dark / 3.70:1 light**, both under
+      AA — reproduced on `theme.php`, `logs.php` and `pages.php`, so it has been true since
+      stage 2. `design.spec.js`, `logs.spec.js` and `pages.spec.js` all scope axe to `#main`, and
+      **the shell is the one component `#main` never contains**: the most-shown component in the
+      admin was the one component nothing had ever scanned. Registered, not fixed (the palette is
+      Design's), excluded by selector, **both ratios pinned as floors in `shell.spec.js` and
+      proven to FAIL on a planted colour**, then restored byte-identically.
+    - **Two defects of my own, both in tooling, both worth as much as the product one.**
+      `AxeBuilder.exclude()` reads an ARRAY as a FRAME PATH, so `exclude( KNOWN_DELIVERY_GAPS )`
+      excluded **nothing** — the sibling specs loop for this reason and this one now does too,
+      in a `scan()` helper with the reason written down; the pass was then **proven to fail on a
+      planted contrast defect**, after a first plant that touched a rule with no rendered text
+      and proved nothing. And a **blank line above the new test-point row orphaned it from its
+      table** (L-038): `keel-verify` passed a `Red first` value that is not one of the five,
+      because it never saw the row. **The first reading — "the check is decoration" — was wrong**;
+      with the blank line removed the check counted 16 rows and failed the planted value at once.
+      The rule earned: after appending to a checked table, confirm the check's ROW COUNT moved.
+    - **One invented token caught before it shipped:** `--type-caption-mono` does not exist. That
+      is D-079's fifth defect (`--opacidad-desactivado`) again, caught by grepping the token files
+      rather than trusting the name.
+    - **The dev bar's own defects are recorded, not dropped** — `.devbar-*` at 1.91:1 / 1.91:1 /
+      2.15:1 in light plus a scrollable `.devbar-tab-content` with no focusable content. It
+      renders only under `isDevMode()` for owner/admin, so it is not a redesign surface; excluded
+      via a NEW `DEV_ONLY_SURFACES` list kept deliberately apart from `KNOWN_DELIVERY_GAPS`,
+      because padding that register with scaffolding would make the open-request count lie.
+    - **i18n: 49 new keys × 20 catalogues**, pure additions (1020 insertions, **0 deletions**),
+      parity **PASS**. New domain `content_model.*`; every count string number-neutral (D-076).
+    - **Five new hooks** — filters `admin.content_model.post_types` / `.taxonomies`, actions
+      `.before_post_types` / `.before_taxonomies` / `.after_taxonomies` — each with its
+      `docs/api/INDEX.md` row (**988 → 993**, summary and data rows both 993, parity PASS).
+    - **Tree state (re-measured):** PHP **335 tests / 1628 assertions**, 0 skips (unchanged —
+      this slice added no PHP surface) · browser tier **190 passing** (was 172; +16 entry 19,
+      +2 the DR-005 floors), whole tier re-run · `keel-verify` **20 checks: 15 pass, 5 warnings**
+      · `keel-doctor --check` green, 14 rows · lint **182/468 — errors unchanged, warnings down 6**
+      (`post-types.php` itself 0/0) · `docs/api/INDEX.md` **993**.
+  - **NEXT ACTION — stage 5 batch B, screen 2 onward.** Still unblocked and backed, in the order
+    the survey suggests: **39 Post type** (`post-type-edit.php`, minus the Exposure card — and it
+    is the natural next one, because it OWNS the Statuses card entry 19 just deferred and it is the
+    second consumer of the `.k-collection*` layer, which is what proves that layer was not built
+    for one screen), **6 Security** (`security.php`, minus CSP and Integrity score),
     **25 Consent**, **9 Settings** (five sections, per D-088 answer 3), **37 x402 settings**
     (wallet stays editable, minus pricing rules and the 402 body), plus the form halves of
     **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose
     TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview).
+    - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
+      built before entry 19 were each reported as accessibility-passed while the shell went
+      unscanned, and re-scoping one spec is what found it.
+    - **`BUILD-SPEC.md` §4 owes a delta walk for entries 1 and 3** — both built and driven, both
+      rows still unticked, recorded under the state matrix rather than ticked from someone else's
+      evidence.
   - **Stage 4 batch B still needs DR-006 answered first.** With the widths in hand
     the remaining twelve are width-substitutions over machinery that is now built and driven:
     5 Users · 15 Plugins · 24 Webhooks · 27 Profile · 28 Licence · 30 Options · 32 Taxonomies ·
@@ -627,6 +697,14 @@
   disabled. Blocks nothing structural. **The user chose to send it at the start of stage 4**, before
   the first list screen was built, because stage 4 renders gap 1 on every one of them; the
   ready-to-paste prompt is the last section of `docs/design/design-requests/DR-005.md`.
+  **ADDENDUM 2 — 2026-08-10 (D-089), added AFTER the request was sent.** A fourth pair, and it is
+  the worst of the four: the **sidebar's current nav item** — `--color-acento` on
+  `--fila-seleccion` over the sidebar — measures **4.31:1 dark and 3.70:1 light**. It is on
+  **every screen and has been since stage 2**; nothing saw it because every earlier spec scoped
+  axe to `#main`, and the shell is exactly what `#main` does not contain (**L-037**). Registered
+  the same way as the other three — no colour substituted, excluded by selector, and **both ratios
+  pinned as FLOORS in `shell.spec.js`, each proven to FAIL on a planted colour**. Whoever re-sends
+  DR-005 must send the two addenda with it: **the prompt in the file predates both.**
   **DR-004 — SENT 2026-07-29 (D-077)**, raised by D-076. `template-shell.md` §1
   says the sidebar's search field "also works as a plain search submit with JS off", and **no file
   in the delivery names the screen that submit goes to**; this codebase has no admin-wide search

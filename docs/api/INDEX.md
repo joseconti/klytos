@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 313 |
-| Filters | 131 |
+| Actions | 316 |
+| Filters | 133 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **988** |
+| **Total** | **993** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -304,6 +304,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.bulk_action.before | action | installer/core/mcp/tools/bulk-tools.php +1 more | — | Emitted before a bulk page operation runs; receives the action name and the target slugs |
 | admin.consent.after | action | installer/admin/consent.php | — | Emitted at the tail of the cookie consent settings screen; no payload, echo extra HTML |
 | admin.consent.before | action | installer/admin/consent.php | — | Emitted at the top of the cookie consent settings screen; no payload, echo extra HTML |
+| admin.content_model.after_taxonomies | action | installer/admin/post-types.php | — | Emitted after the Taxonomies card on the Content model screen; no payload, echo extra HTML |
+| admin.content_model.before_post_types | action | installer/admin/post-types.php | — | Emitted before the Post types card on the Content model screen; no payload, echo extra HTML |
+| admin.content_model.before_taxonomies | action | installer/admin/post-types.php | — | Emitted between the Post types and Taxonomies cards on the Content model screen; no payload |
 | admin.dashboard.after | action | installer/admin/index.php | — | Emitted at the tail of the dashboard screen; no payload, echo extra HTML |
 | admin.dashboard.after_stats | action | installer/admin/index.php | — | Emitted right after the dashboard stat tiles row; no payload, echo extra HTML |
 | admin.dashboard.after_widgets | action | installer/admin/index.php | — | Emitted right after the dashboard widget grid is rendered; no payload |
@@ -606,6 +609,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
 | admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
+| admin.content_model.post_types | filter | installer/admin/post-types.php | — | Filters the post types the Content model screen lists, after the manager returns them |
+| admin.content_model.taxonomies | filter | installer/admin/post-types.php | — | Filters the flattened taxonomy rows the Content model screen lists, each carrying its post type |
 | admin.design_tokens | filter | installer/admin/templates/header.php | docs/reference/design-tokens.md | Filters the ordered list of design-handoff token stylesheets loaded before the component layer |
 | admin.gate_map | filter | installer/core/admin-gate.php | docs/reference/authorization.md | Filters the admin gate map so plugins can gate their own admin files |
 | admin.logs_file_list | filter | installer/admin/logs.php | — | Filters the list of log files shown on the admin Logs page |

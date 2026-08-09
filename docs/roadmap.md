@@ -52,6 +52,8 @@ redesign is **not reportable as complete** while they stand.
 | **37 x402 settings** | **Pricing rules** (repeatable) · **the 402 response body** | The product has one default price and no response-body editor. Both are features |
 | **39 Post type** | **Exposure** (REST · MCP · sitemap · feeds) | Per-post-type exposure switches do not exist. They change what the outside world can read, so they are a slice with an authorization review, not a card |
 | **9 Settings** | **URLs** · **Media** sections | Two of the seven designed sections have no shipped settings at all. They are omitted from the nav until they have content — one line each to restore (D-088 answer 3) |
+| **19 Content model** | **Statuses** (editable set) | There is no global, editable status set. The four system statuses are class CONSTANTS (`PostTypeManager::SYSTEM_STATUS_DEFS`) and every custom status belongs to ONE post type (`addStatus( $postTypeId, … )`). Entry 39 names the same card at the level where it IS backed and `post-type-edit.php` already manages it there. A global set is a new product surface (D-089) |
+| **19 Content model** | the **"and orders"** delta | Nothing in this product orders post types or taxonomies: `position` exists on CUSTOM FIELDS alone, and the only reorder surfaces are `reorderCustomFields()` and `reorderStatuses()`. Ordering is a manager change with its own storage and MCP consequences, not a card (D-089) |
 
 Review trigger, for all of them: **the close of the Phase 4 build**, exactly as §0b.
 

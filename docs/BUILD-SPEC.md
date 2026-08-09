@@ -959,7 +959,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 15 | Plugins | ☐ | ☐ §15 | ☐ | ☐ |
 | 17 | Setup wizard | ☐ | ☐ §17 | ☐ | ☐ |
 | 18 | x402 dashboard | ☐ | ☐ §18 | ☐ | ☐ |
-| 19 | Content model | ☐ | ☐ §19 | ☐ | ☐ |
+| 19 | Content model | ☑ | ◐ §19 — see note | ☑ | ☑ |
 | 20 | Translations | ☐ | ☐ §20 | ☐ | ☐ |
 | 21 | Blocks | ☐ | ☐ §21 | ☐ | ☐ |
 | 22 | Health | ☐ | ☐ §22 | ☐ | ☐ |
@@ -985,6 +985,23 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 42 | Template preview | ☐ | ☐ §42 | ☐ | ☐ |
 | 43 | Reset password | ☐ | ☐ §43 | ☐ | ☐ |
 | 44 | **Dashboard** | ☐ | ☐ §44 | ☐ | ☐ |
+
+**Note on entry 19's `◐`.** Its template rows, accessibility and driven evidence are complete
+(16 browser tests, both themes, whole-page axe — D-089). Its **manifest deltas are partial by
+decision, not by omission**: the *Statuses (editable set)* card and the *"and orders"* half of §19's
+delta are DEFERRED as unbacked product under D-088's standing answer 1, and are recorded in
+`docs/roadmap.md` §0c. The box is half-ticked rather than ticked so this file cannot be read as
+saying entry 19 is finished — the redesign is not reportable as complete while those two stand.
+
+**A drift this table itself carries, recorded rather than quietly corrected.** Entries **1 (Pages)**
+and **3 (Design)** are built, driven and evidenced — 31 browser tests each, in `docs/05-test-points.md`
+under D-079 and D-088 — and their rows above are still entirely unticked, while entry 41's were
+ticked at the time. Phase 4 Step 4 makes THIS FILE the record ("mark each state's §4 row at the
+moment it is built — the file is the record, not conversation memory"), so an unticked row for
+finished work is exactly the drift the rule exists to prevent. They are left unticked here rather
+than ticked from someone else's evidence: ticking a row means the deltas were walked one by one
+against the built screen, and this session walked entry 19's, not theirs. **Owed: a per-entry delta
+walk for 1 and 3, then their ticks.**
 
 Entry 16 (*States*) is a specimen sheet, not a screen: normative only where it agrees with the
 per-template `States` sections, and where it differs **the template file wins**.
@@ -1239,6 +1256,8 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 18 | The Design screen's four measured pairs are `text`/`text_muted` over `background`/`surface` — and no more | `SPEC/accessibility.md` §10.7 says "every text/background pair it defines" and the theme defines exactly two text colours and two surfaces. `primary` and `accent` are used as link and button colours — real text over a background — but §10.7 does not fix those pairings, so measuring them would invent a rule the delivery does not state, and REFUSING a save on them would block palettes the delivery permits. Stated here rather than guessed; raised in the next Design Request | Yes — four pairs rendered and gated, each ratio recomputed independently in Python from the WCAG formula and agreeing with the screen (14.63:1 / 2.32:1 checked both ways) |
 | 19 | `ThemeManager::setColors()` keeps its released behaviour: the §10.7 refusal lives in the SCREEN, not in the setter | §10.7 binds "the theme editor". `setColors()` is a released public method with MCP callers, and adding a refusal to it would change the behaviour of an installed base inside a fidelity stage (the same call D-079 made about `PageManager::list()`). **Consequence, recorded rather than implied: a site configured entirely over MCP can hold a palette this screen would have refused** | Yes — the guard is driven on the screen (a below-AA save refused, nothing written, verified by a fresh GET), and the omission is written into `docs/reference/design-tokens.md` |
 | 20 | The admin toolbar renders its actions through a purpose-built allow-list (`admin.toolbar_allowed_tags`), not through `klytos_kses_post()` | Not a design deviation — a seam that could not carry what it was built for. `klytos_kses_post()`'s tag map is written for post CONTENT and has **no `<button>` at all**, so the toolbar Save that `template-record-form.md` §1 requires rendered as the bare word "Save": present, in the right place, and not a control. Stage 2 proved the seam exists; nothing had ever passed a control through it (L-030's shape again) | Yes — the Save is asserted to be a real `<button>`, inside `.k-toolbar`, owned by the form it submits; **proven by restoring `klytos_kses_post()` and watching that test go red** |
+| 21 | **Manifest entry 19 renders NO toolbar Save**, and its card stack is not one `<form>` | `template-record-form.md` §1 puts the primary Save in the toolbar "on every form screen". Entry 19's own delta says it "creates and orders; it does not edit", and the one card that would have carried savable fields — Statuses — is deferred as unbacked (D-089, `roadmap.md` §0c). What remains is two collections whose actions are their own, in the card footer §1 provides for; a toolbar Save would submit nothing. The stack is also two independent forms plus a delete form per row, and a form cannot nest inside a form | Yes — and REVERSIBLE by construction: restoring the Save is one block, the day the Statuses card lands. Its absence is asserted by no test, deliberately; what IS asserted is the absence of the Statuses `<h2>`, so the two cannot drift apart |
+| 22 | The destructive confirm's armed label states **"the post type only. Records kept: {count}"**, not §2's example "34 records will be deleted" | Not a design deviation — the design's example sentence is FALSE in this product. `PostTypeManager::delete()` removes the type and its term data and **leaves the records**. §2 specifies the SHAPE (the same button relabelled with the consequence, `aria-live="polite"` on its wrapper, never a browser `confirm()`); the consequence itself is a fact about the code, not a value the delivery supplies | Yes — the shape is built exactly, including the server-side two-step that works with JavaScript disabled. A test asserts the true wording so the design's example cannot be copied back in as a claim the code does not honour |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

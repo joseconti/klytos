@@ -56,6 +56,11 @@
 | **L-031** | The half I could not drive was the half that was broken, and "verified" had been said about the other half |
 | **L-032** | Three times the stylesheet said one thing and the browser painted another, and the mechanism was different each time |
 | **L-033** | The specimen proved the component layer correct in a cascade the product never has, so the fix for the last lesson shipped a new defect |
+| **L-034** | The design named a state the data layer could not express, and the method that should have reported it crashed instead |
+| **L-035** | The harness said "both themes" and had only ever measured one, and nothing could have told you |
+| **L-036** | Build rule 1's sixth mechanism, inside the section whose comment said it could not happen there |
+| **L-037** | Every accessibility pass was scoped to `#main`, so the one component on every screen was the one component nothing scanned |
+| **L-038** | A blank line above a table row orphans it from the table, and the check that validates the row passes because it never sees it |
 
 ## L-001 — The embedded Keel copy silently rotted 20+ releases behind
 - Problem: The repo carried `.claude/skills/keel/` at v1.11.0 while the installed skill was at v3.3.0, and the `CLAUDE.md` lock block was stamped v1.11.0. Any session reading the embedded copy was running an obsolete protocol, and `AGENTS.md` did not exist at all — so a fork opened in Codex/Copilot/Cursor/Gemini was bound by nothing.
@@ -1298,3 +1303,69 @@
   4.53:1 — a false FAILURE, which is as much a tooling defect as a false pass. Both fixes
   proven by planting the defect back and watching the test go red, then restoring
   byte-identically.
+
+## L-037 — Every accessibility pass was scoped to `#main`, so the component on every screen was the one nothing scanned
+
+- **Symptom.** Building manifest entry 19 — the sixth screen of this redesign — the axe
+  pass reported a contrast failure on the SIDEBAR's current nav item: **4.31:1 dark,
+  3.70:1 light**, both under AA. The screen was new; the defect was not. Re-run against
+  `theme.php`, `logs.php` and `pages.php`, it reproduced on all three.
+- **Cause.** Nothing about the shell had changed. What changed was the SCOPE of the
+  scan. `design.spec.js`, `logs.spec.js` and `pages.spec.js` all narrow axe with
+  `.include( '#main' )` or `.include( <section> )` — a reasonable-looking choice each
+  time, made so that a screen's spec measures that screen. But the shell is the sidebar,
+  the toolbar and the status bar, and **`#main` is by definition where the shell is
+  not**. So the most-shown component in the entire admin — on all 39 screens, in every
+  session, at every role — had been scanned exactly zero times, across four stages that
+  each reported an accessibility pass.
+- **Why it read as covered.** Every one of those specs was honest: each said "axe at
+  WCAG 2.2 AA, both themes", each ran, each passed. None claimed to cover the shell and
+  none said it did not. The gap lived in the space BETWEEN four specs, which is exactly
+  where no single spec's author looks.
+- **The general shape, and it is L-031's with the subject changed.** L-031 said the
+  unverified fraction is never a random fraction — it is the fraction the tools could
+  not reach, and defects concentrate there for the same reason. This is that rule
+  arriving on the TOOLING rather than on the product: the fraction a scan EXCLUDES is
+  not a random fraction either, because exclusions are chosen for convenience.
+  **A per-screen check cannot cover a cross-screen component, and adding a sixth
+  per-screen check does not fix it — one of them has to scan the whole page.**
+- **Check added.** `tests/E2E/content-model.spec.js` scans the WHOLE page, with the
+  reason written into its `scan()` helper so a later author does not tidy it back to
+  `#main`. The finding is DR-005 addendum 2 (the palette is Design's — Phase 4 rule 2),
+  excluded by selector with **both ratios pinned as floors** in `shell.spec.js`, each
+  proven to FAIL on a planted colour and then restored byte-identically.
+- **A second tooling defect in the same hour.** `AxeBuilder.exclude()` reads an ARRAY as
+  a FRAME PATH — "inside frame A, the element B" — not as a list of selectors, so
+  `exclude( KNOWN_DELIVERY_GAPS )` matched nothing and excluded nothing. Here it failed
+  loudly, which is why it was caught; the same mistake on a list of REAL exclusions
+  produces noise nobody can clear, and the natural response to unclearable noise is to
+  stop reading the output. **An exclusion list must be proven to exclude, exactly as a
+  check must be proven to fail** — and the axe pass was then planted against twice,
+  because the first plant landed on a rule with no rendered text and proved nothing.
+
+## L-038 — A blank line above a table row orphans it from the table, and the check that validates it passes because it never sees it
+
+- **Symptom.** A new Phase 4 stage row was appended to `docs/05-test-points.md` carrying
+  a `Red first` value that is **not one of the five** the legend permits.
+  `scripts/keel-verify` — which has a check whose entire job is to FAIL exactly that —
+  reported `PASS`.
+- **Cause.** The insertion left a blank line between the last existing row and the new
+  one. The checker walks the file linearly and resets its notion of the current table on
+  any line that is not a pipe row, so the new row had **no header above it** and was
+  skipped entirely: not validated, not counted, not reported. Its own counter gave it
+  away — "15 row(s) carry a recognised value" before the insertion and 15 after. Markdown
+  renders it the same way: two tables, not one.
+- **The first reading was wrong, and that is the part worth keeping.** The obvious
+  conclusion was that the check was decoration — the same defect D-076 found in check 16,
+  which was "passing on ZERO references". It was not: with the blank line removed the
+  check counted 16 rows and **failed the planted bogus value immediately**. The tool was
+  right and the input was malformed, which is the less flattering of the two readings and
+  the reason to test before concluding.
+- **The general shape.** A record that is silently not read is worse than one that is
+  missing, because the missing one is visible. Filing something in the wrong place looks
+  identical to filing it correctly, from the side the author is standing on — and every
+  mechanical check has an input shape it silently ignores.
+- **Check added.** None in code: the checker already does the right thing. The rule is
+  procedural and cheap — **after appending a row to any checked table, re-run the check
+  and confirm its ROW COUNT went up.** A passing check whose count did not move is not a
+  passing check.

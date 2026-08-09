@@ -1853,6 +1853,112 @@ a.k-stat:hover {
     border-radius: 2px;
 }
 
+/* ------------------------------------------------------------
+   COLLECTION INSIDE A FORM — template-record-form.md §1 and §2
+
+   §2 "Empty" names this component without drawing it: "a form is never empty,
+   but a COLLECTION INSIDE A FORM can be (no custom fields yet, no exempt
+   agents yet). That collection renders one row: the sentence and the add
+   action, inside the card, keeping the card's heading."
+
+   It is NOT a list-table: it has no column tracks, so DR-006's missing
+   `grid-template-columns` never applies to it. That distinction is the reason
+   entry 19 is buildable while twelve list surfaces are not — a collection row
+   is a record and its own link, not a row of aligned cells.
+
+   Shared, not entry-19's: entry 39's Custom fields and Statuses, entry 24's
+   endpoints and entry 26's exempt agents are the same idiom. Built once here
+   for the same reason the record-form layer was (D-088): a stylesheet with no
+   consumer is what let a defect hide for a whole stage (D-079), and a second
+   consumer is what proves the first was not a special case.
+   ------------------------------------------------------------ */
+
+.k-collection {
+    display: flex;
+    flex-direction: column;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Rows are separated by a rule rather than spaced apart: a collection is one
+   object with parts, and gap alone reads as several cards. The separator is
+   between rows only, never above the first or below the last. */
+.k-collection-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-12);
+    /* 34px is the control height used everywhere on this template, so a row
+       and a field share one rhythm; padding, not height, so 1.4.12 text
+       spacing cannot clip it (accessibility.md §8). */
+    min-height: 34px;
+    padding: var(--esp-8) 0;
+}
+
+.k-collection-row + .k-collection-row {
+    border-top: 1px solid var(--separador);
+}
+
+.k-collection-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* Without this a long name pushes the actions off the card instead of
+       wrapping (min-width on a flex item defaults to auto, not 0). */
+    min-width: 0;
+}
+
+.k-collection-title {
+    font: var(--type-body);
+    color: var(--texto-primario);
+}
+
+/* The row's secondary line: slug, owner, count. --texto-secundario, not
+   --texto-sutil: this line carries the slug a person types into a URL, so it
+   is content rather than decoration, and DR-005's measured population is
+   exactly the pairs that get this wrong. */
+.k-collection-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    flex-wrap: wrap;
+    font: var(--type-caption);
+    color: var(--texto-secundario);
+}
+
+/* --type-body-mono, not a "caption mono": the delivered scale has no mono
+   caption row and inventing one here would be D-079's fifth defect again
+   (`--opacidad-desactivado`, invented from habit). 12px/17px is the mono the
+   scale actually carries. */
+.k-collection-meta code {
+    font: var(--type-body-mono);
+    color: var(--texto-secundario);
+}
+
+.k-collection-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    flex: none;
+}
+
+/* §1: "[optional] card footer — actions, right-aligned". On a collection card
+   the footer holds the add form, so it is a column and its own actions align
+   right inside it. */
+.k-collection-add {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-12);
+    padding-top: var(--esp-12);
+    border-top: 1px solid var(--separador);
+}
+
+.k-collection-add-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
 /* §3, 900–1199: the section nav collapses from a left column to a horizontal
    chip row above the cards. It stays a <nav> with the same label. */
 @media (max-width: 1199px) {
@@ -1887,5 +1993,19 @@ a.k-stat:hover {
 
     .k-record-form .k-card--padded {
         padding: var(--esp-16);
+    }
+
+    /* A collection row's actions stop sharing the line with its label: at
+       320 CSS px a name and two buttons on one row is what makes a page
+       scroll sideways, and 1.4.10 is the rule stage 4 broke twice (D-079's
+       .k-table-scroll, and the .k-sr that escaped its container in D-078). */
+    .k-collection-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: var(--esp-8);
+    }
+
+    .k-collection-actions {
+        width: 100%;
     }
 }

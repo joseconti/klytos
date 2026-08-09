@@ -208,6 +208,54 @@ const KNOWN_DELIVERY_GAPS = [
     // pinned by a test in design.spec.js, so a REGRESSION below 4.32 still
     // fails while the request is open.
     '.k-error',
+
+    // DR-005 ADDENDUM 2, both themes. The SIDEBAR's current item:
+    // --color-acento on --fila-seleccion composited over the sidebar's own
+    // background.
+    //   dark   #3CC3B2 on #2B4C4B   4.31:1
+    //   light  #0E8074 on #D7E4E5   3.70:1   <- the worse of the two
+    // Both recomputed independently from the token hexes; axe reports 4.3 and
+    // 3.69 and the arithmetic agrees. `template-shell.md` specifies this pair,
+    // so it is Design's (Phase 4 rule 2) exactly like the three gaps above.
+    //
+    // It has been on EVERY ported screen since stage 2 and no pass saw it,
+    // because design.spec.js, logs.spec.js and pages.spec.js all scope axe to
+    // `#main` or to a section. The shell is the one component every screen
+    // carries and it was the one component nothing scanned — L-031's rule
+    // ("the unverified fraction is not a random fraction") arriving on the
+    // tooling rather than on the product. Entry 19's spec scans the whole page,
+    // which is what surfaced it.
+    //
+    // Both ratios are pinned as FLOORS in shell.spec.js, so an open request
+    // cannot become a licence to regress.
+    '.k-nav-item[aria-current="page"] .k-nav-label',
 ];
 
-module.exports = { test, expect: base.expect, login, ROLES, passwordFor, KNOWN_DELIVERY_GAPS };
+/*
+ * Surfaces that are NOT part of the product a normal install serves, and are
+ * therefore outside the redesign's accessibility contract.
+ *
+ * Kept apart from KNOWN_DELIVERY_GAPS deliberately: that list is a register of
+ * things DESIGN owes an answer on, and padding it with scaffolding would make
+ * the open-request count lie. These are excluded because the redesign never
+ * covered them, not because a Design Request is pending.
+ *
+ * `.devbar` renders only when `$app->isDevMode()` AND the user is owner/admin
+ * (installer/admin/templates/footer.php), so it reaches no ordinary install. It
+ * does carry real defects — measured on entry 19's whole-page scan, light
+ * theme: `.devbar-time--fast` and `.devbar-memory--ok` at 1.91:1, and
+ * `.devbar-value > span` at 2.15:1, plus a scrollable `.devbar-tab-content`
+ * with no focusable content (WCAG 2.1.1). They are recorded here rather than
+ * silently dropped, and they belong to whichever slice takes the dev bar on.
+ */
+const DEV_ONLY_SURFACES = [ '.devbar' ];
+
+module.exports = {
+    test,
+    expect: base.expect,
+    login,
+    ROLES,
+    passwordFor,
+    KNOWN_DELIVERY_GAPS,
+    DEV_ONLY_SURFACES,
+};
