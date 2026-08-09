@@ -62,7 +62,13 @@ pid_start_time() {
     ps -o lstart= -p "$1" 2>/dev/null | tr -s ' '
 }
 
-pid_alive() { kill -0 "$1" 2>/dev/null; }
+# `ps -p`, NOT `kill -0`. kill(2) returns EPERM for a live process owned by
+# another user and the shell cannot distinguish that from ESRCH — so `kill -0`
+# reports a genuinely running session as dead, and the arriving session
+# "recovers an orphan" that is not one, stealing a lane that is legitimately
+# held. Measured against PID 1. `ps -p` answers the question actually being
+# asked: does this process exist, whoever owns it.
+pid_alive() { ps -p "$1" >/dev/null 2>&1; }
 
 card_chaining_is_start() {
     [ -f docs/PROGRESS.md ] || return 1
@@ -256,6 +262,16 @@ if card_chaining_is_start; then
             HELD_PID="$( sed -n '1p' "$LOCK" )"
             HELD_START="$( sed -n '2p' "$LOCK" )"
             LAUNCHER_PID=""
+            # THIS session already holds the lane. Re-verifying a hand-off is
+            # ordinary — the close-out regenerates the file and re-checks it —
+            # and a lane that reports "busy" against its own owner turns every
+            # second verification into a false STOP. Found by running the
+            # script twice in one session, not by reading it.
+            if [ "$HELD_PID" = "$ME" ]; then
+                say "lane" "OK — already held by this session (PID $ME)"
+                HELD_PID=""
+            fi
+            if [ -n "$HELD_PID" ]; then
             RECEIPTS="$LOCKDIR/receipts"
             if [ -d "$RECEIPTS" ]; then
                 for r in "$RECEIPTS"/*/launcher-pid; do
@@ -277,6 +293,7 @@ if card_chaining_is_start; then
                 else
                     fail "lane" "busy — held by PID $HELD_PID (started: $HELD_START). Close that window, or run 'scripts/keel-handoff-verify --release' in it, to free the lane."
                 fi
+            fi
             fi
         fi
     fi
