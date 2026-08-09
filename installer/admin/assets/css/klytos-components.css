@@ -1758,14 +1758,30 @@ a.k-stat:hover {
     min-height: 34px;
     padding: 0 var(--esp-8);
     border-radius: var(--radio-control);
-    color: var(--texto-secundario);
+    /* --texto-primario, not --texto-secundario, and the reason is measured
+       rather than aesthetic. The section nav sits on --fondo-ventana, OUTSIDE
+       any card, and --texto-secundario on --fondo-ventana is 4.46:1 in light —
+       under AA by 0.04. That is DR-005 gap 2's pair, and it is the same
+       arithmetic the read-only field above already carries.
+
+       It is fixed here rather than registered as a Design Request because NO
+       delivered file states this control's colour: template-record-form.md §1
+       names the section nav and specifies its geometry only, so the token was
+       the build's own choice and the build owns the defect.
+
+       It went unmeasured until entry 39 because entries 3 and 19 both render
+       `--no-nav`: this whole block had never painted anything. A seam with no
+       consumer is an untested seam (L-030). */
+    color: var(--texto-primario);
     font: var(--type-body);
     text-decoration: none;
 }
 
+/* §2 Hover: "control background lightens/darkens; label does not move." The
+   colour is already --texto-primario at rest, so only the background changes —
+   restating the colour here would be a second place for it to drift. */
 .k-section-nav-item:hover {
     background: var(--fila-hover);
-    color: var(--texto-primario);
 }
 
 /* The current section is aria-current="page" — the attribute is the state,
@@ -1943,6 +1959,26 @@ a.k-stat:hover {
     flex: none;
 }
 
+/* A collection row that is itself EDITABLE — entry 39's status set, which the
+   manifest calls an "editable set" rather than a list. The row's fields and its
+   Save live in one <form>; the destructive action stays in .k-collection-actions
+   beside it, because a form cannot nest inside a form.
+
+   align-items: flex-end so the Save sits on the baseline of the controls rather
+   than of the labels above them, and wrap so the row becomes a stack on a narrow
+   viewport without a second rule — 1.4.10 is what stage 4 broke twice. */
+.k-collection-edit {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--esp-8);
+    /* Without this the row's own fields cannot shrink and the actions beside
+       them are pushed off the card (min-width on a flex item defaults to auto,
+       not 0) — the same rule .k-collection-main already carries. */
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
 /* §1: "[optional] card footer — actions, right-aligned". On a collection card
    the footer holds the add form, so it is a column and its own actions align
    right inside it. */
@@ -2005,7 +2041,8 @@ a.k-stat:hover {
         gap: var(--esp-8);
     }
 
-    .k-collection-actions {
+    .k-collection-actions,
+    .k-collection-edit {
         width: 100%;
     }
 }

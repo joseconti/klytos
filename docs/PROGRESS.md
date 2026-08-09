@@ -597,18 +597,70 @@
       +2 the DR-005 floors), whole tier re-run · `keel-verify` **20 checks: 15 pass, 5 warnings**
       · `keel-doctor --check` green, 14 rows · lint **182/468 — errors unchanged, warnings down 6**
       (`post-types.php` itself 0/0) · `docs/api/INDEX.md` **993**.
-  - **NEXT ACTION — stage 5 batch B, screen 2 onward.** Still unblocked and backed, in the order
-    the survey suggests: **39 Post type** (`post-type-edit.php`, minus the Exposure card — and it
-    is the natural next one, because it OWNS the Statuses card entry 19 just deferred and it is the
-    second consumer of the `.k-collection*` layer, which is what proves that layer was not built
-    for one screen), **6 Security** (`security.php`, minus CSP and Integrity score),
+  - **Stage 5 of 6 — BATCH B, screen 2: entry 39 (Post type) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-090).** `post-type-edit.php` rewritten against `template-record-form.md` and
+    `SPEC/manifest.md` §39, as **five of its six cards**.
+    - **The per-screen survey was re-run against `PostTypeManager`, not against D-088's or D-089's
+      record** — the rule D-089 earned, applied to the screen after it. Identity, Editor choice,
+      Per-locale slugs, Custom fields and **Statuses** are all backed; **Statuses is backed HERE**,
+      which is exactly what D-089 predicted when it deferred the same card on entry 19. **Exposure
+      (REST · MCP · sitemap · feeds) is NOT backed and is deferred** — `buildPostTypeData()` stores
+      no exposure flags at all, and these switches change what the outside world can read, so they
+      are a slice with an authorization review (`roadmap.md` §0c).
+    - **ONE REAL DEFECT, and it was in a layer that had never been rendered.**
+      `.k-section-nav-item` painted `--texto-secundario` on `--fondo-ventana` — **4.46:1 light**,
+      under AA by 0.04, DR-005 gap 2's own pair on a third surface. Entries 3 and 19 both render
+      `--no-nav`, so the whole `.k-section-nav` block written in D-088 had **painted nothing** until
+      this screen: **L-030's shape for the fifth time, and the first occurrence this build
+      introduced itself rather than inherited.** **Fixed in the build, not registered as a Design
+      Request** — no delivered file states this control's colour (§1 gives the nav its geometry
+      only), so the token was the build's own choice, the same call D-078 made for three pairs.
+      Now **14.79:1 light / 15.29:1 dark**, both pinned as floors at the FIXED value rather than at
+      4.5, and **proven by planting the original back**: three light axe runs and both floor tests
+      went red together, then the file was restored byte-identically.
+    - **Three deliberate absences, each an adaptation with a reason** (§5.9 rows 23–25): no
+      **Taxonomies** card (entry 19 owns it and already creates, deletes and links — nothing leaves
+      the product, only its second drawing); no **"Delete this post type"** card (entry 19 carries
+      the delete with its two-step; §2's destructive section is the TEMPLATE's and entry 39's own
+      card list has none — **raised with the user rather than decided silently**, reversible in one
+      block); and the option rows are **three static rows plus a JS "Add another option"**, where
+      the shipped screen let a `select` be created with no options at all when the script was
+      absent — driven with JavaScript actually disabled.
+    - **The toolbar Save IS present here** (unlike entry 19): three cards carry savable fields, two
+      are collections, and a form cannot nest in a form — so the savable controls associate by
+      `form=`, which is also what makes **Enter in a text field save** (§4). Both driven, no script.
+    - **Both armed labels state what the code really does:** `removeCustomField()` drops the
+      definition and keeps stored values; `removeStatus()` **reassigns records to `draft`**. §2's
+      "34 records will be deleted" would be false twice over.
+    - The **ID is `readonly`, not `disabled`**, and carries neither `name` nor `form` — proven by
+      planting `disabled` back and watching its test go red.
+    - **i18n: 85 new keys × 20 catalogues**, pure additions (**1,740 insertions, 0 deletions**),
+      parity PASS. New domain `post_type.*`, every count string number-neutral (D-076).
+    - **Seven new hooks** (2 filters, 5 actions) with their INDEX rows (**993 → 1000**); the two
+      released hooks the shipped screen exposed keep firing exactly where they were.
+    - **Tree state (re-measured):** PHP **335 / 1628**, 0 skips (unchanged) · browser tier **218
+      passing** (was 190; +28), whole tier re-run · `keel-verify` **20 checks: 15 pass, 5 warnings**,
+      test-point rows 16 → **17** (row count confirmed to move, L-038) · `keel-doctor --check` green
+      · lint on the rewritten screen **0 errors / 0 warnings** · `docs/api/INDEX.md` **1000**.
+  - **ONE QUESTION FOR THE USER, and it blocks nothing:** should entry 39 ALSO carry a "Delete this
+    post type" card? `template-record-form.md` §2 says the destructive section is "always the last
+    card" and uses a post type as its own example; entry 39's manifest card list does not include
+    one, and entry 19 already deletes post types with a driven two-step confirm. Built without it
+    (adaptation 24); restoring it is one block.
+  - **NEXT ACTION — stage 5 batch B, screen 3 onward.** Still unblocked and backed, in the order
+    the survey suggests: **6 Security** (`security.php`, minus CSP and Integrity score),
     **25 Consent**, **9 Settings** (five sections, per D-088 answer 3), **37 x402 settings**
     (wallet stays editable, minus pricing rules and the 402 body), plus the form halves of
     **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose
     TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview).
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
       built before entry 19 were each reported as accessibility-passed while the shell went
-      unscanned, and re-scoping one spec is what found it.
+      unscanned, and re-scoping one spec is what found it. Entry 39 is what that rule bought on its
+      second outing: it found a below-AA pair in the section-nav layer nothing had ever rendered.
+    - **And carry L-030's corollary, which entry 39 paid for a fifth time:** when a slice writes a
+      component the screens it builds do not consume, that component is UNTESTED — the section nav
+      shipped in D-088 and painted nothing until this screen. Prefer building a layer with its
+      consumer, and where that is impossible, say in the record that it is unverified.
     - **`BUILD-SPEC.md` §4 owes a delta walk for entries 1 and 3** — both built and driven, both
       rows still unticked, recorded under the state matrix rather than ticked from someone else's
       evidence.

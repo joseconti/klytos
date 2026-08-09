@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 316 |
-| Filters | 133 |
+| Actions | 321 |
+| Filters | 135 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **993** |
+| **Total** | **1000** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -341,6 +341,11 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.plugins_before_table | action | installer/admin/plugins.php | — | Emitted right above the installed plugins table; no payload, echo extra HTML |
 | admin.plugins_column_ | action | installer/admin/plugins.php | — | Dynamic per-column hook rendering a plugin-added cell; receives the plugin row data |
 | admin.plugins_page_scripts | action | installer/admin/plugins.php | — | Emitted after the plugins screen JS is enqueued; receives the CSP nonce for extra scripts |
+| admin.post_type.after | action | installer/admin/post-type-edit.php | — | Emitted at the tail of the post type screen; receives the post type array and its id |
+| admin.post_type.after_statuses | action | installer/admin/post-type-edit.php | — | Emitted below the Statuses card; receives the merged status set and the post type id |
+| admin.post_type.before | action | installer/admin/post-type-edit.php | — | Emitted at the top of the post type screen; receives the post type array and its id |
+| admin.post_type.before_custom_fields | action | installer/admin/post-type-edit.php | — | Emitted above the Custom fields card; receives the field list and the post type id |
+| admin.post_type.before_identity | action | installer/admin/post-type-edit.php | — | Emitted above the Identity card; receives the post type array and its id |
 | admin.post_type_edit.after_settings | action | installer/admin/post-type-edit.php | — | Emitted below the post type settings form; receives the post type array and its id |
 | admin.post_types.after | action | installer/admin/post-types.php | — | Emitted at the tail of the post types screen; no payload, echo extra HTML |
 | admin.post_types.before | action | installer/admin/post-types.php | — | Emitted at the top of the post types screen; no payload, echo extra HTML |
@@ -625,6 +630,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.plugins_page_actions | filter | installer/admin/plugins.php | — | Filters the bulk actions offered on the admin Plugins page |
 | admin.plugins_row_actions | filter | installer/admin/plugins.php | — | Filters the per-plugin row action links in the Plugins list |
 | admin.plugins_row_data | filter | installer/admin/plugins.php | — | Filters a plugin's row data before it is rendered in the Plugins list |
+| admin.post_type.custom_fields | filter | installer/admin/post-type-edit.php | — | Filters the custom field rows the post type screen draws, in the order it draws them |
+| admin.post_type.statuses | filter | installer/admin/post-type-edit.php | — | Filters the status rows the post type screen draws — system definitions followed by the post type's own |
 | admin.post_type_edit.update_data | filter | installer/admin/post-type-edit.php | — | Filters the post type update payload before it is saved from the edit screen |
 | admin.sidebar_items | filter | installer/admin/templates/sidebar.php | — | Filters the admin sidebar menu items so plugins can add, remove or modify entries |
 | admin.sidebar_section_label | filter | installer/admin/templates/sidebar.php | — | Filters the displayed label of an admin sidebar section |

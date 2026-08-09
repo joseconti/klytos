@@ -979,7 +979,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 36 | Transactions | ☐ | ☐ §36 | ☐ | ☐ |
 | 37 | x402 settings | ☐ | ☐ §37 | ☐ | ☐ |
 | 38 | Plugin page (pattern) | ☐ | ☐ §38 | ☐ | ☐ |
-| 39 | Post type | ☐ | ☐ §39 | ☐ | ☐ |
+| 39 | Post type | ☑ | ◐ §39 — see note | ☑ | ☑ |
 | 40 | Block data | ☐ | ☐ §40 | ☐ | ☐ |
 | 41 | Logs | ☑ | ☑ §41 | ☑ (DR-007 open, excluded by selector) | ☑ 30 browser tests, both themes |
 | 42 | Template preview | ☐ | ☐ §42 | ☐ | ☐ |
@@ -992,6 +992,16 @@ decision, not by omission**: the *Statuses (editable set)* card and the *"and or
 delta are DEFERRED as unbacked product under D-088's standing answer 1, and are recorded in
 `docs/roadmap.md` §0c. The box is half-ticked rather than ticked so this file cannot be read as
 saying entry 19 is finished — the redesign is not reportable as complete while those two stand.
+
+**Note on entry 39's `◐`.** Same shape, same reason. Its template rows, accessibility and driven
+evidence are complete (28 browser tests, both themes, whole-page axe — D-090), and it is the FIRST
+screen in this build to render the template's section nav at all. Its **manifest deltas are partial
+by decision**: the *Exposure (REST, MCP, sitemap, feeds)* card is DEFERRED as unbacked product —
+`buildPostTypeData()` stores no exposure flags, and switches that change what the outside world can
+read are a slice with an authorization review, not a card. Recorded in `docs/roadmap.md` §0c under
+D-088's standing answer 1. Two further absences are adaptations rather than deferrals and are logged
+as §5.9 rows 23–24 (no Taxonomies card — entry 19 owns it; no *Delete this post type* card — entry
+19 already carries the delete, and the question is with the user).
 
 **A drift this table itself carries, recorded rather than quietly corrected.** Entries **1 (Pages)**
 and **3 (Design)** are built, driven and evidenced — 31 browser tests each, in `docs/05-test-points.md`
@@ -1258,6 +1268,10 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 20 | The admin toolbar renders its actions through a purpose-built allow-list (`admin.toolbar_allowed_tags`), not through `klytos_kses_post()` | Not a design deviation — a seam that could not carry what it was built for. `klytos_kses_post()`'s tag map is written for post CONTENT and has **no `<button>` at all**, so the toolbar Save that `template-record-form.md` §1 requires rendered as the bare word "Save": present, in the right place, and not a control. Stage 2 proved the seam exists; nothing had ever passed a control through it (L-030's shape again) | Yes — the Save is asserted to be a real `<button>`, inside `.k-toolbar`, owned by the form it submits; **proven by restoring `klytos_kses_post()` and watching that test go red** |
 | 21 | **Manifest entry 19 renders NO toolbar Save**, and its card stack is not one `<form>` | `template-record-form.md` §1 puts the primary Save in the toolbar "on every form screen". Entry 19's own delta says it "creates and orders; it does not edit", and the one card that would have carried savable fields — Statuses — is deferred as unbacked (D-089, `roadmap.md` §0c). What remains is two collections whose actions are their own, in the card footer §1 provides for; a toolbar Save would submit nothing. The stack is also two independent forms plus a delete form per row, and a form cannot nest inside a form | Yes — and REVERSIBLE by construction: restoring the Save is one block, the day the Statuses card lands. Its absence is asserted by no test, deliberately; what IS asserted is the absence of the Statuses `<h2>`, so the two cannot drift apart |
 | 22 | The destructive confirm's armed label states **"the post type only. Records kept: {count}"**, not §2's example "34 records will be deleted" | Not a design deviation — the design's example sentence is FALSE in this product. `PostTypeManager::delete()` removes the type and its term data and **leaves the records**. §2 specifies the SHAPE (the same button relabelled with the consequence, `aria-live="polite"` on its wrapper, never a browser `confirm()`); the consequence itself is a fact about the code, not a value the delivery supplies | Yes — the shape is built exactly, including the server-side two-step that works with JavaScript disabled. A test asserts the true wording so the design's example cannot be copied back in as a claim the code does not honour |
+| 23 | **Manifest entry 39 renders no Taxonomies card**, although the screen it replaces had one | The manifest gives taxonomies to entry **19** (Content model) and lists six cards for entry 39, none of them Taxonomies. Entry 19 was built in the previous slice and now creates a taxonomy into a chosen post type, deletes one, and links each to `taxonomy.php` — the same three operations this screen used to offer | Yes, and **nothing is removed from the product**: the capability is one screen away and driven by `content-model.spec.js`. Drawing it twice would be two implementations of one collection, free to drift — the reuse rule, not a fidelity choice |
+| 24 | **Manifest entry 39 renders no "Delete this post type" card**, although `template-record-form.md` §2 names a destructive section on this template and uses a post type as its example | §2's destructive section is a TEMPLATE property; entry 39's own card list does not include one, and entry 19's Post types collection already carries the delete — with its server-side two-step confirm and the truthful armed label adaptation 22 records. A second destructive path to the same operation is duplication | **Raised with the user rather than decided silently** (session report, D-090). Reversible in one block if the answer is that entry 39 should carry one too |
+| 25 | The custom-field OPTION rows are three static rows in the markup plus a JavaScript "Add another option" button, where the shipped screen built every row in script and showed them only for choice types | Not a design deviation — the delivery specifies no option editor at all. With the script absent the shipped screen let a `select` be created with **no options and no explanation**; three rows in the markup make the capability work with JavaScript off, and the button restores the unbounded case on top | Yes — driven **with JavaScript actually disabled**: a two-option `select` is created and the row reports "Options: 2", while the enhancement button stays hidden because its script never ran |
+| 26 | `.k-section-nav-item` paints `--texto-primario`, where the record-form layer first wrote `--texto-secundario` | Not a design deviation — **a defect the build introduced and the build fixed.** The section nav sits on `--fondo-ventana`, outside any card, and that pair measures **4.46:1** in light: under AA by 0.04, and DR-005 gap 2's own pair. No delivered file states this control's colour — §1 names the nav and gives its geometry only — so the token was the build's choice — the same call D-078 made for three pairs `klytos-admin.css` already ruled on | Yes — **14.79:1 light / 15.29:1 dark**, recomputed independently in Python and agreeing with axe, both pinned as floors and **proven to FAIL on the planted original** before being trusted |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

@@ -61,6 +61,7 @@
 | **L-036** | Build rule 1's sixth mechanism, inside the section whose comment said it could not happen there |
 | **L-037** | Every accessibility pass was scoped to `#main`, so the one component on every screen was the one component nothing scanned |
 | **L-038** | A blank line above a table row orphans it from the table, and the check that validates the row passes because it never sees it |
+| **L-039** | A whole component was written two slices before anything rendered it, so it shipped below AA and every pass in between was honest and blind |
 
 ## L-001 — The embedded Keel copy silently rotted 20+ releases behind
 - Problem: The repo carried `.claude/skills/keel/` at v1.11.0 while the installed skill was at v3.3.0, and the `CLAUDE.md` lock block was stamped v1.11.0. Any session reading the embedded copy was running an obsolete protocol, and `AGENTS.md` did not exist at all — so a fork opened in Codex/Copilot/Cursor/Gemini was bound by nothing.
@@ -1369,3 +1370,53 @@
   procedural and cheap — **after appending a row to any checked table, re-run the check
   and confirm its ROW COUNT went up.** A passing check whose count did not move is not a
   passing check.
+
+## L-039 — A component was written two slices before anything rendered it, so it shipped below AA and every pass in between was honest and blind
+
+- **Symptom.** Building manifest entry 39 — the seventh screen of this redesign, and the
+  first with more than three cards — the axe pass reported a contrast failure on the
+  SECTION NAV: `--texto-secundario` on `--fondo-ventana`, **4.46:1 in light**, under AA
+  by 0.04. Recomputed independently in Python from the WCAG formula; axe read 4.45 and
+  the arithmetic agreed. The screen was new. The rule was not: it had been in
+  `klytos-components.css` since **D-088**, two slices earlier.
+- **Cause.** Nothing about the rule had changed. What changed is that something finally
+  DREW it. D-088 built the record-form layer as a layer — `.k-record-form`,
+  `.k-field-grid`, the swatch row, the pair display **and `.k-section-nav`** — and then
+  built entry 3 as its first consumer. Entry 3 has no section nav, so it renders
+  `.k-record-form--no-nav`. Entry 19, the next consumer, has no section nav either. The
+  `.k-section-nav` block therefore sat in the shipped stylesheet, on every admin screen,
+  for two whole slices, **painting nothing at all** — and a rule that paints nothing
+  cannot fail a pass that measures what is painted.
+- **Why it read as covered.** Every pass in between was honest. D-088 and D-089 each ran
+  axe at WCAG 2.2 AA in both themes, each passed, and neither claimed to cover a
+  component neither screen contained. The record even said the layer was "built". It was
+  built; it was never *rendered*, and those are different claims that the word "built"
+  does not distinguish.
+- **The general shape, and it is L-030's with the author changed.** L-030 was about the
+  DELIVERY handing over a seam nothing consumed — a sprite without the glyphs its screens
+  draw. This is the same defect with the build as its author: **we wrote the component
+  ahead of its consumer, on the reasonable-sounding ground that a layer should be built
+  once.** D-079 had already established the counterpart ("a stylesheet with no consumer is
+  where a defect hides") and D-088 quotes it — while introducing exactly that in the same
+  file, in the same commit, in the part of the layer its own screen did not use. The rule
+  was known, cited, and still not applied to the fraction of the work it covered. That is
+  the fifth occurrence of this shape in this build and the first the build owns outright.
+- **What it cost, and what it did not.** It cost a below-AA pair riding in the shipped
+  stylesheet for two slices. It cost nothing to *users* only because no screen rendered
+  it — which is precisely why it survived, and precisely why the next such block might
+  not be so harmless.
+- **Fix.** `--texto-primario`: **14.79:1 light / 15.29:1 dark**. Fixed in the build rather
+  than registered as a Design Request, and the distinction matters — no delivered file
+  states this control's colour, so the token was ours and the defect was ours. Recorded as
+  **D-090** and as `BUILD-SPEC.md` §5.9 adaptation 26.
+- **Check added.** **(a)** Two floor tests in `tests/E2E/post-type.spec.js` pin the ratio
+  at the FIXED value (14.79 / 15.29), not at AA's 4.5, so a quiet slide back toward the
+  threshold fails here rather than at some later screen's axe run. **(b)** Both, and the
+  three light-theme axe runs, were **proven to FAIL on the planted original token** —
+  they went red together — after which the stylesheet was restored byte-identically
+  (`diff` clean). **What is NOT mechanically checkable, said plainly:** nothing can tell
+  you that a CSS rule you just wrote has no element to match, because "no element matches"
+  is indistinguishable from "no element matches YET". So the rule is procedural:
+  **build a component with the screen that consumes it, and where a layer genuinely must
+  come first, write down in the record that the unconsumed part is UNVERIFIED — not
+  "built" — so the next slice inherits a suspicion instead of a green line.**
