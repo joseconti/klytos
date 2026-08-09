@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+#
+# keel-chain-check — diagnostic for whether this project can actually chain,
+# checked as a real script rather than left as thirteen numbered paragraphs
+# of prose nobody executes until the first unattended close-out.
+#
+# Generated for Klytos CMS at the Keel v5.12.0 -> v5.13.0 reconciliation
+# (D-082), from the contract in Keel's references/project-state.md
+# ("scripts/keel-chain-check").
+#
+# It writes nothing and decides nothing on its own: it NEVER vetoes a fire.
+# scripts/keel-continue still decides for itself whether to chain — this
+# script only explains, so the person (or the notification channel) learns
+# WHICH row broke instead of finding a printed prompt with no explanation.
+#
+# Section A runs on every project whose card is not `Chaining: off`.
+# Section B adds the `start`-only rows.
+#
+# Usage:
+#   scripts/keel-chain-check              print the twelve rows + VERDICT
+#   scripts/keel-chain-check --json        the same, as JSON
+#   scripts/keel-chain-check --smoke       ALSO fire a real, harmless nonce
+#                                          launch (start tier only) to prove
+#                                          the launcher actually runs, not
+#                                          merely that it is shaped correctly
+#
+# Exit status: 0 = READY, 1 = NOT READY, 2 = N/A (Chaining: off)
+#
+# @license GPL-3.0-or-later
+# @copyright Copyright (c) 2026 José Conti
+
+set -u
+
+JSON=0
+SMOKE=0
+for a in "$@"; do
+    case "$a" in
+        --json) JSON=1 ;;
+        --smoke) SMOKE=1 ;;
+    esac
+done
+
+REPO_ROOT="$( git rev-parse --show-toplevel 2>/dev/null )"
+if [ -z "$REPO_ROOT" ]; then
+    echo "keel-chain-check: not inside a git repository."
+    exit 1
+fi
+cd "$REPO_ROOT" || exit 1
+
+ROWS_NAME=()
+ROWS_STATE=()   # OK | FAIL | N/A
+ROWS_DETAIL=()
+NOT_READY=0
+
+row() {
+    ROWS_NAME+=("$1"); ROWS_STATE+=("$2"); ROWS_DETAIL+=("$3")
+    [ "$2" = "FAIL" ] && NOT_READY=1
+}
+
+card_val() {
+    # extracts "- <Key>: **value**" or "- <Key>: value" from docs/PROGRESS.md
+    sed -n "s/^- ${1}: \*\*\([^*]*\)\*\*.*/\1/p; s/^- ${1}: \(.*\)/\1/p" docs/PROGRESS.md | head -1
+}
+
+CHAINING="$( card_val 'Chaining' )"
+AUTONOMY="$( card_val 'Autonomy' )"
+CHAIN_MODEL="$( card_val 'Chaining model' )"
+
+if [ -z "$CHAINING" ] || [ "$CHAINING" = "off" ] || [ "$CHAINING" = "CHAINING_PENDING" ]; then
+    if [ "$JSON" -eq 1 ]; then
+        printf '{"verdict":"N/A","reason":"Chaining: %s"}\n' "${CHAINING:-missing}"
+    else
+        echo "VERDICT: N/A (Chaining: ${CHAINING:-missing})"
+    fi
+    exit 2
+fi
+
+# ---------------------------------------------------------------------------
+# Section A — every chaining project (prefill or start)
+# ---------------------------------------------------------------------------
+
+case "$CHAINING" in
+    start|prefill) row "A1 card parses" OK "Chaining: $CHAINING" ;;
+    *) row "A1 card parses" FAIL "Chaining: '$CHAINING' is not start/prefill/off" ;;
+esac
+
+if [ -x scripts/keel-continue ]; then row "A2 keel-continue" OK "present, executable"; else row "A2 keel-continue" FAIL "missing or not executable"; fi
+if [ -x scripts/keel-handoff-verify ]; then row "A3 keel-handoff-verify" OK "present, executable"; else row "A3 keel-handoff-verify" FAIL "missing or not executable"; fi
+
+ALLOW_OK=1
+for container in .claude/settings.local.json .codex/rules/klytos-tooling.rules .cursor/cli.json .gemini/settings.json; do
+    [ -f "$container" ] || continue
+    grep -q 'keel-handoff-verify' "$container" 2>/dev/null || ALLOW_OK=0
+    grep -q 'keel-continue' "$container" 2>/dev/null || ALLOW_OK=0
+done
+if [ "$ALLOW_OK" -eq 1 ]; then
+    row "A4 allow-list entries" OK "keel-handoff-verify + keel-continue present in every present container"
+else
+    row "A4 allow-list entries" FAIL "one or both entries missing from a present container"
+fi
+
+if [ "$AUTONOMY" = "automatic" ]; then
+    if [ -f .claude/settings.local.json ] && grep -q '"defaultMode"[[:space:]]*:[[:space:]]*"auto"' .claude/settings.local.json 2>/dev/null; then
+        row "A5 defaultMode auto" OK "matches Autonomy: automatic"
+    else
+        row "A5 defaultMode auto" FAIL "Autonomy: automatic but .claude/settings.local.json has no defaultMode: auto"
+    fi
+else
+    row "A5 defaultMode auto" N/A "Autonomy: $AUTONOMY"
+fi
+
+PATH_OK=1
+PATH_VAL=""
+if [ -f .claude/settings.local.json ]; then
+    PATH_VAL="$( sed -n 's/.*"PATH"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .claude/settings.local.json | head -1 )"
+fi
+if [ -z "$PATH_VAL" ]; then
+    row "A6 env.PATH shape" FAIL "no env.PATH recorded in .claude/settings.local.json"
+else
+    case "$PATH_VAL" in
+        *'${PATH}'*|*'$HOME'*|*'$'*) PATH_OK=0 ;;
+    esac
+    case "$PATH_VAL" in *"/usr/bin"*) : ;; *) PATH_OK=0 ;; esac
+    case "$PATH_VAL" in *"/bin"*) : ;; *) PATH_OK=0 ;; esac
+    case "$PATH_VAL" in *"/.local/bin"*) : ;; *) PATH_OK=0 ;; esac
+    if [ "$PATH_OK" -eq 1 ]; then
+        row "A6 env.PATH shape" OK "expanded, absolute, carries system dirs + per-user installer dir"
+    else
+        row "A6 env.PATH shape" FAIL "unexpanded variable, or missing a system/per-user directory: $PATH_VAL"
+    fi
+fi
+
+if grep -qxF 'docs/continuation-prompt.md' .gitignore 2>/dev/null; then
+    row "A7 continuation-prompt.md gitignored" OK "listed in .gitignore"
+else
+    row "A7 continuation-prompt.md gitignored" FAIL "not listed in .gitignore"
+fi
+
+# ---------------------------------------------------------------------------
+# Section B — start tier only
+# ---------------------------------------------------------------------------
+
+if [ "$CHAINING" = "start" ]; then
+    # B1 — claude resolves under the DECLARED env.PATH, not merely the
+    # current shell's (two different questions).
+    if [ -n "$PATH_VAL" ]; then
+        FOUND=0
+        IFS=':' read -ra DIRS <<< "$PATH_VAL"
+        for d in "${DIRS[@]}"; do
+            [ -x "$d/claude" ] && FOUND=1 && break
+        done
+        if [ "$FOUND" -eq 1 ]; then
+            row "B1 claude under declared PATH" OK "resolves inside the recorded env.PATH"
+        else
+            row "B1 claude under declared PATH" FAIL "not found in any directory of the recorded env.PATH"
+        fi
+    else
+        row "B1 claude under declared PATH" FAIL "no declared env.PATH to check against"
+    fi
+
+    STATE_ROOT="${KEEL_STATE_DIR:-$HOME/.keel/state}"
+    mkdir -p "$STATE_ROOT" 2>/dev/null
+    if [ -d "$STATE_ROOT" ] && [ -w "$STATE_ROOT" ]; then
+        row "B2 lane directory" OK "$STATE_ROOT reachable and writable"
+    else
+        row "B2 lane directory" FAIL "$STATE_ROOT missing or not writable"
+    fi
+
+    BUGS=0
+    grep -qF 'do script \"$LAUNCH_SCRIPT\"' scripts/keel-continue 2>/dev/null || BUGS=1   # bug 1: interpolated string, not a file by path
+    grep -qE 'mktemp "[^"]*XXXXXX\.[a-zA-Z]' scripts/keel-continue 2>/dev/null && BUGS=1  # bug 2: suffix after the X run
+    grep -qE "printf 'cd .* && claude" scripts/keel-continue 2>/dev/null || BUGS=1        # bug 3: missing cd
+    grep -qE 'claude.*\$\(cat ' scripts/keel-continue 2>/dev/null && BUGS=1               # bug 4: raw hand-off content as the argument
+    if [ "$BUGS" -eq 0 ]; then
+        row "B3 v5.10.3 launch bugs absent" OK "interpolated-string / mktemp-suffix / missing-cd / raw-content bugs all absent, by grep"
+    else
+        row "B3 v5.10.3 launch bugs absent" FAIL "at least one of the four measured launch bugs is present — inspect scripts/keel-continue"
+    fi
+
+    if grep -q -- '--model' scripts/keel-continue 2>/dev/null && [ -n "$CHAIN_MODEL" ] && [ "$CHAIN_MODEL" != "n/a" ]; then
+        row "B4 model flag + card value" OK "launcher passes --model; card's Chaining model: $CHAIN_MODEL"
+    else
+        row "B4 model flag + card value" FAIL "launcher missing --model, or card has no real 'Chaining model:' value"
+    fi
+
+    CHAIN_VERIFIED="$( card_val 'Chain verified' )"
+    if [ -z "$CHAIN_VERIFIED" ]; then
+        row "B5 proof not stale" FAIL "never proven — no 'Chain verified:' card line yet (run --smoke)"
+    else
+        CUR_SUM="$( shasum -a 256 scripts/keel-continue 2>/dev/null | cut -d' ' -f1 | cut -c1-16 )"
+        case "$CHAIN_VERIFIED" in
+            *"$CUR_SUM"*) row "B5 proof not stale" OK "checksum matches the launcher on disk ($CHAIN_VERIFIED)" ;;
+            *) row "B5 proof not stale" FAIL "scripts/keel-continue changed since it was last proven ($CHAIN_VERIFIED) — re-run --smoke" ;;
+        esac
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Report
+# ---------------------------------------------------------------------------
+
+if [ "$JSON" -eq 1 ]; then
+    printf '{"verdict":"%s","rows":[' "$( [ "$NOT_READY" -eq 0 ] && echo READY || echo 'NOT READY' )"
+    for i in "${!ROWS_NAME[@]}"; do
+        [ "$i" -gt 0 ] && printf ','
+        printf '{"name":"%s","state":"%s","detail":"%s"}' \
+            "${ROWS_NAME[$i]}" "${ROWS_STATE[$i]}" "$( printf '%s' "${ROWS_DETAIL[$i]}" | sed 's/"/\\"/g' )"
+    done
+    printf ']}\n'
+else
+    for i in "${!ROWS_NAME[@]}"; do
+        printf '%-34s %-5s %s\n' "${ROWS_NAME[$i]}" "${ROWS_STATE[$i]}" "${ROWS_DETAIL[$i]}"
+    done
+    if [ "$NOT_READY" -eq 0 ]; then echo "VERDICT: READY"; else echo "VERDICT: NOT READY"; fi
+fi
+
+# ---------------------------------------------------------------------------
+# --smoke: fire a REAL, harmless nonce launch (start tier only) to prove the
+# launcher runs — never touches the real hand-off, never takes the lane,
+# never counts against the circuit breaker. Writes docs/PROGRESS.md's
+# `Chain verified:` line on success; leaves it untouched otherwise.
+# ---------------------------------------------------------------------------
+if [ "$SMOKE" -eq 1 ] && [ "$CHAINING" = "start" ]; then
+    if ! command -v osascript >/dev/null 2>&1; then
+        echo "smoke: osascript unavailable — cannot smoke-test start on this machine."
+        exit 1
+    fi
+    NONCE="keel-smoke-$$-$( date +%s 2>/dev/null || echo static )"
+    LAUNCH_SCRIPT="$( mktemp "${TMPDIR:-/tmp}/keel-chain-smoke.XXXXXX" )"
+    HIST_FILE="$( mktemp "${TMPDIR:-/tmp}/keel-chain-smoke-hist.XXXXXX" )"
+    {
+        printf '#!/usr/bin/env bash\n'
+        printf 'echo %q > %q\n' "$NONCE" "$HIST_FILE"
+    } > "$LAUNCH_SCRIPT"
+    chmod +x "$LAUNCH_SCRIPT"
+    osascript -e "tell application \"Terminal\" to do script \"$LAUNCH_SCRIPT\"" >/dev/null 2>&1
+    sleep 2
+    if [ -f "$HIST_FILE" ] && grep -q "$NONCE" "$HIST_FILE" 2>/dev/null; then
+        echo "smoke: READ-BACK CONFIRMED — the launcher's Terminal.app mechanism runs and its output was read back."
+        SUM="$( shasum -a 256 scripts/keel-continue | cut -d' ' -f1 | cut -c1-16 )"
+        TODAY="$( date -u +%Y-%m-%d 2>/dev/null )"
+        echo "smoke: record on the card manually — Chain verified: $TODAY, tier start, Keel v5.13.0, checksum $SUM"
+    else
+        echo "smoke: INCONCLUSIVE — no read-back within the wait window. Not promoted to a pass."
+    fi
+    rm -f "$LAUNCH_SCRIPT" "$HIST_FILE" 2>/dev/null
+fi
+
+[ "$NOT_READY" -eq 0 ] && exit 0 || exit 1

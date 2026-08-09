@@ -138,6 +138,19 @@ else
         print_prompt "osascript is unavailable — start is verified on macOS/Terminal.app only. Printing instead."
         exit 0
     fi
+    # 5b (v5.13.0). A fresh `claude` process inherits NOTHING from the one
+    # that launched it, not even the model — so without an explicit --model
+    # every chained link silently runs on whatever the settings file
+    # resolves to. The card's own value is the only source; never the
+    # launching session's own model, which is an accident of how the user
+    # happened to start it.
+    CHAIN_MODEL="$( sed -n 's/^- Chaining model: \*\*\(.*\)\*\*.*/\1/p; s/^- Chaining model: \(.*\)/\1/p' docs/PROGRESS.md | head -1 )"
+    case "$CHAIN_MODEL" in
+        ""|n/a|N/A)
+            print_prompt "project card has no 'Chaining model:' value — cannot fire a start action without one (v5.13.0). Printing instead."
+            exit 0
+            ;;
+    esac
 fi
 
 # ---------------------------------------------------------------------------
@@ -213,7 +226,7 @@ fi
 LAUNCH_SCRIPT="$( mktemp "${TMPDIR:-/tmp}/keel-continue-launch.XXXXXX" )"
 {
     printf '#!/usr/bin/env bash\n'
-    printf 'cd %q && claude %q\n' "$REPO_ROOT" "$PROMPT_TEXT"
+    printf 'cd %q && claude --model %q %q\n' "$REPO_ROOT" "$CHAIN_MODEL" "$PROMPT_TEXT"
 } > "$LAUNCH_SCRIPT"
 chmod +x "$LAUNCH_SCRIPT"
 
