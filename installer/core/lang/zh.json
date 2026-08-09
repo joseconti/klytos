@@ -172,7 +172,24 @@
     "tab_trash": "回收站",
     "empty_trash": "清空回收站",
     "restore": "恢复",
-    "permanent_delete": "永久删除"
+    "permanent_delete": "永久删除",
+    "bulk_change_template": "更换模板",
+    "bulk_template_label": "要应用的模板",
+    "bulk_template_missing": "请选择要应用的模板。",
+    "bulk_unpublish": "取消发布",
+    "caption": "页面 — 结果：{count}，第 {page} / {pages} 页",
+    "delete_home_reason": "删除 — 此页面是站点首页",
+    "delete_home_refused": "站点首页无法移入回收站。",
+    "empty_action": "创建第一个页面",
+    "empty_filtered": "没有页面符合 {filters}。",
+    "empty_sentence": "还没有页面。页面就是一个放着区块的网址。",
+    "error_sentence": "无法读取页面索引 — 存储层返回了错误。",
+    "filter_label": "按状态筛选",
+    "last_edit": "最后编辑",
+    "row_actions": "{title} 的更多操作",
+    "search_label": "搜索页面",
+    "select_all": "选择此结果页上的所有页面",
+    "table_scroll_label": "页面表格，可横向滚动"
   },
   "design": {
     "title": "设计",
@@ -813,5 +830,16 @@
     "palette": "命令面板",
     "palette_placeholder": "搜索或输入命令",
     "palette_no_results": "没有命令匹配 {query}。请尝试页面标题、设置名称或 help。"
+  },
+  "list": {
+    "clear_filters": "清除筛选",
+    "clear_selection": "清除",
+    "next": "下一页",
+    "not_set": "未设置",
+    "page_n": "第 {n} 页",
+    "pagination": "分页",
+    "previous": "上一页",
+    "retry": "重试",
+    "selected": "已选择：{count}"
   }
 }

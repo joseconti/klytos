@@ -172,7 +172,24 @@
     "tab_trash": "Corbeille",
     "empty_trash": "Vider la corbeille",
     "restore": "Restaurer",
-    "permanent_delete": "Supprimer définitivement"
+    "permanent_delete": "Supprimer définitivement",
+    "bulk_change_template": "Changer le modèle",
+    "bulk_template_label": "Modèle à appliquer",
+    "bulk_template_missing": "Choisissez un modèle à appliquer.",
+    "bulk_unpublish": "Dépublier",
+    "caption": "Pages — résultats : {count}, page {page} sur {pages}",
+    "delete_home_reason": "Supprimer — cette page est l'accueil du site",
+    "delete_home_refused": "L'accueil du site ne peut pas être mis à la corbeille.",
+    "empty_action": "Créer la première page",
+    "empty_filtered": "Aucune page ne correspond à {filters}.",
+    "empty_sentence": "Aucune page pour l'instant. Une page est une URL contenant des blocs.",
+    "error_sentence": "L'index des pages n'a pas pu être lu — la couche de stockage a renvoyé une erreur.",
+    "filter_label": "Filtrer par statut",
+    "last_edit": "Dernière modification",
+    "row_actions": "Plus d'actions pour {title}",
+    "search_label": "Rechercher des pages",
+    "select_all": "Sélectionner toutes les pages de cette page de résultats",
+    "table_scroll_label": "Tableau des pages, défilement possible"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Palette de commandes",
     "palette_placeholder": "Rechercher ou saisir une commande",
     "palette_no_results": "Aucune commande ne correspond à {query}. Essayez un titre de page, un nom de paramètre ou « help »."
+  },
+  "list": {
+    "clear_filters": "Effacer les filtres",
+    "clear_selection": "Effacer",
+    "next": "Suivant",
+    "not_set": "Non défini",
+    "page_n": "Page {n}",
+    "pagination": "Pagination",
+    "previous": "Précédent",
+    "retry": "Réessayer",
+    "selected": "Sélection : {count}"
   }
 }

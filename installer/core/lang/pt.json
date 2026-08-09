@@ -172,7 +172,24 @@
     "tab_trash": "Lixo",
     "empty_trash": "Esvaziar lixo",
     "restore": "Restaurar",
-    "permanent_delete": "Eliminar permanentemente"
+    "permanent_delete": "Eliminar permanentemente",
+    "bulk_change_template": "Alterar o modelo",
+    "bulk_template_label": "Modelo a aplicar",
+    "bulk_template_missing": "Escolha um modelo a aplicar.",
+    "bulk_unpublish": "Retirar da publicação",
+    "caption": "Páginas — resultados: {count}, página {page} de {pages}",
+    "delete_home_reason": "Eliminar — esta página é a página inicial do site",
+    "delete_home_refused": "A página inicial do site não pode ir para a reciclagem.",
+    "empty_action": "Criar a primeira página",
+    "empty_filtered": "Nenhuma página corresponde a {filters}.",
+    "empty_sentence": "Ainda não há páginas. Uma página é um URL com blocos dentro.",
+    "error_sentence": "Não foi possível ler o índice de páginas — a camada de armazenamento devolveu um erro.",
+    "filter_label": "Filtrar por estado",
+    "last_edit": "Última edição",
+    "row_actions": "Mais ações para {title}",
+    "search_label": "Pesquisar páginas",
+    "select_all": "Selecionar todas as páginas desta página de resultados",
+    "table_scroll_label": "Tabela de páginas, com deslocamento"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Paleta de comandos",
     "palette_placeholder": "Pesquise ou escreva um comando",
     "palette_no_results": "Nenhum comando corresponde a {query}. Experimente o título de uma página, o nome de uma definição ou «help»."
+  },
+  "list": {
+    "clear_filters": "Limpar filtros",
+    "clear_selection": "Limpar",
+    "next": "Seguinte",
+    "not_set": "Por definir",
+    "page_n": "Página {n}",
+    "pagination": "Paginação",
+    "previous": "Anterior",
+    "retry": "Tentar de novo",
+    "selected": "Selecionado: {count}"
   }
 }

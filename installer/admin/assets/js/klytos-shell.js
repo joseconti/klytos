@@ -68,6 +68,21 @@
     var activeIndex   = -1;
     var matches       = [];
 
+    /*
+     * Set while closePalette() is handing focus back to whatever opened it.
+     *
+     * Without it the palette is a KEYBOARD TRAP, which is a WCAG 2.1.2 failure
+     * and not a cosmetic one: the search field's own focus listener opens the
+     * palette, and closePalette() returns focus to its opener — so closing a
+     * palette that the search field opened re-focused the search field, which
+     * re-opened the palette, forever. Escape did nothing, and there was no way
+     * out with the keyboard alone. Found by driving it (2026-07-29); the
+     * server-rendered half of the shell had been fully verified and this sat
+     * underneath it, because reading the two listeners separately never puts
+     * them in the same sentence.
+     */
+    var restoringFocus = false;
+
     function renderPalette( query ) {
         var q = ( query || '' ).trim().toLowerCase();
         matches = ( data.items || [] ).filter( function ( item ) {
@@ -147,11 +162,17 @@
         if ( liveStatus ) {
             liveStatus.textContent = '';
         }
-        // Focus returns to whatever opened it.
-        if ( paletteOpener && typeof paletteOpener.focus === 'function' ) {
-            paletteOpener.focus();
-        }
+        // Focus returns to whatever opened it. `restoringFocus` is raised across
+        // the call because `focus()` dispatches the focus event synchronously,
+        // and the opener is very often the search field, whose listener would
+        // otherwise re-open what we are closing.
+        var opener = paletteOpener;
         paletteOpener = null;
+        if ( opener && typeof opener.focus === 'function' ) {
+            restoringFocus = true;
+            opener.focus();
+            restoringFocus = false;
+        }
     }
 
     if ( palette && paletteInput && paletteList ) {
@@ -170,6 +191,9 @@
         // (template-shell.md §1).
         if ( searchInput ) {
             searchInput.addEventListener( 'focus', function () {
+                if ( restoringFocus ) {
+                    return;
+                }
                 if ( palette.hidden ) {
                     openPalette( searchInput );
                 }

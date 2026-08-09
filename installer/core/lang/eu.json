@@ -172,7 +172,24 @@
     "tab_trash": "Zakarrontzia",
     "empty_trash": "Zakarrontzia hustu",
     "restore": "Berrezarri",
-    "permanent_delete": "Betirako ezabatu"
+    "permanent_delete": "Betirako ezabatu",
+    "bulk_change_template": "Aldatu txantiloia",
+    "bulk_template_label": "Aplikatuko den txantiloia",
+    "bulk_template_missing": "Aukeratu aplikatzeko txantiloi bat.",
+    "bulk_unpublish": "Kendu argitalpenetik",
+    "caption": "Orriak — emaitzak: {count}, {page}. orria {pages}(e)tik",
+    "delete_home_reason": "Ezabatu — orri hau gunearen hasiera da",
+    "delete_home_refused": "Gunearen hasiera ezin da zakarrontzira bidali.",
+    "empty_action": "Sortu lehen orria",
+    "empty_filtered": "Ez dago {filters} betetzen duen orririk.",
+    "empty_sentence": "Oraindik ez dago orririk. Orri bat blokeak dituen URL bat da.",
+    "error_sentence": "Ezin izan da orrien aurkibidea irakurri — biltegiratze geruzak errore bat itzuli du.",
+    "filter_label": "Iragazi egoeraren arabera",
+    "last_edit": "Azken edizioa",
+    "row_actions": "{title} elementurako ekintza gehiago",
+    "search_label": "Bilatu orriak",
+    "select_all": "Hautatu emaitza-orri honetako orri guztiak",
+    "table_scroll_label": "Orrien taula, korritzegarria"
   },
   "design": {
     "title": "Diseinua",
@@ -813,5 +830,16 @@
     "palette": "Komando-paleta",
     "palette_placeholder": "Bilatu edo idatzi komando bat",
     "palette_no_results": "Ez dago {query} bilaketarekin bat datorren komandorik. Saiatu orri baten izenburuarekin, ezarpen baten izenarekin edo «help»."
+  },
+  "list": {
+    "clear_filters": "Kendu iragazkiak",
+    "clear_selection": "Kendu",
+    "next": "Hurrengoa",
+    "not_set": "Zehaztu gabe",
+    "page_n": "{n}. orria",
+    "pagination": "Orrikatzea",
+    "previous": "Aurrekoa",
+    "retry": "Saiatu berriro",
+    "selected": "Hautatuta: {count}"
   }
 }

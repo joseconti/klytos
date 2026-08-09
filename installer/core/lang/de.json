@@ -172,7 +172,24 @@
     "tab_trash": "Papierkorb",
     "empty_trash": "Papierkorb leeren",
     "restore": "Wiederherstellen",
-    "permanent_delete": "Dauerhaft löschen"
+    "permanent_delete": "Dauerhaft löschen",
+    "bulk_change_template": "Vorlage ändern",
+    "bulk_template_label": "Anzuwendende Vorlage",
+    "bulk_template_missing": "Wähle eine Vorlage zum Anwenden aus.",
+    "bulk_unpublish": "Veröffentlichung zurücknehmen",
+    "caption": "Seiten — Treffer: {count}, Seite {page} von {pages}",
+    "delete_home_reason": "Löschen — diese Seite ist die Startseite der Website",
+    "delete_home_refused": "Die Startseite der Website kann nicht in den Papierkorb verschoben werden.",
+    "empty_action": "Die erste Seite anlegen",
+    "empty_filtered": "Keine Seite passt zu {filters}.",
+    "empty_sentence": "Noch keine Seiten. Eine Seite ist eine URL mit Blöcken darauf.",
+    "error_sentence": "Das Seitenverzeichnis konnte nicht gelesen werden — die Speicherschicht hat einen Fehler zurückgegeben.",
+    "filter_label": "Nach Status filtern",
+    "last_edit": "Letzte Bearbeitung",
+    "row_actions": "Weitere Aktionen für {title}",
+    "search_label": "Seiten durchsuchen",
+    "select_all": "Alle Seiten auf dieser Ergebnisseite auswählen",
+    "table_scroll_label": "Seitentabelle, scrollbar"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Befehlspalette",
     "palette_placeholder": "Suchen oder Befehl eingeben",
     "palette_no_results": "Kein Befehl passt zu {query}. Versuchen Sie einen Seitentitel, den Namen einer Einstellung oder „help“."
+  },
+  "list": {
+    "clear_filters": "Filter zurücksetzen",
+    "clear_selection": "Aufheben",
+    "next": "Weiter",
+    "not_set": "Nicht gesetzt",
+    "page_n": "Seite {n}",
+    "pagination": "Seitennummerierung",
+    "previous": "Zurück",
+    "retry": "Erneut versuchen",
+    "selected": "Ausgewählt: {count}"
   }
 }

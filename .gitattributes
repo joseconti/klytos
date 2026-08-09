@@ -17,6 +17,10 @@ phpunit.xml                 export-ignore
 phpstan.neon                export-ignore
 composer.json               export-ignore
 composer.lock               export-ignore
+package.json                export-ignore
+package-lock.json           export-ignore
+playwright.config.js        export-ignore
+node_modules/               export-ignore
 phpcs.xml                   export-ignore
 .editorconfig               export-ignore
 .gitignore                  export-ignore

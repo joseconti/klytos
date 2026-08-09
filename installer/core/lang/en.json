@@ -172,7 +172,24 @@
     "tab_trash": "Trash",
     "empty_trash": "Empty trash",
     "restore": "Restore",
-    "permanent_delete": "Delete permanently"
+    "permanent_delete": "Delete permanently",
+    "bulk_change_template": "Change template",
+    "bulk_template_label": "Template to apply",
+    "bulk_template_missing": "Choose a template to apply.",
+    "bulk_unpublish": "Unpublish",
+    "caption": "Pages — results: {count}, page {page} of {pages}",
+    "delete_home_reason": "Delete — this page is the site home",
+    "delete_home_refused": "The site home cannot be moved to the trash.",
+    "empty_action": "Create the first page",
+    "empty_filtered": "No pages match {filters}.",
+    "empty_sentence": "No pages yet. A page is a URL with blocks on it.",
+    "error_sentence": "The page index could not be read — the storage layer returned an error.",
+    "filter_label": "Filter by status",
+    "last_edit": "Last edit",
+    "row_actions": "More actions for {title}",
+    "search_label": "Search pages",
+    "select_all": "Select all pages on this page",
+    "table_scroll_label": "Pages table, scrollable"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Command palette",
     "palette_placeholder": "Search or type a command",
     "palette_no_results": "No command matches {query}. Try a page title, a setting name, or help."
+  },
+  "list": {
+    "clear_filters": "Clear filters",
+    "clear_selection": "Clear",
+    "next": "Next",
+    "not_set": "Not set",
+    "page_n": "Page {n}",
+    "pagination": "Pagination",
+    "previous": "Previous",
+    "retry": "Try again",
+    "selected": "Selected: {count}"
   }
 }

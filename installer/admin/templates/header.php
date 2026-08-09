@@ -104,7 +104,37 @@ $GLOBALS['klytos_page_owns_h1']   = ! empty( $pageEmitsOwnH1 );
             . '?v=' . klytos_esc_attr( $version ) . '">' . "\n    ";
     }
     ?>
-<link rel="stylesheet" href="<?php echo klytos_esc_url( $adminPath . 'assets/css/klytos-components.css' ); ?>?v=<?php echo klytos_esc_attr( $version ); ?>">
+<?php
+    /*
+     * The component layer, in two files and in THIS order (stage 3 —
+     * BUILD-SPEC §5.9 adaptation 9).
+     *
+     * `klytos-legacy-components.css` is the PRE-REDESIGN layer, moved out of
+     * `klytos-components.css` unmodified. Up to 40 admin screens that stages
+     * 4–6 have not reached yet still draw `.card`, `.btn`, `.alert`,
+     * `.form-control` and friends from it; dropping it now would strip their
+     * styling all at once, which is the same reason Font Awesome is still
+     * loaded (adaptation 5). It is TEMPORARY and retires with its last
+     * consumer.
+     *
+     * `klytos-components.css` is the redesign's `.k-*` layer and loads SECOND,
+     * so on any element carrying both a legacy class and a `.k-*` class the
+     * new layer wins.
+     *
+     * Emitted through a loop for the same reason the token block above is: two
+     * inline <link> lines would each run past the 150-column limit and grow the
+     * D-025 lint baseline, which may not grow.
+     */
+    $klytosComponentSheets = [
+        'klytos-legacy-components.css',
+        'klytos-components.css',
+    ];
+    foreach ( $klytosComponentSheets as $sheet ) {
+        echo '<link rel="stylesheet" href="'
+            . klytos_esc_url( $adminPath . 'assets/css/' . $sheet )
+            . '?v=' . klytos_esc_attr( $version ) . '">' . "\n    ";
+    }
+    ?>
     <?php
     /*
      * The shell's own stylesheet (stage 2). It loads AFTER klytos-admin.css so

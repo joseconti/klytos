@@ -172,7 +172,24 @@
     "tab_trash": "Papirkurv",
     "empty_trash": "Tom papirkurv",
     "restore": "Gjenopprett",
-    "permanent_delete": "Slett permanent"
+    "permanent_delete": "Slett permanent",
+    "bulk_change_template": "Bytt mal",
+    "bulk_template_label": "Mal som skal brukes",
+    "bulk_template_missing": "Velg en mal som skal brukes.",
+    "bulk_unpublish": "Fjern publiseringen",
+    "caption": "Sider — treff: {count}, side {page} av {pages}",
+    "delete_home_reason": "Slett — denne siden er forsiden til nettstedet",
+    "delete_home_refused": "Forsiden til nettstedet kan ikke flyttes til papirkurven.",
+    "empty_action": "Opprett den første siden",
+    "empty_filtered": "Ingen side samsvarer med {filters}.",
+    "empty_sentence": "Ingen sider ennå. En side er en URL med blokker på.",
+    "error_sentence": "Sideindeksen kunne ikke leses — lagringslaget returnerte en feil.",
+    "filter_label": "Filtrer etter status",
+    "last_edit": "Sist redigert",
+    "row_actions": "Flere handlinger for {title}",
+    "search_label": "Søk i sider",
+    "select_all": "Velg alle sider på denne resultatsiden",
+    "table_scroll_label": "Sidetabell, kan rulles"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Kommandopalett",
     "palette_placeholder": "Søk eller skriv en kommando",
     "palette_no_results": "Ingen kommando samsvarer med {query}. Prøv en sidetittel, navnet på en innstilling eller «help»."
+  },
+  "list": {
+    "clear_filters": "Fjern filtre",
+    "clear_selection": "Fjern",
+    "next": "Neste",
+    "not_set": "Ikke angitt",
+    "page_n": "Side {n}",
+    "pagination": "Sidenummerering",
+    "previous": "Forrige",
+    "retry": "Prøv igjen",
+    "selected": "Valgt: {count}"
   }
 }

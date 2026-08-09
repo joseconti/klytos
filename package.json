@@ -1,0 +1,17 @@
+{
+  "name": "klytos-dev-tooling",
+  "private": true,
+  "description": "Dev-only tooling for Klytos CMS. Klytos itself ships no Node.js dependency and no build step for its own assets; this file exists solely so the browser-driven test tier has a pinned driver. It is export-ignored and never reaches a release archive.",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:watch": "PWSLOWMO=250 playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:trace": "playwright show-trace"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.62.0"
+  }
+}

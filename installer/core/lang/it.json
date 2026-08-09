@@ -172,7 +172,24 @@
     "tab_trash": "Cestino",
     "empty_trash": "Svuota cestino",
     "restore": "Ripristina",
-    "permanent_delete": "Elimina permanentemente"
+    "permanent_delete": "Elimina permanentemente",
+    "bulk_change_template": "Cambia il modello",
+    "bulk_template_label": "Modello da applicare",
+    "bulk_template_missing": "Scegli un modello da applicare.",
+    "bulk_unpublish": "Annulla la pubblicazione",
+    "caption": "Pagine — risultati: {count}, pagina {page} di {pages}",
+    "delete_home_reason": "Elimina — questa pagina è la home del sito",
+    "delete_home_refused": "La home del sito non può essere spostata nel cestino.",
+    "empty_action": "Crea la prima pagina",
+    "empty_filtered": "Nessuna pagina corrisponde a {filters}.",
+    "empty_sentence": "Ancora nessuna pagina. Una pagina è un URL con dei blocchi dentro.",
+    "error_sentence": "Non è stato possibile leggere l'indice delle pagine — il livello di archiviazione ha restituito un errore.",
+    "filter_label": "Filtra per stato",
+    "last_edit": "Ultima modifica",
+    "row_actions": "Altre azioni per {title}",
+    "search_label": "Cerca tra le pagine",
+    "select_all": "Seleziona tutte le pagine di questa pagina di risultati",
+    "table_scroll_label": "Tabella delle pagine, scorrevole"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Palette dei comandi",
     "palette_placeholder": "Cerca o digita un comando",
     "palette_no_results": "Nessun comando corrisponde a {query}. Prova con il titolo di una pagina, il nome di un'impostazione o «help»."
+  },
+  "list": {
+    "clear_filters": "Rimuovi i filtri",
+    "clear_selection": "Rimuovi",
+    "next": "Successiva",
+    "not_set": "Non impostato",
+    "page_n": "Pagina {n}",
+    "pagination": "Impaginazione",
+    "previous": "Precedente",
+    "retry": "Riprova",
+    "selected": "Selezione: {count}"
   }
 }

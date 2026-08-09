@@ -172,7 +172,24 @@
     "tab_trash": "Roskakori",
     "empty_trash": "Tyhjennä roskakori",
     "restore": "Palauta",
-    "permanent_delete": "Poista pysyvästi"
+    "permanent_delete": "Poista pysyvästi",
+    "bulk_change_template": "Vaihda mallipohja",
+    "bulk_template_label": "Käytettävä mallipohja",
+    "bulk_template_missing": "Valitse käytettävä mallipohja.",
+    "bulk_unpublish": "Poista julkaisusta",
+    "caption": "Sivut — tuloksia: {count}, sivu {page} / {pages}",
+    "delete_home_reason": "Poista — tämä sivu on sivuston etusivu",
+    "delete_home_refused": "Sivuston etusivua ei voi siirtää roskakoriin.",
+    "empty_action": "Luo ensimmäinen sivu",
+    "empty_filtered": "Mikään sivu ei vastaa hakua {filters}.",
+    "empty_sentence": "Ei vielä sivuja. Sivu on URL-osoite, jolla on lohkoja.",
+    "error_sentence": "Sivuhakemistoa ei voitu lukea — tallennuskerros palautti virheen.",
+    "filter_label": "Suodata tilan mukaan",
+    "last_edit": "Viimeksi muokattu",
+    "row_actions": "Lisää toimintoja kohteelle {title}",
+    "search_label": "Hae sivuista",
+    "select_all": "Valitse kaikki tämän tulossivun sivut",
+    "table_scroll_label": "Sivutaulukko, vieritettävä"
   },
   "design": {
     "title": "Ulkoasu",
@@ -813,5 +830,16 @@
     "palette": "Komentopaletti",
     "palette_placeholder": "Hae tai kirjoita komento",
     "palette_no_results": "Mikään komento ei vastaa hakua {query}. Kokeile sivun otsikkoa, asetuksen nimeä tai ”help”."
+  },
+  "list": {
+    "clear_filters": "Tyhjennä suodattimet",
+    "clear_selection": "Tyhjennä",
+    "next": "Seuraava",
+    "not_set": "Ei asetettu",
+    "page_n": "Sivu {n}",
+    "pagination": "Sivutus",
+    "previous": "Edellinen",
+    "retry": "Yritä uudelleen",
+    "selected": "Valittuna: {count}"
   }
 }

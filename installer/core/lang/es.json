@@ -172,7 +172,24 @@
     "tab_trash": "Papelera",
     "empty_trash": "Vaciar papelera",
     "restore": "Restaurar",
-    "permanent_delete": "Eliminar permanentemente"
+    "permanent_delete": "Eliminar permanentemente",
+    "bulk_change_template": "Cambiar la plantilla",
+    "bulk_template_label": "Plantilla que se aplicará",
+    "bulk_template_missing": "Elige una plantilla que aplicar.",
+    "bulk_unpublish": "Retirar de la publicación",
+    "caption": "Páginas — resultados: {count}, página {page} de {pages}",
+    "delete_home_reason": "Eliminar — esta página es la portada del sitio",
+    "delete_home_refused": "La portada del sitio no se puede enviar a la papelera.",
+    "empty_action": "Crear la primera página",
+    "empty_filtered": "Ninguna página coincide con {filters}.",
+    "empty_sentence": "Todavía no hay páginas. Una página es una URL con bloques dentro.",
+    "error_sentence": "No se ha podido leer el índice de páginas — la capa de almacenamiento ha devuelto un error.",
+    "filter_label": "Filtrar por estado",
+    "last_edit": "Última edición",
+    "row_actions": "Más acciones para {title}",
+    "search_label": "Buscar páginas",
+    "select_all": "Seleccionar todas las páginas de esta página de resultados",
+    "table_scroll_label": "Tabla de páginas, con desplazamiento"
   },
   "design": {
     "title": "Diseño",
@@ -813,5 +830,16 @@
     "palette": "Paleta de comandos",
     "palette_placeholder": "Busca o escribe un comando",
     "palette_no_results": "Ningún comando coincide con {query}. Prueba con el título de una página, el nombre de un ajuste o «help»."
+  },
+  "list": {
+    "clear_filters": "Quitar filtros",
+    "clear_selection": "Quitar",
+    "next": "Siguiente",
+    "not_set": "Sin definir",
+    "page_n": "Página {n}",
+    "pagination": "Paginación",
+    "previous": "Anterior",
+    "retry": "Inténtalo de nuevo",
+    "selected": "Seleccionado: {count}"
   }
 }

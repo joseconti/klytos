@@ -172,7 +172,24 @@
     "tab_trash": "Paperera",
     "empty_trash": "Buida la paperera",
     "restore": "Restaura",
-    "permanent_delete": "Elimina permanentment"
+    "permanent_delete": "Elimina permanentment",
+    "bulk_change_template": "Canvia la plantilla",
+    "bulk_template_label": "Plantilla que s'aplicarà",
+    "bulk_template_missing": "Tria una plantilla per aplicar.",
+    "bulk_unpublish": "Retira de la publicació",
+    "caption": "Pàgines — resultats: {count}, pàgina {page} de {pages}",
+    "delete_home_reason": "Elimina — aquesta pàgina és la portada del lloc",
+    "delete_home_refused": "La portada del lloc no es pot enviar a la paperera.",
+    "empty_action": "Crea la primera pàgina",
+    "empty_filtered": "Cap pàgina coincideix amb {filters}.",
+    "empty_sentence": "Encara no hi ha pàgines. Una pàgina és una URL amb blocs a dins.",
+    "error_sentence": "No s'ha pogut llegir l'índex de pàgines — la capa d'emmagatzematge ha retornat un error.",
+    "filter_label": "Filtra per estat",
+    "last_edit": "Darrera edició",
+    "row_actions": "Més accions per a {title}",
+    "search_label": "Cerca pàgines",
+    "select_all": "Selecciona totes les pàgines d'aquesta pàgina de resultats",
+    "table_scroll_label": "Taula de pàgines, amb desplaçament"
   },
   "design": {
     "title": "Disseny",
@@ -813,5 +830,16 @@
     "palette": "Paleta d'ordres",
     "palette_placeholder": "Cerca o escriu una ordre",
     "palette_no_results": "Cap ordre coincideix amb {query}. Prova amb el títol d'una pàgina, el nom d'un ajust o «help»."
+  },
+  "list": {
+    "clear_filters": "Treu els filtres",
+    "clear_selection": "Treu",
+    "next": "Següent",
+    "not_set": "Sense definir",
+    "page_n": "Pàgina {n}",
+    "pagination": "Paginació",
+    "previous": "Anterior",
+    "retry": "Torna-ho a provar",
+    "selected": "Seleccionat: {count}"
   }
 }

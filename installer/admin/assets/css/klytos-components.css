@@ -1,991 +1,1383 @@
-/**
- * Klytos Design System — Components
- * Buttons, cards, forms, tables, alerts, badges, tabs, modals,
- * stats grid, toggle switches, empty states, and more.
+/*
+ * Klytos Admin — the component layer.
  *
- * @license    GPL-3.0-or-later
- * @copyright  Copyright (c) 2026 José Conti
+ * Phase 4 Step 4, stage 3 of 6. Implements the handoff's component inventory
+ * (README "Component inventory"), the per-template geometry that owns each
+ * component (`SPEC/screens/template-list-table.md`, `template-record-form.md`,
+ * `template-overview-stats.md`, `template-console-stream.md`) and the
+ * name/role/state contract in `SPEC/accessibility.md` §5, with the table
+ * markup of §2.1 as the single most load-bearing item in the file.
+ *
+ * Every value here traces to the delivery. Where a size is written literally
+ * it is because the delivery states that literal and no token carries it; the
+ * comment names the source in every such case. There is no "close enough": a
+ * value with no source is a Design Request, never an invention.
+ *
+ * LOAD ORDER MATTERS AND IS NOT FREE. This file loads after the nine delivered
+ * token files, after `klytos-admin.css` (the Klytos-owned enforcement layer:
+ * :focus-visible, .k-hit-24, reduced motion, forced colors) and after
+ * `klytos-legacy-components.css`. Nothing here redeclares the enforcement
+ * layer — it must keep winning — and nothing here styles the shell, which is
+ * `klytos-shell.css` (stage 2).
+ *
+ * `.k-sr` (visually hidden) is defined ONCE, in `klytos-shell.css`, and is
+ * used by the table markup below. Both files load on every admin response, so
+ * the dependency always resolves; a second copy here would be the same class
+ * in two files, which is how definitions drift apart.
+ *
+ * ALL BASE RULES COME BEFORE ANY MEDIA QUERY IN THIS FILE, deliberately. On
+ * 2026-07-29 the shell shipped a control that could never be shown at any
+ * viewport because its base `display: none` sat AFTER the media query that
+ * turned it on and won on source order (D-077). That is build rule 1's shape
+ * — never take the first matching rule for the effective one — arriving in a
+ * layout property. Keep the media queries at the foot of this file.
+ *
+ * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
+ * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
  */
 
 /* ============================================================
-   CARDS
+   PLAIN LINKS INSIDE COMPONENTS
+   Found by driving, not by reading: a bare <a> inside a card, a bulk bar or an
+   empty state had NO colour rule anywhere in the admin's stylesheets, so it
+   fell through to the user agent's #0000EE — 1.48:1 on --fondo-elevado in dark
+   and unreadable. The delivery's colour table assigns --color-acento to
+   "links", so that is what they take: 4.82:1 light, 6.40:1 dark. The buttons,
+   chips and stat cards that are also anchors are excluded, because each one
+   already carries its own colour.
    ============================================================ */
 
-.card {
-    background: var(--klytos-surface);
-    border-radius: var(--klytos-radius);
-    border: 1px solid var(--klytos-border);
-    padding: var(--klytos-space-lg);
-    margin-bottom: var(--klytos-space-md);
+/* WRITTEN INSIDE :where() SO IT CARRIES ZERO SPECIFICITY, and that is the whole
+   design of this rule rather than a flourish. A default is only a default if
+   anything else beats it. The first two drafts were ordinary selectors and both
+   lost the argument in a way that reading did not reveal: the widest branch,
+   `.k-card a:not(.k-btn):not(.k-chip):not(.k-stat)`, is (0,4,1), and since every
+   table sits inside a card it outranked `.k-table tbody th a` (0,1,3) — so a
+   record's name rendered in the accent colour at 4.11:1 against the selected-row
+   tint. Two failed attempts to out-specify it followed, which is the signal that
+   the structure was wrong, not the numbers.
+   CORRECTED IN STAGE 4, AND THE CORRECTION IS THE FOURTH MECHANISM.
+   (0,0,0) does beat nothing — including `a { color: var(--klytos-accent) }`, a
+   bare element selector at (0,0,1) in the PRE-REDESIGN `klytos-base.css`, which
+   every admin screen still loads. So from stage 3 until stage 4 found it, every
+   plain link inside a card on a REAL screen was painted the pre-redesign blue
+   #5B8DEF and not the delivery's accent — measured 4.31:1 on --fondo-elevado in
+   dark, below AA. The row-header link was fine only because `.k-table tbody th a`
+   is specific enough; nothing else was.
+
+   Stage 3 could not see it: the component specimen is served by route
+   interception and does not load `klytos-base.css`, so the rule was proven
+   correct in a cascade the product never has. That is L-030 one more layer down
+   — the artifact was verified, and what CONSUMES it was not. It is also why the
+   assertion below now reads the colour off a real screen, not off the specimen.
+
+   The fix keeps the intent and drops the absolutism: `:is()` takes the
+   specificity of its most specific argument, so the ancestor half is (0,1,0)
+   while the anchor half stays in `:where()` at zero. (0,1,0) beats a bare
+   element selector and loses to every named component rule below — including
+   `.k-table tbody th a` at (0,1,3), which is what the original problem was. The
+   `:not()` chain is belt-and-braces, not load-bearing. */
+:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table)
+    :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
+    color: var(--color-acento);
 }
 
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--klytos-space-md);
-}
+/* Inside the table the row header's link is primary text, not accent: the
+   record's name is content, not a call to action. It beats the zero-specificity
+   default above simply by existing, which is the point of writing that one in
+   :where().
 
-.card-header h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
+   THIS IS BUILD RULE 1'S SHAPE FOR THE THIRD TIME IN THIS BUILD — typography.css
+   shadowing --type-body, the rail button losing to source order, and now a link
+   colour losing to specificity. It does not generalise as "check source order",
+   which is what the second occurrence taught. It generalises as: NEVER ASSUME
+   WHICH RULE WINS — READ THE COMPUTED VALUE OUT OF THE BROWSER. Every cascade
+   assertion in tests/E2E/components.spec.js does exactly that. */
+.k-table tbody th a {
+    color: var(--texto-primario);
 }
 
 /* ============================================================
-   COLLAPSIBLE CARDS
+   BUTTON — accessibility.md §5.1, README "Button"
+   A thing that changes the URL is <a href>; a thing that changes state is
+   <button>. Both take .k-btn, so the choice of element is never made for
+   visual reasons.
    ============================================================ */
 
-.card-collapsible > .card-header {
-    cursor: pointer;
-    user-select: none;
-}
-
-.card-collapsible > .card-header::after {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-right: 2px solid var(--klytos-text-muted);
-    border-bottom: 2px solid var(--klytos-text-muted);
-    transform: rotate(-45deg);
-    transition: transform 0.2s ease;
-    margin-left: var(--klytos-space-sm);
-    flex-shrink: 0;
-}
-
-.card-collapsible:not(.collapsed) > .card-header::after {
-    transform: rotate(45deg);
-}
-
-.card-collapsible > .card-body {
-    overflow: hidden;
-    transition: max-height 0.3s ease, opacity 0.2s ease;
-    max-height: 2000px;
-    opacity: 1;
-}
-
-.card-collapsible.collapsed > .card-body {
-    max-height: 0;
-    opacity: 0;
-}
-
-.card-collapsible.collapsed > .card-header {
-    margin-bottom: 0;
-}
-
-/* ============================================================
-   BUTTONS
-   ============================================================ */
-
-.btn {
+.k-btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--klytos-space-sm);
-    padding: var(--klytos-space-sm) var(--klytos-space-md);
-    border: none;
-    border-radius: var(--klytos-radius);
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--klytos-transition-fast);
-    text-decoration: none;
-    line-height: 1.4;
-}
-
-.btn:hover {
-    text-decoration: none;
-}
-
-.btn-primary {
-    background: var(--klytos-accent);
-    color: var(--klytos-accent-text);
-}
-
-.btn-primary:hover {
-    background: var(--klytos-accent-hover);
-}
-
-.btn-danger {
-    background: var(--klytos-error);
-    color: #fff;
-}
-
-.btn-danger:hover {
-    background: #dc2626;
-}
-
-.btn-outline {
-    background: transparent;
-    border: 1px solid var(--klytos-border);
-    color: var(--klytos-text);
-}
-
-.btn-outline:hover {
-    background: var(--klytos-surface-hover);
-}
-
-.btn-ghost {
-    background: transparent;
-    border: none;
-    color: var(--klytos-text-secondary);
-}
-
-.btn-ghost:hover {
-    color: var(--klytos-text);
-    background: var(--klytos-surface-hover);
-}
-
-.btn-sm {
-    padding: 0.3rem 0.7rem;
-    font-size: 0.8rem;
-}
-
-.btn-lg {
-    padding: 0.65rem 1.25rem;
-    font-size: 1rem;
-}
-
-.btn-icon {
-    width: 36px;
-    height: 36px;
-    padding: 0;
     justify-content: center;
-    border-radius: var(--klytos-radius);
-}
-
-/* ============================================================
-   FORMS
-   ============================================================ */
-
-.form-group {
-    margin-bottom: var(--klytos-space-md);
-}
-
-.form-group label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.85rem;
-    margin-bottom: var(--klytos-space-xs);
-    color: var(--klytos-text);
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.55rem 0.75rem;
-    border: 1px solid var(--klytos-border);
-    border-radius: var(--klytos-radius);
-    font-size: 0.9rem;
-    background: var(--klytos-bg-sunken);
-    color: var(--klytos-text);
-    transition: border-color var(--klytos-transition-fast), box-shadow var(--klytos-transition-fast);
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: var(--klytos-accent);
-    box-shadow: 0 0 0 3px var(--klytos-accent-subtle);
-}
-
-textarea.form-control {
-    resize: vertical;
-    min-height: 100px;
-}
-
-select.form-control {
-    appearance: auto;
-}
-
-select.form-control option {
-    background: var(--klytos-surface);
-    color: var(--klytos-text);
-}
-
-.form-help {
-    font-size: 0.8rem;
-    color: var(--klytos-text-secondary);
-    margin-top: 0.2rem;
-}
-
-/* ============================================================
-   TOGGLE SWITCH (Claude-style)
-   ============================================================ */
-
-.toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    flex-shrink: 0;
-}
-
-.toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-switch .toggle-track {
-    position: absolute;
+    gap: var(--esp-6);
+    box-sizing: border-box;
+    /* README "Button": default = 34px tall. No token carries a control height. */
+    min-height: 34px;
+    padding: 0 var(--esp-12);
+    border: 1px solid transparent;
+    border-radius: var(--radio-control);
+    font: var(--type-body);
+    /* Sentence case is the design's rule (README "Button"); it is NOT
+       text-transform, because the source string is already sentence case and
+       transforming it would break locales that capitalise differently. */
+    text-decoration: none;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--klytos-border);
-    border-radius: var(--klytos-radius-full);
-    transition: background var(--klytos-transition);
+    transition: background-color var(--dur-hover) var(--easing-estandar),
+                border-color var(--dur-hover) var(--easing-estandar),
+                color var(--dur-hover) var(--easing-estandar);
 }
 
-.toggle-switch .toggle-track::before {
-    content: '';
-    position: absolute;
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform var(--klytos-transition);
+/* README "Button": sm = 28px, auth = 38px. */
+.k-btn--sm {
+    min-height: 28px;
+    padding: 0 var(--esp-8);
 }
 
-.toggle-switch input:checked + .toggle-track {
-    background: var(--klytos-accent);
+.k-btn--auth {
+    min-height: 38px;
+    width: 100%;
 }
 
-.toggle-switch input:checked + .toggle-track::before {
-    transform: translateX(20px);
+.k-btn--primary {
+    background: var(--color-acento);
+    color: var(--sobre-acento);
 }
 
-.toggle-switch input:focus-visible + .toggle-track {
-    box-shadow: 0 0 0 3px var(--klytos-accent-subtle);
+.k-btn--primary:hover {
+    /* Controls "lighten/darken over 120ms" (README "Spacing, radius,
+       elevation"). Done with a composited overlay rather than a second hex,
+       because the palette is sacred: no base hex moves (build rule 5). */
+    background-image: linear-gradient(rgba(0, 0, 0, .10), rgba(0, 0, 0, .10));
+}
+
+.k-btn--secondary {
+    background: transparent;
+    /* --borde-control, NOT --separador. The README's component inventory says
+       `--separador` here, but `tokens/klytos-admin.css` — the Klytos-owned
+       enforcement layer, loaded last, and normative — lists "botón secundario"
+       explicitly among the controls whose border must be --borde-control,
+       because --separador is 1.19:1 and WCAG 1.4.11 requires 3:1 for a control
+       boundary. BUILD-SPEC §5.0 rule 5 says the same. Two delivery statements,
+       and the normative one wins; this is not a build-side choice. Recorded in
+       BUILD-SPEC §5.9 so nobody "fixes" it back. */
+    border-color: var(--borde-control);
+    color: var(--texto-primario);
+}
+
+.k-btn--secondary:hover {
+    background: var(--fila-hover);
+}
+
+.k-btn--destructive {
+    background: transparent;
+    border-color: var(--color-peligro);
+    color: var(--color-peligro);
+}
+
+.k-btn--destructive:hover {
+    background: var(--tinte-peligro);
+    color: var(--sobre-tinte-peligro);
+}
+
+/* Disabled is never hidden and never explained only in a tooltip
+   (template-record-form.md §2 "Disabled"). */
+.k-btn[disabled],
+.k-btn[aria-disabled="true"] {
+    color: var(--texto-deshabilitado);
+    border-color: var(--borde-deshabilitado);
+    background: var(--fondo-ventana);
+    background-image: none;
+    cursor: not-allowed;
+}
+
+/* Loading: the button stays focusable and does not disappear
+   (accessibility.md §5.1). The label has already changed to the progressive
+   form in the markup; nothing here hides it. */
+.k-btn[aria-busy="true"] {
+    cursor: progress;
+}
+
+/* Destructive inline confirm: the SAME button relabelled, with
+   aria-live="polite" on its wrapper (accessibility.md §5.1). The wrapper
+   exists so the change is announced; it must not collapse the layout. */
+.k-confirm-wrap {
+    display: inline-flex;
 }
 
 /* ============================================================
-   TABLES
+   BADGE — accessibility.md §5.2, README "Badge"
+   Not interactive. The plain text inside is the accessible name: no role and
+   no ARIA is needed or wanted. Target size does not apply (§7).
    ============================================================ */
 
-.table-wrap {
-    overflow-x: auto;
+.k-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-6);
+    box-sizing: border-box;
+    /* README "Badge": 20px pill. */
+    height: 20px;
+    padding: 0 var(--esp-8);
+    border: 1px solid transparent;
+    border-radius: var(--radio-pildora);
+    font: var(--type-badge);
+    white-space: nowrap;
 }
 
-table {
+/* Tones map 1:1 to the semantic colours (README "Badge"). Text is
+   --sobre-tinte-*, never the raw semantic colour on its own tint — that is
+   the pair the contrast audit found failing, and the whole reason
+   klytos-admin.css exists. */
+.k-badge--acento     { background: var(--tinte-acento);     color: var(--sobre-tinte-acento); }
+.k-badge--info       { background: var(--tinte-info);       color: var(--sobre-tinte-info); }
+.k-badge--exito      { background: var(--tinte-exito);      color: var(--sobre-tinte-exito); }
+.k-badge--aviso      { background: var(--tinte-aviso);      color: var(--sobre-tinte-aviso); }
+.k-badge--peligro    { background: var(--tinte-peligro);    color: var(--sobre-tinte-peligro); }
+.k-badge--offline    { background: var(--tinte-offline);    color: var(--sobre-tinte-offline); }
+.k-badge--sync       { background: var(--tinte-sync);       color: var(--sobre-tinte-sync); }
+.k-badge--conflicto  { background: var(--tinte-conflicto);  color: var(--sobre-tinte-conflicto); }
+.k-badge--reconectar { background: var(--tinte-reconectar); color: var(--sobre-tinte-reconectar); }
+
+/* The 6px leading dot for live status. It is aria-hidden in the markup
+   (accessibility.md §5.2) because the badge's text already carries the state:
+   colour is never the only channel (§1.3). The class name is fixed by the
+   forced-colors block in klytos-admin.css, which targets .k-status-dot. */
+.k-status-dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radio-pildora);
+    background: currentColor;
+}
+
+/* ============================================================
+   CHIP (filter) — accessibility.md §5.3, README "Chip"
+   An <a href> inside <nav aria-label="…"> — filters are links. Not a tab, not
+   a role="button", not a checkbox. The selected chip carries
+   aria-current="true".
+   ============================================================ */
+
+.k-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-6);
+    box-sizing: border-box;
+    /* README "Chip": 24px filter pill. §7 records it as exactly 24 and
+       therefore passing 2.5.8 — do not shrink it. */
+    height: 24px;
+    padding: 0 var(--esp-12);
+    border: 1px solid transparent;
+    border-radius: var(--radio-pildora);
+    font: var(--type-badge);
+    color: var(--texto-secundario);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color var(--dur-hover) var(--easing-estandar);
+}
+
+.k-chip:hover {
+    background: var(--fila-hover);
+}
+
+/* --sobre-tinte-acento, NOT --color-acento. README "Chip" says "Selected =
+   --fila-seleccion + accent text", and --fila-seleccion IS the accent at 12 %
+   (light) / 24 % (dark) — so accent text on it is a colour painted on its own
+   tint, which is the ONE pattern klytos-admin.css forbids outright. Measured
+   in the browser before this was changed: 4.11:1 light and 4.48:1 dark, both
+   under AA; with --sobre-tinte-acento, 5.02:1 and 4.53:1. Same shape as the
+   secondary button's border above — the README's component line predates the
+   accessibility layer, and the layer is the normative one. */
+.k-chip[aria-current="true"] {
+    background: var(--fila-seleccion);
+    color: var(--sobre-tinte-acento);
+}
+
+/* The filter row: height 42, gap 8 (template-list-table.md §1). */
+.k-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-8);
+    min-height: 42px;
+}
+
+/* ============================================================
+   CARD — README "Card"
+   Two flavours: padded (20px) for forms and stats, unpadded for tables.
+   The class name is fixed by the forced-colors block in klytos-admin.css.
+   ============================================================ */
+
+.k-card {
+    background: var(--fondo-elevado);
+    border-radius: var(--radio-card);
+    box-shadow: var(--sombra-card);
+    /* No coloured borders, no left accent bars (README "Spacing, radius,
+       elevation"). */
+}
+
+/* Content and card padding are both 20px and no token carries 20
+   (spacing.css jumps 16 → 24). Written literally, from README "Spacing,
+   radius, elevation". */
+.k-card--padded {
+    padding: 20px;
+}
+
+/* A table card owns its table and pays no padding of its own; the table's own
+   rows carry it (README "Card"). */
+.k-card--table {
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Gap between cards: 14px; gap inside a card's stack: 12–15px
+   (README "Spacing, radius, elevation"; template-record-form.md §1). */
+.k-card-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.k-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-12);
+}
+
+.k-card-heading {
+    font: var(--type-card-heading);
+    color: var(--texto-primario);
+    margin: 0;
+}
+
+/* An eyebrow is NOT a heading (accessibility.md §4.2) — it is a <p>, and the
+   markup must not promote it to <h3> just to get this styling. */
+.k-eyebrow {
+    font: var(--type-eyebrow);
+    letter-spacing: var(--eyebrow-tracking);
+    text-transform: uppercase;
+    color: var(--texto-sutil);
+    margin: 0;
+}
+
+.k-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--esp-8);
+}
+
+/* ============================================================
+   TABLE — accessibility.md §2.1 (the exact markup), README "Table",
+   template-list-table.md §1 and §2.
+
+   THE RULE THAT MAKES THIS WORK: the grid goes on the TABLE ELEMENTS, never
+   on wrappers. `display:grid` on <table>/<tr> strips the implicit roles in
+   Chromium and WebKit, which is exactly why the markup also writes every role
+   out explicitly — the element survives a CSS regression, the role survives
+   the display change. Neither half is optional and a partial version is worse
+   than none.
+
+   `grid-template-columns` is PER SCREEN (template-list-table.md §1) and is
+   therefore set by the consuming screen in stage 4, not here. This file
+   supplies everything that is the same on every list.
+   ============================================================ */
+
+.k-table {
+    display: grid;
     width: 100%;
     border-collapse: collapse;
 }
 
-th,
-td {
-    padding: 0.75rem 0.85rem;
-    text-align: left;
-    border-bottom: 1px solid var(--klytos-border-subtle);
-    font-size: 0.9rem;
+.k-table thead,
+.k-table tbody {
+    display: contents;
 }
 
-th {
-    font-weight: 500;
-    color: var(--klytos-text-secondary);
-    font-size: 0.85rem;
+.k-table tr {
+    display: grid;
+    /* Fallback only: every consuming screen declares its own columns. A single
+       column here means a screen that forgets to is visibly wrong rather than
+       subtly wrong. */
+    grid-template-columns: 1fr;
+    gap: var(--esp-12);
+    align-items: center;
 }
 
-tr:hover td {
-    background: var(--klytos-surface-hover);
-}
-
-/* ============================================================
-   ALERTS
-   ============================================================ */
-
-.alert {
-    padding: var(--klytos-space) var(--klytos-space-md);
-    border-radius: var(--klytos-radius);
-    margin-bottom: var(--klytos-space-md);
-    font-size: 0.9rem;
-    border: 1px solid transparent;
-}
-
-.alert-success {
-    background: var(--klytos-success-subtle);
-    color: var(--klytos-success-text);
-    border-color: rgba(34, 197, 94, 0.3);
-}
-
-.alert-error {
-    background: var(--klytos-error-subtle);
-    color: var(--klytos-error-text);
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-.alert-warning {
-    background: var(--klytos-warning-subtle);
-    color: var(--klytos-warning-text);
-    border-color: rgba(245, 158, 11, 0.3);
-}
-
-.alert-info {
-    background: var(--klytos-info-subtle);
-    color: var(--klytos-info-text);
-    border-color: rgba(91, 141, 239, 0.3);
-}
-
-.alert-dismissible {
+/* Caption row: 13px 16px, and it is VISIBLE — it is the table card's heading
+   row, not a screen-reader-only crumb (accessibility.md §2.1). It carries the
+   result count and page position, and is aria-live="polite" in the markup so
+   a filter change announces the new count once. */
+.k-table-caption {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--klytos-space);
-}
-
-.alert-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    padding: 0;
-    border: none;
-    border-radius: var(--klytos-radius);
-    background: transparent;
-    color: inherit;
-    font-size: 0.85rem;
-    cursor: pointer;
-    opacity: 0.6;
-    flex-shrink: 0;
-    transition: opacity var(--klytos-transition-fast, 0.15s) ease,
-                background var(--klytos-transition-fast, 0.15s) ease;
-}
-
-.alert-close:hover,
-.alert-close:focus-visible {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
-    outline: none;
-}
-
-/* ============================================================
-   STATS GRID
-   ============================================================ */
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--klytos-space-md);
-    margin-bottom: var(--klytos-space-lg);
-}
-
-.stat-card {
-    background: var(--klytos-surface);
-    border: 1px solid var(--klytos-border);
-    border-radius: var(--klytos-radius);
-    padding: 1.25rem;
-}
-
-.stat-card .stat-label {
-    font-size: 0.8rem;
-    color: var(--klytos-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.stat-card .stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--klytos-text);
-    margin-top: var(--klytos-space-xs);
-}
-
-.stat-card .stat-detail {
-    font-size: 0.8rem;
-    color: var(--klytos-text-secondary);
-    margin-top: var(--klytos-space-xs);
-}
-
-/* ============================================================
-   STATUS BADGES
-   ============================================================ */
-
-.badge-status {
-    display: inline-block;
-    padding: 0.15rem 0.6rem;
-    border-radius: var(--klytos-radius-full);
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-/* —— Published / Active —— */
-.badge-published,
-.badge-active,
-.badge-completed {
-    background: var(--klytos-success-subtle);
-    color: var(--klytos-success-text);
-}
-
-/* —— Draft / Inactive / Viewer / Dismissed —— */
-.badge-draft,
-.badge-viewer,
-.badge-dismissed {
-    background: var(--klytos-surface-active);
-    color: var(--klytos-text-secondary);
-}
-
-/* —— Scheduled —— */
-.badge-scheduled {
-    background: var(--klytos-info-subtle, #eff6ff);
-    color: var(--klytos-info-text, #1e40af);
-}
-
-/* —— Trashed —— */
-.badge-trashed {
-    background: var(--klytos-error-subtle);
-    color: var(--klytos-error-text);
-}
-
-/* —— Custom status (uses --badge-color CSS variable) —— */
-.badge-custom {
-    background: color-mix(in srgb, var(--badge-color, #6b7280) 15%, transparent);
-    color: var(--badge-color, #6b7280);
-}
-
-/* —— Inactive / Urgent —— */
-.badge-inactive,
-.badge-urgent {
-    background: var(--klytos-error-subtle);
-    color: var(--klytos-error-text);
-}
-
-/* —— Premium / In Progress / Warning —— */
-.badge-premium,
-.badge-in_progress {
-    background: var(--klytos-warning-subtle);
-    color: var(--klytos-warning-text);
-}
-
-/* —— High —— */
-.badge-high {
-    background: rgba(249, 115, 22, 0.12);
-    color: #fdba74;
-}
-
-[data-theme="light"] .badge-high {
-    background: rgba(249, 115, 22, 0.08);
-    color: #ea580c;
-}
-
-/* —— Medium / Admin / Open —— */
-.badge-medium,
-.badge-admin,
-.badge-open {
-    background: var(--klytos-info-subtle);
-    color: var(--klytos-info-text);
-}
-
-/* —— Low / Editor —— */
-.badge-low,
-.badge-editor {
-    background: var(--klytos-success-subtle);
-    color: var(--klytos-success-text);
-}
-
-/* —— Owner —— */
-.badge-owner {
-    background: rgba(124, 58, 237, 0.12);
-    color: #c4b5fd;
-}
-
-[data-theme="light"] .badge-owner {
-    background: rgba(124, 58, 237, 0.08);
-    color: #7c3aed;
-}
-
-/* ============================================================
-   TABS
-   ============================================================ */
-
-.tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 2px solid var(--klytos-border);
-    margin-bottom: var(--klytos-space-lg);
-}
-
-.tab {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--klytos-text-secondary);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all var(--klytos-transition-fast);
-}
-
-.tab:hover {
-    color: var(--klytos-text);
-    text-decoration: none;
-}
-
-.tab.active {
-    color: var(--klytos-accent);
-    border-bottom-color: var(--klytos-accent);
-}
-
-/* ============================================================
-   MODAL
-   ============================================================ */
-
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-overlay.active {
-    display: flex;
-}
-
-.modal {
-    background: var(--klytos-surface);
-    border: 1px solid var(--klytos-border);
-    border-radius: var(--klytos-radius-lg);
-    padding: var(--klytos-space-xl);
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: var(--klytos-shadow-lg);
-}
-
-.modal h3 {
-    margin-bottom: var(--klytos-space-md);
-}
-
-/* ============================================================
-   DROPDOWN
-   ============================================================ */
-
-.dropdown-menu {
-    background: var(--klytos-bg-elevated);
-    border: 1px solid var(--klytos-border);
-    border-radius: var(--klytos-radius);
-    padding: var(--klytos-space-xs) 0;
-    box-shadow: var(--klytos-shadow);
-    min-width: 180px;
-    z-index: 60;
-}
-
-.dropdown-item {
-    display: block;
-    padding: var(--klytos-space-sm) var(--klytos-space-md);
-    color: var(--klytos-text);
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: background var(--klytos-transition-fast);
-    cursor: pointer;
-    border: none;
-    background: none;
-    width: 100%;
+    gap: var(--esp-12);
+    padding: 13px var(--esp-16);
+    font: var(--type-card-heading);
+    color: var(--texto-primario);
     text-align: left;
 }
 
-.dropdown-item:hover {
-    background: var(--klytos-surface-hover);
+/* Header row: 8px 16px, --type-column-header, uppercase, --texto-sutil
+   (template-list-table.md §1). */
+.k-table thead th {
+    padding: var(--esp-8) var(--esp-16);
+    font: var(--type-column-header);
+    letter-spacing: var(--eyebrow-tracking);
+    text-transform: uppercase;
+    color: var(--texto-sutil);
+    text-align: left;
+    border-bottom: 1px solid var(--separador);
+}
+
+/* The sort control inside a <th> is an <a href> — sorting is a page load. */
+.k-table thead th a {
+    color: inherit;
     text-decoration: none;
 }
 
-.dropdown-item.active {
-    color: var(--klytos-accent);
+.k-table thead th a:hover {
+    text-decoration: underline;
 }
 
-.dropdown-divider {
-    height: 1px;
-    background: var(--klytos-border-subtle);
-    margin: var(--klytos-space-xs) 0;
+/* Rows: 9–11px 16px, separated by 1px --separador. Zebra striping is not used
+   (template-list-table.md §2 "Default"). */
+.k-table tbody tr {
+    border-top: 1px solid var(--separador);
 }
 
-/* ============================================================
-   CONNECTOR / INTEGRATION LIST (Claude-style)
-   ============================================================ */
-
-.connector-list {
-    list-style: none;
+.k-table tbody th,
+.k-table tbody td {
+    padding: 10px var(--esp-16);
+    font: var(--type-body);
+    color: var(--texto-primario);
+    text-align: left;
+    /* Every cell that can be long truncates. Truncation never hides the only
+       copy of a value — the full value is on the record's own page
+       (accessibility.md §8). */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.connector-list-item {
-    display: flex;
-    align-items: center;
-    gap: var(--klytos-space-md);
-    padding: var(--klytos-space-md) 0;
-    border-bottom: 1px solid var(--klytos-border-subtle);
+/* The row header is the column that names the record: one per row, a real
+   <th role="rowheader" scope="row">. It is not styled as a heading — it is a
+   cell that happens to be the row's name. */
+.k-table tbody th {
+    font-weight: var(--peso-regular);
 }
 
-.connector-list-item:last-child {
-    border-bottom: none;
+/* Colour is NOT set here on purpose: it lives in the links block at the top of
+   this file, on `.k-table tbody th a:not(.k-btn)`, which is the only selector
+   specific enough to beat `.k-table a:not(.k-btn)`. A `color` declaration here
+   would be dead — it reads as if it governs, and it does not. */
+.k-table tbody th a {
+    text-decoration: none;
 }
 
-.connector-list-item .connector-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--klytos-radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+.k-table tbody th a:hover {
+    text-decoration: underline;
 }
 
-.connector-list-item .connector-info {
-    flex: 1;
-    min-width: 0;
+/* Hover is decoration: it never conveys anything that is not also in the row
+   (template-list-table.md §2). */
+.k-table tbody tr:hover {
+    background: var(--fila-hover);
 }
 
-.connector-list-item .connector-name {
-    font-weight: 500;
-    color: var(--klytos-text);
-    font-size: 0.9rem;
+/* The ROW is not focusable and never gets a ring; the focused link inside it
+   does, from klytos-admin.css. Nothing here adds a second indicator. */
+.k-table tbody tr[aria-selected="true"] {
+    background: var(--fila-seleccion);
 }
 
-.connector-list-item .connector-detail {
-    font-size: 0.8rem;
-    color: var(--klytos-text-secondary);
+/* Numeric, money and timestamp cells: mono, right-aligned. */
+.k-num {
+    font: var(--type-numeric);
+    text-align: right;
+    justify-self: end;
 }
 
-.connector-list-item .connector-status {
-    font-size: 0.85rem;
-    color: var(--klytos-success);
-    font-weight: 500;
+.k-table thead th.k-num {
+    text-align: right;
+    justify-self: end;
 }
 
-/* ============================================================
-   SELECTION CARDS (radio/checkbox card groups)
-   Unified interactive card selector used across the admin.
-   Wraps a hidden <input> inside a <label> with visual feedback.
-   ============================================================ */
-
-.selection-cards {
-    display: grid;
-    gap: var(--klytos-space-md);
+/* The checkbox column is the first column at 28px when the screen supports
+   bulk actions (template-list-table.md §1). */
+.k-col-check {
+    width: 28px;
 }
 
-.selection-cards.cols-2 {
-    grid-template-columns: repeat(2, 1fr);
+/* Empty result: ONE row spanning all columns, 120px tall, centred — not a
+   table replaced by a div (accessibility.md §2.1, template-list-table.md §2).
+   The row keeps the table's header row above it. */
+.k-table-row-full {
+    grid-template-columns: 1fr;
 }
 
-.selection-cards.cols-3 {
-    grid-template-columns: repeat(3, 1fr);
-}
-
-.selection-card {
-    position: relative;
-    cursor: pointer;
-    display: block;
-}
-
-.selection-card input[type="radio"],
-.selection-card input[type="checkbox"] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.selection-card-body {
+.k-table-row-full td {
     display: flex;
     flex-direction: column;
-    gap: var(--klytos-space-sm);
-    padding: 1.25rem var(--klytos-space-md);
-    border: 2px solid var(--klytos-border);
-    border-radius: var(--klytos-radius-lg);
-    transition: border-color var(--klytos-transition), background var(--klytos-transition);
-}
-
-.selection-card:hover .selection-card-body {
-    border-color: var(--klytos-accent);
-    background: var(--klytos-accent-subtle);
-}
-
-/* Selected state — applied via JS or :checked */
-.selection-card.selected .selection-card-body,
-.selection-card input:checked ~ .selection-card-body {
-    border-color: var(--klytos-accent);
-    background: var(--klytos-accent-subtle);
-}
-
-.selection-card.selected .selection-card-body i,
-.selection-card input:checked ~ .selection-card-body i {
-    color: var(--klytos-accent);
-}
-
-/* —— Card content elements —— */
-
-.selection-card-body .selection-card-icon {
-    font-size: 1.5rem;
-    color: var(--klytos-text-secondary);
-    transition: color var(--klytos-transition);
-    text-align: center;
-}
-
-.selection-card-body .selection-card-title {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--klytos-text);
-}
-
-.selection-card-body .selection-card-desc {
-    font-size: 0.8rem;
-    color: var(--klytos-text-secondary);
-    line-height: 1.4;
-}
-
-/* —— Horizontal variant (for channel selector, etc.) —— */
-
-.selection-card-body.horizontal {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: var(--klytos-space);
-    padding: var(--klytos-space);
-}
-
-/* —— Centered variant (for method cards like importer) —— */
-
-.selection-card-body.centered {
-    align-items: center;
-    text-align: center;
-}
-
-/* —— Responsive —— */
-
-@media (max-width: 768px) {
-    .selection-cards.cols-3 {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
-    .selection-cards.cols-2 {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* ============================================================
-   UPDATE STEPPER
-   ============================================================ */
-
-.update-step {
-    display: flex;
-    align-items: center;
-    gap: var(--klytos-space);
-}
-
-.update-step .step-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-    background: var(--klytos-border);
-    color: var(--klytos-text-secondary);
-    transition: all 0.3s;
-}
-
-.update-step .step-label {
-    font-size: 0.95rem;
-    color: var(--klytos-text-secondary);
-    transition: color 0.3s;
-}
-
-/* ============================================================
-   EMPTY STATE
-   ============================================================ */
-
-.empty-state {
+    gap: var(--esp-8);
+    min-height: 120px;
+    white-space: normal;
     text-align: center;
-    padding: var(--klytos-space-2xl) var(--klytos-space-md);
-    color: var(--klytos-text-secondary);
 }
 
-.empty-state h3 {
-    color: var(--klytos-text);
-    margin-bottom: var(--klytos-space-sm);
-}
-
-/* ============================================================
-   CODE / MONO
-   ============================================================ */
-
-.mono {
-    font-family: var(--klytos-font-mono);
-    font-size: 0.85rem;
-}
-
-.token-display {
-    background: var(--klytos-bg-sunken);
-    border: 1px solid var(--klytos-border);
-    border-radius: var(--klytos-radius);
-    padding: var(--klytos-space);
-    font-family: var(--klytos-font-mono);
-    font-size: 0.85rem;
-    word-break: break-all;
-    color: var(--klytos-text);
-}
-
-/* ============================================================
-   SECURITY PAGE
-   ============================================================ */
-
-.totp-setup-box {
-    background: var(--klytos-bg-sunken);
-    padding: var(--klytos-space-lg);
-    border-radius: var(--klytos-radius);
-    margin-bottom: var(--klytos-space-md);
-}
-
-.totp-manual-key {
-    display: block;
-    background: var(--klytos-bg-sunken);
-    padding: var(--klytos-space-sm);
-    border-radius: var(--klytos-radius);
-    font-size: 0.9rem;
-    word-break: break-all;
-    border: 1px solid var(--klytos-border);
-    color: var(--klytos-text);
-}
-
-.security-status-active {
-    background: var(--klytos-success-subtle);
-    color: var(--klytos-success-text);
-}
-
-.security-status-inactive {
-    background: var(--klytos-error-subtle);
-    color: var(--klytos-error-text);
-}
-
-.security-method-badge {
-    background: var(--klytos-info-subtle);
-    color: var(--klytos-info-text);
-}
-
-.security-active-text {
-    color: var(--klytos-success-text);
-}
-
-.security-recovery-card {
-    border-color: rgba(245, 158, 11, 0.4);
-    background: var(--klytos-warning-subtle);
-}
-
-.security-recovery-text {
-    color: var(--klytos-warning-text);
-}
-
-.security-recovery-code {
-    background: var(--klytos-bg-sunken);
-    color: var(--klytos-text);
-    border-color: var(--klytos-border);
-}
-
-.security-danger-card {
-    border-color: rgba(239, 68, 68, 0.4);
-}
-
-/* ============================================================
-   AI PROVIDER LOGOS (theme-aware)
-   ============================================================ */
-
-.ai-logo-dark  { display: none; }
-.ai-logo-light { display: inline; }
-
-[data-theme="dark"] .ai-logo-dark  { display: inline; }
-[data-theme="dark"] .ai-logo-light { display: none; }
-
-/* ============================================================
-   COLOR PICKER
-   ============================================================ */
-
-input[type="color"] {
-    width: 40px;
-    height: 32px;
-    border: 1px solid var(--klytos-border);
-    border-radius: var(--klytos-radius-sm);
-    padding: 2px;
-    cursor: pointer;
-}
-
-.color-row {
+/* Pagination row: 10px 16px, links and never buttons
+   (template-list-table.md §1; accessibility.md §2.1). */
+.k-pagination {
     display: flex;
     align-items: center;
-    gap: var(--klytos-space-sm);
+    gap: var(--esp-8);
+    padding: 10px var(--esp-16);
+    border-top: 1px solid var(--separador);
+    font: var(--type-body);
 }
 
-.color-row input[type="text"] {
-    flex: 1;
+.k-pagination a {
+    color: var(--texto-secundario);
+    text-decoration: none;
+    padding: 0 var(--esp-6);
 }
 
-/* ============================================================
-   PRIORITY DOTS
-   ============================================================ */
-
-.priority-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 0.4rem;
+/* The current page is aria-current="page" and is NOT a link. */
+.k-pagination [aria-current="page"] {
+    color: var(--texto-primario);
+    font-weight: var(--peso-semibold);
+    padding: 0 var(--esp-6);
 }
 
-.priority-dot.urgent { background: var(--klytos-error); }
-.priority-dot.high   { background: #f97316; }
-.priority-dot.medium { background: var(--klytos-accent); }
-.priority-dot.low    { background: var(--klytos-success); }
+/* The horizontal scroll container below 1200px. It carries tabindex="0" and
+   role="group" with an aria-label in the markup, so keyboard users can reach
+   the scroll (accessibility.md §2.1). The container exists at every width;
+   only the overflow behaviour changes, in the media query at the foot. */
+.k-table-scroll {
+    /* Base: no scrolling. See the 1199px media query. */
+    overflow: visible;
 
-/* ============================================================
-   CHART PLACEHOLDER
-   ============================================================ */
+    /* position:relative is LOAD-BEARING and is not decoration. `.k-sr` (the
+       visually-hidden class in klytos-shell.css) is position:absolute, and the
+       table's own "Actions" column header uses it. With no positioned
+       ancestor its containing block is the initial one, so at 320px CSS px it
+       was laid out at its static position INSIDE the 670px-wide row — escaping
+       both this container's overflow and the card's `overflow:hidden`, and
+       making the whole PAGE scroll horizontally by 346px. That is a WCAG 1.4.10
+       reflow failure caused by a 1 × 1 invisible span, and only driving a real
+       viewport found it: every containment measurement in the chain read
+       correct (280/320 at every level) while the page really did scroll.
+       Making the scroll container a containing block holds it. */
+    position: relative;
+}
 
-.chart-bar {
+/* The bulk bar: 48px, pinned to the bottom of the content area,
+   --fondo-elevado + card shadow, holding "n selected", the actions and
+   "Clear". It is a <form> and its actions are submit buttons
+   (template-list-table.md §2). The content area gains 48px bottom padding so
+   the bar never covers a focused row — which is also accessibility.md §3.1's
+   "focus never obscured". */
+.k-bulkbar {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
     display: flex;
-    align-items: flex-end;
-    gap: 2px;
-    height: 120px;
+    align-items: center;
+    gap: var(--esp-12);
+    box-sizing: border-box;
+    height: 48px;
+    padding: 0 var(--esp-16);
+    background: var(--fondo-elevado);
+    border-radius: var(--radio-card);
+    box-shadow: var(--sombra-card);
+    font: var(--type-body);
+}
+
+/* The bar is raised by selecting a row, so it starts with the `hidden`
+   attribute — and `hidden` alone does NOT hide it, because the user agent's
+   `[hidden]{display:none}` is (0,1,0) and `.k-bulkbar{display:flex}` above is
+   also (0,1,0), so the later rule wins and the bar was visible on page load
+   with nothing selected. Driving it found that; reading either rule never
+   would.
+
+   The fix is the attribute selector ON the class — (0,2,0) — which beats the
+   display rule by specificity and therefore does not depend on source order.
+   That is deliberate: the same defect has now arrived three times by three
+   different mechanisms (token shadowing, source order, specificity), and
+   L-032's rule is that the structure, not the position, is what should decide.
+
+   Any other component in this layer that sets `display` and is toggled with
+   the `hidden` attribute needs the same pair. */
+.k-bulkbar[hidden] {
+    display: none;
+}
+
+.k-bulkbar-count {
+    font-weight: var(--peso-semibold);
+}
+
+/* The class is doubled ON PURPOSE, to (0,2,0). The content area is
+   `.k-main`, whose `padding: 20px` shorthand in klytos-shell.css is also
+   (0,1,0) and loads after this file — so a single `.k-has-bulkbar` lost on
+   source order and the content area kept its 20px while the 48px bar sat over
+   the last row. That is build rule 1 arriving for the FIFTH time in this build,
+   and the third distinct mechanism in this stage alone.
+
+   Doubling the class rather than writing `.k-main.k-has-bulkbar` keeps this
+   layer from having to know the shell's class name, and rather than raising it
+   with !important it stays overridable. It is order-independent either way,
+   which is the property that matters: L-032's rule is that the structure should
+   decide, never the position. */
+.k-has-bulkbar.k-has-bulkbar {
+    padding-bottom: 48px;
+}
+
+/* ============================================================
+   FIELD — accessibility.md §5.7, template-record-form.md §1 and §2
+   <label for> is mandatory and VISIBLE. The admin has no
+   placeholder-as-label anywhere.
+   ============================================================ */
+
+.k-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-4);
+}
+
+/* template-record-form.md §1: label `600 12px`. Written literally because no
+   token carries that role — the delivered type scale has no field-label row.
+   Line-height is deliberately NOT set: inventing one would be inventing a
+   value the delivery does not state, and the inherited value is correct. */
+.k-label {
+    font-family: var(--font-ui);
+    font-weight: var(--peso-semibold);
+    font-size: 12px;
+    color: var(--texto-primario);
+}
+
+.k-control {
+    box-sizing: border-box;
+    width: 100%;
+    /* template-record-form.md §1: control 34px tall, radius 6, 1px
+       --borde-control, background --fondo-ventana (sunken inside a card).
+       min-height, never height: 1.4.12 text spacing must not clip a label or
+       a hint, so there are no fixed-height text containers
+       (accessibility.md §8). */
+    min-height: 34px;
+    padding: 0 var(--esp-8);
+    border: 1px solid var(--borde-control);
+    border-radius: var(--radio-control);
+    background: var(--fondo-ventana);
+    color: var(--texto-primario);
+    font: var(--type-body);
+}
+
+textarea.k-control {
+    padding: var(--esp-8);
+    min-height: 88px;
+    resize: vertical;
+    line-height: 17px;
+}
+
+/* Mono fields (slug, key, path, wallet). spellcheck="false" and
+   autocapitalize="off" are markup, not CSS — this is only the face. */
+.k-control--mono {
+    font: var(--type-body-mono);
+}
+
+/* Focus: the 2px accent ring (from klytos-admin.css, which must keep winning)
+   AND the control's border goes accent. The ring is the accessible indicator;
+   the border is decoration (template-record-form.md §2). */
+.k-control:focus-visible {
+    border-color: var(--color-acento);
+}
+
+.k-control:hover:not([disabled]):not([readonly]) {
+    background-image: linear-gradient(var(--fila-hover), var(--fila-hover));
+}
+
+/* Hint text is <p id="…"> linked with aria-describedby, hint first. */
+.k-hint {
+    font: var(--type-caption);
+    color: var(--texto-sutil);
+    margin: 0;
+}
+
+/* Error — field level: aria-invalid="true", border --color-peligro, an `error`
+   icon BEFORE the message, the message in --color-peligro linked by
+   aria-describedby. Colour is never the only channel: the icon and the word
+   are the first two (accessibility.md §1.3, §6). */
+.k-control[aria-invalid="true"] {
+    border-color: var(--color-peligro);
+}
+
+.k-error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--esp-6);
+    font: var(--type-caption);
+    color: var(--color-peligro);
+    margin: 0;
+}
+
+.k-error-icon {
+    flex: none;
+    width: 14px;
+    height: 14px;
+}
+
+/* Disabled: --texto-deshabilitado on --fondo-ventana, border
+   --borde-deshabilitado. A disabled control is never hidden
+   (template-record-form.md §2). */
+.k-control[disabled] {
+    color: var(--texto-deshabilitado);
+    border-color: var(--borde-deshabilitado);
+    cursor: not-allowed;
+}
+
+/* Read-only is NOT disabled: a value the user may copy but not change —
+   licence key, wallet address, webhook secret. Mono, selectable, with a copy
+   button beside it (template-record-form.md §2). */
+/* --texto-primario, not --texto-secundario. The delivery states "readonly,
+   mono, selectable" and does NOT state a colour, so the first draft used
+   --texto-secundario — measured at 4.46:1 on --fondo-ventana in light, which
+   is under AA by 0.04. A read-only value is content the person is meant to
+   read and copy, so it takes the primary text colour: 14.79:1 / 15.29:1. */
+.k-control[readonly] {
+    font: var(--type-body-mono);
+    color: var(--texto-primario);
+    background: var(--fondo-ventana);
+}
+
+/* Grouped controls sit in <fieldset><legend> — every radio group, every
+   checkbox set. The legend is the group's name; a radio group with no legend
+   has no name (accessibility.md §5.6). */
+.k-fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-8);
+    border: 0;
+    margin: 0;
     padding: 0;
 }
 
-.chart-bar-item {
-    flex: 1;
-    background: var(--klytos-accent);
-    border-radius: 3px 3px 0 0;
-    min-height: 2px;
-    transition: height var(--klytos-transition-slow);
-    opacity: 0.8;
-}
-
-.chart-bar-item:hover {
-    opacity: 1;
+.k-legend {
+    font-family: var(--font-ui);
+    font-weight: var(--peso-semibold);
+    font-size: 12px;
+    color: var(--texto-primario);
+    padding: 0;
 }
 
 /* ============================================================
-   RESPONSIVE
+   CHECKBOX and RADIO — accessibility.md §5.5, §5.6, §7
+   Real inputs. The DRAWING stays 13px/14px; the HIT AREA becomes 24 × 24 via
+   .k-hit-24 on the <label> wrapper, which is defined in klytos-admin.css and
+   is NOT redeclared here.
    ============================================================ */
 
-@media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+.k-choice {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--esp-8);
+    font: var(--type-body);
+    color: var(--texto-primario);
+    cursor: pointer;
+}
+
+.k-check,
+.k-radio {
+    flex: none;
+    appearance: none;
+    margin: 0;
+    /* README: checkbox 13px square, radius 3, 1.5px border, accent fill when
+       checked; radio 14px circle, same treatment. Radius 3 is the "status
+       square" radius named in README "Spacing, radius, elevation"; no token
+       carries it. */
+    border: 1.5px solid var(--borde-control);
+    background: var(--fondo-elevado);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+.k-check {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+}
+
+.k-radio {
+    width: 14px;
+    height: 14px;
+    border-radius: var(--radio-pildora);
+}
+
+.k-check:checked,
+.k-radio:checked {
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+}
+
+.k-check:checked::after {
+    content: "";
+    width: 7px;
+    height: 4px;
+    border-left: 1.5px solid var(--sobre-acento);
+    border-bottom: 1.5px solid var(--sobre-acento);
+    transform: translateY(-1px) rotate(-45deg);
+}
+
+.k-radio:checked::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radio-pildora);
+    background: var(--sobre-acento);
+}
+
+/* Tri-state select-all uses the `indeterminate` DOM property AND
+   aria-checked="mixed" (accessibility.md §2.1, §5.5). Both are set in script;
+   this is only the face of it. */
+.k-check:indeterminate {
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+}
+
+.k-check:indeterminate::after {
+    content: "";
+    width: 7px;
+    height: 0;
+    border: 0;
+    border-top: 1.5px solid var(--sobre-acento);
+    transform: none;
+}
+
+.k-check[disabled],
+.k-radio[disabled] {
+    border-color: var(--borde-deshabilitado);
+    cursor: not-allowed;
+}
+
+.k-check[disabled]:checked,
+.k-radio[disabled]:checked {
+    background: var(--borde-deshabilitado);
+}
+
+/* ============================================================
+   SWITCH — accessibility.md §5.4, README "Switch"
+   <button type="button" role="switch" aria-checked> with a visible label
+   associated by aria-labelledby. A switch takes effect IMMEDIATELY; a control
+   that needs Save is a checkbox, not a switch, and that is decided per screen
+   in the manifest — never here and never for visual reasons.
+   ============================================================ */
+
+.k-switch {
+    flex: none;
+    /* README "Switch": 38 × 22. §7 records the TARGET as 38 × 24 because the
+       label row is 24px tall and the switch's own label is part of the
+       target — so the drawing stays 22 and the row provides the rest. */
+    box-sizing: border-box;
+    width: 38px;
+    height: 22px;
+    padding: 2px;
+    border: 1px solid var(--borde-control);
+    border-radius: var(--radio-pildora);
+    background: var(--fondo-ventana);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color var(--dur-hover) var(--easing-estandar);
+}
+
+.k-switch-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radio-pildora);
+    background: var(--texto-secundario);
+    transition: transform var(--dur-hover) var(--easing-estandar),
+                background-color var(--dur-hover) var(--easing-estandar);
+}
+
+.k-switch[aria-checked="true"] {
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+}
+
+.k-switch[aria-checked="true"] .k-switch-thumb {
+    background: var(--sobre-acento);
+    transform: translateX(16px);
+}
+
+.k-switch[disabled],
+.k-switch[aria-disabled="true"] {
+    border-color: var(--borde-deshabilitado);
+    cursor: not-allowed;
+}
+
+.k-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-12);
+    /* §7: the label row is 24px tall, which is what makes the switch's target
+       24 in its constrained dimension. */
+    min-height: 24px;
+}
+
+/* ============================================================
+   STAT CARD — accessibility.md §5.9, template-overview-stats.md §1
+   A FIGURE, not a heading. The value is read with its label through
+   aria-labelledby. If the stat links somewhere, the WHOLE card is the <a> —
+   never a chevron in its corner.
+   ============================================================ */
+
+.k-stat-row {
+    display: grid;
+    /* 3–5 columns, gap 14 (template-overview-stats.md §1). The column count is
+       per screen; auto-fit keeps it honest at every width without a media
+       query per screen. */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.k-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-8);
+    padding: var(--esp-16);
+    background: var(--fondo-elevado);
+    border-radius: var(--radio-card);
+    box-shadow: var(--sombra-card);
+    text-decoration: none;
+    color: inherit;
+}
+
+/* A linked stat card takes --fila-hover and raises nothing
+   (template-overview-stats.md §2 "Hover"). */
+a.k-stat:hover {
+    background-image: linear-gradient(var(--fila-hover), var(--fila-hover));
+}
+
+/* 32px rounded icon tile in a semantic tint. Radius 7–9px is the "icon tile"
+   radius from README "Spacing, radius, elevation"; 8 is its midpoint and no
+   token carries it. The tile is aria-hidden in the markup. */
+.k-stat-tile {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--tinte-acento);
+    color: var(--sobre-tinte-acento);
+}
+
+.k-stat-tile--info       { background: var(--tinte-info);       color: var(--sobre-tinte-info); }
+.k-stat-tile--exito      { background: var(--tinte-exito);      color: var(--sobre-tinte-exito); }
+.k-stat-tile--aviso      { background: var(--tinte-aviso);      color: var(--sobre-tinte-aviso); }
+.k-stat-tile--peligro    { background: var(--tinte-peligro);    color: var(--sobre-tinte-peligro); }
+.k-stat-tile--offline    { background: var(--tinte-offline);    color: var(--sobre-tinte-offline); }
+.k-stat-tile--sync       { background: var(--tinte-sync);       color: var(--sobre-tinte-sync); }
+.k-stat-tile--conflicto  { background: var(--tinte-conflicto);  color: var(--sobre-tinte-conflicto); }
+.k-stat-tile--reconectar { background: var(--tinte-reconectar); color: var(--sobre-tinte-reconectar); }
+
+/* template-overview-stats.md §1: `--type-numeric` scaled up (`600 20px` mono).
+   The token is 500 12px/17px, so the size and weight are the delivery's own
+   literal and are written as such; the family stays the token's. */
+.k-stat-value {
+    font-family: var(--font-mono);
+    font-weight: var(--peso-semibold);
+    font-size: 20px;
+    color: var(--texto-primario);
+    margin: 0;
+}
+
+.k-stat-label {
+    font: var(--type-caption);
+    color: var(--texto-sutil);
+    margin: 0;
+}
+
+/* A delta is a word plus a direction glyph plus the number — never a bare
+   coloured arrow (template-overview-stats.md §1). */
+.k-stat-delta {
+    font: var(--type-caption);
+    color: var(--texto-secundario);
+    margin: 0;
+}
+
+/* ============================================================
+   PROGRESS — accessibility.md §5.8, README "Progress"
+   Determinate is a real <progress> with aria-labelledby and the percentage
+   rendered as TEXT next to it — never inside the bar only.
+   ============================================================ */
+
+.k-progress {
+    appearance: none;
+    width: 100%;
+    /* README "Progress": 8px track, radius 999, accent fill. */
+    height: 8px;
+    border: 0;
+    border-radius: var(--radio-pildora);
+    background: var(--fondo-ventana);
+    overflow: hidden;
+}
+
+.k-progress::-webkit-progress-bar {
+    background: var(--fondo-ventana);
+    border-radius: var(--radio-pildora);
+}
+
+.k-progress::-webkit-progress-value {
+    background: var(--color-acento);
+    border-radius: var(--radio-pildora);
+}
+
+.k-progress::-moz-progress-bar {
+    background: var(--color-acento);
+    border-radius: var(--radio-pildora);
+}
+
+.k-progress-row {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+}
+
+.k-progress-value {
+    font: var(--type-numeric);
+    color: var(--texto-secundario);
+}
+
+/* Indeterminate is role="progressbar" with no aria-valuenow, plus a text
+   status. Nothing pulses: the reduced-motion block in klytos-admin.css would
+   flatten it anyway, and the text is the real status. */
+.k-progress-indeterminate {
+    height: 8px;
+    border-radius: var(--radio-pildora);
+    background: var(--fondo-ventana);
+}
+
+/* ============================================================
+   CODE / PAYLOAD BLOCK — accessibility.md §5.12,
+   template-console-stream.md §1
+   <pre><code> with tabindex="0" and an aria-label naming what it is, because
+   it scrolls. Syntax colour is by ROLE, not by language.
+   ============================================================ */
+
+.k-code {
+    margin: 0;
+    padding: var(--esp-12);
+    background: var(--fondo-ventana);
+    border-radius: var(--radio-control);
+    font: var(--type-code);
+    color: var(--texto-secundario);
+    white-space: pre;
+    overflow: auto;
+    max-height: 60vh;
+}
+
+.k-code-key   { color: var(--texto-sutil); }
+.k-code-value { color: var(--texto-secundario); }
+.k-code-focus { color: var(--color-acento); }
+
+/* Levels are a mono label at the START of the line, in --sobre-tinte-*, with
+   the tint as the line's background for ERROR and WARN ONLY
+   (template-console-stream.md §1). Level is encoded in TEXT first, tint
+   second (accessibility.md §6). */
+.k-level {
+    font: var(--type-numeric);
+    text-align: left;
+}
+
+.k-level--error { color: var(--sobre-tinte-peligro); }
+.k-level--warn  { color: var(--sobre-tinte-aviso); }
+.k-level--info  { color: var(--sobre-tinte-info); }
+.k-level--debug { color: var(--texto-sutil); }
+
+/* A tinted line carries its MESSAGE text in --sobre-tinte-* too, not only its
+   level label. The README specifies the tint as the line background and the
+   label's colour, and says nothing about the rest of the line — which inherits
+   .k-code's --texto-secundario and measured 3.82:1 (light) / 3.95:1 (dark) on
+   the tint. klytos-admin.css's contract is written as universal ("text is
+   NEVER painted in a raw semantic colour on top of that colour's own tint"),
+   so applying it to the line is following the delivery, not extending it.
+   After: 4.53:1 / 5.35:1 for ERROR and 4.56:1 / 5.50:1 for WARN. */
+.k-line--error { background: var(--tinte-peligro); color: var(--sobre-tinte-peligro); }
+.k-line--warn  { background: var(--tinte-aviso);   color: var(--sobre-tinte-aviso); }
+
+/* ============================================================
+   EMPTY AND ERROR STATES — README "Empty and error states"
+   Never a bare code. Always a sentence plus the action.
+   ============================================================ */
+
+.k-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--esp-8);
+    padding: var(--esp-24);
+    text-align: center;
+}
+
+.k-empty-icon {
+    /* template-list-table.md §2: a 20px --texto-sutil icon. */
+    width: 20px;
+    height: 20px;
+    color: var(--texto-sutil);
+}
+
+.k-empty-text {
+    font: var(--type-body);
+    color: var(--texto-secundario);
+    margin: 0;
+}
+
+/* The error variant of the same shape: the icon is `error` in --color-peligro
+   and the sentence names what happened and what to do. */
+.k-empty--error .k-empty-icon {
+    color: var(--color-peligro);
+}
+
+/* ============================================================
+   STATUS AND ALERT LINES — accessibility.md §6
+   Feedback is TEXT IN THE FLOW, not a floating toast, so it survives a
+   screenshot and a screen reader. There are exactly TWO live regions per page
+   and they live in the SHELL — these classes style the message, they do not
+   create a region.
+   ============================================================ */
+
+.k-status-line {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--esp-8);
+    padding: var(--esp-8) var(--esp-12);
+    border-radius: var(--radio-control);
+    background: var(--tinte-exito);
+    color: var(--sobre-tinte-exito);
+    font: var(--type-body);
+}
+
+.k-status-line--aviso {
+    background: var(--tinte-aviso);
+    color: var(--sobre-tinte-aviso);
+}
+
+.k-status-line--info {
+    background: var(--tinte-info);
+    color: var(--sobre-tinte-info);
+}
+
+/* The form-level error summary: at the top of main, role="alert", focus moved
+   to it on load, listing every failed field as a link to that field
+   (accessibility.md §6, template-record-form.md §2). */
+.k-error-summary {
+    padding: var(--esp-12);
+    border: 1px solid var(--color-peligro);
+    border-radius: var(--radio-control);
+    background: var(--tinte-peligro);
+    color: var(--sobre-tinte-peligro);
+    font: var(--type-body);
+}
+
+.k-error-summary h2 {
+    font: var(--type-card-heading);
+    margin: 0 0 var(--esp-8);
+}
+
+.k-error-summary ul {
+    margin: 0;
+    padding-left: var(--esp-16);
+}
+
+/* Each failed field is a LINK, and stacked links a few pixels apart fail 2.5.8.
+   §7's "inline link inside a sentence" exception does not cover a list of
+   targets — that exception is for prose. 2.5.8 is satisfied by spacing rather
+   than by growing the drawing, exactly as §7 does everywhere else, so adjacent
+   entries sit ≥ 24px apart centre to centre. */
+.k-error-summary li + li {
+    margin-top: var(--esp-8);
+}
+
+.k-error-summary a {
+    color: inherit;
+}
+
+/* The sort control's direction indicator. `aria-sort` on the <th> is what
+   carries the state to assistive technology; this glyph is the visible second
+   channel and is therefore aria-hidden (klytos_admin_icon writes that). */
+.k-sort-icon {
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    fill: currentColor;
+}
+
+/* The icon inside a row's action control. 15px per README "Table"; the 24 × 24
+   hit area comes from .k-hit-24 on the control that wraps it, not from the
+   glyph (accessibility.md §7). */
+.k-row-action-icon {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+}
+
+/* A row action a record cannot take is rendered disabled with
+   aria-disabled="true" and the reason in its accessible name, never hidden —
+   hiding an action teaches nothing (template-list-table.md §2).
+
+   The colour is --texto-deshabilitado, the same token .k-control[disabled]
+   takes, and NOT an opacity. accessibility.md §1.4 is explicit that Klytos
+   declines the 1.4.3 disabled exemption and holds a 3:1 floor on disabled
+   text, which a token guarantees and an arbitrary opacity does not — an
+   opacity multiplies whatever it sits on and makes the resulting ratio
+   unmeasurable in advance. §1.4 also requires that the state is announced by
+   `disabled` / `aria-disabled` and never by colour alone, which the markup's
+   aria-disabled and its accessible name carry. */
+.k-is-disabled {
+    color: var(--texto-deshabilitado);
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   STACKED RECORD CARDS — template-list-table.md §3, the < 900 row.
+
+   The spec is explicit that this is "a real markup change, so the ARIA table
+   roles go away with the table — a definition list is honest about what it
+   is". CSS cannot change a role, so the screen renders BOTH markups and this
+   stylesheet shows exactly one at a time. `display:none` removes a subtree
+   from the accessibility tree as well as from the page, so assistive
+   technology is never offered the record twice — which is the only reason
+   this is an honest implementation rather than duplicated content.
+
+   Logged as code-side adaptation 11 in docs/BUILD-SPEC.md §5.9: the design
+   intent is untouched, only the strategy for reaching it is. The alternative —
+   transforming the table with JavaScript at a breakpoint — would make the
+   under-900 layout depend on JS, which no other part of this shell does.
+
+   BASE RULES COME FIRST, BEFORE THE MEDIA QUERY AT THE FOOT. That ordering is
+   load-bearing and is not stylistic: a base `display:none` written AFTER the
+   media query that turns a thing on wins on source order and hides it at every
+   viewport. That is exactly how the rail's "Expand navigation" button became
+   unreachable at every width (D-077), and the third repeat of that class of
+   defect is what L-032 was written for. Do not reorder these two blocks.
+   ============================================================ */
+
+.k-reclist {
+    display: none;
+    flex-direction: column;
+}
+
+.k-rec {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-8);
+    padding: var(--esp-12) var(--esp-16);
+    border-top: 1px solid var(--separador);
+}
+
+.k-rec:first-child {
+    border-top: 0;
+}
+
+/* The row header becomes the card's <h3>. It is the record's name and it
+   carries the same link the row header cell carries. */
+.k-rec-title {
+    font: var(--type-card-heading);
+    color: var(--texto-primario);
+    margin: 0;
+}
+
+/* The remaining columns become label/value pairs. The label is the column
+   header's own text, so nothing is invented for this width. */
+.k-rec-dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--esp-4) var(--esp-12);
+    margin: 0;
+}
+
+.k-rec-dl dt {
+    font: var(--type-column-header);
+    letter-spacing: var(--eyebrow-tracking);
+    text-transform: uppercase;
+    color: var(--texto-sutil);
+}
+
+.k-rec-dl dd {
+    font: var(--type-body);
+    color: var(--texto-primario);
+    margin: 0;
+    /* Values wrap here rather than truncating: at this width there is no
+       column to overflow, and truncation would hide the only copy on screen. */
+    overflow-wrap: anywhere;
+}
+
+.k-rec-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-8);
+}
+
+/* ============================================================
+   RESPONSIVE — every base rule above, every media query below.
+   The breakpoints are the ones the delivery declares
+   (template-list-table.md §3, template-record-form.md §3).
+   ============================================================ */
+
+/* 900–1199: the table scrolls horizontally inside its labelled scroll
+   container, and the row-header column is sticky left with a 1px --separador
+   right edge (template-list-table.md §3). */
+@media (max-width: 1199px) {
+    .k-table-scroll {
+        overflow-x: auto;
     }
 
-    .card {
-        padding: var(--klytos-space-md);
+    .k-table tbody th {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: var(--fondo-elevado);
+        border-right: 1px solid var(--separador);
     }
 }
 
-@media (max-width: 480px) {
-    .stats-grid {
+/* < 900: cards go full width and padding 20 → 16
+   (template-record-form.md §3). The table's own < 900 behaviour is a real
+   MARKUP change — stacked <article> cards with a <dl>, and the ARIA table
+   roles go away with the table, because a definition list is honest about
+   what it is (template-list-table.md §3). That belongs to the screens in
+   stage 4, not to this stylesheet; what is here is only what stays CSS. */
+@media (max-width: 899px) {
+    .k-card--padded {
+        padding: var(--esp-16);
+    }
+
+    /* The table and its scroll container leave the page entirely; the stacked
+       record cards take their place. Exactly one of the two is ever in the
+       accessibility tree. */
+    .k-table-scroll {
+        display: none;
+    }
+
+    .k-reclist {
+        display: flex;
+    }
+
+    /* The bulk bar goes full width and its actions stack
+       (template-list-table.md §3). */
+    .k-bulkbar {
+        border-radius: 0;
+    }
+
+    .k-bulkbar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: var(--esp-8) var(--esp-16);
+    }
+
+    .k-stat-row {
         grid-template-columns: 1fr;
     }
 }

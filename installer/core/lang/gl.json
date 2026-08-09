@@ -172,7 +172,24 @@
     "tab_trash": "Lixo",
     "empty_trash": "Baleirar o lixo",
     "restore": "Restaurar",
-    "permanent_delete": "Eliminar permanentemente"
+    "permanent_delete": "Eliminar permanentemente",
+    "bulk_change_template": "Cambiar o modelo",
+    "bulk_template_label": "Modelo que se aplicará",
+    "bulk_template_missing": "Escolle un modelo para aplicar.",
+    "bulk_unpublish": "Retirar da publicación",
+    "caption": "Páxinas — resultados: {count}, páxina {page} de {pages}",
+    "delete_home_reason": "Eliminar — esta páxina é a portada do sitio",
+    "delete_home_refused": "A portada do sitio non se pode enviar ao lixo.",
+    "empty_action": "Crear a primeira páxina",
+    "empty_filtered": "Ningunha páxina coincide con {filters}.",
+    "empty_sentence": "Aínda non hai páxinas. Unha páxina é un URL con bloques dentro.",
+    "error_sentence": "Non se puido ler o índice de páxinas — a capa de almacenamento devolveu un erro.",
+    "filter_label": "Filtrar por estado",
+    "last_edit": "Última edición",
+    "row_actions": "Máis accións para {title}",
+    "search_label": "Buscar páxinas",
+    "select_all": "Seleccionar todas as páxinas desta páxina de resultados",
+    "table_scroll_label": "Táboa de páxinas, con desprazamento"
   },
   "design": {
     "title": "Deseño",
@@ -813,5 +830,16 @@
     "palette": "Paleta de comandos",
     "palette_placeholder": "Busca ou escribe un comando",
     "palette_no_results": "Ningún comando coincide con {query}. Proba co título dunha páxina, o nome dun axuste ou «help»."
+  },
+  "list": {
+    "clear_filters": "Quitar filtros",
+    "clear_selection": "Quitar",
+    "next": "Seguinte",
+    "not_set": "Sen definir",
+    "page_n": "Páxina {n}",
+    "pagination": "Paxinación",
+    "previous": "Anterior",
+    "retry": "Téntao de novo",
+    "selected": "Seleccionado: {count}"
   }
 }

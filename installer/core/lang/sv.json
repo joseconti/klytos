@@ -172,7 +172,24 @@
     "tab_trash": "Papperskorg",
     "empty_trash": "Töm papperskorgen",
     "restore": "Återställ",
-    "permanent_delete": "Radera permanent"
+    "permanent_delete": "Radera permanent",
+    "bulk_change_template": "Byt mall",
+    "bulk_template_label": "Mall som ska tillämpas",
+    "bulk_template_missing": "Välj en mall att tillämpa.",
+    "bulk_unpublish": "Avpublicera",
+    "caption": "Sidor — träffar: {count}, sida {page} av {pages}",
+    "delete_home_reason": "Radera — den här sidan är webbplatsens startsida",
+    "delete_home_refused": "Webbplatsens startsida kan inte flyttas till papperskorgen.",
+    "empty_action": "Skapa den första sidan",
+    "empty_filtered": "Ingen sida matchar {filters}.",
+    "empty_sentence": "Inga sidor ännu. En sida är en URL med block på.",
+    "error_sentence": "Sidindexet kunde inte läsas — lagringslagret returnerade ett fel.",
+    "filter_label": "Filtrera efter status",
+    "last_edit": "Senast ändrad",
+    "row_actions": "Fler åtgärder för {title}",
+    "search_label": "Sök bland sidor",
+    "select_all": "Markera alla sidor på den här resultatsidan",
+    "table_scroll_label": "Sidtabell, rullningsbar"
   },
   "design": {
     "title": "Design",
@@ -813,5 +830,16 @@
     "palette": "Kommandopalett",
     "palette_placeholder": "Sök eller skriv ett kommando",
     "palette_no_results": "Inget kommando matchar {query}. Prova en sidtitel, namnet på en inställning eller ”help”."
+  },
+  "list": {
+    "clear_filters": "Rensa filter",
+    "clear_selection": "Rensa",
+    "next": "Nästa",
+    "not_set": "Inte angivet",
+    "page_n": "Sida {n}",
+    "pagination": "Sidnumrering",
+    "previous": "Föregående",
+    "retry": "Försök igen",
+    "selected": "Markerat: {count}"
   }
 }

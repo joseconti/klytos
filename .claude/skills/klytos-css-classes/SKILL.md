@@ -185,10 +185,40 @@ icons_enabled: false  → Font Awesome is only loaded for admins (default)
 
 | File | Purpose |
 |------|---------|
-| `installer/admin/assets/css/klytos-tokens.css` | All design tokens |
-| `installer/admin/assets/css/klytos-base.css` | Reset, body, layout |
-| `installer/admin/assets/css/klytos-components.css` | All components |
+| `installer/admin/assets/css/tokens/*.css` | **The redesign's delivered token set** (9 files, loaded first; `klytos-admin.css` last and normative) |
+| `installer/admin/assets/css/klytos-tokens.css` | The PRE-REDESIGN `--klytos-*` tokens. Still loaded — up to 40 unported screens draw from it |
+| `installer/admin/assets/css/klytos-base.css` | Reset, body, layout. **Pre-redesign.** See the cascade warning below |
+| `installer/admin/assets/css/klytos-legacy-components.css` | The old 991-line component layer, loaded BEFORE the new one. Retires with its last consumer |
+| `installer/admin/assets/css/klytos-components.css` | **The redesign's `.k-*` component layer** |
+| `installer/admin/assets/css/klytos-shell.css` | The shell: sidebar, rail, drawer, command palette, `.k-main` |
 | `installer/admin/assets/css/klytos-utilities.css` | Utility classes |
-| `installer/admin/templates/header.php` | Loads all CSS |
+| `installer/admin/templates/header.php` | Loads all CSS, in the order the SPEC declares |
+
+### The `.k-*` layer — the redesign's components
+
+`.k-btn` (`--primary` / `--secondary` / `--destructive`) · `.k-badge--<tone>` · `.k-chip` ·
+`.k-card` (`--padded` / `--table`) · `.k-table` + `.k-table-caption` / `.k-table-scroll` /
+`.k-col-check` / `.k-num` / `.k-table-row-full` · `.k-pagination` · `.k-bulkbar` ·
+`.k-reclist` / `.k-rec` (the under-900 stacked record cards) · `.k-field` / `.k-control` ·
+`.k-empty` · `.k-status-line` · `.k-error-summary` · `.k-sr` · `.k-hit-24`.
+
+**A table's `grid-template-columns` belongs to the SCREEN, never to this layer**
+(`template-list-table.md` §1). Write it in a `<style nonce="$cspNonce">` block on the screen, and
+write it as `.k-<screen>-table tr:not(.k-table-row-full)` — without the `:not()` it outranks the
+full-width empty/error row and collapses those states into the first column.
+
+### ⚠ The cascade warning — read this before adding any `.k-*` rule
+
+The pre-redesign stylesheets are **still loaded on every admin screen**, so a new rule does not win
+just because it is newer or more specific-looking. This has now bitten five times, by five different
+mechanisms: a token shadowed later in its own file; a base rule placed after the media query that
+turns it on; one component rule out-specifying another; a `:where()` default at (0,0,0) losing to a
+bare `a` selector in `klytos-base.css`; and a class losing to a `padding` shorthand in a sheet that
+loads later.
+
+The rule (L-032, L-033): **never assume which rule wins — read the computed value out of a real
+screen in the browser.** Not out of the file, and not out of the component specimen: the specimen
+does not load `klytos-base.css`, so it proves a rule is written correctly, not that it wins where it
+runs. Prefer specificity over source order, because order-independence survives the next edit.
 
 **For the complete token reference with all colors, sizes, and variants, see the `references/complete-tokens.md` file.**

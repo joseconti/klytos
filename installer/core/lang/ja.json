@@ -172,7 +172,24 @@
     "tab_trash": "ゴミ箱",
     "empty_trash": "ゴミ箱を空にする",
     "restore": "復元",
-    "permanent_delete": "完全に削除"
+    "permanent_delete": "完全に削除",
+    "bulk_change_template": "テンプレートを変更",
+    "bulk_template_label": "適用するテンプレート",
+    "bulk_template_missing": "適用するテンプレートを選んでください。",
+    "bulk_unpublish": "公開を取り消す",
+    "caption": "ページ — 結果: {count}、{page} / {pages} ページ",
+    "delete_home_reason": "削除 — このページはサイトのホームです",
+    "delete_home_refused": "サイトのホームはゴミ箱に移動できません。",
+    "empty_action": "最初のページを作成",
+    "empty_filtered": "{filters} に一致するページはありません。",
+    "empty_sentence": "ページはまだありません。ページとは、ブロックを載せた URL のことです。",
+    "error_sentence": "ページ索引を読み取れませんでした — ストレージ層がエラーを返しました。",
+    "filter_label": "ステータスで絞り込む",
+    "last_edit": "最終更新",
+    "row_actions": "{title} のその他の操作",
+    "search_label": "ページを検索",
+    "select_all": "この結果ページのすべてのページを選択",
+    "table_scroll_label": "ページの表（横スクロールできます）"
   },
   "design": {
     "title": "デザイン",
@@ -813,5 +830,16 @@
     "palette": "コマンドパレット",
     "palette_placeholder": "検索するかコマンドを入力",
     "palette_no_results": "{query} に一致するコマンドはありません。ページタイトル、設定名、または help をお試しください。"
+  },
+  "list": {
+    "clear_filters": "フィルターを解除",
+    "clear_selection": "解除",
+    "next": "次へ",
+    "not_set": "未設定",
+    "page_n": "{n} ページ目",
+    "pagination": "ページ送り",
+    "previous": "前へ",
+    "retry": "再試行",
+    "selected": "選択中: {count}"
   }
 }

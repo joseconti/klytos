@@ -172,7 +172,24 @@
     "tab_trash": "Prullenbak",
     "empty_trash": "Prullenbak legen",
     "restore": "Herstellen",
-    "permanent_delete": "Definitief verwijderen"
+    "permanent_delete": "Definitief verwijderen",
+    "bulk_change_template": "Sjabloon wijzigen",
+    "bulk_template_label": "Toe te passen sjabloon",
+    "bulk_template_missing": "Kies een sjabloon om toe te passen.",
+    "bulk_unpublish": "Publicatie ongedaan maken",
+    "caption": "Pagina's — resultaten: {count}, pagina {page} van {pages}",
+    "delete_home_reason": "Verwijderen — deze pagina is de homepage van de site",
+    "delete_home_refused": "De homepage van de site kan niet naar de prullenbak.",
+    "empty_action": "De eerste pagina maken",
+    "empty_filtered": "Geen pagina komt overeen met {filters}.",
+    "empty_sentence": "Nog geen pagina's. Een pagina is een URL met blokken erop.",
+    "error_sentence": "De pagina-index kon niet worden gelezen — de opslaglaag gaf een fout terug.",
+    "filter_label": "Filteren op status",
+    "last_edit": "Laatste bewerking",
+    "row_actions": "Meer acties voor {title}",
+    "search_label": "Pagina's zoeken",
+    "select_all": "Alle pagina's op deze resultatenpagina selecteren",
+    "table_scroll_label": "Paginatabel, scrollbaar"
   },
   "design": {
     "title": "Ontwerp",
@@ -813,5 +830,16 @@
     "palette": "Opdrachtenpalet",
     "palette_placeholder": "Zoek of typ een opdracht",
     "palette_no_results": "Geen opdracht komt overeen met {query}. Probeer een paginatitel, de naam van een instelling of 'help'."
+  },
+  "list": {
+    "clear_filters": "Filters wissen",
+    "clear_selection": "Wissen",
+    "next": "Volgende",
+    "not_set": "Niet ingesteld",
+    "page_n": "Pagina {n}",
+    "pagination": "Paginering",
+    "previous": "Vorige",
+    "retry": "Probeer het opnieuw",
+    "selected": "Geselecteerd: {count}"
   }
 }

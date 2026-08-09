@@ -172,7 +172,24 @@
     "tab_trash": "Kosz",
     "empty_trash": "Opróżnij kosz",
     "restore": "Przywróć",
-    "permanent_delete": "Usuń trwale"
+    "permanent_delete": "Usuń trwale",
+    "bulk_change_template": "Zmień szablon",
+    "bulk_template_label": "Szablon do zastosowania",
+    "bulk_template_missing": "Wybierz szablon do zastosowania.",
+    "bulk_unpublish": "Cofnij publikację",
+    "caption": "Strony — wyniki: {count}, strona {page} z {pages}",
+    "delete_home_reason": "Usuń — ta strona jest stroną główną witryny",
+    "delete_home_refused": "Strony głównej witryny nie można przenieść do kosza.",
+    "empty_action": "Utwórz pierwszą stronę",
+    "empty_filtered": "Żadna strona nie pasuje do {filters}.",
+    "empty_sentence": "Nie ma jeszcze stron. Strona to adres URL z blokami.",
+    "error_sentence": "Nie udało się odczytać indeksu stron — warstwa magazynu zwróciła błąd.",
+    "filter_label": "Filtruj według statusu",
+    "last_edit": "Ostatnia edycja",
+    "row_actions": "Więcej akcji dla: {title}",
+    "search_label": "Szukaj wśród stron",
+    "select_all": "Zaznacz wszystkie strony na tej stronie wyników",
+    "table_scroll_label": "Tabela stron, przewijana"
   },
   "design": {
     "title": "Wygląd",
@@ -813,5 +830,16 @@
     "palette": "Paleta poleceń",
     "palette_placeholder": "Szukaj lub wpisz polecenie",
     "palette_no_results": "Żadne polecenie nie pasuje do {query}. Spróbuj tytułu strony, nazwy ustawienia lub „help”."
+  },
+  "list": {
+    "clear_filters": "Wyczyść filtry",
+    "clear_selection": "Wyczyść",
+    "next": "Następna",
+    "not_set": "Nie ustawiono",
+    "page_n": "Strona {n}",
+    "pagination": "Paginacja",
+    "previous": "Poprzednia",
+    "retry": "Spróbuj ponownie",
+    "selected": "Zaznaczono: {count}"
   }
 }

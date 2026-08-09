@@ -61,7 +61,7 @@
 | 36 | CI workflow | Ph5 scaffold | **present** | `.github/workflows/ci.yml` — never executed (L-022) |
 | 37 | MCP registration | Ph5 scaffold | **n/a** | the plan defines no dev MCP servers; Klytos's own server is a product surface |
 | 38 | `docs/architecture.md` | Ph6 | **missing** | Phase 6 not started — not yet due |
-| 39 | `docs/api/`, `docs/usage/`, `docs/reference/` | Ph6 | **partial** | `api/` and `reference/` exist and grow per slice; `usage/` is Phase 6 — not yet due |
+| 39 | `docs/api/`, `docs/reference/` | Ph5 | **present** | Both exist and grow per slice; `docs/api/INDEX.md` is at 986 rows with its parity check passing |
 | 40 | `docs/security.md` | Ph6 | **missing** | Phase 6 — not yet due |
 | 41 | `docs/accessibility.md` | Ph6 | **missing** | Phase 6 — not yet due |
 | 42 | `README.md` | Ph6 | **present** | its per-module tool table is stale (recorded, D-017) |
@@ -71,6 +71,7 @@
 | 46 | `docs/issues.md` | first forge contact | **present** | |
 | 47 | `docs/old/` | first sprint close | **present** | sprints 1–5 archived 2026-07-28 (moved, never deleted); sprint 6 is still open |
 | 48 | `docs/04-adoption-audit.md` | adoption 5 | **present** | |
+| 49 | `docs/usage/` | Ph6 | **missing** | Phase 6 — not yet due. **Split out of row 39 on 2026-07-29 (D-077).** Row 39 read `**partial**`, which is not one of the four permitted states: it bundled two directories that exist with one that does not, so the sweep's own counter could not classify it and the missing half was invisible inside a word that sounded like progress. A fifth state is an unfinished row wearing a label |
 
 **Card lines:** all present — `Keel portability:`, `Assistant config:`, `Keel baseline:`,
 `Client budget:`, `User guide:`, `Docs theme:`, `Models:`, plus the `Domain rubric:` line added by
@@ -78,7 +79,9 @@ D-066.
 
 ## Table 3 — actions newer than the baseline
 
-Baseline before this sweep was v3.5.0, so only **v4.0.0** and **v5.0.0** apply.
+Baseline before the 2026-07-28 sweep was v3.5.0, so **v4.0.0** and **v5.0.0** applied (A1–A16).
+**A second sweep ran on 2026-07-29** for the v5.0.0 → v5.1.0 reconciliation (D-077), adding
+**A17–A19**. v5.1.0 has exactly three actions and all three are browser-test recording.
 
 | ID | Version | Action | State |
 |---|---|---|---|
@@ -93,16 +96,48 @@ Baseline before this sweep was v3.5.0, so only **v4.0.0** and **v5.0.0** apply.
 | A9 | v4.0.0 | Every stated duration is AI development time, named as such | **present in behaviour** — governs from this session; `docs/estimate.md` is already AI-time based |
 | A10 | v5.0.0 | `AC-nn` IDs on acceptance criteria + `Criterion`/`Coverage` columns in `docs/05-test-points.md` | **present** |
 | A11 | v5.0.0 | `test-driver` subagent in every capable container; permission allow-lists extended to the playground, drivers, sniffers, `keel-verify`, `keel-doctor --check`/`--plan` (never `--fix`) | **present** |
-| A12 | v5.0.0 | Phase 4 stops being the manual phase: `SPEC/external-setup.md` triaged into drivable vs guided, fonts fetched by script, drivers stood up at the first rendered screen, fidelity verified from rendered output at the declared breakpoints | **missing** — lands with the DR-001 re-audit |
+| A12 | v5.0.0 | Phase 4 stops being the manual phase: `SPEC/external-setup.md` triaged into drivable vs guided, fonts fetched by script, drivers stood up at the first rendered screen, fidelity verified from rendered output at the declared breakpoints | **present 2026-07-29 (D-077)** — `external-setup.md` and `external-assets.md` are both genuinely n/a for this delivery (BUILD-SPEC §5.8), the fonts shipped as files so nothing needed fetching, and the drivers now stand up: stage 1 verified the token chain from rendered output, and stage 2's JavaScript is driven by `tests/E2E/`. The **declared-breakpoint fidelity walk itself is still owed** and belongs to Step 7, so this row is present for the mechanism and Step 7 owns the walk |
 | A13 | v5.0.0 | Convert "the user will check it" into driven tests; sprint closes hand back verified evidence plus a short tagged list; the keyboard/focus-order pass moves to the driven list; assistive-tech batches per flow | **present as a standing rule** — recorded in `docs/05-test-points.md` (the coverage columns and the rule above them), the `test-driver` agent, and `docs/03-technical-plan.md` §4a. No retroactive conversion: it binds from the next slice |
 | A14 | v4.0.0 | `docs/lessons-learned.md` template gains symptom/cause/fix and a "Check added" field (new entries only, no rewriting) | **present** |
 | A15 | v5.0.0 | Maintenance and adoption join the contract: every maintenance session opens with `keel-doctor --check`; the adoption audit gains a Testability row | **present** — `docs/playground.md` Step 0 (with the PATH trap written out), and audit row **T-05** |
 | A16 | v5.0.0 | Product screenshots for the guide captured by the assistant from the playground | **n/a for now** — Phase 6, `guide/` undecided |
+| A17 | v5.1.0 | Turn on the recording: every browser surface sets `video` and `trace` on, artifacts under the ignored artifacts directory; the test-point row carries the trace path | **present 2026-07-29 (D-077)** — `playwright.config.js` sets `trace: 'on'`, `video: 'on'`, `screenshot: 'on'` for every test, not only failures. Artifacts under `tests/E2E/artifacts/` (gitignored). Verified by listing the produced `trace.zip` and `video.webm` after a green run, not by reading the config |
+| A18 | v5.1.0 | Add the headed script: a documented npm script running the same suite with `headless: false` and a followable `slowMo` | **present 2026-07-29 (D-077)** — `npm run test:e2e:watch` (`--headed`, `PWSLOWMO=250`), plus `test:e2e:ui`, `test:e2e:debug` and `test:e2e:trace`. The technical plan records that a headed run takes the screen while it lasts |
+| A19 | v5.1.0 | Record the run mode in the technical plan's `## Testing` block: headless default, the headed script, the recording settings | **present 2026-07-29 (D-077)** — `docs/03-technical-plan.md` §Testing, "Run mode and recording": the three-mode table, the `show-trace` / `show-report` commands, and `retries: 0` / `workers: 1` with the reason |
 
-## Result — after applying the batch the user approved on 2026-07-28
+**Not a Table 3 row, fixed in the same sweep:** the technical plan's delegation table listed **six**
+of the contract's **eight** tags. `PLATFORM-IMPOSSIBLE` and `NO-EXECUTION` were added to Keel in
+v5.0.0 and never reached this project's `## Testing` block — the same omission v5.1.0 fixed in Keel's
+own template. Both rows now exist, each stating why nothing here qualifies, because an absent row
+reads as "not considered".
 
-- **present:** 40 · **n/a:** 9 · **missing:** 6 · **declined:** 1
-- The seven remaining `missing` rows are **six that are legitimately ahead of the project's position**
+## Result — after the v5.0.0 → v5.1.0 sweep of 2026-07-29 (D-077)
+
+**Counted mechanically over Table 1 + Table 3, not asserted** (the script is in the D-077 session
+record; `scripts/keel-verify`'s conformance check independently reports the same `missing` count):
+
+- **68 rows** — **present 54 · n/a 7 · missing 6 · declined 1.** Every row carries a state; zero
+  unclassified.
+- **What moved on 2026-07-29 (D-077):** A17, A18 and A19 are new and all three `present`; **A12 moved
+  `missing` → `present`** (the drivers now stand up; Step 7 still owns the declared-breakpoint
+  fidelity walk); **row 39 was split into 39 + 49**. Nothing was declined.
+- **The `missing` count went 5 → 6, and that is the sweep getting more honest rather than the project
+  getting worse.** Row 39 read `**partial**` — a fifth state nobody authorised, bundling `docs/api/`
+  and `docs/reference/` (both present, both growing per slice) with `docs/usage/` (absent). The
+  counter could not classify it, so the absent half was hiding inside a word that sounded like
+  progress. Splitting it made one real gap countable. A number that only ever falls is a number
+  somebody is managing.
+- **The 2026-07-28 result line was itself wrong and is corrected here rather than preserved.** It read
+  "present 40 · n/a 9 · missing 6 · declined 1" — 56 states over what were already 67 rows, so eleven
+  rows were not in the total at all. It was written from the batch the user approved, not from a count
+  of the table. Recorded because this file exists precisely to stop that.
+- All **six** `missing` rows are **legitimately ahead of the project's position** —
+  `docs/architecture.md`, `docs/security.md`, `docs/accessibility.md`, `docs/usage/` (Phase 6),
+  `docs/07-release.md` (Phase 7), and the `<site-docs>/` set (Phase 8, deferred by D-012).
+
+### The earlier reasoning, kept as the record
+
+- The remaining `missing` rows were **legitimately ahead of the project's position**
   — `docs/architecture.md`, `docs/security.md`, `docs/accessibility.md` (Phase 6), `docs/07-release.md`
   (Phase 7), and the `<site-docs>/` set (Phase 8, deferred by D-012). **A8 is declined, not missing**
   (D-068) — the distinction is the whole point of this file: a declined row is a decision someone
@@ -115,8 +150,14 @@ Baseline before this sweep was v3.5.0, so only **v4.0.0** and **v5.0.0** apply.
 
 ## Standing rule
 
-`scripts/keel-verify` must fail on a `missing` row with no decision (v5.0.0). It does not yet — that
-is A7, and until A7 lands this file is the only thing enforcing the sweep.
+`scripts/keel-verify` must fail on a `missing` row with no decision (v5.0.0). **What it actually does
+today is WARN**, and the difference is stated rather than rounded off: the check exists, runs, and
+counts the `missing` rows correctly (it independently reported 5 before row 49 was split and 6
+after), but it is in the WARN tier because every `missing` row this project has is a phase it has not
+reached yet, and a check that is red for weeks stops being read — L-010's failure mode applied to a
+verifier. **It becomes a FAIL when the last not-yet-due row is either reached or excluded**, which is
+the Phase 7 gate. Until then this file plus the WARN are what enforce the sweep, and the sentence
+that used to sit here — "it does not yet, that is A7" — was stale from the moment A7 landed.
 
 ---
 

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<!--
+  Component specimen — TEST FIXTURE, not a product screen.
+
+  Manifest entry 16 ("States") is explicitly "a catalogue — not a screen", with
+  `—` as its entry point: the design delivers it so the build can see the empty,
+  loading, error and offline treatments side by side. It is NOT a URL Klytos
+  serves, so this file lives under tests/ (which is export-ignored and can never
+  reach a release archive) and is fulfilled by Playwright's route interception at
+  a /installer/admin/ URL. That gives it the playground's real origin, so the
+  stylesheet chain below is the REAL one and the icon sprite is same-origin.
+
+  Its job is to make stage 3's component layer drivable per STATE rather than per
+  page: axe-core runs scoped to each section, in both themes. A stylesheet with no
+  consumer cannot be verified, and "the CSS looks right" is a reading, not a test.
+
+  Every fragment here is copied from the normative source it implements —
+  SPEC/accessibility.md §2.1 for the table, §5.1–§5.12 for the rest. Where this
+  file and the SPEC ever disagree, the SPEC is right and this file is the defect.
+
+  ONE STRUCTURAL DIFFERENCE FROM A REAL SCREEN, stated so it is not read as a
+  contradiction of §4.2. On a product screen h1 is the page and h2 is a card. A
+  specimen has many components on one page, so h2 is the COMPONENT SECTION and a
+  card's heading is h3. What §4.2 actually forbids — a skipped level, more than
+  one h1, an eyebrow promoted to a heading — holds here exactly as it does on a
+  screen, and that is what the axe pass checks.
+-->
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Component specimen — Klytos admin</title>
+
+<!-- The real chain, in the real order (BUILD-SPEC §5.2 "Load order"). -->
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/colors.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/typography.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/spacing.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/effects.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/motion.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/glass.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/fonts.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/tokens/klytos-admin.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/klytos-legacy-components.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/klytos-components.css">
+<link rel="stylesheet" href="/installer/admin/assets/css/klytos-shell.css">
+
+<style>
+/* Specimen-local only: page frame and the per-screen grid-template-columns that
+   template-list-table.md §1 assigns to the consuming SCREEN, never to the
+   component layer. Nothing here overrides a component rule. */
+body {
+    margin: 0;
+    padding: 20px;
+    background: var(--fondo-contenido);
+    color: var(--texto-primario);
+    font: var(--type-body);
+}
+h1 { font: var(--type-page-title); letter-spacing: var(--type-page-title-tracking); margin: 0 0 14px; }
+h2 { font: var(--type-card-heading); margin: 24px 0 8px; }
+section { margin-bottom: 24px; }
+.specimen-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+/* The Pages table's own columns — 7 columns, checkbox first at 28px. */
+#specimen-table .k-table tr {
+    grid-template-columns: 28px minmax(120px, 2fr) 90px 110px 90px 120px 40px;
+}
+#specimen-table .k-table tr.k-table-row-full { grid-template-columns: 1fr; }
+/* The empty/error tables carry two columns. Without this they would fall to the
+   component layer's single-column fallback, which is deliberately wrong-looking
+   so a screen that forgets its columns is caught. */
+#specimen-table-empty .k-table tr { grid-template-columns: minmax(120px, 2fr) 100px; }
+#specimen-table-empty .k-table tr.k-table-row-full { grid-template-columns: 1fr; }
+</style>
+</head>
+<body>
+<main>
+<h1>Component specimen</h1>
+
+<!-- ============================================================
+     BUTTON — accessibility.md §5.1
+     ============================================================ -->
+<section id="specimen-button" aria-labelledby="h-button">
+    <h2 id="h-button">Button</h2>
+    <div class="specimen-row">
+        <button type="button" class="k-btn k-btn--primary" data-testid="specimen.button.primary">Save changes</button>
+        <button type="button" class="k-btn k-btn--secondary" data-testid="specimen.button.secondary">Cancel</button>
+        <button type="button" class="k-btn k-btn--destructive" data-testid="specimen.button.destructive">Delete this page</button>
+        <button type="button" class="k-btn k-btn--sm k-btn--secondary" data-testid="specimen.button.sm">Add a field</button>
+        <!-- Disabled is never hidden, and the reason is in its accessible name. -->
+        <button type="button" class="k-btn k-btn--secondary" disabled
+                aria-label="Delete — this page is the site home"
+                data-testid="specimen.button.disabled">Delete</button>
+        <!-- Loading: stays focusable, label in the progressive form. -->
+        <button type="button" class="k-btn k-btn--primary" aria-busy="true"
+                data-testid="specimen.button.busy">Publishing…</button>
+        <!-- Opens an overlay: aria-expanded + aria-controls. -->
+        <button type="button" class="k-btn k-btn--secondary" aria-expanded="false"
+                aria-controls="specimen-panel" data-testid="specimen.button.expander">More options</button>
+        <div id="specimen-panel" hidden>Nothing here; the specimen only needs the control.</div>
+    </div>
+    <p class="specimen-row" style="margin-top:8px">
+        <!-- Destructive inline confirm: the SAME button relabelled, wrapper polite. -->
+        <span class="k-confirm-wrap" aria-live="polite">
+            <button type="button" class="k-btn k-btn--destructive"
+                    data-testid="specimen.button.confirm">Confirm delete — 34 records will be deleted</button>
+        </span>
+    </p>
+    <p class="specimen-row" style="margin-top:8px">
+        <a href="#specimen-button" class="k-btn k-btn--secondary" data-testid="specimen.button.link">Open Health</a>
+        <button type="button" class="k-btn k-btn--auth k-btn--primary" style="max-width:280px"
+                data-testid="specimen.button.auth">Sign in</button>
+    </p>
+</section>
+
+<!-- ============================================================
+     BADGE — accessibility.md §5.2. Not interactive; text is the name.
+     ============================================================ -->
+<section id="specimen-badge" aria-labelledby="h-badge">
+    <h2 id="h-badge">Badge</h2>
+    <div class="specimen-row">
+        <span class="k-badge k-badge--acento">Accent</span>
+        <span class="k-badge k-badge--info">Info</span>
+        <span class="k-badge k-badge--exito">Published</span>
+        <span class="k-badge k-badge--aviso">Held for review</span>
+        <span class="k-badge k-badge--peligro">Failed</span>
+        <span class="k-badge k-badge--offline">Draft</span>
+        <span class="k-badge k-badge--sync">In flight</span>
+        <span class="k-badge k-badge--conflicto">Conflict</span>
+        <span class="k-badge k-badge--reconectar">Retrying</span>
+    </div>
+    <p class="specimen-row" style="margin-top:8px">
+        <!-- The 6px dot is decoration: the word carries the state. -->
+        <span class="k-badge k-badge--sync"><span class="k-status-dot" aria-hidden="true"></span>Syncing</span>
+    </p>
+</section>
+
+<!-- ============================================================
+     CHIP — accessibility.md §5.3. Links in a labelled nav.
+     ============================================================ -->
+<section id="specimen-chip" aria-labelledby="h-chip">
+    <h2 id="h-chip">Chip</h2>
+    <nav aria-label="Filter by status" class="k-filters">
+        <a href="#specimen-chip" class="k-chip" aria-current="true" data-testid="specimen.chip.all">All</a>
+        <a href="#specimen-chip" class="k-chip" data-testid="specimen.chip.published">Published</a>
+        <a href="#specimen-chip" class="k-chip" data-testid="specimen.chip.draft">Draft</a>
+        <a href="#specimen-chip" class="k-chip" data-testid="specimen.chip.clear">Clear filters</a>
+    </nav>
+    <!-- Multi-select filter chips (rare: Logs level) are real checkboxes in a
+         fieldset whose legend is the filter name. -->
+    <fieldset class="k-fieldset" style="margin-top:8px">
+        <legend class="k-legend">Log level</legend>
+        <div class="specimen-row">
+            <label class="k-choice k-hit-24"><input type="checkbox" class="k-check" checked data-testid="specimen.chip.level-error"> ERROR</label>
+            <label class="k-choice k-hit-24"><input type="checkbox" class="k-check" data-testid="specimen.chip.level-warn"> WARN</label>
+        </div>
+    </fieldset>
+</section>
+
+<!-- ============================================================
+     TABLE — accessibility.md §2.1, element by element.
+     This is the single most load-bearing block in the specimen.
+     ============================================================ -->
+<section id="specimen-table" aria-labelledby="h-table">
+    <h2 id="h-table">Table</h2>
+    <div class="k-card k-card--table">
+        <div class="k-table-scroll" role="group" tabindex="0" aria-label="Pages table, scrollable">
+            <table role="table" class="k-table" aria-labelledby="pages-h">
+                <caption id="pages-h" class="k-table-caption" aria-live="polite">Pages — 34 results, page 1 of 3</caption>
+
+                <thead role="rowgroup">
+                    <tr role="row">
+                        <th role="columnheader" scope="col" class="k-col-check">
+                            <label class="k-hit-24" style="display:inline-flex">
+                                <input type="checkbox" class="k-check" aria-label="Select all pages on this page"
+                                       data-testid="specimen.table.select-all">
+                            </label>
+                        </th>
+                        <th role="columnheader" scope="col" aria-sort="ascending">
+                            <a href="#specimen-table" data-testid="specimen.table.sort-title">Title</a>
+                        </th>
+                        <th role="columnheader" scope="col">Status</th>
+                        <th role="columnheader" scope="col">Template</th>
+                        <th role="columnheader" scope="col">Locale</th>
+                        <th role="columnheader" scope="col" class="k-num">Last edit</th>
+                        <th role="columnheader" scope="col"><span class="k-sr">Actions</span></th>
+                    </tr>
+                </thead>
+
+                <tbody role="rowgroup">
+                    <tr role="row" aria-selected="true">
+                        <td role="cell">
+                            <label class="k-hit-24" style="display:inline-flex">
+                                <input type="checkbox" class="k-check" checked aria-labelledby="row-42-title"
+                                       data-testid="specimen.table.select.42">
+                            </label>
+                        </td>
+                        <th role="rowheader" scope="row" id="row-42-title"><a href="#specimen-table">Pricing</a></th>
+                        <td role="cell"><span class="k-badge k-badge--exito">Published</span></td>
+                        <td role="cell">Marketing</td>
+                        <td role="cell"><span lang="en">English</span></td>
+                        <td role="cell" class="k-num"><time datetime="2026-07-21T14:03">21 Jul, 14:03</time></td>
+                        <td role="cell">
+                            <a href="#specimen-table" class="k-hit-24" aria-label="More actions for Pricing"
+                               data-testid="specimen.table.actions.42">⋯</a>
+                        </td>
+                    </tr>
+                    <tr role="row">
+                        <td role="cell">
+                            <label class="k-hit-24" style="display:inline-flex">
+                                <input type="checkbox" class="k-check" aria-labelledby="row-43-title"
+                                       data-testid="specimen.table.select.43">
+                            </label>
+                        </td>
+                        <th role="rowheader" scope="row" id="row-43-title"><a href="#specimen-table">About us</a></th>
+                        <td role="cell"><span class="k-badge k-badge--offline">Draft</span></td>
+                        <td role="cell">Default</td>
+                        <td role="cell"><span lang="es">Spanish</span></td>
+                        <td role="cell" class="k-num"><time datetime="2026-07-20T09:11">20 Jul, 09:11</time></td>
+                        <td role="cell">
+                            <!-- An action a record cannot take is disabled with the reason
+                                 in its accessible name, never hidden. -->
+                            <span class="k-hit-24" role="link" aria-disabled="true"
+                                  aria-label="Delete — this page is the site home"
+                                  data-testid="specimen.table.actions.43">⋯</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <nav class="k-pagination" aria-label="Pagination">
+            <span aria-current="page">1</span>
+            <a href="#specimen-table" data-testid="specimen.table.page.2">2</a>
+            <a href="#specimen-table" data-testid="specimen.table.page.3">3</a>
+        </nav>
+    </div>
+</section>
+
+<!-- ============================================================
+     TABLE — the empty and error rows. One row spanning all columns,
+     never a table replaced by a div.
+     ============================================================ -->
+<section id="specimen-table-empty" aria-labelledby="h-table-empty">
+    <h2 id="h-table-empty">Table — empty and error</h2>
+    <div class="k-card k-card--table" style="margin-bottom:14px">
+        <table role="table" class="k-table" aria-labelledby="pages-empty-h">
+            <caption id="pages-empty-h" class="k-table-caption" aria-live="polite">Pages — 0 results</caption>
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th role="columnheader" scope="col">Title</th>
+                    <th role="columnheader" scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                <tr role="row" class="k-table-row-full">
+                    <td role="cell" colspan="2">
+                        <span class="k-empty-icon" aria-hidden="true">◇</span>
+                        <p class="k-empty-text">No pages yet. A page is a URL with blocks on it.</p>
+                        <a href="#specimen-table-empty" class="k-btn k-btn--primary"
+                           data-testid="specimen.table.empty.action">Create the first page</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="k-card k-card--table">
+        <table role="table" class="k-table" aria-labelledby="pages-err-h">
+            <caption id="pages-err-h" class="k-table-caption">Pages — could not be read</caption>
+            <thead role="rowgroup">
+                <tr role="row">
+                    <th role="columnheader" scope="col">Title</th>
+                    <th role="columnheader" scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody role="rowgroup">
+                <tr role="row" class="k-table-row-full">
+                    <td role="cell" colspan="2" class="k-empty--error">
+                        <span class="k-empty-icon" aria-hidden="true">!</span>
+                        <p class="k-empty-text">The page index could not be read — the database returned an error.</p>
+                        <span class="specimen-row">
+                            <a href="#specimen-table-empty" data-testid="specimen.table.error.retry">Try again</a>
+                            <a href="#specimen-table-empty" data-testid="specimen.table.error.health">Open Health</a>
+                        </span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ============================================================
+     BULK BAR — raised by selecting ≥ 1 row. A form; its actions submit.
+     ============================================================ -->
+<section id="specimen-bulkbar" aria-labelledby="h-bulkbar">
+    <h2 id="h-bulkbar">Bulk bar</h2>
+    <form class="k-bulkbar" action="#specimen-bulkbar" method="post">
+        <span class="k-bulkbar-count">3 selected</span>
+        <button type="submit" class="k-btn k-btn--sm k-btn--secondary" data-testid="specimen.bulk.publish">Publish</button>
+        <button type="submit" class="k-btn k-btn--sm k-btn--destructive" data-testid="specimen.bulk.delete">Delete</button>
+        <a href="#specimen-bulkbar" data-testid="specimen.bulk.clear">Clear</a>
+    </form>
+</section>
+
+<!-- ============================================================
+     CARD and FIELD — accessibility.md §5.7, template-record-form.md
+     ============================================================ -->
+<section id="specimen-field" aria-labelledby="h-field">
+    <h2 id="h-field">Card and field</h2>
+    <div class="k-card-stack">
+        <div class="k-card k-card--padded">
+            <div class="k-card-body">
+                <p class="k-eyebrow">Identity</p>
+                <h3 class="k-card-heading">Site identity</h3>
+
+                <div class="k-field">
+                    <label class="k-label" for="f-title">Site title</label>
+                    <input class="k-control" id="f-title" type="text" value="Klytos"
+                           aria-describedby="f-title-hint" data-testid="specimen.field.title">
+                    <p class="k-hint" id="f-title-hint">Shown in the browser tab and in search results. Required.</p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="f-slug">Slug</label>
+                    <input class="k-control k-control--mono" id="f-slug" type="text" value="spring-sale"
+                           spellcheck="false" autocapitalize="off"
+                           aria-describedby="f-slug-hint f-slug-err" aria-invalid="true"
+                           data-testid="specimen.field.slug">
+                    <p class="k-hint" id="f-slug-hint">Lowercase letters, numbers and hyphens only. Required.</p>
+                    <p class="k-error" id="f-slug-err">
+                        <span class="k-error-icon" aria-hidden="true">!</span>
+                        Enter a slug. Lowercase letters, numbers and hyphens only — <code>spring-sale</code>.
+                    </p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="f-key">Licence key</label>
+                    <input class="k-control" id="f-key" type="text" value="KLY-0000-0000-0000" readonly
+                           aria-describedby="f-key-hint" data-testid="specimen.field.key">
+                    <p class="k-hint" id="f-key-hint">Read-only. Copy it; it cannot be changed here.</p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="f-wallet">Wallet address</label>
+                    <input class="k-control" id="f-wallet" type="text" value="managed elsewhere" disabled
+                           aria-describedby="f-wallet-hint" data-testid="specimen.field.wallet">
+                    <p class="k-hint" id="f-wallet-hint">Locked — this option is managed by a deployment constant.</p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="f-notes">Notes</label>
+                    <textarea class="k-control" id="f-notes" data-testid="specimen.field.notes">Free text.</textarea>
+                </div>
+
+                <div class="k-card-footer">
+                    <button type="button" class="k-btn k-btn--secondary" data-testid="specimen.field.cancel">Cancel</button>
+                    <button type="button" class="k-btn k-btn--primary" data-testid="specimen.field.save">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="k-card k-card--padded">
+            <div class="k-card-body">
+                <h3 class="k-card-heading">Choices</h3>
+
+                <fieldset class="k-fieldset">
+                    <legend class="k-legend">Event subscriptions</legend>
+                    <label class="k-choice k-hit-24"><input type="checkbox" class="k-check" checked data-testid="specimen.check.published"> Page published</label>
+                    <label class="k-choice k-hit-24"><input type="checkbox" class="k-check" data-testid="specimen.check.deleted"> Page deleted</label>
+                    <label class="k-choice k-hit-24"><input type="checkbox" class="k-check" disabled data-testid="specimen.check.disabled"> Comment received</label>
+                </fieldset>
+
+                <fieldset class="k-fieldset">
+                    <legend class="k-legend">Visibility</legend>
+                    <label class="k-choice k-hit-24"><input type="radio" class="k-radio" name="vis" checked data-testid="specimen.radio.public"> Public</label>
+                    <label class="k-choice k-hit-24"><input type="radio" class="k-radio" name="vis" data-testid="specimen.radio.private"> Private</label>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     SWITCH — accessibility.md §5.4. Immediate effect, or it is a checkbox.
+     ============================================================ -->
+<section id="specimen-switch" aria-labelledby="h-switch">
+    <h2 id="h-switch">Switch</h2>
+    <div class="k-card k-card--padded">
+        <div class="k-card-body">
+            <div class="k-switch-row">
+                <span class="k-label" id="sw-follow-label">Follow the log</span>
+                <button type="button" class="k-switch" role="switch" aria-checked="true"
+                        aria-labelledby="sw-follow-label" data-testid="specimen.switch.follow">
+                    <span class="k-switch-thumb" aria-hidden="true"></span>
+                </button>
+            </div>
+            <div class="k-switch-row">
+                <span class="k-label" id="sw-compact-label">Compact rows</span>
+                <button type="button" class="k-switch" role="switch" aria-checked="false"
+                        aria-labelledby="sw-compact-label" data-testid="specimen.switch.compact">
+                    <span class="k-switch-thumb" aria-hidden="true"></span>
+                </button>
+            </div>
+            <div class="k-switch-row">
+                <span class="k-label" id="sw-locked-label">Managed by a constant</span>
+                <button type="button" class="k-switch" role="switch" aria-checked="false" disabled
+                        aria-labelledby="sw-locked-label" data-testid="specimen.switch.locked">
+                    <span class="k-switch-thumb" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     STAT CARD — accessibility.md §5.9. A figure, not a heading.
+     ============================================================ -->
+<section id="specimen-stat" aria-labelledby="h-stat">
+    <h2 id="h-stat">Stat card</h2>
+    <div class="k-stat-row">
+        <a class="k-stat" href="#specimen-stat" aria-labelledby="stat-1-v stat-1-l" data-testid="specimen.stat.pages">
+            <span class="k-stat-tile" aria-hidden="true">▤</span>
+            <p class="k-stat-value" id="stat-1-v">1,284</p>
+            <p class="k-stat-label" id="stat-1-l">Page views, 30 days</p>
+            <p class="k-stat-delta">Up 12 % vs previous 30 days</p>
+        </a>
+        <div class="k-stat" aria-labelledby="stat-2-v stat-2-l">
+            <span class="k-stat-tile k-stat-tile--exito" aria-hidden="true">✓</span>
+            <p class="k-stat-value" id="stat-2-v">24</p>
+            <p class="k-stat-label" id="stat-2-l">Checks passed</p>
+        </div>
+        <div class="k-stat" aria-labelledby="stat-3-v stat-3-l">
+            <span class="k-stat-tile k-stat-tile--peligro" aria-hidden="true">!</span>
+            <p class="k-stat-value" id="stat-3-v">3</p>
+            <p class="k-stat-label" id="stat-3-l">Failing checks</p>
+        </div>
+        <div class="k-stat" aria-labelledby="stat-4-v stat-4-l">
+            <span class="k-stat-tile k-stat-tile--offline" aria-hidden="true">–</span>
+            <!-- Empty is an em dash, never 0: a zero is a claim. -->
+            <p class="k-stat-value" id="stat-4-v">—</p>
+            <p class="k-stat-label" id="stat-4-l">Agent payments, 30 days</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PROGRESS — accessibility.md §5.8. The percentage is TEXT.
+     ============================================================ -->
+<section id="specimen-progress" aria-labelledby="h-progress">
+    <h2 id="h-progress">Progress</h2>
+    <div class="k-card k-card--padded">
+        <div class="k-card-body">
+            <p class="k-label" id="prog-label">Uploading brochure.pdf</p>
+            <div class="k-progress-row">
+                <progress class="k-progress" max="100" value="62" aria-labelledby="prog-label"
+                          data-testid="specimen.progress.upload"></progress>
+                <span class="k-progress-value">62 %</span>
+            </div>
+            <div class="k-progress-row">
+                <div class="k-progress-indeterminate" role="progressbar"
+                     aria-label="Checking files" data-testid="specimen.progress.checking"></div>
+                <span class="k-progress-value">Checking 412 files…</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     CODE / PAYLOAD BLOCK — accessibility.md §5.12
+     ============================================================ -->
+<section id="specimen-code" aria-labelledby="h-code">
+    <h2 id="h-code">Code block and log levels</h2>
+    <pre class="k-code" tabindex="0" aria-label="Webhook delivery payload"
+         data-testid="specimen.code.payload"><code><span class="k-code-key">event</span>: <span class="k-code-value">page.published</span>
+<span class="k-code-key">id</span>: <span class="k-code-value">42</span>
+<span class="k-code-focus">status: 502 Bad Gateway</span></code></pre>
+    <pre class="k-code" tabindex="0" aria-label="Application log, 4 lines, scrollable"
+         data-testid="specimen.code.log"><code><span class="k-line--error"><span class="k-level k-level--error">ERROR</span> Storage write failed</span>
+<span class="k-line--warn"><span class="k-level k-level--warn">WARN </span> Cache miss ratio above 40 %</span>
+<span class="k-level k-level--info">INFO </span> Build finished in 21 ms
+<span class="k-level k-level--debug">DEBUG</span> 12 pages considered</code></pre>
+</section>
+
+<!-- ============================================================
+     EMPTY, STATUS AND ERROR SUMMARY — accessibility.md §6
+     ============================================================ -->
+<section id="specimen-feedback" aria-labelledby="h-feedback">
+    <h2 id="h-feedback">Empty, status and error summary</h2>
+
+    <div class="k-card k-card--padded" style="margin-bottom:14px">
+        <div class="k-empty">
+            <span class="k-empty-icon" aria-hidden="true">◇</span>
+            <p class="k-empty-text">No custom fields. A custom field adds a value to every record of this type.</p>
+            <a href="#specimen-feedback" class="k-btn k-btn--primary" data-testid="specimen.empty.action">Add a field</a>
+        </div>
+    </div>
+
+    <p class="k-status-line" data-testid="specimen.status.saved">Settings saved.</p>
+    <p class="k-status-line k-status-line--aviso" data-testid="specimen.status.warn">Indexing is blocked — search engines and AI crawlers cannot read this site.</p>
+    <p class="k-status-line k-status-line--info" data-testid="specimen.status.info">Follow paused — you scrolled up.</p>
+
+    <div class="k-error-summary" role="alert" tabindex="-1" data-testid="specimen.error.summary" style="margin-top:14px">
+        <h3>This post type was not saved. 2 fields need attention:</h3>
+        <ul>
+            <li><a href="#f-slug">Slug — enter a slug</a></li>
+            <li><a href="#f-title">Menu position — must be a whole number between 1 and 100</a></li>
+        </ul>
+    </div>
+</section>
+
+</main>
+</body>
+</html>

@@ -50,7 +50,8 @@
       "Bash(git check-attr:*)",
       "Bash(git check-ignore:*)",
       "Bash(git tag --sort:*)",
-      "Bash(git archive:*)"
+      "Bash(git archive:*)",
+      "Bash(./scripts/keel-handoff-verify:*)"
     ]
   }
 }

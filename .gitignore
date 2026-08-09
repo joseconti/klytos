@@ -123,10 +123,22 @@ installer/vendor-ai/**/composer.lock
 .phpunit.cache/
 .phpunit.result.cache
 
-# ─── Node.js (if used for build tools) ───────────────────────
+# ─── Node.js (dev tooling only — Klytos ships no Node dependency) ─
 node_modules/
-package-lock.json
 yarn.lock
+# package-lock.json IS tracked, on D-027's reasoning applied to the browser
+# driver: an unpinned driver means "the E2E suite passed" denotes something
+# different on every machine and every day.
+
+# ─── Browser-driven tier artifacts (traces, video, screenshots, reports) ─
+# Keel v5.1.0 records every browser run; the recordings themselves are large,
+# regenerated on every run, and never committed. The trace PATH goes in the
+# test-point row — `npx playwright show-trace <path>` opens it.
+tests/E2E/artifacts/
+# Playwright's default output directory, in case a run is ever started
+# without the project config picking up outputDir.
+test-results/
+playwright-report/
 
 # ─── Logs ─────────────────────────────────────────────────────
 *.log
@@ -144,3 +156,6 @@ AGENTS.override.md
 .claude/settings.local.json
 .gemini/.env
 .gemini/tmp/
+
+# Keel v5.3.0 — ephemeral session hand-off, regenerated at every close, never in history.
+docs/continuation-prompt.md

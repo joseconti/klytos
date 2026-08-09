@@ -53,6 +53,9 @@
 | **L-028** | The session-start freshness check fed the counter that a later test measures, and the suite failed on code that was fine |
 | **L-029** | The probe measured its own missing tool and reported it as a missing world — twice in one session, and the throttle would have preserved the wrong answer for a day |
 | **L-030** | The gate proved the asset file was intact and never asked whether it contained what the screens draw |
+| **L-031** | The half I could not drive was the half that was broken, and "verified" had been said about the other half |
+| **L-032** | Three times the stylesheet said one thing and the browser painted another, and the mechanism was different each time |
+| **L-033** | The specimen proved the component layer correct in a cascade the product never has, so the fix for the last lesson shipped a new defect |
 
 ## L-001 — The embedded Keel copy silently rotted 20+ releases behind
 - Problem: The repo carried `.claude/skills/keel/` at v1.11.0 while the installed skill was at v3.3.0, and the `CLAUDE.md` lock block was stamped v1.11.0. Any session reading the embedded copy was running an obsolete protocol, and `AGENTS.md` did not exist at all — so a fork opened in Codex/Copilot/Cursor/Gemini was bound by nothing.
@@ -1034,3 +1037,148 @@
   cover — `template-shell.md`'s silence about the nav's contents would satisfy any presence check.
   That stays a habit, and the habit is: **for every artifact the gate proves EXISTS, ask separately
   what CONSUMES it, and check the consumer's demands against the artifact's contents.**
+
+## L-031 — The half I could not drive was the half that was broken, and "verified" had been said about the other half
+- **Symptom.** Stage 2 of the Phase 4 build (the shell) closed on 2026-07-29 with an unusually strong
+  evidence record: 39 screens driven as owner with zero errors, the capability rule driven as all
+  four roles, landmark uniqueness, child parentage, and the theme toggle's 403/405/invalid/
+  open-redirect branches all walked. One paragraph of that record read `⚠ unverified` — the
+  JavaScript — because Playwright was not installed. Playwright was installed the next work block,
+  and **the first driven run found two defects, both in that paragraph's territory, and one of them
+  was a keyboard trap.** Pressing Escape in the command palette did nothing: closing it returned
+  focus to the search field, whose focus listener re-opened it, with no way out using the keyboard
+  alone (WCAG 2.1.2). The second: the rail's "Expand navigation" button was `display: none` at every
+  viewport, because the base rule sat AFTER the media query that turns it on and won on source order.
+  The button existed, had its accessible name, had its `data-testid`, and no user could ever click it.
+- **Cause.** Two mechanisms, one habit.
+  **(a) The defects lived between two things that were each correct.** The search field opening the
+  palette is `template-shell.md` §1. Returning focus to the opener is `accessibility.md` §3.2. Both
+  are right; their composition is a trap, and no amount of reading either listener produces the
+  sentence "these two call each other". The CSS is the same shape one layer down and is *literally*
+  build rule 1 — the rule this project already wrote down after `typography.css` shadowed
+  `--type-body`, arriving in a layout property instead of a token and therefore not recognised.
+  **(b) The strength of the verified half made the unverified half feel small.** The stage-2 record is
+  honest — it names what was not verified, in bold, with the reason. But a record that is 95 %
+  green and 5 % `⚠ unverified` is read as "verified", and the 5 % was not a random sample: it was
+  precisely everything a keyboard user touches, which is where an accessibility defect lives by
+  definition. **The unverified fraction is never a random fraction. It is the fraction the available
+  tools could not reach, and defects concentrate there for the same reason.**
+- **Fix.** The user was asked, at the start of the block, whether to install Playwright rather than
+  being handed another stage of `⚠ unverified` — which is the Keel v5.0.0 contract working as
+  designed, since installing a ~400 MB driver is not the assistant's call. Playwright 1.62.0 +
+  chromium went in, `tests/E2E/` was created with a real-form login fixture and the read-back duty,
+  and 16 tests now cover the palette, the drawer, the rail and the offline state. Both defects were
+  fixed and each fix was **proven by watching its test go from red to green**, not by re-reading the
+  code. Recorded as D-077.
+- **Check added.** **(a) `tests/E2E/shell.spec.js` — 16 driven tests**, and the two that matter here
+  (`Escape closes it and focus returns to whatever opened it`, `Expand navigation restores the full
+  sidebar and the choice survives a reload`) were **both observed FAILING against the unfixed code
+  before the fixes landed**, which is the only thing that makes them evidence rather than decoration.
+  **(b) The read-back fixture in `tests/E2E/fixtures.js`** fails any test whose flow produces a
+  console error, a page error, a failed request, a 5xx or a new ERROR line in
+  `installer/data/logs-*/` — **proven by planting a `console.error` and watching it turn red**, then
+  removing the probe. **(c) `trace`, `video` and `screenshot` are on for every test, passing or
+  failing** (Keel v5.1.0), so a future run leaves something a human can open instead of a word.
+  **What is NOT mechanically checkable, said plainly:** nothing can detect that two individually
+  correct specified behaviours compose into a trap. That stays a habit, and the habit is: **when a
+  slice closes with any `⚠ unverified` fraction, treat that fraction as the most likely location of
+  the next defect, not the least — and say so in the record, so the next session inherits a suspicion
+  instead of a footnote.**
+
+## L-032 — Three times now the stylesheet said one thing and the browser painted another, and each time the mechanism was different
+- **Symptom.** Stage 3 of the Phase 4 build wrote the component layer. Driving it
+  found, in one session, a record's name rendering in the accent colour at 4.11:1
+  when a rule plainly said `--texto-primario`; a whole page scrolling horizontally
+  346px at 320 CSS px while every containment measurement in the chain read
+  correct (280 inside 320, `overflow-x: auto` present, `overflow: hidden` on the
+  card); and a destructive button reported at 2.59:1 in dark when it is 4.86:1.
+  Three confident, wrong readings of the same file.
+- **Cause.** Three different mechanisms, which is the whole point.
+  **(a) Specificity, not source order.** The generic in-component link rule's
+  widest branch was `.k-card a:not(.k-btn):not(.k-chip):not(.k-stat)` — `(0,4,1)`,
+  because `:not()` contributes its argument's specificity — and every table sits
+  inside a card, so it beat `.k-table tbody th a` at `(0,1,3)`. **The previous
+  lesson had taught "check source order" (D-077's rail button), and that framing
+  is what made this one invisible**: source order never entered into it. Two
+  attempts to out-specify the rule failed before the structure was questioned.
+  **(b) An absolutely positioned element escaping two clipping ancestors.**
+  `.k-sr` (visually hidden, `position: absolute`) is used by the table's "Actions"
+  column header — that is `SPEC/accessibility.md` §2.1's own markup. With no
+  positioned ancestor, its containing block was the initial one, so it laid out at
+  its static position inside the 670px-wide row and dragged the page's scrollable
+  area with it, straight through `overflow-x: auto` and `overflow: hidden`. A 1 × 1
+  invisible span producing a WCAG 1.4.10 failure.
+  **(c) The measurement itself was inside a transition.** `.k-btn` transitions
+  `color` over 120ms (the design specifies it). The test toggled `data-theme` after
+  paint and read `getComputedStyle` immediately, so it got the INTERPOLATED value
+  and reported a contrast failure for a button that is fine. A specified transition
+  and a theme-switching test, each correct alone, composing into a false accusation
+  — L-031's shape, arriving inside the tooling instead of the product.
+- **Fix.** (a) The default link colour moved inside `:where()`, giving it **zero
+  specificity**, so every named component rule beats it by construction rather than
+  by arithmetic — a structural answer after two numeric ones failed. (b)
+  `.k-table-scroll` became a containing block (`position: relative`), with the
+  reason written into the stylesheet at length so nobody removes it as decoration.
+  (c) The fixture now bakes `data-theme` into the markup **before load**, which is
+  also how the product really works (D-075: server-rendered from the cookie, no
+  flash) — so the test and the product agree about what a theme is.
+- **Check added.** **(a) Every cascade and geometry assertion in
+  `tests/E2E/components.spec.js` reads the COMPUTED value out of the browser** —
+  never the file, never a locator's class list: button heights, badge and chip
+  pills, the field's border colour, the checkbox's 24 × 24 hit pseudo-element, the
+  table's `grid`/`contents`/`grid`, and the fact that `--type-body` resolves to
+  13px/17px rather than the shadowed PackDesk value. **(b) The 1.4.10 test asserts
+  by TRYING TO SCROLL** (`window.scrollTo(5000,0)` then reading `scrollX`) instead
+  of comparing `scrollWidth`, because the two disagreed and the disagreement was
+  the finding; **proven by removing the containing block and watching the 346px
+  return.** (c) `openSpecimen()` asserts the theme substitution actually took, so
+  a fixture edit cannot silently turn every dark-theme test into a light-theme one.
+  **What is NOT mechanically checkable, said plainly:** nothing can tell you in
+  advance which of the cascade's several tie-breakers is about to decide a
+  declaration. So the rule this buys is not about any one of them — it is: **NEVER
+  ASSUME WHICH RULE WINS. READ THE COMPUTED VALUE OUT OF THE BROWSER.** A lesson
+  phrased as "check source order" is already too narrow, and this project has now
+  paid for that narrowness once.
+
+## L-033 — The specimen proved the component layer correct in a cascade the product never has, so the fix for the last lesson shipped a new defect
+- **Symptom.** Stage 3 built the component layer and closed with 64 driven tests, axe per state in
+  both themes, and a recorded measurement for the in-component link colour: "applied, it measures
+  4.82:1 light, 6.40:1 dark". Stage 4 built the first real screen and the same links measured
+  **4.31:1** in dark and rendered `#5B8DEF` — a blue that is not in the delivery's palette at all.
+  It is `--klytos-accent`, the PRE-REDESIGN token. Every plain link inside a card, on every real
+  admin screen, had been painted the old blue since the moment the new layer shipped.
+- **Cause.** Two things, and the second is the one worth keeping.
+  **(a) The specificity floor was zero, and zero loses to a bare element selector.** D-078 wrote
+  the default link colour inside `:where()` at (0,0,0) deliberately, so that every named component
+  rule would beat it by construction rather than by arithmetic — a good fix for the defect it was
+  fixing. But `klytos-base.css`, the pre-redesign stylesheet every admin screen still loads, has
+  `a { color: var(--klytos-accent) }` at **(0,0,1)**. (0,0,0) does not beat "nothing"; it beats
+  nothing *at all*, including the sheet the redesign is supposed to supersede. **This is build rule
+  1's fourth distinct mechanism, and the fix for the third one is what introduced it.**
+  **(b) THE SPECIMEN'S CASCADE IS NOT THE PRODUCT'S CASCADE.** The component specimen
+  (`tests/E2E/fixtures/components-specimen.html`) is served by route interception at an
+  `/installer/admin/` path specifically so it gets the playground's real origin and "the REAL
+  stylesheet chain" — which it does, for the sheets it links. It does not link `klytos-base.css`.
+  So the measurement was taken in a document that no user ever loads, and it was correct there and
+  wrong everywhere else. The specimen answered "is this rule right?" when the question that
+  mattered was "does this rule win where it runs?"
+- **Fix.** `:is(.k-card, …) :where(a:not(…))` — the ancestor half carries (0,1,0), the anchor half
+  stays at zero. It beats a bare element selector and still loses to `.k-table tbody th a` at
+  (0,1,3), which is the defect D-078 was solving, so both properties hold at once. Recorded as
+  **D-079**. Two sibling defects found in the same run had the same root shape: the bulk bar's
+  `hidden` attribute losing to `.k-bulkbar{display:flex}` on source order, and `.k-has-bulkbar`
+  losing to `.k-main`'s `padding` shorthand in a later sheet. Both were fixed by raising specificity
+  rather than by reordering, because order-independence is the property that survives the next edit.
+- **Check added.** **(a) `tests/E2E/pages.spec.js` reads its cascade and geometry assertions off a
+  REAL SCREEN**, not off the specimen — including the per-screen `grid-template-columns`, the
+  full-width empty row, the sticky row-header column and the stacked-card breakpoint. **(b) Each of
+  the five defects this stage found was proven by planting it back and watching its own test go
+  red**, then restoring the file and verifying it byte-identical — including the one that first
+  appeared to stay green, which turned out to be a bad grep over my own output and not a weak test.
+  Saying so is the point: a false green reported about your own tooling is worse than the defect.
+  **What is NOT mechanically checkable, said plainly:** nothing can tell you that a fixture's
+  document differs from the product's document in the one way that matters. So the rule this buys
+  is: **a component is not verified until it has been measured on a page a user can actually
+  navigate to.** A specimen proves the rule is written correctly. Only the product proves it wins.
+  Corollary for the eleven list screens still to come: the legacy sheets are still loaded, so every
+  ported screen re-opens this question, and every one of them measures its own colours.

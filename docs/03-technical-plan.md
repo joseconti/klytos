@@ -87,8 +87,9 @@ Every `[E]` below was confirmed against the tree on **2026-07-28**, not assumed.
 | `scripts/keel-verify` | `[E]` | The project's own release linter (Sprint 1 slice 9) |
 | `phpcs.xml` | `[E]` | The `Klytos` PSR-12 ruleset |
 | `phpstan.neon` | `[A]` | Static analysis — **does not exist** (audit T-03). `.gitattributes` already export-ignores it, which is exactly the trap this marker exists to prevent: a config referenced by another config, and absent from disk |
-| `scripts/keel-doctor` | `[A]` | The environment doctor compiled from §Environment requirements below (Keel v5.0.0). To be created in the slice that lands the driver work |
-| `tests/E2E/` | `[A]` | Browser-driven tier (Playwright). Does not exist; named here because §Testing now commits to it |
+| `scripts/keel-doctor` | `[E]` | The environment doctor compiled from §Environment requirements below (Keel v5.0.0). Built 2026-07-28 (D-067); the `[A]` this row carried until 2026-07-29 was stale |
+| `tests/E2E/` | `[E]` | Browser-driven tier (Playwright 1.62.0). Created 2026-07-29 (D-077): `fixtures.js` (real-form login + the read-back duty), `smoke.spec.js`, `shell.spec.js`. `artifacts/` is gitignored |
+| `playwright.config.js`, `package.json`, `package-lock.json` | `[E]` | Dev-only driver config (D-077). All three export-ignored; Klytos itself ships no Node dependency and no JS build step. `package-lock.json` IS tracked — D-027's reasoning applied to the browser driver |
 
 ## 2b. Change map — what a change of each type MUST touch
 
@@ -195,7 +196,7 @@ screen and tell me what appears" is a protocol defect, not a test.
 
 | Surface | Driver | Headless? | Evidence it produces | State |
 |---|---|---|---|---|
-| Admin panel (42 page controllers) | **Playwright** against the `php -S` playground | Yes, by default | Trace, video, screenshots, JSON report, `data/logs-*` | `[A]` — `tests/E2E/` does not exist |
+| Admin panel (42 page controllers) | **Playwright** against the `php -S` playground | Yes, by default | Trace, video, screenshots, JSON report, `data/logs-*` | `[E]` — `tests/E2E/` created 2026-07-29; 16 tests over the shell (D-077) |
 | Generated public site | Playwright against the built `installer/public/` | Yes | Same | `[A]` |
 | Admin JSON API (23 endpoints) | Playwright request context, or `curl` with the real `klytos_session` cookie | Yes | Status, body, headers per call | Partly `[E]` — `AdminGateHttpTest` already does this per role |
 | MCP server | Scripted JSON-RPC over HTTP against the playground; MCP Inspector CLI where useful | Yes | Request/response transcript | Partly `[E]` — the integration tier drives `tools/list` and `tools/call` |
@@ -203,10 +204,40 @@ screen and tell me what appears" is a protocol defect, not a test.
 | Install wizard (`install.php`) | Not driven in a checkout — destructive (NEW-04). Driven only against a disposable copy | Yes | — | `[A]` |
 | PHP unit + integration tiers | PHPUnit | Yes | JUnit/testdox output | `[E]` — 284 tests / 1385 assertions |
 
-**Screen stealing: none.** Every surface here is web, HTTP or CLI. Playwright is headless by default
-and the PHP built-in server takes no display. There is no macOS, Windows or Android UI surface in
-this project, so the mitigation rows those platforms would need do not apply. **The user's screen is
-never taken by a test run**, and that is a property of the stack, not a promise.
+**Screen stealing: none by default; yes while a headed run lasts.** Every surface here is web, HTTP
+or CLI, and the PHP built-in server takes no display. There is no macOS, Windows or Android UI
+surface in this project, so the mitigation rows those platforms would need do not apply. The one
+honest qualification (Keel v5.1.0): `npm run test:e2e:watch` runs the same suite headed, and while
+it runs it **does** take the screen. That is a flag a person chooses, never the default, and it is
+never what a test point runs.
+
+### Run mode and recording (Keel v5.1.0)
+
+Three declared modes, and the third is not optional:
+
+| Mode | Command | Takes the screen? | When |
+|---|---|---|---|
+| **Headless** (default) | `npm run test:e2e` | No | Every test point, every sprint close, CI |
+| **Headed** | `npm run test:e2e:watch` (`--headed`, `PWSLOWMO=250`) | **Yes, while it runs** | Only when someone asks to watch it. A courtesy, never a substitute for the recording |
+| **Recording** | always on, in both modes | No | Every run, always |
+
+`playwright.config.js` sets `trace: 'on'`, `video: 'on'` and `screenshot: 'on'` for **every** test,
+not just failures — a passing run nobody can inspect is the same trust problem a headless run has,
+one step later. Artifacts land under `tests/E2E/artifacts/` (gitignored, regenerated on every run). A trace
+is a timeline carrying a DOM snapshot before and after each action, the selector used, the request it
+triggered and the console at that instant, so it is readable months later by someone who was not
+there — which watching live never is.
+
+**From now on a driven check on a browser surface carries its trace path in the `docs/05-test-points.md`
+row, and a row without one is incomplete.** Open it with:
+
+```bash
+npx playwright show-trace tests/E2E/artifacts/test-results/<test-dir>/trace.zip
+npx playwright show-report tests/E2E/artifacts/report      # the HTML index of a whole run
+```
+
+Also fixed: `retries: 0` and `workers: 1`. A test that only passes on a retry is flaky, and a flaky
+test that is silently retried is a test nobody can trust.
 
 **Element addressability.** Every interactive element in the admin carries a stable
 `data-testid`, in English, never translated, never the visible text — the admin ships 20 locales, so
@@ -228,6 +259,12 @@ list of legs it cannot, each with its tag:
 | A real x402 settlement through Coinbase or Stripe | `CREDENTIAL` + `PRODUCTION-RISK` | Only the settlement leg; the gate, the bot detector and the transaction log are driven offline |
 | "Is this the behaviour you meant?" on a redesigned screen | `JUDGMENT` | Asked over captured screenshots AFTER the driven test passed — never by asking the user to walk the flow to form an opinion |
 | A real upgrade from a published GitHub release | `EXTERNAL-APPROVAL` (release must exist) | `scripts/dev/upgrade-test.sh` already drives the local half |
+| — | `PLATFORM-IMPOSSIBLE` | **Nothing here qualifies.** Every surface is web, HTTP or CLI and this machine runs all of them. Stated rather than omitted: an absent row reads as "not considered" |
+| — | `NO-EXECUTION` | **Not a property of this project, but of a session.** A session with no way to run commands where the repo lives still WRITES the tests and hands them to a shell-capable session; it never converts them into the user's clicking |
+
+Both rows were missing until 2026-07-29. The contract has carried eight tags since Keel v5.0.0 and
+this table listed six — the two that close the biggest holes were invisible at exactly the place a
+project writes its division of labour down (Keel v5.1.0 fixed the same omission in its own template).
 
 Nothing else is delegable. `JUDGMENT` on a criterion with no driven test beside it is the laziest
 escape in the contract and is a defect.
@@ -282,8 +319,8 @@ export PATH="/opt/local/bin:$HOME/.composer/vendor/bin:$PATH"
 | PHP_CodeSniffer | `vendor/bin/phpcs` | project copy | OK | blocking | `composer install` |
 | PHPStan | absent | — | MISSING | optional → blocking once T-03 lands | `composer require --dev phpstan/phpstan` |
 | Node.js | **24.14.0** on PATH (nvm also holds v20.19.0 and v20.9.0 — the doctor finds the PATH one, which is what a test run would use) | ≥ 18 for Playwright | OK | blocking **once E2E exists** | already in place; pin per project with `.nvmrc` so a driver run cannot silently change runtime |
-| Playwright + browser binaries | **absent** | chromium at minimum | MISSING | blocking **once E2E exists** | `npm i -D @playwright/test && npx playwright install chromium` — **~400 MB download**, say so before running it |
-| `@axe-core/playwright` | absent | required for the automated a11y pass | MISSING | blocking once E2E exists | `npm i -D @axe-core/playwright` |
+| Playwright + browser binaries | **@playwright/test 1.62.0, chromium 151.0.7922.34** | chromium at minimum | OK | blocking (E2E now exists) | Installed 2026-07-29 (D-077). Verified by launching chromium headless and rendering a page, not by reading the package tree |
+| `@axe-core/playwright` | **4.12.1** | required for the automated a11y pass | OK | blocking (E2E now exists) | Installed 2026-07-29 (D-077). **Not yet wired into a test** — the per-state a11y pass lands with the component layer (stage 3), so this is present-and-unused, which is stated rather than counted as coverage |
 | Docker | Docker Desktop present at `/Applications/Docker.app`; **daemon state not probed** | not required | MISSING/UNKNOWN | optional | **Not needed.** The playground is `php -S`, deliberately (Sprint 1 slice 0). Flagged only because Docker Desktop's licence depends on company size and revenue — never propose it as a requirement here |
 | git | 2.50.1 | any | OK | blocking | Apple Git |
 | python3 | 3.9.6 | any (used by `tests/lint-release.py`-style helpers) | OK | optional | system |

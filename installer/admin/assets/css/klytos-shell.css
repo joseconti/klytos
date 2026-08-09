@@ -530,6 +530,30 @@
    shell modes. There is no third. (template-shell.md §2)
    ============================================================ */
 
+/* The rail's "Expand navigation" button exists only in the rail mode. It points
+   right because it widens the rail; there is no matching collapse button —
+   collapsing is the breakpoint's job (navigation.md §8, template-shell.md §2).
+
+   This block MUST stay ABOVE the 900–1199 media query that turns it on. It sat
+   below it until 2026-07-29, and since both selectors have the same specificity
+   the later `display: none` won at every viewport — the button existed, carried
+   its accessible name and its data-testid, and could never be seen or clicked by
+   anyone. Driving it is what found that; reading the file had not, twice. Build
+   rule 1's shape exactly (`typography.css` shadowing `--type-body`): never take
+   the first matching rule for the effective one. */
+.k-rail-expand {
+    display: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin: var(--esp-8) auto;
+    color: var(--texto-secundario);
+    background: none;
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-control);
+    cursor: pointer;
+}
+
 /* 900–1199 — 56px icon rail. */
 @media (min-width: 900px) and (max-width: 1199px) {
     .k-shell:not(.k-shell--nav-expanded) {
@@ -573,22 +597,6 @@
     .k-rail-expand {
         display: grid;
     }
-}
-
-/* The rail's "Expand navigation" button exists only in the rail mode. It points
-   right because it widens the rail; there is no matching collapse button —
-   collapsing is the breakpoint's job (navigation.md §8, template-shell.md §2). */
-.k-rail-expand {
-    display: none;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    margin: var(--esp-8) auto;
-    color: var(--texto-secundario);
-    background: none;
-    border: 1px solid var(--separador);
-    border-radius: var(--radio-control);
-    cursor: pointer;
 }
 
 /* < 900 — off-canvas drawer. */

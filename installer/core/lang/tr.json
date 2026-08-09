@@ -172,7 +172,24 @@
     "tab_trash": "Çöp Kutusu",
     "empty_trash": "Çöp kutusunu boşalt",
     "restore": "Geri yükle",
-    "permanent_delete": "Kalıcı olarak sil"
+    "permanent_delete": "Kalıcı olarak sil",
+    "bulk_change_template": "Şablonu değiştir",
+    "bulk_template_label": "Uygulanacak şablon",
+    "bulk_template_missing": "Uygulanacak bir şablon seçin.",
+    "bulk_unpublish": "Yayından kaldır",
+    "caption": "Sayfalar — sonuç: {count}, sayfa {page} / {pages}",
+    "delete_home_reason": "Sil — bu sayfa sitenin ana sayfasıdır",
+    "delete_home_refused": "Sitenin ana sayfası çöp kutusuna taşınamaz.",
+    "empty_action": "İlk sayfayı oluştur",
+    "empty_filtered": "{filters} ile eşleşen sayfa yok.",
+    "empty_sentence": "Henüz sayfa yok. Sayfa, üzerinde bloklar bulunan bir URL'dir.",
+    "error_sentence": "Sayfa dizini okunamadı — depolama katmanı bir hata döndürdü.",
+    "filter_label": "Duruma göre filtrele",
+    "last_edit": "Son düzenleme",
+    "row_actions": "{title} için diğer eylemler",
+    "search_label": "Sayfalarda ara",
+    "select_all": "Bu sonuç sayfasındaki tüm sayfaları seç",
+    "table_scroll_label": "Sayfa tablosu, kaydırılabilir"
   },
   "design": {
     "title": "Tasarım",
@@ -813,5 +830,16 @@
     "palette": "Komut paleti",
     "palette_placeholder": "Arayın veya bir komut yazın",
     "palette_no_results": "{query} ile eşleşen komut yok. Bir sayfa başlığı, bir ayar adı veya «help» deneyin."
+  },
+  "list": {
+    "clear_filters": "Filtreleri temizle",
+    "clear_selection": "Temizle",
+    "next": "Sonraki",
+    "not_set": "Ayarlanmadı",
+    "page_n": "Sayfa {n}",
+    "pagination": "Sayfalama",
+    "previous": "Önceki",
+    "retry": "Yeniden dene",
+    "selected": "Seçili: {count}"
   }
 }
