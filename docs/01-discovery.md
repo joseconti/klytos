@@ -228,6 +228,27 @@ behaviour you meant?" on a redesigned screen (`JUDGMENT`, asked over captured ev
 driven test passed), and an upgrade from a not-yet-published release (`EXTERNAL-APPROVAL`). Nothing
 else. The full division of labour is `docs/03-technical-plan.md` §4a.
 
+**What this session's environment cannot do at all — measured 2026-08-09, added by that day's
+conformance sweep (D-087), because the §5a preflight names it and this section never had it.**
+Network: **available** (the update check reaches `github.com`, and `gh` authenticates against the
+forge). Deletion: **available** — the session removes files and, this same day, reclaimed a TCP port
+by killing an orphaned process. `localhost`: **available** — the whole playground is `php -S` on
+`127.0.0.1`, and every browser test drives it. Screen: **not needed rather than unavailable** — every
+surface is web, HTTP or CLI, and Playwright runs headless (see the paragraph above). So the honest
+answer to "what can this environment not do" is **none found**, which is a measurement and not a
+reassurance: the one thing it genuinely could not do — install Playwright — was a permission
+boundary, not a capability one, and it was resolved by asking (D-077).
+
+**`claude` on PATH — the chaining verdict, required because the card says `Chaining: start`.**
+**Resolvable**, and resolvable *under the declared `env.PATH`*, which is the only form of the
+question that means anything: `scripts/keel-chain-check` row **B1** re-checks it live against the
+`env.PATH` recorded in `.claude/settings.local.json` rather than against whatever the shell happened
+to inherit, and it reports OK. That distinction is not pedantry — Claude Code's native installer puts
+the binary in a per-user directory (`~/.local/bin`) that no system package-manager PATH contains, so
+a project whose `env.PATH` omits it reports "claude is not on PATH" while Claude Code is actively
+running. The full twelve-row contract is `./scripts/keel-chain-check`; the one row still red is
+**B5** (`Chain verified:` — no `--smoke` has ever run), which is about proof, not about PATH.
+
 **A finding, recorded not acted on.** `php81` and `php82` being installed bears directly on **D-027**
 (which assumes the 8.1 floor cannot be verified — true of PHPUnit 11, not of the interpreter) and on
 **L-022** (CI's 8.2 leg has never run because nothing is pushed — it can now be rehearsed locally).

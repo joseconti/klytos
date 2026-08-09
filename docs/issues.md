@@ -3,6 +3,13 @@
 > Living log of forge issues (GitHub — https://github.com/joseconti/klytos).
 > Inventory first, one entry per issue worked. Updated the moment an issue is triaged, worked or closed.
 
+**Last inbound sweep:** 2026-08-09 — `gh issue list --state open` returned **nothing**, so the
+inbox is empty rather than unread. The card's `Issue sweep interval:` is **24h**: a sprint kickoff
+opening more than that after this date runs the inbound check before the sprint is planned, so a
+fresh report never sits unseen in a gap between sprints. This header line was absent until the
+2026-08-09 conformance sweep (Keel v5.8.0 requires it; D-087) — "no news" and "nobody looked" had
+been indistinguishable in this file for three weeks.
+
 ## Inventory
 
 Checked on 2026-07-18 via `gh issue list --state all`.

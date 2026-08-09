@@ -368,7 +368,7 @@ final class NamedEscalationsTest extends AdminHttpTestCase
         $url    = sprintf(
             'http://%s:%d/installer/admin/api/download-identity.php',
             self::HOST,
-            static::serverPort()
+            static::resolvedPort()
         );
         $handle = curl_init( $url );
 

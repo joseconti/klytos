@@ -74,6 +74,31 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
     abstract protected static function serverPort(): int;
 
     /**
+     * The port actually bound, after the machine-local offset.
+     *
+     * `serverPort()` declares this class's slot in the reserved band; this
+     * method is what every consumer must use, because the band itself is not
+     * this project's to reserve. On the development machine 8099 is held for
+     * days at a time by unrelated projects' `php -S` harnesses, and the
+     * collision is indistinguishable from a real failure until someone reads
+     * `lsof` — which is L-011 and L-021 arriving on the test tier instead of the
+     * playground.
+     *
+     * `KLYTOS_TEST_PORT_OFFSET` shifts the whole band at once, so the per-class
+     * reservations above stay correct relative to each other and no class map
+     * has to be rewritten to dodge a squatter. Default 0: unset, CI and every
+     * other machine bind exactly the documented ports.
+     *
+     * @return int
+     */
+    protected static function resolvedPort(): int
+    {
+        $offset = (int) ( getenv( 'KLYTOS_TEST_PORT_OFFSET' ) ?: '0' );
+
+        return static::serverPort() + $offset;
+    }
+
+    /**
      * The router script this class's server runs.
      *
      * Defaults to the playground router, which is what every admin test wants.
@@ -95,7 +120,7 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
     {
         parent::setUpBeforeClass();
 
-        $port              = static::serverPort();
+        $port              = static::resolvedPort();
         self::$repoRoot    = dirname( KLYTOS_INSTALLER_PATH );
         self::$sessionPath = sprintf(
             '%s/klytos-gate-sessions-%d-%d',
@@ -452,7 +477,7 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      */
     protected function mcpCall( ?string $token, string $method, array $params = [] ): array
     {
-        $url    = sprintf( 'http://%s:%d/installer/mcp', self::HOST, static::serverPort() );
+        $url    = sprintf( 'http://%s:%d/installer/mcp', self::HOST, static::resolvedPort() );
         $handle = curl_init( $url );
 
         $headers = [ 'Content-Type: application/json' ];
@@ -493,7 +518,7 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
      */
     private function handleFor( string $path )
     {
-        $url    = sprintf( 'http://%s:%d/%s', self::HOST, static::serverPort(), ltrim( $path, '/' ) );
+        $url    = sprintf( 'http://%s:%d/%s', self::HOST, static::resolvedPort(), ltrim( $path, '/' ) );
         $handle = curl_init( $url );
 
         curl_setopt_array( $handle, [

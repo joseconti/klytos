@@ -141,6 +141,26 @@ function keel_git( string $args ): ?array
 }
 
 /**
+ * Split a markdown table row into its cells, honouring `\|` escapes.
+ *
+ * Needed rather than a bare explode: one test-point evidence cell quotes a PHP
+ * TypeError containing `Countable|array`, escaped as `\|` so the table still
+ * renders. Splitting on that pipe would move every cell after it into the wrong
+ * column — including the one being checked.
+ *
+ * @param  string $row Raw table row, outer pipes included.
+ * @return array<int, string>
+ */
+function keel_table_cells( string $row ): array
+{
+    $row = trim( $row );
+    $row = (string) preg_replace( '/^\|/', '', $row );
+    $row = (string) preg_replace( '/\|$/', '', $row );
+
+    return array_map( 'trim', (array) preg_split( '/(?<!\\\\)\|/', $row ) );
+}
+
+/**
  * Flatten a decoded JSON catalogue into dot-notation keys.
  *
  * @param  array<string, mixed> $data   Decoded catalogue.
@@ -1005,7 +1025,27 @@ if ( $guides === null ) {
         $notes[] = 'docs/keel-conformance.md does not exist — the sweep has never been run.';
     } else {
         $body    = (string) file_get_contents( $sweep );
-        $missing = preg_match_all( '/\*\*missing\*\*/', $body );
+        $missing = 0;
+
+        // Count STATE CELLS, not occurrences of the word. The first version of
+        // this check ran preg_match_all over the whole file, so the legend line
+        // defining the four states and any sentence discussing the result each
+        // inflated the total by one — and the number it printed could not be
+        // reconciled with the table it claimed to summarise. Found 2026-08-09
+        // (D-087) by writing a sweep with two missing rows and being told four.
+        foreach ( explode( "\n", $body ) as $line ) {
+            $line = trim( $line );
+
+            if ( $line === '' || $line[0] !== '|' ) {
+                continue;
+            }
+
+            foreach ( keel_table_cells( $line ) as $cell ) {
+                if ( $cell === '**missing**' ) {
+                    $missing++;
+                }
+            }
+        }
 
         if ( $missing > 0 ) {
             $notes[] = sprintf(
@@ -1208,25 +1248,6 @@ if ( $guides === null ) {
  * rows and are deliberately out of scope rather than silently skipped.
  */
 {
-    /**
-     * Split a markdown table row into its cells, honouring `\|` escapes.
-     *
-     * Needed rather than a bare explode: one evidence cell quotes a PHP
-     * TypeError whose text contains `Countable|array`, escaped as `\|` so the
-     * table still renders. Splitting on that pipe would report a cell-count
-     * mismatch on a row that is perfectly well formed.
-     *
-     * @param  string $row Raw table row, pipes included.
-     * @return array<int, string>
-     */
-    $cellsOf = static function ( string $row ): array {
-        $row = trim( $row );
-        $row = (string) preg_replace( '/^\|/', '', $row );
-        $row = (string) preg_replace( '/\|$/', '', $row );
-
-        return array_map( 'trim', (array) preg_split( '/(?<!\\\\)\|/', $row ) );
-    };
-
     $redValues = [
         'observed',
         'n/a — policy',
@@ -1265,7 +1286,7 @@ if ( $guides === null ) {
                 continue;
             }
 
-            $cells = $cellsOf( $line );
+            $cells = keel_table_cells( $line );
 
             if ( $header === null ) {
                 if ( ! in_array( $cells[0], [ 'Slice', 'Stage' ], true ) ) {

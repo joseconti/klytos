@@ -381,7 +381,7 @@ final class PasskeyLoginTest extends AdminHttpTestCase
         $handle = curl_init( sprintf(
             'http://%s:%d%s',
             self::HOST,
-            static::serverPort(),
+            static::resolvedPort(),
             self::ENDPOINT
         ) );
 

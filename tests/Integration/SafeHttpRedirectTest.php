@@ -44,7 +44,7 @@ final class SafeHttpRedirectTest extends AdminHttpTestCase
      */
     private function fixture( string $path ): string
     {
-        return sprintf( 'http://%s:%d%s', self::HOST, static::serverPort(), $path );
+        return sprintf( 'http://%s:%d%s', self::HOST, static::resolvedPort(), $path );
     }
 
     private function http(): LoopbackPermittingSafeHttp
