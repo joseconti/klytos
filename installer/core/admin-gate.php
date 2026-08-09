@@ -156,6 +156,11 @@ function klytos_admin_gate_map(): array
 
         // ── API: operations ───────────────────────────────────────
         'api/logs.php'               => 'site.configure',
+        // Streams one log file for the Logs screen's Download control
+        // (manifest entry 41). Same tier as the screen that links to it and as
+        // the read action beside it — a file the screen may show is a file the
+        // same caller may save.
+        'api/log-download.php'       => 'site.configure',
         'api/integrity.php'          => 'site.configure',
         'api/options-management.php' => 'site.configure',
         'api/translations.php'       => 'site.configure',

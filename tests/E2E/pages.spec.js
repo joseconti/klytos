@@ -12,7 +12,7 @@
 // baked in before load rather than toggled after paint (a reading taken
 // mid-transition reported a button at 2.59:1 that is 4.86:1).
 
-const { test, expect, login } = require( './fixtures' );
+const { test, expect, login, KNOWN_DELIVERY_GAPS } = require( './fixtures' );
 const AxeBuilder = require( '@axe-core/playwright' ).default;
 const { execFileSync } = require( 'child_process' );
 const path = require( 'path' );
@@ -54,30 +54,6 @@ function createIndexPage() {
     } );
 }
 
-/*
- * DR-005's excluded elements, by SELECTOR and never by disabling a rule, so
- * every other element in every state stays checked and a NEW defect on the same
- * components still fails. Extend this list ONLY for a registered Design Request.
- */
-const KNOWN_DELIVERY_GAPS = [
-    // DR-005 gap 1 — a semantic badge inside a selected table row: the badge
-    // tint over --fila-seleccion over the card. 4.44:1 light / 3.08:1 dark.
-    'tr[aria-selected="true"] .k-badge',
-
-    // DR-005 addendum, light theme only. The filter row sits on
-    // --fondo-ventana, OUTSIDE the card, and both chip states fall under AA
-    // there while both pass on a card:
-    //   unselected  --texto-secundario on --fondo-ventana            4.46:1
-    //               — the same token pair DR-005 gap 2 already registers,
-    //                 arriving on a second surface.
-    //   selected    --sobre-tinte-acento over --fila-seleccion over
-    //               --fondo-ventana                                  4.46:1
-    //               — a new composition, sibling of gap 1. On a card the same
-    //                 chip measures 4.76:1 and passes.
-    // Both recomputed independently from the token hexes; axe and the
-    // arithmetic agree. No colour was substituted.
-    '.k-filters .k-chip',
-];
 
 /*
  * axe's aria-required-children fires on <table role="table"> carrying a

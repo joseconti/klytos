@@ -126,6 +126,24 @@
                 color var(--dur-hover) var(--easing-estandar);
 }
 
+/* THE FOURTH COMPONENT IN THIS FILE TO NEED THIS, AND THE PATTERN IS THE FIX.
+   `.k-btn` sets `display: inline-flex`, which is (0,1,0) — the same specificity
+   as the UA's `[hidden] { display: none }` — and wins on origin, so a `.k-btn`
+   carrying the `hidden` attribute is still PAINTED and still clickable. That is
+   D-079's bulk-bar defect on a new component: the Logs detail panel's "Copy the
+   whole payload" button was `hidden` in the DOM and visible on the screen,
+   which is worse than either state on its own because the markup and the page
+   disagree about what exists.
+
+   Fixed the way `.k-bulkbar[hidden]` already is: the attribute selector ON the
+   class, (0,2,0), which beats it by structure rather than by position. The
+   general rule for this stylesheet is now explicit — ANY component here that
+   sets `display` and is toggled with `hidden` needs its own `[hidden]` rule,
+   and `.k-btn` is the one that covers every button in the admin at once. */
+.k-btn[hidden] {
+    display: none;
+}
+
 /* README "Button": sm = 28px, auth = 38px. */
 .k-btn--sm {
     min-height: 28px;
@@ -1379,5 +1397,310 @@ a.k-stat:hover {
 
     .k-stat-row {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   CONSOLE / STREAM — template-console-stream.md §1, §2, §3, §4,
+   SPEC/manifest.md §41 (Logs).
+
+   Built in Phase 4 Step 4, stage 4 (the list stage) because Logs is the one
+   stage-4 surface DR-006 does not block: a console-stream has no
+   `grid-template-columns` to be blocked ON. The template's four other
+   consumers — Terminal, Health's log panel, Webhooks' delivery payload and
+   Block data — land in later stages and find these classes here, which is why
+   they are in this shared layer and not in the screen (the retired
+   `klytos-logs.css` was the screen-private opposite, and it styled markup that
+   no longer exists).
+
+   THE LEVEL COLOURS ARE NOT REPEATED HERE. `.k-level--*` and `.k-line--*`
+   already exist in the CODE / PAYLOAD BLOCK section above, measured
+   (4.53:1 / 5.35:1 ERROR, 4.56:1 / 5.50:1 WARN). A second set here would be
+   the fork this project treats as a defect.
+
+   BASE RULES FIRST, MEDIA QUERIES AT THE FOOT OF THE SECTION. That ordering is
+   load-bearing, not stylistic — build rule 1 has arrived five distinct ways in
+   this build, twice as source order alone (D-077's rail button, D-079's bulk
+   bar), and this section is written so it cannot arrive a sixth.
+   ============================================================ */
+
+/* §1's anatomy: stream + a 340px detail panel side by side. The panel is a
+   real grid track rather than a float or an absolute box, so it disappears by
+   changing ONE value at each breakpoint and the stream reflows into the space
+   without a second rule. */
+.k-console-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: var(--esp-16);
+    align-items: start;
+}
+
+/* The control row: level chips · file picker · search · Follow · Download.
+   It wraps to two rows under 900 (§3) by wrapping here rather than by a
+   breakpoint rule, because the row's own contents decide when it no longer
+   fits — a fixed breakpoint would be a guess about their rendered width. */
+.k-console-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-8);
+    margin-bottom: var(--esp-12);
+}
+
+.k-console-controls form {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    margin: 0;
+}
+
+/* The chips scroll horizontally in a LABELLED scroll container under 900 (§3).
+   The container is labelled and focusable in the markup; here it only scrolls.
+   `overflow-x: auto` is base rather than inside the media query so the
+   container behaves the same way at every width it is ever too narrow at. */
+.k-console-chips {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+/* The stream: a card, with a --fondo-ventana panel inside it (§1). The panel
+   is the focusable scroll container — `tabindex="0" role="group"` with an
+   aria-label carrying the line count — so the max-height and the scrolling are
+   ITS properties, not the <pre>'s. */
+.k-stream {
+    background: var(--fondo-ventana);
+    border-radius: var(--radio-control);
+    padding: var(--esp-12);
+    max-height: 60vh;
+    overflow: auto;
+}
+
+.k-stream-pre {
+    margin: 0;
+    font: var(--type-code);
+    color: var(--texto-secundario);
+    /* white-space: pre and NOT pre-wrap. §3 is explicit: "wrapping a log line
+       is worse than scrolling it, and this is the one place in the admin where
+       horizontal scroll of content is correct (1.4.10's exception for content
+       requiring two-dimensional layout)". Every other scroll container in this
+       build exists to PREVENT horizontal scroll; this one exists to allow it,
+       and the comment is here so a later sweep does not "fix" it. */
+    white-space: pre;
+}
+
+/* THE ROW WRAPS THE LINE AND ITS COPY AFFORDANCE, because §2 asks for both and
+   HTML forbids nesting them: the line is a <button> on this screen and a button
+   inside a button is invalid (the parser unnests it, so the copy control would
+   end up somewhere nobody chose). Two siblings in a positioned row give the
+   design exactly what it describes — a line that spans the row, a copy control
+   at its right — with valid markup. Logged as a code-side adaptation. */
+.k-stream-row {
+    position: relative;
+}
+
+/* §2: "The affordance is in the DOM always." Literally always — this hides it
+   with `opacity`, never `display: none`, because a control removed from the
+   tree cannot be tabbed to, and a keyboard user is exactly who needs a copy
+   button on a log line. It appears on hover OR on focus-within, so reaching it
+   with the keyboard reveals it. */
+.k-stream-copy {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0 var(--esp-4);
+    border: 0;
+    border-radius: var(--radio-control);
+    background: var(--fondo-elevado);
+    color: var(--texto-secundario);
+    font: var(--type-caption);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--dur-hover) var(--easing-estandar);
+}
+
+.k-stream-row:hover .k-stream-copy,
+.k-stream-row:focus-within .k-stream-copy {
+    opacity: 1;
+}
+
+/* One line. It is a <button> because selecting it opens the detail panel — §2:
+   "Individual lines are focusable only where selecting a line does something".
+   It is reset to look like text: the line's own content is the affordance, and
+   a log of button-shaped rows would be unreadable. */
+.k-stream-line {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 var(--esp-4);
+    border: 0;
+    border-radius: var(--radio-control);
+    font: inherit;
+    text-align: left;
+    white-space: inherit;
+    cursor: pointer;
+}
+
+/* BUILD RULE 1, AGAIN — AND THIS TIME INSIDE THE SECTION WHOSE HEADER SAYS IT
+   CANNOT HAPPEN HERE.
+
+   A <button> carries a UA `background: buttonface` and its own `color`, so the
+   line has to reset both. Written as part of `.k-stream-line` above — (0,1,0),
+   and further down this file than the CODE / PAYLOAD section — that reset beat
+   `.k-line--error` and `.k-line--warn`, which are (0,1,0) too and defined
+   EARLIER. The result: the tinted lines rendered with no tint and with
+   --texto-secundario, and the level was carried by the label alone. Nothing was
+   missing from the markup and nothing threw; the classes were on the element
+   and lost.
+
+   Read out of the browser, per L-032 — `getComputedStyle` on the ERROR line
+   returned `rgba(0, 0, 0, 0)` for a rule this file plainly declares.
+
+   The fix is structural rather than positional (L-032's own rule): the reset
+   states WHAT it resets — a line that has no tint — instead of relying on
+   sitting in the right place. `:where()` was rejected here: at (0,0,0) it loses
+   to a bare `button` rule in the still-loaded legacy sheet, which is exactly
+   how L-033 bit the link layer.
+
+   The `:not()` chain is exhaustive ON PURPOSE, and the first version of it was
+   NOT: it listed the two tints and forgot the selected state, so at (0,3,0) it
+   then outranked `.k-stream-line[aria-pressed="true"]` at (0,2,0) and a
+   selected plain line lost its selection colour — the same defect, one state
+   over, introduced by the fix for it. Measured, not reasoned about: the
+   selected line read back identical to an unselected one. Every state that
+   paints its own background is named here, and adding a state means adding it
+   here too.
+
+   AND THE TWO DECLARATIONS HAVE DIFFERENT EXCEPTION SETS, which is why they are
+   two rules. Conflating them was the second wrong version: a selected line does
+   paint its own BACKGROUND but does not set its own COLOUR, so excluding it
+   from both left it on the UA's `buttontext` — measured 2.03:1 in dark and
+   15.87:1 in light, a pair that comes from no stylesheet in this project.
+   Three wrong versions of a four-line reset, each one found by reading the
+   computed value rather than the file. */
+.k-stream-line:not(.k-line--error):not(.k-line--warn) {
+    color: inherit;
+}
+
+.k-stream-line:not(.k-line--error):not(.k-line--warn):not([aria-pressed="true"]) {
+    background: none;
+}
+
+.k-stream-line:hover {
+    background: var(--fila-hover);
+}
+
+/* §2's selected-line state. `aria-pressed` is what carries it to assistive
+   technology; this is the visible second channel, and it is an attribute
+   selector on the class — (0,2,0) — so it beats `.k-stream-line:hover` at
+   (0,2,0) by source order among equals and never depends on which of the two
+   a mouse happens to be over. */
+.k-stream-line[aria-pressed="true"] {
+    background: var(--fila-seleccion);
+}
+
+/* A tinted ERROR/WARN line keeps its tint when selected — the level is the
+   more important fact and the tint is how it is carried — so the selection
+   shows as the accent bar instead of as a background it would have to fight.
+   Text stays the tint's own --sobre-tinte-* colour from .k-line--*, which is
+   what makes the measured ratios above still hold in this state.
+
+   THE `background` DECLARATION HERE IS LOAD-BEARING AND WAS MISSING. Without
+   it these rules set only the bar, and `.k-stream-line[aria-pressed="true"]`
+   above still painted --fila-seleccion over the tint — so a selected ERROR
+   line rendered --sobre-tinte-peligro on the SELECTION colour, measured at
+   4.31:1, a pair neither the delivery nor this stylesheet ever intended to
+   compose. The comment above described the intent correctly and the CSS did
+   not implement it: build rule 1's shape once more, this time inside the fix
+   written to respect it. Found by driving, not by reading. */
+.k-stream-line.k-line--error[aria-pressed="true"] {
+    background: var(--tinte-peligro);
+    box-shadow: inset 2px 0 0 0 var(--color-acento);
+}
+
+.k-stream-line.k-line--warn[aria-pressed="true"] {
+    background: var(--tinte-aviso);
+    box-shadow: inset 2px 0 0 0 var(--color-acento);
+}
+
+/* The level label at the START of the line (§1). Fixed width so the messages
+   line up in a monospace column — the label is text first and alignment
+   second, which is the same order §4's "a monochrome print of a log screen is
+   fully readable" demands. */
+.k-stream-level {
+    display: inline-block;
+    width: 9ch;
+}
+
+.k-stream-time {
+    color: var(--texto-sutil);
+}
+
+.k-stream-source {
+    color: var(--texto-sutil);
+}
+
+/* Truncation notice — §2: "It never silently truncates." It sits at the TOP of
+   the stream, inside the scroll container's card but above the lines, so it is
+   the first thing read rather than a footnote under 5,000 rows. */
+.k-stream-truncated {
+    margin: 0 0 var(--esp-8);
+    font: var(--type-caption);
+    color: var(--texto-secundario);
+}
+
+/* The detail panel (§1: "right panel 340px — context + stack for the selected
+   line"). It is a card like any other; the width comes from the grid track. */
+.k-console-detail {
+    position: sticky;
+    top: var(--esp-16);
+}
+
+.k-console-detail h2 {
+    font: var(--type-card);
+    margin: 0 0 var(--esp-8);
+}
+
+.k-console-detail dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: var(--esp-4) var(--esp-8);
+    font: var(--type-code);
+}
+
+.k-console-detail dt {
+    color: var(--texto-sutil);
+}
+
+.k-console-detail dd {
+    margin: 0;
+    color: var(--texto-secundario);
+    overflow-wrap: anywhere;
+}
+
+/* 1200–1439: the detail panel narrows to 300px (§3). */
+@media (max-width: 1439px) {
+    .k-console-layout {
+        grid-template-columns: minmax(0, 1fr) 300px;
+    }
+}
+
+/* Below 1200 the panel stops being a panel. §3: "the detail panel becomes a
+   disclosure below the selected line, in the flow — not a sheet, because the
+   context belongs next to the line." One column puts it in the flow directly
+   under the stream, which is where the flow is; `position: sticky` is dropped
+   with it, because a sticky element in a single column would follow the reader
+   down the page for no reason. */
+@media (max-width: 1199px) {
+    .k-console-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .k-console-detail {
+        position: static;
     }
 }

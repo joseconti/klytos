@@ -894,19 +894,31 @@ file at the moment the state is built**, never retroactively.
 #### console-stream — `SPEC/screens/template-console-stream.md`
 | State | Spec | Built |
 |---|---|---|
-| Default (tail, newest last, scrolled to bottom) | §2 | ☐ |
-| Hover (line `--fila-hover` + copy affordance, always in the DOM) | §2 | ☐ |
-| Focus (container `tabindex="0"` + `role="group"` + label; lines focusable only when they act) | §2 | ☐ |
-| Selected line (Logs) — `aria-pressed`, detail panel `<h2>` | §2 | ☐ |
-| Following (`role="switch"`; scrolling up pauses it and says so once) | §2 | ☐ |
-| Polling — **no `aria-live` on the stream**; counts on a 10-second floor | §2 | ☐ |
-| Running (Terminal) — prompt disabled, elapsed seconds, `Ctrl+C` + visible Stop | §2 | ☐ |
-| Empty — no output / log empty / filtered to nothing (good-news state) | §2 | ☐ |
-| Error — file cannot be read / command failed (**exit code with its meaning**) | §2 | ☐ |
-| Success — "Done in 1.2 s", no green banner | §2 | ☐ |
-| Disabled Download when the file is empty (reason in the name) | §2 | ☐ |
-| Truncation at 5,000 lines — stated, never silent, with a download link | §2 | ☐ |
-| `white-space: pre` + horizontal scroll below 900 (the one permitted case) | §3 | ☐ |
+A row is ticked when it is built **and driven**. Entry 41 (Logs) built this template
+on 2026-08-09; the rows that belong to Terminal (23) stay open until stage 6 builds it,
+and are marked so rather than left ambiguous.
+
+| State | Spec | Built |
+|---|---|---|
+| Default (tail, newest last, scrolled to bottom) | §2 | ☑ 41 |
+| Hover (line `--fila-hover` + copy affordance, always in the DOM) | §2 | ☑ 41 — affordance is a SIBLING of the line, not a child (adaptation 15) |
+| Focus (container `tabindex="0"` + `role="group"` + label; lines focusable only when they act) | §2 | ☑ 41 |
+| Selected line (Logs) — `aria-pressed`, detail panel `<h2>` | §2 | ☑ 41 |
+| Following (`role="switch"`; scrolling up pauses it and says so once) | §2 | ☑ 41 |
+| Polling — **no `aria-live` on the stream**; counts on a 10-second floor | §2 | ☑ 41 |
+| Running (Terminal) — prompt disabled, elapsed seconds, `Ctrl+C` + visible Stop | §2 | ☐ 23 (Terminal, stage 6) |
+| Empty — no output / log empty / filtered to nothing (good-news state) | §2 | ☑ 41 (log empty · filtered · no file chosen) · ☐ 23 (no output yet) |
+| Error — file cannot be read / command failed (**exit code with its meaning**) | §2 | ☑ 41 (cannot be read) · ☐ 23 (command failed) |
+| Success — "Done in 1.2 s", no green banner | §2 | ☐ 23 (Terminal, stage 6) |
+| Disabled Download when the file is empty (reason in the name) | §2 | ☑ 41 |
+| Truncation at 5,000 lines — stated, never silent, with a download link | §2 | ☑ 41 |
+| `white-space: pre` + horizontal scroll below 900 (the one permitted case) | §3 | ☑ 41 — asserted by TRYING to scroll, both directions |
+
+**Two rows carry an open Design Request and are ticked as BUILT, not as passing**
+(DR-007, drafted 2026-08-09): a stream line is 19px in its constrained dimension where
+`accessibility.md` §7 admits no exception below 24px, and the selected line's specified
+colours measure 3.61:1 / 3.83:1. Both are excluded from the automated pass by selector
+with their measured values pinned; neither is a build-side choice.
 
 #### preview-matrix — `SPEC/screens/template-preview-matrix.md`
 | State | Spec | Built |
@@ -969,7 +981,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 38 | Plugin page (pattern) | ☐ | ☐ §38 | ☐ | ☐ |
 | 39 | Post type | ☐ | ☐ §39 | ☐ | ☐ |
 | 40 | Block data | ☐ | ☐ §40 | ☐ | ☐ |
-| 41 | Logs | ☐ | ☐ §41 | ☐ | ☐ |
+| 41 | Logs | ☑ | ☑ §41 | ☑ (DR-007 open, excluded by selector) | ☑ 30 browser tests, both themes |
 | 42 | Template preview | ☐ | ☐ §42 | ☐ | ☐ |
 | 43 | Reset password | ☐ | ☐ §43 | ☐ | ☐ |
 | 44 | **Dashboard** | ☐ | ☐ §44 | ☐ | ☐ |
@@ -1219,6 +1231,11 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 10 | The secondary button's border is `--borde-control`, not the `--separador` the README's component inventory names | Not a stack constraint — a conflict INSIDE the delivery, resolved toward the normative half. `tokens/klytos-admin.css` lists "botón secundario" explicitly among the controls whose border must be `--borde-control`, because `--separador` measures 1.19:1 and WCAG 1.4.11 requires 3:1 for a control boundary; §5.0 rule 5 says the same | Yes — and it is the delivery's own instruction. The README's component line predates the accessibility layer, which is loaded last precisely so it wins. Verified in the browser: the field and button borders resolve to `#86868B` (light) / `#757579` (dark) |
 | 11 | The under-900 stacked record cards are rendered as a SECOND markup alongside the table, and CSS shows exactly one | `template-list-table.md` §3 requires a real markup change at that width — `<article>` + `<h3>` + `<dl>`, with "the ARIA table roles going away with the table". CSS cannot change a role, and the server has no viewport, so the only alternatives were a JavaScript transform at the breakpoint — which would make the under-900 layout the one part of this shell that depends on JS — or shipping only one of the two. Rendering both and hiding one with `display:none` removes the hidden branch from the accessibility tree as well as from the page, so assistive technology is never offered the record twice | Yes — driven at 800px and 320px: `.k-reclist` visible with its `<dl>`, `.k-table` hidden, and the page does not scroll horizontally. Design intent untouched; only the delivery mechanism adapts |
 | 12 | The table's scroll container carries `tabindex="0"` at EVERY width, where §2.1 words it as "when the table scrolls horizontally below 1200px" | The server has no viewport. Adding the attribute with JavaScript on resize would make the keyboard path to the scroll depend on JS; omitting it would remove that path at exactly the width that needs it. An always-focusable labelled group at a width where it happens not to scroll is a superset of the spec, not a departure from it | Yes — `role="group"` + `aria-label` present at all widths, `overflow-x: auto` and the sticky row-header column verified at 1024px |
+| 13 | The Logger writes **eight** PSR-3 levels where `template-console-stream.md` §1 names four (`ERROR`, `WARN`, `INFO`, `DEBUG`) | The level WORD shown is always the real one, so nothing is hidden and §4's "a monochrome print of a log screen is fully readable" still holds. Only the TINT is mapped, and it is mapped by the delivery's own ordering rather than by a choice made here: at or above `error` takes the error tint, `warning` takes the warn tint, and §1's "ERROR and WARN only" means nothing below is tinted at all | Yes — driven on entry 41: a `CRITICAL` line prints the word CRITICAL and carries `k-line--error`; `INFO` and `DEBUG` lines carry no tint class at all, which is asserted rather than assumed |
+| 14 | The Logs error state does not render §2's **"Open Health"** action | `health.php` does not exist: Health is manifest entry 22 and D-072 deferred it to its own Phase 5 slice, which is the same reason D-075 omitted it from the sidebar. A link that 404s **from an error state** is worse than the state without it. "Choose another file", the other action §2 names, is rendered. The action returns with the screen it points at | Yes — the error state is driven (mode 0000 fixture) and offers exactly one action. Recorded so the omission is a decision, never a forgotten row |
+| 15 | The per-line copy affordance is a **sibling** of the line, not a child of it | §2 asks for both a line that is a `<button>` spanning the row and a copy affordance at its right. A button inside a button is invalid HTML — the parser unnests it, so the copy control would land somewhere nobody chose. The row is a positioned wrapper holding the two as siblings: the line still spans the row and still has the line's text as its name, the affordance is still at the right and still always in the DOM (`opacity`, never `display:none`, so a keyboard can reach it) | Yes — driven: the affordance is attached before any hover, reveals on hover AND on `:focus-within`, copies the real line (read back out of the clipboard), and clicking it does not also select the line |
+| 16 | The detail panel's body is the line's **context JSON**; there is no separate "stack" field | §1 says the panel carries "context + stack for the selected line". The stored line is `[ts] [LEVEL] [source] message {json}` (`Logger::write()`), so the trailing JSON **is** the context, and a stack appears only where a caller logged one into it. The design is unambiguous about what the panel shows; the data model expresses it as one structure rather than two | Yes — driven: selecting the ERROR line renders its two context keys, and a line with no context says so rather than showing an empty panel |
+| 17 | Follow polls `admin/api/logs.php`'s existing `read` action; only **Download** gets a new endpoint | The `read` action is already gated at `site.configure`, CSRF-checked and rate-limited (30/min), and returns `lines` **and** `total` — polling it with `offset = <lines already shown>` returns exactly the new lines. Writing a second endpoint for the same read is the duplication the conventions treat as a defect. Download had no endpoint at all: `admin/api/log-download.php` is a **GET** because it changes no state and a download must work as a plain link, and it resolves the filename through the Logger's own `safeFilePath()` rather than re-deriving a security boundary in a page | Yes — driven: Download streams the real file as `text/plain` with its `Content-Disposition`, a traversal name is refused 404, and a viewer is refused 403 by the gate map entry added in the same slice |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

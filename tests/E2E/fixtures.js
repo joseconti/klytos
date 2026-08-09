@@ -162,4 +162,39 @@ async function login( page, role ) {
     await base.expect( page.getByTestId( 'shell.brand' ) ).toBeVisible();
 }
 
-module.exports = { test, expect: base.expect, login, ROLES, passwordFor };
+/*
+ * DR-005's excluded elements, by SELECTOR and never by disabling a rule, so
+ * every other element in every state stays checked and a NEW defect on the same
+ * components still fails. Extend this list ONLY for a registered Design Request.
+ *
+ * It lives HERE rather than in one spec because the second screen to hit the
+ * chip pair proved it is not one screen's problem: DR-005's addendum predicted
+ * "thirteen filter rows", and a per-spec copy would have let screen twelve
+ * exclude a pair screen one had already fixed, or miss one it had not. One list,
+ * one set of measured ratios, every consumer.
+ */
+const KNOWN_DELIVERY_GAPS = [
+    // DR-005 gap 1 — a semantic badge inside a selected table row: the badge
+    // tint over --fila-seleccion over the card. 4.44:1 light / 3.08:1 dark.
+    'tr[aria-selected="true"] .k-badge',
+
+    // DR-005 addendum, light theme only. A chip row sits on --fondo-ventana,
+    // OUTSIDE any card, and both chip states fall under AA there while both
+    // pass on a card:
+    //   unselected  --texto-secundario on --fondo-ventana            4.46:1
+    //               — the same token pair DR-005 gap 2 already registers,
+    //                 arriving on a second surface.
+    //   selected    --sobre-tinte-acento over --fila-seleccion over
+    //               --fondo-ventana                                  4.46:1
+    //               — a new composition, sibling of gap 1. On a card the same
+    //                 chip measures 4.76:1 and passes.
+    // Both recomputed independently from the token hexes; axe and the
+    // arithmetic agree. No colour was substituted.
+    //
+    // Two containers, not a bare `.k-chip`: a chip INSIDE a card passes, and
+    // excluding it everywhere would hide a real defect to silence a known one.
+    '.k-filters .k-chip',
+    '.k-console-chips .k-chip',
+];
+
+module.exports = { test, expect: base.expect, login, ROLES, passwordFor, KNOWN_DELIVERY_GAPS };

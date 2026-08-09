@@ -220,7 +220,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\I18n` | class | installer/core/i18n.php | — | Loads locale files and resolves translated interface strings |
 | `Klytos\Core\IntegrityChecker` | class | installer/core/integrity-checker.php | — | Verifies core and plugin file hashes against signed manifests |
 | `Klytos\Core\License` | class | installer/core/license.php | — | Activates and periodically verifies the installation license |
-| `Klytos\Core\Logger` | class | installer/core/logger.php | — | Writes, reads, searches and deletes per-plugin log files; `isLogFileReadable()` separates an empty log from one that cannot be opened, which `readLogFile()` cannot (both are no lines) |
+| `Klytos\Core\Logger` | class | installer/core/logger.php | — | Writes, reads, searches and deletes per-plugin log files; `isLogFileReadable()` separates an empty log from one that cannot be opened, which `readLogFile()` cannot (both are no lines); `parseLine()` splits a stored line back into timestamp / level / source / message / context, and lives here beside the `write()` that formats it so the two cannot drift |
 | `Klytos\Core\Mailer` | class | installer/core/mailer.php | — | Sends plain-text, HTML and button-templated emails from the CMS |
 | `Klytos\Core\MCP\JsonRpc` | class | installer/core/mcp/json-rpc.php | — | Parses JSON-RPC requests and builds the success and error response envelopes |
 | `Klytos\Core\MCP\OAuthServer` | class | installer/core/mcp/oauth-server.php | — | OAuth client registration, authorization and access-token issuing for MCP |

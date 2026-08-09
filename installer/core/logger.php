@@ -304,6 +304,77 @@ class Logger
     }
 
     /**
+     * Split one stored log line into the fields the Logs screen renders.
+     *
+     * The format is the one {@see write()} produces:
+     *
+     *     [Y-m-d H:i:s] [LEVEL] [source] message {json context}
+     *
+     * and the parser lives beside the formatter for that reason — a copy in a
+     * screen would be free to drift from the `sprintf()` that writes the line,
+     * and nothing would notice until a log rendered wrong.
+     * `template-console-stream.md` needs all four fields separately: the level
+     * as a mono label at the start of the line (§1), the timestamp as
+     * `<time datetime>` (§4), and the message and context as the detail
+     * panel's `<h2>` and body (§2).
+     *
+     * A line this class did not write is never dropped and never fatal: it
+     * comes back as a message with empty fields, because a log viewer that
+     * hides what it cannot parse is worse than one that shows it plainly.
+     *
+     * @param  string $line One stored line, without its trailing newline.
+     * @return array{timestamp: string, level: string, source: string, message: string, context: array<string, mixed>}
+     */
+    public static function parseLine( string $line ): array
+    {
+        $parsed = [
+            'timestamp' => '',
+            'level'     => '',
+            'source'    => '',
+            'message'   => $line,
+            'context'   => [],
+        ];
+
+        if ( preg_match( '/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[([A-Za-z]+)\] \[([^\]]*)\] ?(.*)$/s', $line, $m ) === 1 ) {
+            $level = strtolower( $m[2] );
+
+            $parsed['timestamp'] = $m[1];
+            // A level word this class never writes is left EMPTY rather than
+            // coerced to a known one: the screen tints by level, and guessing
+            // `error` for an unknown word paints a line red on a guess.
+            $parsed['level']     = in_array( $level, self::LEVELS, true ) ? $level : '';
+            $parsed['source']    = $m[3];
+            $parsed['message']   = $m[4];
+        }
+
+        /*
+         * The context is the trailing JSON object, and finding it is not
+         * `strpos( '{' )`: a message may itself contain braces
+         * ("Template {name} is unresolved"), and a nested object means the
+         * LAST `{` is not the right one either. So every `{` is tried in
+         * order and the first whose tail decodes to an array wins — which is
+         * the outermost object in the nested case and skips brace-looking
+         * prose in the other. A trailing group that is not valid JSON stays
+         * part of the message; dropping it would lose content.
+         */
+        $message = $parsed['message'];
+        if ( str_ends_with( $message, '}' ) ) {
+            $offset = 0;
+            while ( ( $brace = strpos( $message, '{', $offset ) ) !== false ) {
+                $decoded = json_decode( substr( $message, $brace ), true );
+                if ( is_array( $decoded ) ) {
+                    $parsed['context'] = $decoded;
+                    $parsed['message'] = rtrim( substr( $message, 0, $brace ) );
+                    break;
+                }
+                $offset = $brace + 1;
+            }
+        }
+
+        return $parsed;
+    }
+
+    /**
      * Get the total line count for a log file.
      *
      * @param  string $filename Log file name.

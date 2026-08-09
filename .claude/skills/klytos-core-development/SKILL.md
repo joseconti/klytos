@@ -140,6 +140,29 @@ A `register_shutdown_function` in `admin/bootstrap.php` catches PHP fatal errors
 
 `Logger::writeAlways()` is the unconditional counterpart to `Logger::write()`. It skips Developer Mode and per-plugin checks. Use it only for fatal/critical errors that must always be recorded.
 
+### Reading logs back — three answers, not one
+
+A log reader has to tell **missing**, **empty** and **cannot be opened** apart, and `readLogFile()`
+answers all three with an empty array. Use the methods that exist rather than re-deriving them:
+
+- `Logger::readLogFile( $filename, $offset, $limit )` — lines, or an empty array. It no longer
+  fatals on an unreadable file (it did: `file()` returns `false` on a failed open and the `count()`
+  that followed it raised a `TypeError`).
+- `Logger::isLogFileReadable( $filename )` — the question that separates "empty" from "cannot be
+  opened". It lives on the Logger because answering it means resolving a name to a path inside the
+  logs directory, and `safeFilePath()` is a **security boundary** (traversal refusal, prefix and
+  extension validation). Never re-implement that in a page.
+- `Logger::parseLine( $line )` — splits a stored line back into `timestamp` / `level` / `source` /
+  `message` / `context`. It is `static` and pure. It lives beside the `write()` that formats the
+  line so the two cannot drift; a parser written in a screen will drift. An unrecognised line comes
+  back as a message with empty fields — never dropped, never fatal — and an unknown level word
+  comes back EMPTY rather than coerced to a known one, because callers tint by level.
+
+**Never write a second reader.** `admin/api/logs.php` already exposes a `read` action gated at
+`site.configure`, CSRF-checked and rate-limited (30/min), returning `lines` **and** `total`; polling
+it with `offset = <lines already shown>` returns exactly the new lines. `admin/api/log-download.php`
+streams a whole file behind the same gate as a GET, because it changes no state.
+
 ## Testing
 
 The project has a real test harness. Use it — a core change asserted only by reading the diff is unverified.

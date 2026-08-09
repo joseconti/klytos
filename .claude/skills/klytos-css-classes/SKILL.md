@@ -202,6 +202,24 @@ icons_enabled: false  → Font Awesome is only loaded for admins (default)
 `.k-reclist` / `.k-rec` (the under-900 stacked record cards) · `.k-field` / `.k-control` ·
 `.k-empty` · `.k-status-line` · `.k-error-summary` · `.k-sr` · `.k-hit-24`.
 
+**The console-stream layer** (Logs, and shortly Terminal, Health's log panel, Webhooks'
+payload and Block data): `.k-console-layout` (stream + a 340 / 300 / in-flow detail panel) ·
+`.k-console-controls` · `.k-console-chips` · `.k-console-detail` · `.k-stream` (the labelled,
+focusable, scrolling `--fondo-ventana` panel) · `.k-stream-pre` · `.k-stream-row` ·
+`.k-stream-line` · `.k-stream-copy` · `.k-stream-level` / `.k-stream-time` /
+`.k-stream-source` · `.k-stream-truncated`, reusing the existing `.k-level--*` and
+`.k-line--error` / `.k-line--warn` from the code-block section rather than redefining them.
+
+Three rules specific to it, all of them things a later edit is likely to "fix" wrongly:
+
+- **`white-space: pre` and horizontal scroll are CORRECT here and nowhere else in the admin**
+  (`template-console-stream.md` §3 — 1.4.10's exception for content requiring two-dimensional
+  layout). Wrapping a log line is worse than scrolling it.
+- **The stream is never `aria-live`.** A live log reads continuously and makes the page
+  unusable; counts go to the shell's `#k-live-status` on a 10-second floor instead.
+- **Only ERROR and WARN are tinted.** Never emit `k-line--info` / `k-line--debug`: those
+  tints do not exist, and a class naming one is a tint waiting to be added by mistake.
+
 **A table's `grid-template-columns` belongs to the SCREEN, never to this layer**
 (`template-list-table.md` §1). Write it in a `<style nonce="$cspNonce">` block on the screen, and
 write it as `.k-<screen>-table tr:not(.k-table-row-full)` — without the `:not()` it outranks the
@@ -210,11 +228,23 @@ full-width empty/error row and collapses those states into the first column.
 ### ⚠ The cascade warning — read this before adding any `.k-*` rule
 
 The pre-redesign stylesheets are **still loaded on every admin screen**, so a new rule does not win
-just because it is newer or more specific-looking. This has now bitten five times, by five different
+just because it is newer or more specific-looking. This has now bitten six times, by six different
 mechanisms: a token shadowed later in its own file; a base rule placed after the media query that
 turns it on; one component rule out-specifying another; a `:where()` default at (0,0,0) losing to a
-bare `a` selector in `klytos-base.css`; and a class losing to a `padding` shorthand in a sheet that
-loads later.
+bare `a` selector in `klytos-base.css`; a class losing to a `padding` shorthand in a sheet that
+loads later; and a **component reset eating a modifier class defined earlier in the same file** —
+`.k-stream-line { background: none }` at (0,1,0) beat `.k-line--error` at (0,1,0) on source order,
+so tinted log lines rendered with no tint at all (L-036).
+
+Two corollaries earned the hard way by that sixth one:
+
+- **A `hidden` attribute loses to any component rule that sets `display`.** `.k-btn`,
+  `.k-bulkbar` and friends each need their own `.k-x[hidden] { display: none }` — the
+  attribute selector ON the class, (0,2,0) — or the "hidden" element is still painted and
+  still clickable. This has now happened twice, on two components.
+- **After changing a cascade rule, re-measure EVERY state of the component**, not the one
+  that was broken. Two of the three attempts at that reset looked correct in the state being
+  fixed and broke a different one.
 
 The rule (L-032, L-033): **never assume which rule wins — read the computed value out of a real
 screen in the browser.** Not out of the file, and not out of the component specimen: the specimen

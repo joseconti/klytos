@@ -1224,3 +1224,77 @@
   answers apart, plus the ordinary offset/limit path and the traversal refusal that had to survive
   the change. The unreadable fixture skips rather than lies where the running user can bypass mode
   0000 (root), because a test that silently passes as root would be worse than none.
+
+## L-035 — The harness said "both themes" and had only ever measured one, and nothing could have told you
+- **Symptom.** `tests/E2E/logs.spec.js` audited every state of the Logs screen with axe in
+  "both themes", and reported it. The light-theme runs were rendering DARK. The suite was
+  green, the count was right, the test names said `— light`, and the claim in the record
+  would have been false.
+- **Cause.** The helper set a cookie named `klytos_theme`. The shell reads
+  `klytos_admin_theme` (`templates/header.php`). An unknown cookie is not an error — the
+  server simply fell back to the default theme — so the page loaded, every assertion in the
+  test passed on the dark rendering, and the only thing that was wrong was the word in the
+  test's own name.
+- **Why nothing caught it.** Every check in the file was a check about the SCREEN. Nothing
+  was a check about the HARNESS. The theme was an input the test set and then never read
+  back, which is the one shape a passing test cannot detect: a test proves what it asserts,
+  and this one never asserted that the thing it varied had varied.
+- **What it cost, immediately.** Fixing the cookie surfaced three light-theme axe failures
+  that had been invisible — and one of them, the chip pair on `--fondo-ventana`, is a gap
+  DR-005's addendum had already predicted would reach "thirteen filter rows". The suite had
+  been carrying a false green for exactly as long as the file had existed.
+- **The general shape, which is the part worth keeping.** This is L-030's rule turned on the
+  tooling rather than on the product: *a check that has never been shown to fail is not
+  evidence.* Stage 2 learned it about a `keel-verify` check passing on zero references;
+  stage 3 learned it about a specimen that did not load the product's stylesheets; this is
+  the same lesson about a test's own parameter. **Whenever a test varies an input, it must
+  read that input back from the system under test before asserting anything else** —
+  theme, locale, role, viewport, feature flag, seeded data. The read-back costs one line
+  and is the only thing standing between "we verified both" and "we said we verified both".
+- **Fix.** `open()` now reads `document.documentElement.getAttribute( 'data-theme' )` and
+  fails with a message naming the problem — *"the theme cookie did not take — this run
+  measured the wrong theme"* — before the test body proceeds. The corrected cookie name is
+  the smaller half of the fix; the assertion is the half that generalises, because the next
+  spec to set the wrong thing will be stopped rather than believed.
+- **Check added.** The assertion itself, and it was **proven by planting the wrong cookie
+  name back and watching the light-theme tests fail with that message**, then restoring the
+  file byte-identically. `KNOWN_DELIVERY_GAPS` also moved out of `pages.spec.js` into
+  `tests/E2E/fixtures.js` in the same slice: the second screen to hit the chip pair proved
+  that list is not one screen's property, and a per-spec copy would let screen twelve
+  exclude a pair screen one had already fixed.
+
+## L-036 — Build rule 1's sixth mechanism, inside the section whose comment said it could not happen there
+- **Symptom.** Logs rendered every ERROR and WARN line with **no tint and no colour**: the
+  classes were on the element, the stylesheet plainly declares them, and
+  `getComputedStyle` returned `rgba(0, 0, 0, 0)`.
+- **Cause.** `.k-stream-line` resets `background` and `color` because a `<button>` carries a
+  UA background of its own. That reset is (0,1,0) and lives further down the file than
+  `.k-line--error` / `.k-line--warn`, which are also (0,1,0). Equal specificity, later
+  wins — so the reset ate the tint. The section's own header comment warns about source
+  order in so many words, and the trap still landed, because the comment was about MEDIA
+  QUERIES and the collision was between a component reset and a modifier class.
+- **And the fix broke two more states before it worked.** Excluding the tints from the reset
+  raised it to (0,3,0), which then outranked `.k-stream-line[aria-pressed="true"]` at
+  (0,2,0) — a selected line lost its selection colour. Excluding the selected state from
+  both declarations left it on the UA's `buttontext`, measured 2.03:1 in dark and 15.87:1
+  in light: a pair that comes from no stylesheet in this project. The third version splits
+  the two declarations, because they have DIFFERENT exception sets — a selected line paints
+  its own background but not its own colour — and that asymmetry is the whole content of
+  the bug.
+- **The general shape.** Six mechanisms now: token shadowing, source order between a base
+  rule and a media query, specificity between two component rules, zero specificity losing
+  to a superseded sheet, a shorthand in a later sheet, and now **a component reset eating a
+  modifier class defined earlier in the same file**. The rule does not generalise to any
+  list of mechanisms — the list keeps growing. It generalises to exactly one instruction,
+  L-032's, and this is the sixth time it has paid: **never assume which rule wins; read the
+  computed value out of the browser, on a real screen.** Corollary earned here: after
+  changing a cascade rule, re-measure **every state of the component**, not the one that was
+  broken — two of the three wrong versions looked correct in the state being fixed.
+- **Check added.** `tests/E2E/logs.spec.js`'s *a SELECTED tinted line keeps its tint* and
+  *measures the pairs DR-007 asks about* read the composited ratio out of the browser for
+  four states in both themes. The measurer itself had to be fixed first, and its bug is the
+  same family: it read the first non-transparent `backgroundColor` instead of COMPOSITING
+  the translucent tints over the panel, and reported 1.12:1 for a pair that measures
+  4.53:1 — a false FAILURE, which is as much a tooling defect as a false pass. Both fixes
+  proven by planting the defect back and watching the test go red, then restoring
+  byte-identically.

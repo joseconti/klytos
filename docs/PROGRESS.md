@@ -406,11 +406,47 @@
       CSRF-checked and rate-limited, returning `lines` + `total` — that is the Follow poll's source.
       Download has no endpoint yet. Shipped delete/delete-all controls **stay** (D-076's rule:
       removing shipped behaviour is not a fidelity decision).
+  - **Entry 41 (Logs) is BUILT, DRIVEN and COMPLETE — 2026-08-09 (D-085), L-035, L-036.**
+    The screen the prerequisite existed for: `logs.php` rewritten against
+    `template-console-stream.md`, `SPEC/accessibility.md` and `SPEC/manifest.md` §41.
+    - **What it is:** level chips as LINKS · the file `<select>` in a form with a **visible**
+      label and a submit driven **with JavaScript actually disabled** · search · the Follow
+      switch (`role="switch"`) polling the EXISTING `api/logs.php` `read` action, never a
+      second endpoint · Download, which is the one endpoint that genuinely did not exist
+      (`api/log-download.php`, a GET, gated at `site.configure` in the same change) ·
+      the `<pre>` stream inside a labelled focusable `role="group"` with **no `aria-live`**,
+      counts announced politely on a 10-second floor · per-line `<button>`s with
+      `aria-pressed` driving a detail panel whose `<h2>` names the event and whose body is
+      the line's context JSON · the per-line copy affordance and the payload copy ·
+      truncation at 5,000 lines, stated with a download link · all six empty/error states,
+      including the one D-084 made reachable at all.
+    - **`Logger::parseLine()` is new and test-first** (`tests/Unit/LoggerParseLineTest.php`,
+      red observed as `Call to undefined method`, 10 tests). It lives beside the `write()`
+      that formats the line so the two cannot drift.
+    - **SIX real defects, five in this slice's own code, every one found by driving:** the
+      Follow announcement dropped because the script resolved the shell's status region
+      before the shell emitted it · tint classes emitted for tints the design withholds ·
+      **the line reset clobbering `.k-line--*` by source order (build rule 1's SIXTH
+      mechanism — L-036), whose first two fixes each broke a different state** · a `hidden`
+      button that still painted (**D-079's bulk-bar defect on a new component**) · and
+      **the spec's own theme cookie having the wrong NAME, so every "light" run had
+      measured dark** (L-035 — the fix is the assertion, not the corrected name). Each
+      proven by planting the defect back and watching its own test go red.
+    - **`tests/E2E/logs.spec.js` — 30 tests**, all passing, both themes, `KPORT=8153`
+      (bind + owning PID 82993 + no `Server:` header confirmed). `KNOWN_DELIVERY_GAPS`
+      moved from `pages.spec.js` into `fixtures.js`: the chip pair reaching a second screen
+      proved it is not one screen's property.
+    - **i18n: 27 new keys × 20 catalogues**, pure additions, parity **PASS** at 758 each.
+    - **Tree state:** PHP **320 / 1577**, 0 skips (was 310/1541) · browser tier **141
+      passing** (was 111) · `keel-verify` **17 checks: 13 pass, 4 warnings** (unchanged) ·
+      `keel-doctor --check` green, 14 rows · lint **182/480 — down again** (D-025 records
+      191/488; last session 182/482) · `docs/api/INDEX.md` stays at **986** (one row per
+      class; the `Logger` row's description now names `parseLine()`).
   - **NEXT ACTION — stage 4 batch B, which needs DR-006 answered first.** With the widths in hand
     the remaining twelve are width-substitutions over machinery that is now built and driven:
     5 Users · 15 Plugins · 24 Webhooks · 27 Profile · 28 Licence · 30 Options · 32 Taxonomies ·
-    33 Scheduled · 34 System integrity · 35 Updates · 36 Transactions (41 Logs needs nothing from
-    DR-006 — console-stream has no grid). **Every one of them re-opens L-033's question**: the
+    33 Scheduled · 34 System integrity · 35 Updates · 36 Transactions (**41 Logs is DONE** —
+    console-stream has no grid, so DR-006 never blocked it). **Every one of them re-opens L-033's question**: the
     legacy sheets are still loaded, so each ported screen measures its own colours on a real page.
     Then stage 5 (form screens) and stage 6 (the specialised four).
 - **Phase 4 — the gate PASSED on 2026-07-29 (D-069) and the build is authorised.** The re-delivery
@@ -453,7 +489,22 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **THREE.**
+- Open Design Requests: **FOUR.**
+  **DR-007 — DRAFTED 2026-08-09 (D-085), NOT SENT** — the ready-to-paste prompt is the last
+  section of `docs/design/design-requests/DR-007.md` and sending it is the user's call.
+  Raised by DRIVING entry 41, not by reading the delivery. Two findings, both properties of
+  the **console-stream template** and therefore inherited by Terminal, Health's log panel,
+  Webhooks' payload and Block data: **(1)** `template-console-stream.md` §1 sets the stream
+  at 12px/19px and §2 makes each line a `<button>`, while `accessibility.md` §7 lists exactly
+  two exceptions to the 24 × 24 target rule and closes "No other exception exists. If a build
+  produces a smaller target, that is a defect" — and `.k-hit-24` cannot reconcile them,
+  because stacked 19px rows leave no undisturbed 24px space whatever a pseudo-element does.
+  **(2)** §2's selected line paints `--fila-seleccion` and §1's stream text is
+  `--texto-secundario` / `--texto-sutil`; composed, that measures **3.61:1 dark / 3.83:1
+  light** and **3.37:1 dark**. The tinted ERROR/WARN lines PASS (5.35:1 / 4.53:1), which is
+  what makes the finding specific. **Blocks nothing** — entry 41 is built and shipped; both
+  are excluded from the axe pass **by selector** with their measured ratios **pinned as
+  floors**, so an open request cannot become a licence to regress.
   **DR-006 — SENT 2026-07-29 (D-079)**, raised by stage 4 before its first line.
   `grid-template-columns` is delegated to the consuming screen by `template-list-table.md` §1 and
   recorded in `SPEC/manifest.md` for **one** of the thirteen list surfaces. Twelve have no widths;
