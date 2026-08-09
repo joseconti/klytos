@@ -61,6 +61,27 @@ decision = "allow"
 prefix = ["./scripts/keel-doctor", "--json"]
 decision = "allow"
 
+# keel-handoff-verify: reads a continuation hand-off and prints a verdict. It
+# writes nothing. Keel v5.3.0 requires the courier checks to live in this script
+# rather than be composed inline — an inline version becomes one line of nested
+# $(...), the permission matcher returns a parse error, and the allow-list is
+# bypassed even though every git command inside it is allowed.
+[[prefix_rule]]
+prefix = ["./scripts/keel-handoff-verify"]
+decision = "allow"
+
+# keel-continue / keel-chain-check: Keel v5.12.0/v5.13.0's chaining machinery.
+# keel-continue fires (or prints) the next chat's continuation per the recorded
+# contract; keel-chain-check is a read-only diagnostic that never vetoes a fire.
+# Neither writes anything outside the state directory named in the contract.
+[[prefix_rule]]
+prefix = ["./scripts/keel-continue"]
+decision = "allow"
+
+[[prefix_rule]]
+prefix = ["./scripts/keel-chain-check"]
+decision = "allow"
+
 [[prefix_rule]]
 prefix = ["npx", "playwright", "test"]
 decision = "allow"

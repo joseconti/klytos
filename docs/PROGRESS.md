@@ -27,7 +27,7 @@
 - Test-first policy: **pure-logic** (default) — chosen 2026-08-09. Pure functions of their inputs (validators, parsers, money, entitlements, state machines) get their test written and seen FAILING before the code; markup/framework-glue/config exempt. Every bug fix, at any policy value, starts from a failing reproduction test (unconditional).
 - Chaining: **start** — chosen 2026-08-09 (D-081), the maximum tier `Autonomy: automatic` recommends and this project's gates allow (macOS, `claude` on PATH verified, single-lane lock now implemented). `scripts/keel-continue` generated; the end-to-end fire is unexercised (see Keel baseline note above).
 - Chaining model: **claude-opus-5** — chosen 2026-08-09 (D-082, Keel v5.13.0). Every chained `start` launch passes `--model claude-opus-5`; a chained chat never inherits the launching session's model.
-- Chain verified: **not yet proven** — no `--smoke` run has been recorded. `scripts/keel-chain-check` reports the live gap list; see D-082.
+- Chain verified: **not yet proven** — no `--smoke` run has been recorded, and that single row is the ONLY thing standing between this project and `VERDICT: READY`. As of 2026-08-09 `scripts/keel-chain-check` reports **11 of 12 rows OK**; B5 is the outstanding one. It certifies that the launcher has been *observed* to run, which no amount of reading can establish — see D-082.
 - Domain rubric (Phase 2 §6a): **API ergonomics** — `docs/rubrics/api-ergonomics.md`, applied by `code-reviewer` check 8 (D-066)
 - Website intent: **yes** — klytos.io; Phase 8 deferred until requested (D-012)
 - Client budget: **no** — own project (D-013)
