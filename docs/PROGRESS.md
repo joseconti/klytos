@@ -17,7 +17,7 @@
 - Assistant config: **full** (tools: claude, codex, copilot, cursor, gemini, windsurf) — per references/assistant-config.md (D-010). Gemini via `.gemini/settings.json` `context.fileName` → `AGENTS.md`, no `GEMINI.md` mirror.
 - Models: orchestrator = session model (strongest available) / reviewer = mid tier / mechanical = cheapest tier — concrete names live only in each tool's agent config (D-011)
 - Keel baseline: **v5.13.0** (reconciled 2026-08-09, **D-082** — v5.12.0 → v5.13.0: `scripts/keel-chain-check` generated (twelve rows + `--json` + `--smoke`); `scripts/keel-continue` gained contract point 5b (`--model` on every `start` fire); new card lines `Chaining model:` (**claude-opus-5**) and `Chain verified:` (**not yet proven**); both lock blocks stamp-bumped v5.12.0 → v5.13.0 (content unchanged in substance per the changelog). `--smoke` was NOT run for real this session — it fires a live, billed `claude` process per the literal contract, and this implementation instead smoke-tests only the `osascript`/Terminal.app mechanism with a harmless `echo`, which is a deliberate scope reduction stated here rather than silently passed off as the full contract. Superseded by nothing; **D-081 below is the prior v5.3.0 → v5.12.0 reconciliation, unchanged.**)
-- Keel baseline (prior): **v5.12.0** (reconciled 2026-08-09, **D-081** — v5.3.1…v5.12.0. Actions applied: `.claude/settings.local.json` gets `defaultMode: auto` + the forge conversational allow-list + `env.PATH` (pending user approval of the file edit — auto-mode classifier blocks direct edits to permission files); project card gains `Autonomy:`, `Durability:`, `Branches:`, `Notify:`, `Test-first policy:` lines (all asked/confirmed 2026-08-09); `scripts/keel-handoff-verify` extended with the single-lane lock + `--release` (tested: take/busy/release/idempotent-release, all pass in an isolated scratch repo); `scripts/keel-continue` generated per the full v5.3.0…v5.10.3 contract (verify-before-fire, Handover check, tool detection, tier downgrade, live PATH re-check, atomic receipt claim, circuit breaker, lane release before firing, mktemp launch-script + `do script` by path, non-`---`-prefixed instruction) — tested through the print-fallback path (claude hidden from PATH) in a scratch repo; **the actual osascript firing itself is UNEXERCISED — the first real close-out that chains is its own evidence**, per the skill's own "an unexercised mechanism is not a blocked one." `docs/05-test-points.md` and `scripts/keel-verify`'s Red-first / test-first checks (v5.11.0) and `docs/keel-conformance.md`'s new-row sweep are **NOT yet done — carried to the next work block**, named so a fresh session does not skip them silently.)
+- Keel baseline (prior): **v5.12.0** (reconciled 2026-08-09, **D-081** — v5.3.1…v5.12.0. Actions applied: `.claude/settings.local.json` gets `defaultMode: auto` + the forge conversational allow-list + `env.PATH` (pending user approval of the file edit — auto-mode classifier blocks direct edits to permission files); project card gains `Autonomy:`, `Durability:`, `Branches:`, `Notify:`, `Test-first policy:` lines (all asked/confirmed 2026-08-09); `scripts/keel-handoff-verify` extended with the single-lane lock + `--release` (tested: take/busy/release/idempotent-release, all pass in an isolated scratch repo); `scripts/keel-continue` generated per the full v5.3.0…v5.10.3 contract (verify-before-fire, Handover check, tool detection, tier downgrade, live PATH re-check, atomic receipt claim, circuit breaker, lane release before firing, mktemp launch-script + `do script` by path, non-`---`-prefixed instruction) — tested through the print-fallback path (claude hidden from PATH) in a scratch repo; **the actual osascript firing itself is UNEXERCISED — the first real close-out that chains is its own evidence**, per the skill's own "an unexercised mechanism is not a blocked one." `docs/05-test-points.md` and `scripts/keel-verify`'s Red-first / test-first checks (v5.11.0) are **DONE 2026-08-09 (D-086)**; `docs/keel-conformance.md`'s new-row sweep is **still owed** and is the next item.)
 - Autonomy: **automatic** — chosen 2026-08-09. `defaultMode: auto` in `.claude/settings.local.json` (edit pending user approval, see Keel baseline note); Keel merges to `develop` and pushes without asking; never merges to `main` or publishes a release without explicit instruction.
 - Durability: **covered** — `origin` remote at `https://github.com/joseconti/klytos.git`, both `develop` and `main` tracked. Verified 2026-08-09.
 - Branches: **git-flow** — `develop` integrates, `main` is the user's; both exist and are tracked at `origin`.
@@ -442,7 +442,30 @@
       `keel-doctor --check` green, 14 rows · lint **182/480 — down again** (D-025 records
       191/488; last session 182/482) · `docs/api/INDEX.md` stays at **986** (one row per
       class; the `Logger` row's description now names `parseLine()`).
-  - **NEXT ACTION — stage 4 batch B, which needs DR-006 answered first.** With the widths in hand
+  - **The Keel v5.11.0 test-first migration is DONE — 2026-08-09 (D-086).** The first of the two
+    items D-081 and D-082 both deferred. `docs/05-test-points.md` now carries a **`Red first`**
+    column in both of its test-point tables (the Sprint 1 slice table and the Phase 4 stage table),
+    with its own legend defining the five values and the `red observed:` evidence convention.
+    **Twelve rows say `n/a — predates`** — the value that exists for exactly this migration, because
+    the policy is never retroactive — **and two say `observed`**: D-084's prerequisite (whose row is
+    new, and whose evidence, commit and decision entry all predate it, so it is a record rather than
+    a backfill) and D-085's `Logger::parseLine()`. `scripts/keel-verify` gained the three v5.11.0
+    checks — **FAIL** an unrecognised or empty cell · **FAIL** an `observed` with no failure line
+    beside it · **REPORT, never fail** every row that is neither `observed` nor `n/a — delegated`
+    — and all three were **proven to FAIL on five planted defects** before being trusted, the file
+    restored byte-identically after each. `KeelVerifyTest::EXPECTED_CHECKS` carries all three rows,
+    including the REPORT-only one, which needs pinning most: a warn-only check has no exit code to
+    notice it going silent. **Tree state:** `keel-verify` **20 checks: 15 pass, 5 warnings** (the
+    fifth is check 20 itself, by design) · PHP **320 / 1581**, 0 skips · lint baselines all
+    unchanged (182/480 core+admin, 113/109 plugins, 0/2 scripts, 0/0 tests).
+  - **NEXT ACTION — the `docs/keel-conformance.md` sweep** for the new Table 1 rows (the
+    `Durability:` / `Autonomy:` / `Branches:` / `Notify:` / `Issue capture:` / `Issue sweep
+    interval:` / `Test-first policy:` card lines, and `docs/01-discovery.md`'s environment-preflight
+    additions), the second of the two items D-081/D-082 deferred. **Derive the rows from
+    `MANIFEST.md`, never from the previous sweep** — that rule is UNBREAKABLE, and self-confirmation
+    is exactly what it exists to prevent. `keel-verify` currently warns that **6 requirements are
+    still `missing`**. Then:
+  - **stage 4 batch B, which needs DR-006 answered first.** With the widths in hand
     the remaining twelve are width-substitutions over machinery that is now built and driven:
     5 Users · 15 Plugins · 24 Webhooks · 27 Profile · 28 Licence · 30 Options · 32 Taxonomies ·
     33 Scheduled · 34 System integrity · 35 Updates · 36 Transactions (**41 Logs is DONE** —

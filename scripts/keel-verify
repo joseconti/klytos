@@ -1179,6 +1179,187 @@ if ( $guides === null ) {
     keel_report( 'every #ks-* the admin references resolves to a sprite <symbol>', $problems );
 }
 
+/**
+ * Checks 18, 19 and 20 — the test-first policy was actually applied.
+ *
+ * Keel v5.11.0. The card says `Test-first policy: pure-logic`, and a policy
+ * nobody records is a policy nobody applied — so every test-point row carries a
+ * `Red first` cell holding one of five fixed values, and these three checks are
+ * what stop that column becoming decoration.
+ *
+ * The asymmetry between them is deliberate and is the whole design:
+ *
+ *   18 (FAIL)   the cell is one of the five values. A closed enum for the same
+ *               reason `Coverage` has one: a script can only count what it can
+ *               recognise, and free text counts as nothing.
+ *   19 (FAIL)   a row claiming `observed` carries the failure line it claims to
+ *               have seen, introduced by the literal phrase `red observed:` and
+ *               quoted in backticks. A claim with no evidence is the one thing
+ *               this project does not accept anywhere else either.
+ *   20 (REPORT) every row that is neither `observed` nor `n/a — delegated` is
+ *               listed for a person to judge, and never fails the run. The
+ *               script cannot decide whether a given piece of code is pure
+ *               logic; if the judgment-bearing values were invisible, the
+ *               mildest one would quietly become the default.
+ *
+ * Scope: a table in docs/05-test-points.md is a test-point table when its first
+ * column is `Slice` or `Stage`. The file's other tables — the two legends, the
+ * session-start freshness log, the cross-cutting checklist — are not test-point
+ * rows and are deliberately out of scope rather than silently skipped.
+ */
+{
+    /**
+     * Split a markdown table row into its cells, honouring `\|` escapes.
+     *
+     * Needed rather than a bare explode: one evidence cell quotes a PHP
+     * TypeError whose text contains `Countable|array`, escaped as `\|` so the
+     * table still renders. Splitting on that pipe would report a cell-count
+     * mismatch on a row that is perfectly well formed.
+     *
+     * @param  string $row Raw table row, pipes included.
+     * @return array<int, string>
+     */
+    $cellsOf = static function ( string $row ): array {
+        $row = trim( $row );
+        $row = (string) preg_replace( '/^\|/', '', $row );
+        $row = (string) preg_replace( '/\|$/', '', $row );
+
+        return array_map( 'trim', (array) preg_split( '/(?<!\\\\)\|/', $row ) );
+    };
+
+    $redValues = [
+        'observed',
+        'n/a — policy',
+        'n/a — out of scope',
+        'n/a — predates',
+        'n/a — delegated',
+    ];
+
+    $enumProblems = [];
+    $redProblems  = [];
+    $judgment     = [];
+    $rowsSeen     = 0;
+
+    $pointsPath = $repoRoot . '/docs/05-test-points.md';
+
+    if ( ! is_readable( $pointsPath ) ) {
+        $enumProblems[] = 'docs/05-test-points.md does not exist — the test-point log is '
+            . 'unconditional from Phase 5 onward.';
+    } else {
+        $lines  = explode( "\n", (string) file_get_contents( $pointsPath ) );
+        $header = null;
+        $redCol = -1;
+        $evCol  = -1;
+
+        foreach ( $lines as $index => $rawLine ) {
+            $line   = trim( $rawLine );
+            $lineNo = $index + 1;
+
+            if ( $line === '' || $line[0] !== '|' ) {
+                $header = null;
+                continue;
+            }
+
+            // The separator row carries no data and no header.
+            if ( preg_match( '/^\|[\s:|-]+\|$/', $line ) === 1 ) {
+                continue;
+            }
+
+            $cells = $cellsOf( $line );
+
+            if ( $header === null ) {
+                if ( ! in_array( $cells[0], [ 'Slice', 'Stage' ], true ) ) {
+                    continue;
+                }
+
+                $header = $cells;
+                $redKey = array_search( 'Red first', $cells, true );
+                $redCol = $redKey === false ? -1 : (int) $redKey;
+                $evCol  = -1;
+
+                foreach ( $cells as $column => $name ) {
+                    if ( str_contains( $name, 'Evidence' ) ) {
+                        $evCol = (int) $column;
+                        break;
+                    }
+                }
+
+                if ( $redCol === -1 ) {
+                    $enumProblems[] = sprintf(
+                        'docs/05-test-points.md:%d — this test-point table has no `Red first` '
+                            . 'column. Every test-point row carries one (Keel v5.11.0).',
+                        $lineNo
+                    );
+                    $header = null;
+                }
+
+                continue;
+            }
+
+            if ( count( $cells ) !== count( $header ) ) {
+                $enumProblems[] = sprintf(
+                    'docs/05-test-points.md:%d — the row has %d cells and its header has %d. '
+                        . 'An unescaped `|` inside a cell splits the row and moves every value '
+                        . 'after it into the wrong column.',
+                    $lineNo,
+                    count( $cells ),
+                    count( $header )
+                );
+                continue;
+            }
+
+            $rowsSeen++;
+            $red   = $cells[ $redCol ];
+            $label = mb_substr( strip_tags( str_replace( '**', '', $cells[0] ) ), 0, 60 );
+
+            if ( ! in_array( $red, $redValues, true ) ) {
+                $enumProblems[] = sprintf(
+                    'docs/05-test-points.md:%d (%s) — `Red first` is "%s"; it must be exactly one '
+                        . 'of: %s.',
+                    $lineNo,
+                    $label,
+                    $red === '' ? '(empty)' : $red,
+                    implode( ' · ', $redValues )
+                );
+                continue;
+            }
+
+            if ( $red === 'observed' ) {
+                $evidence = $evCol === -1 ? '' : $cells[ $evCol ];
+
+                if ( preg_match( '/red observed:[^`]{0,160}`[^`]+`/u', $evidence ) !== 1 ) {
+                    $redProblems[] = sprintf(
+                        'docs/05-test-points.md:%d (%s) — claims `observed` with no failure line '
+                            . 'beside it. The evidence cell must carry the phrase "red observed:" '
+                            . 'followed by the failure quoted in backticks.',
+                        $lineNo,
+                        $label
+                    );
+                }
+            }
+
+            if ( $red !== 'observed' && $red !== 'n/a — delegated' ) {
+                $judgment[] = sprintf( 'docs/05-test-points.md:%d (%s) — %s', $lineNo, $label, $red );
+            }
+        }
+    }
+
+    if ( $enumProblems === [] && $redProblems === [] ) {
+        printf( "  ....  test points: %d row(s) carry a recognised `Red first` value\n", $rowsSeen );
+    }
+
+    keel_report( '`Red first` holds one of its five values in every test-point row', $enumProblems );
+    keel_report( 'every `observed` row carries the failure line it claims to have seen', $redProblems );
+
+    if ( $judgment !== [] ) {
+        $judgment[] = 'Reported, never failed: the card says `Test-first policy: pure-logic`, and '
+            . 'whether a given row is pure logic is a judgment no script can make. These rows are '
+            . 'listed at the sprint close for a person to judge.';
+    }
+
+    keel_warn( 'test-first: rows carrying a judgment a person must make', $judgment );
+}
+
 // ─────────────────────────────────────────────────────────────
 
 echo "\n";

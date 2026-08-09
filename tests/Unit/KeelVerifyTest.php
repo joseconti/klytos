@@ -84,6 +84,15 @@ final class KeelVerifyTest extends TestCase
         // noticed by using the admin. Registered here deliberately, per the
         // docblock above: the count may only move on purpose.
         'every #ks-* the admin references resolves to a sprite <symbol>',
+        // Added 2026-08-09 with the Keel v5.11.0 migration (D-086). Three
+        // checks rather than one, because they fail differently and two of
+        // them must never fail at all: the enum and the evidence are
+        // mechanical facts about a cell, while the third REPORTS a judgment
+        // no script can make. Registering all three here is what stops the
+        // reported one being quietly downgraded to nothing.
+        '`Red first` holds one of its five values in every test-point row',
+        'every `observed` row carries the failure line it claims to have seen',
+        'test-first: rows carrying a judgment a person must make',
     ];
 
     /**
@@ -209,6 +218,20 @@ final class KeelVerifyTest extends TestCase
             'The README link backlog stopped being reported. If D-017\'s editorial pass '
                 . 'genuinely fixed the ten dead links, remove them from $knownBroken in '
                 . 'scripts/keel-verify and update this test deliberately.'
+        );
+
+        // Added 2026-08-09 (D-086). This one is structurally permanent: every
+        // pre-v5.11.0 row carries `n/a — predates`, and the policy is never
+        // retroactive, so the list can shrink but not empty. That is precisely
+        // why it needs pinning — a REPORT-only check has no exit code to
+        // notice it going silent, so silence would read exactly like "every
+        // row is now `observed`".
+        $this->assertStringContainsString(
+            'WARN  test-first: rows carrying a judgment a person must make',
+            $output,
+            'The test-first judgment list stopped being reported. Every row predating Keel '
+                . 'v5.11.0 carries `n/a — predates`, so an empty list means the check went '
+                . 'inert, not that the backlog was cleared.'
         );
     }
 }
