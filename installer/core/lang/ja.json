@@ -852,7 +852,8 @@
     "detail_none_title": "行が選択されていません",
     "detail_none": "行を選択すると、そのコンテキストが表示されます。",
     "detail_no_context": "この行に追加のコンテキストはありません。",
-    "copy_line": "この行をコピー",
+    "copy_line": "行をコピー",
+      "copy_all": "すべての行をコピー（{count}）",
     "copy_payload": "内容全体をコピー",
     "copied": "クリップボードにコピーしました。"
   },

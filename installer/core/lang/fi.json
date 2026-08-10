@@ -852,7 +852,8 @@
     "detail_none_title": "Riviä ei ole valittu",
     "detail_none": "Valitse rivi nähdäksesi sen kontekstin.",
     "detail_no_context": "Tällä rivillä ei ole lisäkontekstia.",
-    "copy_line": "Kopioi tämä rivi",
+    "copy_line": "Kopioi rivi",
+      "copy_all": "Kopioi kaikki rivit ({count})",
     "copy_payload": "Kopioi koko sisältö",
     "copied": "Kopioitu leikepöydälle."
   },

@@ -852,7 +852,8 @@
     "detail_none_title": "Nie wybrano wiersza",
     "detail_none": "Wybierz wiersz, aby zobaczyć jego kontekst.",
     "detail_no_context": "Ten wiersz nie ma dodatkowego kontekstu.",
-    "copy_line": "Skopiuj ten wiersz",
+    "copy_line": "Kopiuj wiersz",
+      "copy_all": "Kopiuj wszystkie wiersze ({count})",
     "copy_payload": "Skopiuj całą zawartość",
     "copied": "Skopiowano do schowka."
   },

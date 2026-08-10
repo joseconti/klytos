@@ -143,6 +143,16 @@ if ( $selectedFile !== '' && $fileReadable ) {
     }
 }
 
+/*
+ * What the stream is actually SHOWING, after filtering and after truncation.
+ *
+ * Named once because two things must agree on it and §4 makes both of them
+ * promises to the reader: the scroll container's accessible label ("Log stream,
+ * 412 lines") and **Copy all**'s own name ("Copy all 412 lines"). A control
+ * that names a count it does not copy is worse than one that names none.
+ */
+$renderedLineCount = count( $logLines );
+
 /**
  * The visible level word, and the tint class that goes with it.
  *
@@ -252,24 +262,31 @@ $renderLine = static function ( string $rawLine, int $index ) use ( $levelTone )
     $lineTint = in_array( $tone, ['error', 'warn'], true ) ? ' k-line--' . $tone : '';
 
     /*
-     * §2's Hover state: "a line takes --fila-hover and reveals its copy
-     * affordance at the right. The affordance is in the DOM always." — and §4:
-     * "Copy buttons name what they copy: 'Copy this line'."
+     * THE PER-LINE COPY BUTTON IS WITHDRAWN — DR-007's answer, and it is the
+     * one interaction change in it.
      *
-     * Code-side adaptation (BUILD-SPEC §5.9): the affordance CANNOT sit inside
-     * the line. §2 also makes the line itself a `<button>` on this screen, and
-     * a button inside a button is invalid HTML — the parser unnests it, so the
-     * copy control would end up outside the line anyway, in a position nobody
-     * chose. So the row is a wrapper holding two siblings: the line button,
-     * which still spans the line and still has the line's text as its name, and
-     * the copy button positioned at its right edge. The design intent — one
-     * selectable line, one copy control revealed at the right, always present
-     * in the DOM — is untouched; only the element nesting differs.
+     * The previous wording asked for a copy affordance revealed at the line's
+     * right edge, and this file built it as a sibling inside a positioned row
+     * (a button cannot nest in a button). `accessibility.md` §7.1 now grants the
+     * 19px line an explicit target-size exception, and **condition 1 of four is
+     * that the line is the ONLY target in its row**: two 19px targets in one row
+     * is precisely what the exception does not permit, and enlarging either only
+     * moves the overlap onto the neighbouring line.
      *
-     * "Always in the DOM" is literal and is why it is `opacity`/`visibility` in
-     * CSS rather than `display: none`: a control that is not in the tree cannot
-     * be reached by a keyboard, and a log line's copy button is exactly what a
-     * keyboard user wants.
+     * So copy moved OUT of the stream entirely, into two controls that are both
+     * `sm` (28px) and both outside it — **Copy line** in the detail panel's
+     * header and **Copy all** in the control row (`template-console-stream.md`
+     * §1, §2 and §4). Nothing is lost: a line is still copyable, by selecting it
+     * and using the panel's control, which is also reachable by keyboard without
+     * pointer precision.
+     *
+     * `data-raw` carries the line's original text so **Copy line** copies the
+     * line as stored rather than as rendered — the panel would otherwise have to
+     * reassemble it from the parsed fields and could drift from `Logger::write()`.
+     *
+     * The row wrapper stays. It is what `--fila-hover` paints across (§2: hover
+     * covers the full stream width) and what the selected line's left bar is
+     * measured against; it now holds one child instead of two.
      */
     return '<div class="k-stream-row">'
         . '<button type="button"'
@@ -278,13 +295,9 @@ $renderLine = static function ( string $rawLine, int $index ) use ( $levelTone )
         . ' data-index="' . $index . '"'
         . ' data-message="' . klytos_esc_attr( $parsed['message'] ) . '"'
         . ' data-context="' . klytos_esc_attr( $context ) . '"'
+        . ' data-raw="' . klytos_esc_attr( $rawLine ) . '"'
         . ' data-testid="logs.line.' . $index . '"'
         . '>' . $inner . '</button>'
-        . '<button type="button"'
-        . ' class="k-stream-copy"'
-        . ' data-copy="' . klytos_esc_attr( $rawLine ) . '"'
-        . ' data-testid="logs.copy.' . $index . '"'
-        . '>' . klytos_esc_html( __( 'logs.copy_line' ) ) . '</button>'
         . '</div>';
 };
 
@@ -417,6 +430,24 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <span class="k-switch-thumb"></span>
             </button>
         </span>
+    <?php endif; ?>
+
+    <?php /*
+     * §1's control row gains **Copy all** (DR-007's answer), and §4 requires it
+     * to NAME WHAT IT COPIES: "Copy all 412 lines". So the count is in the
+     * label, and it is the count of what the stream is CURRENTLY SHOWING —
+     * filters and truncation included — not the file's total, which would be a
+     * promise the button does not keep.
+     *
+     * It is rendered only where there is something to copy: a "Copy all 0 lines"
+     * is a control that does nothing, and §2's empty state already says the
+     * stream is empty.
+     */ ?>
+    <?php if ( $renderedLineCount > 0 ) : ?>
+        <button type="button" class="k-btn k-btn--secondary" id="logs-copy-all"
+                data-testid="logs.copy_all">
+            <?php echo klytos_esc_html( __( 'logs.copy_all', [ 'count' => (string) $renderedLineCount ] ) ); ?>
+        </button>
     <?php endif; ?>
 
     <?php
@@ -585,7 +616,7 @@ require_once __DIR__ . '/templates/sidebar.php';
                 <div class="k-stream"
                      tabindex="0"
                      role="group"
-                     aria-label="<?php echo klytos_esc_attr( __( 'logs.stream_label', ['count' => (string) count( $logLines )] ) ); ?>"
+                     aria-label="<?php echo klytos_esc_attr( __( 'logs.stream_label', ['count' => (string) $renderedLineCount] ) ); ?>"
                      id="logs-stream"
                      data-file="<?php echo klytos_esc_attr( $selectedFile ); ?>"
                      data-total="<?php echo klytos_esc_attr( (string) $totalLines ); ?>"
@@ -623,7 +654,21 @@ require_once __DIR__ . '/templates/sidebar.php';
      */
     ?>
     <aside class="k-card k-card--padded k-console-detail" data-testid="logs.detail">
-        <h2 id="logs-detail-title"><?php echo klytos_esc_html( __( 'logs.detail_none_title' ) ); ?></h2>
+        <?php /*
+         * §1: the detail panel is "h2 + Copy line, then context and stack".
+         * **Copy line** is where the withdrawn per-line button's job went
+         * (DR-007 / §7.1 condition 1): it copies the SELECTED line as stored,
+         * it is `sm` (28px, so it is a compliant target), and it lives outside
+         * the stream. Hidden until a line is selected, because a control that
+         * copies nothing is not an affordance.
+         */ ?>
+        <div class="k-console-detail-head">
+            <h2 id="logs-detail-title"><?php echo klytos_esc_html( __( 'logs.detail_none_title' ) ); ?></h2>
+            <button type="button" class="k-btn k-btn--secondary k-btn--sm" id="logs-copy-line"
+                    data-testid="logs.copy_line" hidden>
+                <?php echo klytos_esc_html( __( 'logs.copy_line' ) ); ?>
+            </button>
+        </div>
         <p class="k-empty-text" id="logs-detail-empty"><?php echo klytos_esc_html( __( 'logs.detail_none' ) ); ?></p>
         <dl id="logs-detail-context" hidden></dl>
         <?php /* §4: "Copy buttons name what they copy" — this one copies the
@@ -695,6 +740,7 @@ echo json_encode(
 
     var strings     = JSON.parse( document.getElementById( 'logs-strings' ).textContent );
     var copyPayload = document.getElementById( 'logs-copy-payload' );
+    var copyLine    = document.getElementById( 'logs-copy-line' );
 
     /* ── Selection → the detail panel (§2's selected-line state) ────────── */
     var detailTitle     = document.getElementById( 'logs-detail-title' );
@@ -716,6 +762,9 @@ echo json_encode(
             if ( copyPayload ) {
                 copyPayload.hidden = true;
             }
+            if ( copyLine ) {
+                copyLine.hidden = true;
+            }
             return;
         }
 
@@ -726,6 +775,17 @@ echo json_encode(
         button.setAttribute( 'aria-pressed', 'true' );
 
         detailTitle.textContent = button.dataset.message || strings.detailNoneTitle;
+
+        /*
+         * Copy line appears with the selection and carries the line AS STORED.
+         * Unlike Copy payload — which is about the context and is hidden when
+         * there is none — this one is meaningful for every selected line, so it
+         * is revealed here rather than in either context branch below.
+         */
+        if ( copyLine ) {
+            copyLine.dataset.raw = button.dataset.raw || '';
+            copyLine.hidden      = false;
+        }
         detailEmpty.hidden      = true;
 
         var raw = button.dataset.context || '';
@@ -768,9 +828,10 @@ echo json_encode(
     }
 
     /*
-     * One delegated listener for the whole stream, and the copy branch comes
-     * FIRST: the copy button is a sibling of the line inside the row, so a
-     * click on it must not also be read as selecting the line under it.
+     * One delegated listener for the whole stream. The copy branch that used to
+     * come first is gone: DR-007's answer withdrew the per-line copy button
+     * (accessibility.md §7.1, condition 1 — the line is the only target in its
+     * row), so a click inside the stream can only ever mean "select this line".
      */
     function copyText( button, text ) {
         if ( ! navigator.clipboard ) {
@@ -787,11 +848,6 @@ echo json_encode(
     }
 
     pre.addEventListener( 'click', function ( event ) {
-        var copy = event.target.closest( '.k-stream-copy' );
-        if ( copy ) {
-            copyText( copy, copy.dataset.copy || '' );
-            return;
-        }
         var button = event.target.closest( '.k-stream-line' );
         if ( button ) {
             selectLine( button );
@@ -803,6 +859,79 @@ echo json_encode(
             copyText( copyPayload, copyPayload.dataset.payload || '' );
         } );
     }
+
+    /* ── Copy line (§1's detail header) — the withdrawn per-line button's job.
+       It copies the SELECTED line as STORED, from `data-raw`, rather than
+       reassembling it from the parsed fields, which could drift from the
+       `sprintf()` in Logger::write() that produced it. ─────────────────────── */
+    if ( copyLine ) {
+        copyLine.addEventListener( 'click', function () {
+            copyText( copyLine, copyLine.dataset.raw || '' );
+        } );
+    }
+
+    /* ── Copy all (§1's control row) — what the stream is CURRENTLY SHOWING,
+       filters and truncation included, which is exactly what its own label
+       promises (§4: "Copy buttons name what they copy"). Read out of the DOM
+       rather than re-fetched, so the bytes copied are the bytes on screen. ── */
+    var copyAll = document.getElementById( 'logs-copy-all' );
+    if ( copyAll ) {
+        copyAll.addEventListener( 'click', function () {
+            var lines = Array.prototype.map.call(
+                pre.querySelectorAll( '.k-stream-line' ),
+                function ( line ) { return line.dataset.raw || ''; }
+            );
+            copyText( copyAll, lines.join( '\n' ) );
+        } );
+    }
+
+    /*
+     * ── Keyboard operation of the stream, and it is a CONDITION rather than a
+     * convenience. ──────────────────────────────────────────────────────────
+     *
+     * accessibility.md §7.1 grants the 19px line its target-size exception only
+     * where "the stream is fully operable from the keyboard: ↑/↓ move between
+     * lines inside the focusable stream group, Enter or Space selects, and the
+     * detail panel is reachable with no pointer precision at all." A build that
+     * drops this has not lost a nicety — it has lost the grounds for the
+     * exception and produced a 2.5.8 defect.
+     *
+     * Bound on the stream GROUP, which is what `tabindex="0"` puts in the tab
+     * order: the lines themselves are buttons and are individually tabbable
+     * too, so this adds the roving movement §7.1 names without removing
+     * anything that already worked.
+     */
+    stream.addEventListener( 'keydown', function ( event ) {
+        if ( event.key !== 'ArrowDown' && event.key !== 'ArrowUp' ) {
+            return;
+        }
+
+        var lines = Array.prototype.slice.call( pre.querySelectorAll( '.k-stream-line' ) );
+        if ( lines.length === 0 ) {
+            return;
+        }
+
+        var current = document.activeElement.closest
+            ? document.activeElement.closest( '.k-stream-line' )
+            : null;
+        var index = current ? lines.indexOf( current ) : -1;
+
+        // From the group itself (nothing focused yet), ↓ enters at the first
+        // line and ↑ at the last — the two ends a reader would expect.
+        var next;
+        if ( index === -1 ) {
+            next = event.key === 'ArrowDown' ? lines[ 0 ] : lines[ lines.length - 1 ];
+        } else {
+            next = event.key === 'ArrowDown'
+                ? lines[ Math.min( index + 1, lines.length - 1 ) ]
+                : lines[ Math.max( index - 1, 0 ) ];
+        }
+
+        // preventDefault so the arrow moves between LINES rather than scrolling
+        // the container out from under them.
+        event.preventDefault();
+        next.focus();
+    } );
 
     /* ── Default state (§2): scrolled to the bottom, newest last. ───────── */
     stream.scrollTop = stream.scrollHeight;

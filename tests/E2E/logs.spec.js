@@ -102,9 +102,18 @@ async function axeOn( page, selector ) {
 /*
  * THE STREAM LINE IS AUDITED IN TWO PASSES, AND THE SPLIT IS THE HONEST PART.
  *
- * Driving this screen found three things the delivery specifies that measure
- * below WCAG 2.2 AA, none of them a build choice and none of them fixable
- * without inventing design:
+ * DR-007 IS RESOLVED (D-093) AND THIS COMMENT IS THE RECORD OF WHAT CHANGED.
+ *
+ * Driving this screen originally found three things the delivery specified that
+ * measured below WCAG 2.2 AA. Two of them were answered by the re-delivery and
+ * are now specified to PASS; the third was answered by granting an explicit,
+ * conditional exception. What remains disabled below is `target-size` alone,
+ * and it is disabled because `accessibility.md` §7.1 GRANTS it — not because a
+ * request is open. The four conditions of that grant are asserted by
+ * `the 19px line holds §7.1's exception on all four conditions` below, so the
+ * exception is checked rather than merely claimed.
+ *
+ * The original three, kept because the history is the point:
  *
  *   1. TARGET SIZE (2.5.8). `template-console-stream.md` §1 sets the stream at
  *      `--type-code` (12px/19px) and §2 makes each line a `<button>` spanning
@@ -123,15 +132,23 @@ async function axeOn( page, selector ) {
  *      4.45:1 in light — DR-005 gap 2, already sent on 2026-07-29, reaching a
  *      second surface exactly as that request predicted.
  *
+ * WHERE EACH ONE LANDED:
+ *
+ *   1 → GRANTED as `accessibility.md` §7.1, a third documented exception, with
+ *       four testable conditions. `target-size` stays disabled on the stream
+ *       lines and ONLY there, and the four conditions are asserted separately.
+ *   2 → FIXED in the delivery: a selected line now paints all its text
+ *       `--texto-primario` (12.72 light / 9.52 dark) with a 3px accent bar, and
+ *       an unselected line's values take `--texto-primario` too. `color-contrast`
+ *       is therefore RE-ENABLED on the stream pass — it was disabled only while
+ *       the pairs were below AA.
+ *   3 → closed with 2, for this surface: it was the same token pair.
+ *
  * So: pass A audits the whole screen with EVERY rule on and the stream lines
- * excluded, and pass B audits the stream lines with those three rules — and
- * only those three, and only on that selector — turned off. The rules stay
- * enabled everywhere else on the page, nothing else about the lines is
- * skipped, and the ratios the exclusion covers are pinned by
- * `measures the pairs DR-007 asks about` below, so a REGRESSION is still
- * caught while the Design Request is open.
+ * excluded; pass B audits the stream lines with `target-size` alone turned off,
+ * on that selector alone. Everything else is enabled everywhere.
  */
-const DR_EXEMPT_RULES = [ 'target-size', 'color-contrast' ];
+const DR_EXEMPT_RULES = [ 'target-size' ];
 
 /*
  * `target-offset` reports the same DR-007 gap 1 finding from the other side —
@@ -144,16 +161,46 @@ const DR_EXEMPT_RULES = [ 'target-size', 'color-contrast' ];
  */
 const DR_EXEMPT_RESULT_IDS = [ 'target-offset' ];
 
+/*
+ * DR-009 — FOUND BY RE-ENABLING `color-contrast` AFTER DR-007 CLOSED, which is
+ * the whole argument for un-pinning an exclusion the moment its request is
+ * answered. It had been sitting under the old blanket exemption, unmeasured.
+ *
+ * §1 gives an unselected line's STRUCTURE (the timestamp and the source)
+ * `--texto-sutil`, and gives ERROR and WARN lines the tint as their BACKGROUND.
+ * Composed, that is `--texto-sutil` on a tint over `--fondo-ventana`, and it
+ * fails in both tints and both themes:
+ *
+ *   light  on --tinte-peligro  3.88:1     dark  on --tinte-peligro  4.18:1
+ *   light  on --tinte-aviso    3.94:1     dark  on --tinte-aviso    3.73:1
+ *
+ * Recomputed independently in Python from the token hexes; axe reports 3.93 for
+ * the light/aviso case and the arithmetic agrees.
+ *
+ * BOTH HALVES ARE THE DELIVERY'S — `--texto-sutil` for structure and the tint
+ * for the line are each specified in §1 — so this is Phase 4 rule 2 and is
+ * registered rather than fixed. And it is pointed: the composed-pairs table
+ * DR-007 just added states the general rule ("a token that passes on a surface
+ * is not thereby passing on a tint over that surface"), lists `--texto-sutil`
+ * on `--fondo-ventana` as PASS, and never measures it on a tint over that
+ * surface — which is exactly what an ERROR or a WARN line renders.
+ *
+ * SELECTED tinted lines are NOT affected: DR-007's answer makes all their text
+ * `--texto-primario` (12.67 / 11.74 / 12.86 / 10.49), so the exclusion is
+ * scoped to the unselected state and the selected one stays fully checked.
+ */
+const DR009_PAIRS = [
+    '.k-stream-line.k-line--error:not([aria-pressed="true"]) .k-stream-time',
+    '.k-stream-line.k-line--error:not([aria-pressed="true"]) .k-stream-source',
+    '.k-stream-line.k-line--warn:not([aria-pressed="true"]) .k-stream-time',
+    '.k-stream-line.k-line--warn:not([aria-pressed="true"]) .k-stream-source',
+];
+
 async function axeScreen( page ) {
     let builder = new AxeBuilder( { page } )
         .withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
         .include( '#main' )
-        .exclude( '.k-stream-line' )
-        // The copy affordance is excluded for the SAME reason as the line and
-        // not a new one: it sits inside the 19px row §1 specifies, so it cannot
-        // be 24px tall either, and enlarging it would only move the failure to
-        // the neighbouring line. One gap, two elements — DR-007 gap 1.
-        .exclude( '.k-stream-copy' );
+        .exclude( '.k-stream-line' );
     for ( const gap of KNOWN_DELIVERY_GAPS ) {
         builder = builder.exclude( gap );
     }
@@ -161,12 +208,17 @@ async function axeScreen( page ) {
 }
 
 async function axeStreamLines( page ) {
-    const result = await new AxeBuilder( { page } )
+    let builder = new AxeBuilder( { page } )
         .withTags( [ 'wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa' ] )
         .include( '.k-stream-line' )
-        .include( '.k-stream-copy' )
-        .disableRules( DR_EXEMPT_RULES )
-        .analyze();
+        .disableRules( DR_EXEMPT_RULES );
+
+    // One at a time: exclude() reads an ARRAY as a FRAME PATH (L-037).
+    for ( const pair of DR009_PAIRS ) {
+        builder = builder.exclude( pair );
+    }
+
+    const result = await builder.analyze();
 
     return {
         ...result,
@@ -281,31 +333,208 @@ test.describe( 'Logs — the states', () => {
         await expect( first.locator( 'time' ) ).toHaveAttribute( 'datetime', '2026-08-01T09:00:01Z' );
     } );
 
-    test( 'every line carries a copy affordance that is always in the DOM and names what it copies', async ( { page, context } ) => {
+    test( 'the per-line copy affordance is GONE, and copy lives outside the stream', async ( { page, context } ) => {
         await context.grantPermissions( [ 'clipboard-read', 'clipboard-write' ] );
         await open( page, `?file=${ FILE_POPULATED }` );
 
-        // §2: "The affordance is in the DOM always." Attached before any hover
-        // — a control that only exists on hover cannot be reached by keyboard.
-        const copy = page.getByTestId( 'logs.copy.4' );
-        await expect( copy ).toBeAttached();
+        /*
+         * DR-007's answer withdrew it (D-093). Asserted as ABSENT rather than
+         * simply not tested: `accessibility.md` §7.1 grants the 19px line its
+         * target-size exception only while the line is the ONLY target in its
+         * row, so a second control reappearing here would silently revoke the
+         * grounds for the exception the pass above relies on.
+         */
+        await expect( page.locator( '.k-stream-copy' ) ).toHaveCount( 0 );
+        await expect( page.getByTestId( 'logs.copy.4' ) ).toHaveCount( 0 );
+
+        // Copy line: hidden until a line is selected, because a control that
+        // copies nothing is not an affordance.
+        const copyLine = page.getByTestId( 'logs.copy_line' );
+        await expect( copyLine ).toBeHidden();
+
+        await page.getByTestId( 'logs.line.4' ).click();
+        await expect( copyLine ).toBeVisible();
 
         // §4: "Copy buttons name what they copy."
-        await expect( copy ).toHaveText( /copy this line/i );
+        await expect( copyLine ).toHaveText( /copy line/i );
 
-        // It reveals on hover, and equally on keyboard focus.
-        await page.getByTestId( 'logs.line.4' ).hover();
-        await expect( copy ).toHaveCSS( 'opacity', '1' );
-
-        // And it really copies — read back out of the clipboard, not asserted
-        // from the click having happened.
-        await copy.click();
+        // And it really copies the line AS STORED — read back out of the
+        // clipboard, not asserted from the click having happened.
+        await copyLine.click();
         const clip = await page.evaluate( () => navigator.clipboard.readText() );
         expect( clip ).toContain( 'Payment capture failed' );
+        // As stored means the whole record, not just the message.
+        expect( clip ).toContain( '[ERROR]' );
+    } );
 
-        // Copying a line must not also select it: the two controls are
-        // siblings and the click lands on one of them.
-        await expect( page.getByTestId( 'logs.line.4' ) ).toHaveAttribute( 'aria-pressed', 'false' );
+    test( 'Copy all names the count it copies, and copies exactly that', async ( { page, context } ) => {
+        await context.grantPermissions( [ 'clipboard-read', 'clipboard-write' ] );
+        await open( page, `?file=${ FILE_POPULATED }` );
+
+        const rendered = await page.locator( '.k-stream-line' ).count();
+        const copyAll = page.getByTestId( 'logs.copy_all' );
+
+        // §4: the label carries the count of what the stream is SHOWING.
+        await expect( copyAll ).toHaveText( new RegExp( `\\(${ rendered }\\)` ) );
+
+        await copyAll.click();
+        const clip = await page.evaluate( () => navigator.clipboard.readText() );
+        expect( clip.split( '\n' ).length ).toBe( rendered );
+    } );
+
+    test( "the 19px line holds §7.1's exception on all four conditions", async ( { page } ) => {
+        await open( page, `?file=${ FILE_POPULATED }` );
+
+        /*
+         * `accessibility.md` §7.1 grants the stream line a target-size exception
+         * "only with all four of these, and a build that drops one has produced
+         * a defect". `target-size` is disabled on the stream pass BECAUSE of
+         * this grant, so the grant itself has to be checked — otherwise the
+         * disabled rule is just a disabled rule.
+         */
+        const row = page.locator( '.k-stream-row' ).first();
+
+        // 1. The line is the ONLY target in its row.
+        await expect(
+            row.locator( 'button, a, input, select, [tabindex]:not([tabindex="-1"])' )
+        ).toHaveCount( 1 );
+
+        // 2. The unconstrained dimension is the FULL line: the target spans the
+        //    stream's whole width, so what is being aimed at is visibly the row.
+        const widths = await page.evaluate( () => {
+            const line = document.querySelector( '.k-stream-line' );
+            const pre  = document.getElementById( 'logs-stream-pre' );
+            return {
+                line: Math.round( line.getBoundingClientRect().width ),
+                pre:  Math.round( pre.getBoundingClientRect().width ),
+            };
+        } );
+        expect( widths.line ).toBe( widths.pre );
+
+        // 3. `.k-hit-24` is NEVER applied to a stream line — §7.1 says so in as
+        //    many words, because it cannot help and it moves the overlap.
+        await expect( page.locator( '.k-stream-line.k-hit-24' ) ).toHaveCount( 0 );
+
+        // 4. Every OTHER control on the screen is still ≥ 24px — the exception
+        //    is for the line and nothing else, and that is the half a blanket
+        //    disable would have hidden.
+        const small = await page.evaluate( () => {
+            const out = [];
+            document.querySelectorAll( '#main button, #main a' ).forEach( ( el ) => {
+                if ( el.closest( '.k-stream-pre' ) ) return;
+
+                /*
+                 * §7's table gives some controls their target through a WRAPPER
+                 * rather than through their own box — "Switch | 38 × 22 |
+                 * 38 × 24 | label row is 24px tall; the switch's own label is
+                 * part of the target". Measuring the control alone reported the
+                 * switch at 38×22 and called it a defect; the spec says the row
+                 * is the target, so the row is what gets measured. That was a
+                 * defect in this test, not in the screen.
+                 */
+                const target = el.closest( '.k-switch-row' ) || el.closest( '.k-hit-24' ) || el;
+                const r = target.getBoundingClientRect();
+                if ( r.width === 0 && r.height === 0 ) return;
+                if ( r.height < 24 || r.width < 24 ) {
+                    out.push( ( el.dataset.testid || el.className ) + ` ${ Math.round( r.width ) }x${ Math.round( r.height ) }` );
+                }
+            } );
+            return out;
+        } );
+        expect( small, 'a control outside the stream is under 24px' ).toEqual( [] );
+    } );
+
+    test( 'the stream is fully operable from the keyboard — §7.1 condition 3', async ( { page } ) => {
+        await open( page, `?file=${ FILE_POPULATED }` );
+
+        /*
+         * This is a CONDITION of the target-size exception, not a convenience:
+         * §7.1 grants the 19px line only where "↑/↓ move between lines inside
+         * the focusable stream group, Enter or Space selects, and the detail
+         * panel is reachable with no pointer precision at all". Driven with the
+         * real keyboard, never by calling focus().
+         */
+        await page.getByTestId( 'logs.stream' ).focus();
+
+        await page.keyboard.press( 'ArrowDown' );
+        await expect( page.getByTestId( 'logs.line.0' ) ).toBeFocused();
+
+        await page.keyboard.press( 'ArrowDown' );
+        await expect( page.getByTestId( 'logs.line.1' ) ).toBeFocused();
+
+        await page.keyboard.press( 'ArrowUp' );
+        await expect( page.getByTestId( 'logs.line.0' ) ).toBeFocused();
+
+        // Enter selects, and the detail panel populates — reached with no
+        // pointer at all, which is the condition's actual claim.
+        await page.keyboard.press( 'Enter' );
+        await expect( page.getByTestId( 'logs.line.0' ) ).toHaveAttribute( 'aria-pressed', 'true' );
+        await expect( page.getByTestId( 'logs.copy_line' ) ).toBeVisible();
+
+        // ↑ at the first line stays put rather than escaping the stream: the
+        // group is the boundary the exception is scoped to.
+        await page.keyboard.press( 'ArrowUp' );
+        await expect( page.getByTestId( 'logs.line.0' ) ).toBeFocused();
+    } );
+
+    test( 'a selected line paints ALL its text --texto-primario and takes the 3px bar', async ( { page } ) => {
+        await open( page, `?file=${ FILE_POPULATED }` );
+        await page.getByTestId( 'logs.line.4' ).click();
+
+        /*
+         * DR-007's answer, §2: "All text in a selected line is --texto-primario
+         * — the role colours are suppressed for the duration of the selection",
+         * plus a 3px accent bar so selection is not carried by a 1.16:1
+         * background change alone. Read out of the browser (L-032), never from
+         * the stylesheet.
+         */
+        const read = await page.evaluate( () => {
+            const line = document.querySelector( '.k-stream-line[aria-pressed="true"]' );
+            const primary = getComputedStyle( document.documentElement )
+                .getPropertyValue( '--texto-primario' ).trim();
+            const seen = new Set();
+            line.querySelectorAll( '.k-stream-level, .k-stream-time, .k-stream-source' )
+                .forEach( ( el ) => seen.add( getComputedStyle( el ).color ) );
+            return {
+                roles: Array.from( seen ),
+                lineColor: getComputedStyle( line ).color,
+                shadow: getComputedStyle( line ).boxShadow,
+                primary,
+            };
+        } );
+
+        // Every role inside the line resolved to ONE colour — the suppression
+        // is what makes that true, and a stale role colour would show up as a
+        // second entry rather than as a ratio nobody looks at.
+        expect( read.roles.length ).toBe( 1 );
+        expect( read.roles[ 0 ] ).toBe( read.lineColor );
+
+        // The bar. 3px, and inset, so it is inside the row rather than a border
+        // that would move the text.
+        expect( read.shadow ).toContain( 'inset' );
+        expect( read.shadow ).toMatch( /3px/ );
+    } );
+
+    test( 'Copy all follows the FILTER rather than the file, which is what its name promises', async ( { page, context } ) => {
+        await context.grantPermissions( [ 'clipboard-read', 'clipboard-write' ] );
+        await open( page, `?file=${ FILE_POPULATED }&level=error` );
+
+        const rendered = await page.locator( '.k-stream-line' ).count();
+        expect( rendered, 'the error filter matched nothing, so this proves nothing' ).toBeGreaterThan( 0 );
+
+        const copyAll = page.getByTestId( 'logs.copy_all' );
+        await expect( copyAll ).toHaveText( new RegExp( `\\(${ rendered }\\)` ) );
+
+        await copyAll.click();
+        const clip = await page.evaluate( () => navigator.clipboard.readText() );
+
+        // A control that names a count it does not copy is worse than one that
+        // names none — so every copied line must be an ERROR line.
+        const lines = clip.split( '\n' ).filter( Boolean );
+        expect( lines.length ).toBe( rendered );
+        for ( const line of lines ) {
+            expect( line ).toContain( '[ERROR]' );
+        }
     } );
 
     test( 'the detail panel copies the whole payload, and only when there is one', async ( { page, context } ) => {
@@ -650,32 +879,84 @@ test.describe( 'Logs — accessibility and layout', () => {
             expect( ratio, `selected ERROR line in ${ theme }` ).toBeGreaterThanOrEqual( 4.5 );
         } );
 
-        test( `measures the pairs DR-007 asks about, so a regression is still caught — ${ theme }`, async ( { page } ) => {
+        /*
+         * THIS TEST USED TO BE A FLOOR AND IS NOW A CHECK — DR-007 is RESOLVED
+         * (D-093), and its own comment said this is what would happen.
+         *
+         * The bounds were 3.6 and 4.4: below AA, recorded so an OPEN request
+         * could not become a licence to regress. The delivery has since
+         * specified passing values, so the bounds are now the real ones and a
+         * slide back to the old colours fails HERE rather than in an axe run
+         * three screens later. Un-pinning this mattered as much as the fix: an
+         * exclusion that outlives its Design Request is a permanent blind spot
+         * wearing the costume of a known issue.
+         */
+        test( `DR-009's excluded pairs are pinned as floors, so an open request is no licence — ${ theme }`, async ( { page } ) => {
+            await open( page, `?file=${ FILE_POPULATED }`, theme );
+
+            /*
+             * The four compositions the axe pass skips by selector, measured
+             * here at their REAL values rather than at 4.5 — a floor set at the
+             * threshold would pass even after a slide, which is the mistake
+             * D-091 caught on `.k-card--secret` (a floor that could not fail).
+             */
+            const floors = theme === 'light'
+                ? { error: 3.88, warn: 3.94 }
+                : { error: 4.18, warn: 3.73 };
+
+            for ( const [ tone, floor ] of Object.entries( floors ) ) {
+                const cls = tone === 'error' ? 'k-line--error' : 'k-line--warn';
+                const ratio = await page.evaluate(
+                    CONTRAST_IN_PAGE,
+                    `.k-stream-line.${ cls }:not([aria-pressed="true"]) .k-stream-time`
+                );
+                expect( ratio, `${ tone } structure text in ${ theme } (DR-009)` )
+                    .toBeGreaterThanOrEqual( floor - 0.05 );
+            }
+        } );
+
+        test( `a SELECTED tinted line is NOT affected by DR-009 — ${ theme }`, async ( { page } ) => {
+            await open( page, `?file=${ FILE_POPULATED }`, theme );
+
+            // DR-007's answer makes every role in a selected line
+            // --texto-primario, so the tinted selected line clears AA by a wide
+            // margin. This is what scopes DR-009 to the unselected state, and
+            // asserting it is what stops the exclusion widening later.
+            const line = page.locator( '.k-stream-line.k-line--error' ).first();
+            await line.click();
+
+            const ratio = await page.evaluate(
+                CONTRAST_IN_PAGE,
+                '.k-stream-line.k-line--error[aria-pressed="true"] .k-stream-time'
+            );
+            expect( ratio, `selected ERROR structure text in ${ theme }` )
+                .toBeGreaterThanOrEqual( 10 );
+        } );
+
+        test( `the selected and unselected lines both clear AA — ${ theme }`, async ( { page } ) => {
             await open( page, `?file=${ FILE_POPULATED }`, theme );
             await page.getByTestId( 'logs.line.1' ).click();
 
-            /*
-             * DR-007 gap 2 is open, so these pairs are BELOW 4.5 and the axe
-             * pass above skips them by selector. Skipping is not ignoring:
-             * this records the real measurement and fails if it gets WORSE,
-             * which is what keeps an open Design Request from quietly becoming
-             * a licence to regress. When Design answers, the bound becomes
-             * 4.5 and this test stops being a floor and becomes a check.
-             */
+            // Selected line: --texto-primario on --fila-seleccion over
+            // --fondo-ventana. The delivery measures 12.72 light / 9.52 dark;
+            // recomputed independently at 12.76 / 9.47. Pinned at 9 rather than
+            // at 4.5 so a quiet slide toward the threshold fails here.
             const ratio = await page.evaluate(
                 CONTRAST_IN_PAGE,
                 '.k-stream-line[aria-pressed="true"]'
             );
-            expect( ratio, `selected-line contrast in ${ theme } (DR-007 gap 2)` )
-                .toBeGreaterThanOrEqual( 3.6 );
+            expect( ratio, `selected-line contrast in ${ theme }` )
+                .toBeGreaterThanOrEqual( 9 );
 
-            // The unselected line's own pair — DR-005 gap 2, already sent.
+            // Unselected line: --texto-primario on --fondo-ventana, 14.79 /
+            // 15.29. This is DR-005 gap 2's own pair, closed for this surface
+            // by the delivery rather than re-raised.
             const plain = await page.evaluate(
                 CONTRAST_IN_PAGE,
                 '.k-stream-line[aria-pressed="false"]'
             );
-            expect( plain, `stream text on the panel in ${ theme } (DR-005 gap 2)` )
-                .toBeGreaterThanOrEqual( 4.4 );
+            expect( plain, `stream text on the panel in ${ theme }` )
+                .toBeGreaterThanOrEqual( 14 );
         } );
     }
 

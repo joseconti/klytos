@@ -1532,7 +1532,15 @@ a.k-stat:hover {
 .k-stream-pre {
     margin: 0;
     font: var(--type-code);
-    color: var(--texto-secundario);
+    /* --texto-primario, NOT --texto-secundario (DR-007's answer, §1).
+       The stream panel is --fondo-ventana, and accessibility.md §1.2 does not
+       permit secondary text there: it measures 4.46:1 in light. Values are
+       CONTENT and take primary (14.79 / 15.29); structure — the timestamp and
+       the source — takes --texto-sutil (4.53 / 5.44), which is what
+       .k-stream-time and .k-stream-source below already do.
+       This is DR-005 gap 2's own pair, closed for this surface by the delivery
+       rather than re-raised. */
+    color: var(--texto-primario);
     /* white-space: pre and NOT pre-wrap. §3 is explicit: "wrapping a log line
        is worse than scrolling it, and this is the one place in the admin where
        horizontal scroll of content is correct (1.4.10's exception for content
@@ -1542,39 +1550,19 @@ a.k-stat:hover {
     white-space: pre;
 }
 
-/* THE ROW WRAPS THE LINE AND ITS COPY AFFORDANCE, because §2 asks for both and
-   HTML forbids nesting them: the line is a <button> on this screen and a button
-   inside a button is invalid (the parser unnests it, so the copy control would
-   end up somewhere nobody chose). Two siblings in a positioned row give the
-   design exactly what it describes — a line that spans the row, a copy control
-   at its right — with valid markup. Logged as a code-side adaptation. */
+/* THE ROW IS THE FULL-WIDTH SURFACE THE LINE PAINTS ACROSS (§2: hover covers
+   the whole stream width). It used to hold two siblings — the line and a copy
+   affordance at its right — and DR-007's answer WITHDREW that affordance:
+   accessibility.md §7.1 grants the 19px line a target-size exception whose
+   first condition is that the line is the only target in its row. Copy now
+   lives outside the stream entirely, as `Copy line` in the detail panel header
+   and `Copy all` in the control row, both 28px.
+
+   The `.k-stream-copy` rules that lived here were DELETED rather than left
+   unused: a rule with no consumer is what L-039 is about, and this one would
+   have been read as evidence the affordance still existed. */
 .k-stream-row {
     position: relative;
-}
-
-/* §2: "The affordance is in the DOM always." Literally always — this hides it
-   with `opacity`, never `display: none`, because a control removed from the
-   tree cannot be tabbed to, and a keyboard user is exactly who needs a copy
-   button on a log line. It appears on hover OR on focus-within, so reaching it
-   with the keyboard reveals it. */
-.k-stream-copy {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0 var(--esp-4);
-    border: 0;
-    border-radius: var(--radio-control);
-    background: var(--fondo-elevado);
-    color: var(--texto-secundario);
-    font: var(--type-caption);
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity var(--dur-hover) var(--easing-estandar);
-}
-
-.k-stream-row:hover .k-stream-copy,
-.k-stream-row:focus-within .k-stream-copy {
-    opacity: 1;
 }
 
 /* One line. It is a <button> because selecting it opens the detail panel — §2:
@@ -1649,8 +1637,36 @@ a.k-stat:hover {
    selector on the class — (0,2,0) — so it beats `.k-stream-line:hover` at
    (0,2,0) by source order among equals and never depends on which of the two
    a mouse happens to be over. */
+/* DR-007's answer, §2: a selected line takes --fila-seleccion AND a 3px accent
+   bar down its left edge, and ALL its text becomes --texto-primario — the role
+   colours are suppressed for the duration of the selection.
+
+   The reasoning is the delivery's and it is worth keeping: role colour is a
+   scanning aid for the lines you read PAST, while the selected line is the one
+   being read in full, and it is the only line whose text sits on a tint.
+   Measured on the selection tint over --fondo-ventana: 12.72:1 light /
+   9.52:1 dark, recomputed independently here and agreeing at 12.76 / 9.47.
+   The previous wording left --texto-secundario there, which measured 3.83 /
+   3.61 — the finding DR-007 gap 2 reported.
+
+   The BAR is not decoration either: --fila-seleccion over --fondo-ventana is a
+   1.16:1 background change, so selection carried by the background alone is not
+   a second channel at all (§1.3). */
 .k-stream-line[aria-pressed="true"] {
     background: var(--fila-seleccion);
+    box-shadow: inset 3px 0 0 0 var(--color-acento);
+}
+
+/* Every role colour inside a selected line yields to --texto-primario.
+   `.k-stream-line[aria-pressed="true"]` is (0,2,0) and the descendants are
+   (0,1,0) each, so the compound selectors below are (0,3,0) and win by
+   structure rather than by source order — L-032's rule, applied to the fix
+   rather than discovered by it. The `.k-level--*` label colours are (0,1,0)
+   too and are covered by the same specificity. */
+.k-stream-line[aria-pressed="true"] .k-stream-level,
+.k-stream-line[aria-pressed="true"] .k-stream-time,
+.k-stream-line[aria-pressed="true"] .k-stream-source {
+    color: var(--texto-primario);
 }
 
 /* A tinted ERROR/WARN line keeps its tint when selected — the level is the
@@ -1669,12 +1685,24 @@ a.k-stat:hover {
    written to respect it. Found by driving, not by reading. */
 .k-stream-line.k-line--error[aria-pressed="true"] {
     background: var(--tinte-peligro);
-    box-shadow: inset 2px 0 0 0 var(--color-acento);
+    box-shadow: inset 3px 0 0 0 var(--color-acento);
+    /* DR-007's answer applies to a TINTED selected line too: "all text in a
+       selected line is --texto-primario ... the level tints are suppressed for
+       the duration of the selection". (0,3,0) beats .k-line--error's (0,1,0)
+       by structure. Measured on the tint composited over --fondo-ventana:
+       12.67:1 light / 11.74:1 dark. */
+    color: var(--texto-primario);
 }
 
 .k-stream-line.k-line--warn[aria-pressed="true"] {
     background: var(--tinte-aviso);
-    box-shadow: inset 2px 0 0 0 var(--color-acento);
+    box-shadow: inset 3px 0 0 0 var(--color-acento);
+    /* DR-007's answer applies to a TINTED selected line too: "all text in a
+       selected line is --texto-primario ... the level tints are suppressed for
+       the duration of the selection". (0,3,0) beats .k-line--warn's (0,1,0)
+       by structure. Measured on the tint composited over --fondo-ventana:
+       12.86:1 light / 10.49:1 dark. */
+    color: var(--texto-primario);
 }
 
 /* The level label at the START of the line (§1). Fixed width so the messages

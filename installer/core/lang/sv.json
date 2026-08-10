@@ -852,7 +852,8 @@
     "detail_none_title": "Ingen rad vald",
     "detail_none": "Välj en rad för att se dess kontext.",
     "detail_no_context": "Den här raden har ingen ytterligare kontext.",
-    "copy_line": "Kopiera den här raden",
+    "copy_line": "Kopiera rad",
+      "copy_all": "Kopiera alla rader ({count})",
     "copy_payload": "Kopiera hela innehållet",
     "copied": "Kopierat till urklipp."
   },

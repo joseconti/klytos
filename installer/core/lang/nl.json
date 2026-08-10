@@ -852,7 +852,8 @@
     "detail_none_title": "Geen regel geselecteerd",
     "detail_none": "Selecteer een regel om de context te zien.",
     "detail_no_context": "Deze regel heeft geen aanvullende context.",
-    "copy_line": "Deze regel kopiëren",
+    "copy_line": "Regel kopiëren",
+      "copy_all": "Alle regels kopiëren ({count})",
     "copy_payload": "De volledige inhoud kopiëren",
     "copied": "Gekopieerd naar het klembord."
   },

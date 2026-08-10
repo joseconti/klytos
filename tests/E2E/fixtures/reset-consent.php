@@ -134,6 +134,64 @@ if ( $declare ) {
     $declared = [ 'e2e-essential', 'e2e-analytics' ];
 }
 
+/*
+ * REMOVE THE GENERATED SITE THIS SPEC'S OWN SAVES PRODUCE.
+ *
+ * Saving on the Consent screen calls `BuildEngine::buildAll()` — it has to, or
+ * the banner a visitor sees does not change — and `buildAll()` writes the
+ * published site into the REPOSITORY ROOT. Two consequences, and the second one
+ * is why this cleanup lives here rather than in `.gitignore` alone:
+ *
+ *  1. it dirtied the working tree on every run (now gitignored, D-092);
+ *  2. `AdminGateHttpTest` asserts, for NEW-04, that no build output sits in the
+ *     repository root — so an E2E run that left it made the PHP suite fail on
+ *     code that was fine. That is L-025's shape exactly: two tiers sharing one
+ *     working tree, each corrupting the other's preconditions.
+ *
+ * Scoped deliberately: only the paths `BuildEngine` generates, only relative to
+ * the installer's own parent, and `.htaccess` is NEVER touched because it is
+ * tracked source the build rewrites rather than output the build creates.
+ */
+$root = dirname( __DIR__, 3 );
+
+$generated = [
+    'home', 'about', 'contact', 'search', 'assets', '.well-known',
+    'llms.txt', 'llms-full.txt', 'robots.txt', 'sitemap.xml',
+    'search-index.json', 'x402-gate.php',
+    // `index.html.md` is pure output. `index.html` and `.htaccess` are NOT in
+    // this list and must never be: both are TRACKED source that the build
+    // REWRITES, so deleting them would destroy repository content, and the
+    // build rewrites them from whatever the playground happens to be seeded
+    // with — which is why the rewrite must never be committed either.
+    'index.html.md',
+];
+
+$removeTree = static function ( string $path ) use ( &$removeTree ): void {
+    if ( is_file( $path ) || is_link( $path ) ) {
+        @unlink( $path );
+        return;
+    }
+    if ( ! is_dir( $path ) ) {
+        return;
+    }
+    foreach ( scandir( $path ) ?: [] as $entry ) {
+        if ( $entry === '.' || $entry === '..' ) {
+            continue;
+        }
+        $removeTree( $path . '/' . $entry );
+    }
+    @rmdir( $path );
+};
+
+$cleaned = [];
+foreach ( $generated as $name ) {
+    $path = $root . '/' . $name;
+    if ( file_exists( $path ) ) {
+        $removeTree( $path );
+        $cleaned[] = $name;
+    }
+}
+
 // Read back through the product's own reader rather than reporting what was
 // asked for: a fixture that prints its intentions proves nothing (L-035).
 $stored = $manager->getConfig();
@@ -147,5 +205,6 @@ echo json_encode( [
     'custom_categories' => array_keys( $stored['categories'] ?? [] ),
     'total_cookies'    => $audit['total_cookies'] ?? 0,
     'total_plugins'    => $audit['total_plugins'] ?? 0,
+    'build_output_removed' => $cleaned,
 ] );
 echo "\n";

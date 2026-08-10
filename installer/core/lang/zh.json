@@ -852,7 +852,8 @@
     "detail_none_title": "未选择行",
     "detail_none": "选择一行以查看其上下文。",
     "detail_no_context": "此行没有其他上下文。",
-    "copy_line": "复制此行",
+    "copy_line": "复制该行",
+      "copy_all": "复制全部行（{count}）",
     "copy_payload": "复制全部内容",
     "copied": "已复制到剪贴板。"
   },

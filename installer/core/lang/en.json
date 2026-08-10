@@ -852,7 +852,8 @@
     "detail_none_title": "No line selected",
     "detail_none": "Select a line to see its context.",
     "detail_no_context": "This line has no additional context.",
-    "copy_line": "Copy this line",
+    "copy_line": "Copy line",
+      "copy_all": "Copy all lines ({count})",
     "copy_payload": "Copy the whole payload",
     "copied": "Copied to the clipboard."
   },

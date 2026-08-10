@@ -760,6 +760,22 @@
       pass, 5 warnings**, test-point rows 18 → **19** (row count confirmed to move, L-038) ·
       `keel-doctor --check` green, 14 rows · lint on `consent.php` **0 errors / 0 warnings** ·
       `docs/api/INDEX.md` **1011**.
+  - **Entry 41 (Logs) — DR-007 rework DONE, 2026-08-10 (D-094).** All eight items `roadmap.md` §0e
+    owed are applied and driven: the per-line copy button withdrawn (its absence **asserted**, since
+    its return would revoke §7.1's target-size grant), `Copy line` in the detail header copying the
+    line as STORED, `Copy all` in the control row naming and honouring the filtered count, the
+    stream's text to `--texto-primario`, a selected line's role colours suppressed plus a 3px accent
+    bar, `↑`/`↓`/`Enter` driven with the real keyboard as a **condition** of §7.1, and `.k-hit-24`
+    asserted absent. `logs.spec.js` **39 tests** (was 30), whole tier **284**.
+    - **Un-pinning was the finding, not the housekeeping.** Re-enabling `color-contrast` exposed
+      **DR-009**: `--texto-sutil` on a tint over `--fondo-ventana`, below AA in both tints and both
+      themes, which the blanket exemption had been covering all along.
+    - **A cross-tier defect I introduced last session surfaced only here:** Consent's save calls
+      `buildAll()`, which writes the site into the repository root, and `AdminGateHttpTest` forbids
+      exactly that (NEW-04) — so an E2E run made the **PHP suite fail on code that was fine**
+      (L-025's shape). The consent fixture now cleans up; `.htaccess` is never touched.
+    - **§1's "the one line that matters" is deliberately NOT built** — Logs has no such concept, and
+      building the rule would be a component with no consumer (L-039). Recorded as absent.
   - **NEXT ACTION — stage 5 batch B, screen 5 onward.** Still unblocked and backed, in the order
     the survey suggests: **9 Settings** (`settings.php`, five sections per D-088 answer 3),
     **37 x402 settings** (`x402-settings.php`, wallet stays editable, minus pricing rules and the
@@ -824,7 +840,17 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **FOUR.**
+- Open Design Requests: **FIVE.**
+  **DR-009 — DRAFTED 2026-08-10 (D-094), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-009.md`. `--texto-sutil` (an unselected stream line's structure)
+  on a **tint** over `--fondo-ventana` measures **3.88 / 4.18** (peligro) and **3.94 / 3.73** (aviso)
+  — below AA in both tints and both themes. Both halves are §1's, so it is Design's (Phase 4 rule 2).
+  **Found by RE-ENABLING the `color-contrast` rule that DR-007's exclusion had disabled**, which is
+  the whole argument for un-pinning an exclusion the moment its request is answered. Pointedly, the
+  composed-pairs table DR-007 just added states the general rule this breaks and never measures this
+  composition. SELECTED tinted lines are unaffected (their text is `--texto-primario`, 10.49:1 or
+  better), so the exclusion is scoped to the unselected state and the four pairs are pinned as floors
+  at their MEASURED values. **Blocks nothing.**
   **DR-007 is RESOLVED — 2026-08-10 (D-093).** The re-delivery arrived, was audited BEFORE
   installation, installed as a wholesale swap (previous delivery **moved** to
   `docs/old/design-handoff/DR-007/`, 124 files; new one 124) and re-gated. Evidence:

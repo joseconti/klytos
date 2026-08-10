@@ -852,7 +852,8 @@
     "detail_none_title": "Cap línia seleccionada",
     "detail_none": "Selecciona una línia per veure'n el context.",
     "detail_no_context": "Aquesta línia no té context addicional.",
-    "copy_line": "Copia aquesta línia",
+    "copy_line": "Copia la línia",
+      "copy_all": "Copia totes les línies ({count})",
     "copy_payload": "Copia tot el contingut",
     "copied": "Copiat al porta-retalls."
   },

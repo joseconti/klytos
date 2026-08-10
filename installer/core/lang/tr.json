@@ -852,7 +852,8 @@
     "detail_none_title": "Satır seçilmedi",
     "detail_none": "Bağlamını görmek için bir satır seçin.",
     "detail_no_context": "Bu satırın ek bağlamı yok.",
-    "copy_line": "Bu satırı kopyala",
+    "copy_line": "Satırı kopyala",
+      "copy_all": "Tüm satırları kopyala ({count})",
     "copy_payload": "Tüm içeriği kopyala",
     "copied": "Panoya kopyalandı."
   },

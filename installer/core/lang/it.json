@@ -852,7 +852,8 @@
     "detail_none_title": "Nessuna riga selezionata",
     "detail_none": "Seleziona una riga per vederne il contesto.",
     "detail_no_context": "Questa riga non ha contesto aggiuntivo.",
-    "copy_line": "Copia questa riga",
+    "copy_line": "Copia la riga",
+      "copy_all": "Copia tutte le righe ({count})",
     "copy_payload": "Copia tutto il contenuto",
     "copied": "Copiato negli appunti."
   },

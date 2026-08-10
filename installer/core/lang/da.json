@@ -852,7 +852,8 @@
     "detail_none_title": "Ingen linje valgt",
     "detail_none": "Vælg en linje for at se dens kontekst.",
     "detail_no_context": "Denne linje har ingen yderligere kontekst.",
-    "copy_line": "Kopiér denne linje",
+    "copy_line": "Kopiér linje",
+      "copy_all": "Kopiér alle linjer ({count})",
     "copy_payload": "Kopiér hele indholdet",
     "copied": "Kopieret til udklipsholderen."
   },

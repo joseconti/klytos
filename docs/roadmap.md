@@ -58,7 +58,13 @@ redesign is **not reportable as complete** while they stand.
 
 Review trigger, for all of them: **the close of the Phase 4 build**, exactly as §0b.
 
-## 0e. Entry 41 (Logs) — rework owed by DR-007's answer (D-093)
+## 0e. Entry 41 (Logs) — rework owed by DR-007's answer — **DONE 2026-08-10 (D-094)**
+
+> **All eight items below are applied, driven and pushed**, and `logs.spec.js`'s DR-007 exclusions
+> and floors are un-pinned. The table is kept as the record of what changed and why. **Un-pinning
+> found a third failing composition the old exemption had been hiding → DR-009.**
+
+### The eight, as they stood when this was owed (D-093)
 
 Entry 41 was built, driven and shipped on 2026-08-09 (D-085) against the console-stream template as
 it then read. **DR-007's answer changed that template**, so the shipped screen is now behind its own
@@ -90,9 +96,9 @@ wearing the costume of a known issue.
 (23), Health (22), Webhooks (24) and Block data (40) are not built yet, so they will be built right
 the first time. Only Logs carries rework.
 
-Review trigger: **before stage 6 starts**, since stage 6's four screens consume the same template and
-building them against the new wording while Logs still renders the old one would leave five surfaces
-disagreeing in two directions at once.
+Done before stage 6 started, which was the point: stage 6's four screens consume the same template,
+and building them against the new wording while Logs still rendered the old one would have left five
+surfaces disagreeing in two directions at once.
 
 ## 0d. Product ideas raised in conversation, parked rather than built
 

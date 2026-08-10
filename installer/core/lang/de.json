@@ -852,7 +852,8 @@
     "detail_none_title": "Keine Zeile ausgewählt",
     "detail_none": "Wählen Sie eine Zeile, um ihren Kontext zu sehen.",
     "detail_no_context": "Diese Zeile hat keinen zusätzlichen Kontext.",
-    "copy_line": "Diese Zeile kopieren",
+    "copy_line": "Zeile kopieren",
+      "copy_all": "Alle Zeilen kopieren ({count})",
     "copy_payload": "Den gesamten Inhalt kopieren",
     "copied": "In die Zwischenablage kopiert."
   },

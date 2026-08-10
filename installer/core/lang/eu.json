@@ -852,7 +852,8 @@
     "detail_none_title": "Ez da lerrorik hautatu",
     "detail_none": "Hautatu lerro bat bere testuingurua ikusteko.",
     "detail_no_context": "Lerro honek ez du testuinguru gehigarririk.",
-    "copy_line": "Kopiatu lerro hau",
+    "copy_line": "Kopiatu lerroa",
+      "copy_all": "Kopiatu lerro guztiak ({count})",
     "copy_payload": "Kopiatu eduki osoa",
     "copied": "Arbelera kopiatu da."
   },
