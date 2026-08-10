@@ -1565,3 +1565,53 @@ and the full tier passes at **319/319**. The cause was two Playwright runs again
 I started a background run and then started another in the foreground. **One executing agent per
 environment**: the rule already in the skill for subagents applies just as hard to two of my own
 commands, and a shared playground fails in ways that read as product defects.
+
+## L-043 — The parity check proved the directories it knew about, and a third catalogue root had been drifting since it shipped
+
+**What happened.** Building manifest entry 37, the 45 new keys went into
+`installer/lang/x402/` — twenty catalogues, the x402 module's own. The splice script
+asserted parity afterwards and refused: **de, fr, it and pt each held two keys fewer
+than the other sixteen**, and the gap predated this slice entirely. `facilitator_url`
+and `facilitator_url_desc` had been missing from four languages since the module
+shipped.
+
+**Why nothing had ever said so.** `scripts/keel-verify`'s locale-parity check — written
+precisely because the twenty catalogues are maintained BY HAND and one always gets
+missed — enumerated exactly two roots:
+
+```php
+[ $repoRoot . '/installer/core/lang' ],
+glob( $repoRoot . '/installer/plugins/*/lang' )
+```
+
+`installer/lang/*` is a **third** root. `klytos_register_translations( 'klytos-x402', … )`
+loads from it at boot, so the product reads those files on every request, and the check
+that exists to keep them consistent had never opened one. It reported `PASS` on 120 files
+across 6 sets, and every one of those numbers was true.
+
+**The shape, and it is L-030's with the author changed again.** L-030 was a gate proving
+the sprite exists without asking whether the glyphs its screens draw are in it. L-039 was
+a component built ahead of its consumer. This is the same defect **inside a check**: it
+verified what it was pointed at, and its silence was read as coverage of everything of
+that kind. A check's scope is an assertion about the world, and an unstated one is the
+easiest kind to get wrong — nobody writes down the directory they did not think of.
+
+**What it cost, and what makes it worth a lesson.** Four locales rendering two field
+labels as their own raw keys, which is small. What is not small is that the whole
+mechanism for keeping twenty hand-maintained catalogues honest had a hole in it that no
+output anywhere disclosed, for the entire life of a module. The next module to register a
+catalogue root would have inherited the same silence.
+
+**Fix.** The check now walks `installer/lang/*` too, and the two missing keys were
+written in the same change. **The count was confirmed to have moved** — 120 files across
+6 sets → 140 across 7 (L-038's rule, which exists because a check that silently stops
+seeing rows looks identical to a check that passes) — and the extension was **proven to
+FAIL on a gap planted in the newly covered root**, after which the file was restored
+byte-identically.
+
+**The rule earned.** When a check enumerates locations, the enumeration is part of what
+has to be verified, not scaffolding around it. Ask what the check would say if a whole
+directory of its subject matter were absent from its list — if the answer is `PASS`, the
+scope is a silent assumption and the next one added to the project will not be covered
+either. Prefer a glob over a hand-written list, and where a list is genuinely necessary,
+make the check state its own coverage in its output, so the number is there to notice.

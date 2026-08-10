@@ -605,7 +605,7 @@ Every authenticated screen also uses **shell** (`template-shell.md`); it is not 
 | 34 | System integrity | System integrity | overview-stats + list-table + diff | `integrity.php` | `[E]` **as `system-integrity.php`** | §34 |
 | 35 | Updates | Updates | overview-stats + list-table | `updates.php` | `[E]` `updates.php` | §35 |
 | 36 | Transactions | Transactions | list-table | `transactions.php` | `[E]` **as `x402-transactions.php`** | §36 |
-| 37 | x402 settings | Agent payment settings | record-form | `x402-settings.php` | `[E]` `x402-settings.php` | §37 |
+| 37 | x402 settings | ☑ | ◐ §37 | ☑ | ☑ 34 browser tests, 3 states × both themes |
 | 38 | *Plugin page* (pattern) | the plugin's name | record-form | `plugins/<slug>/admin.php` | `[E]` `plugin-page.php` is the host | §38 |
 | 39 | Post type | the post type's name | record-form | `post-type.php` | `[E]` **as `post-type-edit.php`** | §39 |
 | 40 | Block data | the global block's name | editor-split | `block-data.php` | `[E]` `block-data.php` | §40 |
@@ -1048,6 +1048,18 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 43 | Reset password | ☐ | ☐ §43 | ☐ | ☐ |
 | 44 | **Dashboard** | ☐ | ☐ §44 | ☐ | ☐ |
 
+**Note on entry 37's `◐`.** Same shape, same reason. Its template rows, accessibility and driven
+evidence are complete (34 browser tests, three states × both themes, whole-page axe — D-098). Its
+**manifest deltas are partial by decision**: the *Pricing rules* and *402 response body* cards were
+already deferred as unbacked product, and the per-screen survey deferred two more. *Exempt agents*
+is not merely unbacked but **inverted** — the product's repeatable list ADDS agents to the charged
+set and there is no subtractive list — and §37's *"the enable/disable control is a switch"* delta has
+no global on/off behind it at all, so it is deferred with the same unbacked card the prototype draws
+it on. Both recorded in `docs/roadmap.md` §0c under D-088's standing answer 1. Two cards the
+manifest's list does NOT name are built anyway, because they are shipped product with no other
+surface (Licence, and the bot lists) — logged as §5.9 row 43 rather than left as a silent addition,
+and the wallet's editability as row 42.
+
 **Note on entry 19's `◐`.** Its template rows, accessibility and driven evidence are complete
 (16 browser tests, both themes, whole-page axe — D-089). Its **manifest deltas are partial by
 decision, not by omission**: the *Statuses (editable set)* card and the *"and orders"* half of §19's
@@ -1374,6 +1386,8 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 39 | **The eleven shipped POST groups are re-partitioned onto FIVE sections**, and the mapping is the build's own | §9 names seven sections and gives no mapping from the shipped groups onto them. Two of the seven — URLs and Media — have no shipped setting behind them at all, so a nav item for either is a page that renders nothing | Under D-088 answer 3, written out in full in **D-095** before the first line and unchanged in the build. The omission is one line each in `$sections` to restore, and the re-partition's real risk — one section's save blanking another's value — is driven end to end rather than reasoned about, plus pinned in the unit tier as `SiteConfig::set()`'s partial-merge contract |
 | 40 | **`$pageTitle` carries the SECTION and the screen prints its own `<h1>`** | The shell derives BOTH the `<h1>` and the last breadcrumb crumb from `$pageTitle`, and §9 requires them to say different things: the H1 stays "Settings" while "the breadcrumb carries the section" | Yes — the alternative was changing the shell for one screen. "Settings" becomes a middle crumb linking back to the default section, so the trail reads Site › Settings › Locale and the last crumb is the section, `aria-current="page"`, not a link |
 | 41 | **The encryption-key affordance MOVES from entry 9 to entry 6** (Security → Recovery keys) | `manifest.md` §9 names no encryption section and §6 names Recovery keys, so the shipped Settings card was a second surface for one duty — the duplication D-090 refused. It is moved rather than deleted because it holds the only affordance in the product that actually yields the key material (D-075/D-079: removing shipped capability is not a fidelity decision) | Yes, and it also closed a defect: the card's "Mark as backed up" wrote a `SiteConfig` key `set()` silently dropped, so an undismissable error notice was unclearable on every install. The two flags are now written together by the one confirmation, and `SiteConfigSetTest` was seen failing before the fix |
+| 42 | **The wallet stays EDITABLE** (mono and copyable, but not `readonly`) | `manifest.md` §37 says "Wallet (read-only mono + copy)", and `template-record-form.md` §2 uses the wallet as its own example of the read-only pattern. But this screen is the ONLY affordance in the product that sets the address — no MCP tool, no CLI command and no other screen writes it — so `readonly` would leave a required value unreachable from every surface | Yes. Mono, `spellcheck="false"`, `autocapitalize="off"` and the copy button are all built, so the design's intent (an address you can read and copy exactly) is met; only the immutability is dropped, and removing shipped capability is not a fidelity decision (D-075, D-079, D-091). One block to restore if a second write path ever exists |
+| 43 | **Two cards the manifest's list does not name are built anyway** — Licence, and the bot lists | §37 lists five cards and the shipped screen carries these two as well. They are shipped product, this screen is their only surface, and no other manifest entry claims them | Yes — D-091's call on entry 6, for the same reason and with the same limit: shipped behaviour is kept, nothing is invented. Both keep their `site.configure` gate exactly where it was |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

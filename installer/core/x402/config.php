@@ -10,7 +10,7 @@
  * @since   2.0.0
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 namespace Klytos\Core\X402;
 
@@ -71,10 +71,37 @@ class Config
         return $config;
     }
 
+    /**
+     * Apply a partial update to the stored configuration.
+     *
+     * Associative branches (`license`, `provider_settings`) MERGE, so a caller
+     * may write one member without knowing the others. LIST values REPLACE, so
+     * a caller may shorten or empty one.
+     *
+     * The distinction is not a refinement, it is the fix for a defect:
+     * `array_replace_recursive()` merges arrays index by index, so
+     * `['A','B']` updated with `['A']` came back `['A','B']`. Every list
+     * setting was therefore one-way — `custom_bot_user_agents`, the list that
+     * decides who meets the paywall, could be added to by anyone with
+     * `site.configure` and removed from by nobody, through this screen or over
+     * MCP. Pinned by `tests/Integration/X402ConfigUpdateTest.php`, in both
+     * directions.
+     *
+     * @param array<string,mixed> $updates Partial configuration to apply.
+     */
     public function update( array $updates ): void
     {
-        $config      = $this->getAll();
-        $config      = array_replace_recursive( $config, $updates );
+        $config = array_replace_recursive( $this->getAll(), $updates );
+
+        // Re-apply every posted LIST verbatim, undoing the index-wise merge for
+        // exactly the shape where it is wrong. An empty array counts: emptying
+        // a list is the operation the merge made unreachable.
+        foreach ( $updates as $key => $value ) {
+            if ( is_array( $value ) && array_is_list( $value ) ) {
+                $config[ $key ] = $value;
+            }
+        }
+
         $this->cache = $config;
 
         klytos_set_option( self::OPTIONS_KEY, $config );

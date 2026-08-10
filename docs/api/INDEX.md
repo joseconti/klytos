@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 328 |
-| Filters | 140 |
+| Actions | 337 |
+| Filters | 143 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1012** |
+| **Total** | **1024** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -303,9 +303,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.bulk_action.after | action | installer/core/mcp/tools/bulk-tools.php +1 more | — | Emitted once a bulk page operation finishes; receives the action, processed count and errors |
 | admin.bulk_action.before | action | installer/core/mcp/tools/bulk-tools.php +1 more | — | Emitted before a bulk page operation runs; receives the action name and the target slugs |
 | admin.consent.after | action | installer/admin/consent.php | — | Emitted at the tail of the cookie consent settings screen; no payload, echo extra HTML |
-| admin.consent.before | action | installer/admin/consent.php | — | Emitted at the top of the cookie consent settings screen; no payload, echo extra HTML |
 | admin.consent.after_audit | action | installer/admin/consent.php | — | Emitted after the cookie audit card; no payload, echo extra HTML |
 | admin.consent.after_banner | action | installer/admin/consent.php | — | Emitted after the banner configuration card; no payload, echo extra HTML |
+| admin.consent.before | action | installer/admin/consent.php | — | Emitted at the top of the cookie consent settings screen; no payload, echo extra HTML |
 | admin.consent.before_audit | action | installer/admin/consent.php | — | Emitted before the cookie audit card; no payload, echo extra HTML |
 | admin.consent.before_banner | action | installer/admin/consent.php | — | Emitted before the banner configuration card; no payload, echo extra HTML |
 | admin.content_model.after_taxonomies | action | installer/admin/post-types.php | — | Emitted after the Taxonomies card on the Content model screen; no payload, echo extra HTML |
@@ -411,6 +411,11 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.webhooks.after_form | action | installer/admin/webhooks.php | — | Emitted right below the webhook create/edit form markup; no payload |
 | admin.webhooks.before | action | installer/admin/webhooks.php | — | Emitted at the top of the webhooks admin screen, before its content; no payload |
 | admin.webhooks.before_form | action | installer/admin/webhooks.php | — | Emitted right above the webhook create/edit form markup; no payload |
+| admin.x402_settings.after | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings screen's card stack |
+| admin.x402_settings.after_provider | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings screen's Payment provider card |
+| admin.x402_settings.before | action | installer/admin/x402-settings.php | — | Fired before the agent payment settings screen's card stack |
+| admin.x402_settings.before_agents | action | installer/admin/x402-settings.php | — | Fired before the agent payment settings screen's Who pays card |
+| admin.x402_settings.before_provider | action | installer/admin/x402-settings.php | — | Fired before the agent payment settings screen's Payment provider card |
 | ai.chat.after_send | action | installer/core/ai/chat-engine.php | — | Emitted once the AI provider replied; receives user ID, the result and provider ID |
 | ai.chat.before_send | action | installer/core/ai/chat-engine.php | — | Emitted in processMessage before calling the provider; gets user ID, messages, provider ID |
 | ai.chat.error | action | installer/core/ai/chat-engine.php | — | Emitted when the AI provider call throws; receives the provider ID and the exception |
@@ -616,15 +621,19 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | x402.config.updated | action | installer/core/x402-mcp-tools.php +1 more | — | Fired when x402 paywall settings are changed; receives the map of updated config values |
 | x402.payment_failed | action | installer/core/x402/gate.php | — | Fired when paywall verification rejects a request; receives slug, error text and user agent |
 | x402.payment_received | action | installer/core/x402/gate.php | — | Fired when paywall verification succeeds; receives slug, USD price, tx hash and user agent |
+| x402.settings.after_save | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings are stored; receives the resulting configuration |
+| x402.settings.agent_added | action | installer/admin/x402-settings.php | — | Fired when a custom bot user agent is added; receives the agent string |
+| x402.settings.agent_removed | action | installer/admin/x402-settings.php | — | Fired when a custom bot user agent is removed; receives the agent string |
+| x402.settings.before_save | action | installer/admin/x402-settings.php | — | Fired before the agent payment settings are stored; receives the pending update and the current configuration |
 
 ## Filters
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
-| admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
 | admin.consent.audit_rows | filter | installer/admin/consent.php | — | Filters the cookie audit table's rows, so a plugin can surface a cookie it sets outside a declaration |
 | admin.consent.declarations | filter | installer/admin/consent.php | — | Filters the plugin consent declarations the audit card lists and offers a Remove for |
 | admin.content_model.post_types | filter | installer/admin/post-types.php | — | Filters the post types the Content model screen lists, after the manager returns them |
 | admin.content_model.taxonomies | filter | installer/admin/post-types.php | — | Filters the flattened taxonomy rows the Content model screen lists, each carrying its post type |
+| admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
 | admin.design_tokens | filter | installer/admin/templates/header.php | docs/reference/design-tokens.md | Filters the ordered list of design-handoff token stylesheets loaded before the component layer |
 | admin.gate_map | filter | installer/core/admin-gate.php | docs/reference/authorization.md | Filters the admin gate map so plugins can gate their own admin files |
 | admin.logs_file_list | filter | installer/admin/logs.php | — | Filters the list of log files shown on the admin Logs page |
@@ -641,13 +650,13 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.plugins_row_data | filter | installer/admin/plugins.php | — | Filters a plugin's row data before it is rendered in the Plugins list |
 | admin.post_type.custom_fields | filter | installer/admin/post-type-edit.php | — | Filters the custom field rows the post type screen draws, in the order it draws them |
 | admin.post_type.statuses | filter | installer/admin/post-type-edit.php | — | Filters the status rows the post type screen draws — system definitions followed by the post type's own |
+| admin.post_type_edit.update_data | filter | installer/admin/post-type-edit.php | — | Filters the post type update payload before it is saved from the edit screen |
 | admin.security.methods | filter | installer/admin/security.php | — | Filters the second-factor rows the Security screen draws, so a plugin can render its own factor as a switch |
 | admin.security.passkeys | filter | installer/admin/security.php | — | Filters the passkey rows the Security screen lists for the acting user |
-| admin.post_type_edit.update_data | filter | installer/admin/post-type-edit.php | — | Filters the post type update payload before it is saved from the edit screen |
+| admin.settings.sections | filter | installer/admin/settings.php | — | The Settings screen's section list (slug => label i18n key); adding a row adds a nav item and a page load |
 | admin.sidebar_items | filter | installer/admin/templates/sidebar.php | — | Filters the admin sidebar menu items so plugins can add, remove or modify entries |
 | admin.sidebar_section_label | filter | installer/admin/templates/sidebar.php | — | Filters the displayed label of an admin sidebar section |
 | admin.sidebar_section_order | filter | installer/admin/templates/sidebar.php | — | Filters the display order of admin sidebar sections |
-| admin.settings.sections | filter | installer/admin/settings.php | — | The Settings screen's section list (slug => label i18n key); adding a row adds a nav item and a page load |
 | admin.statusbar_degraded | filter | installer/admin/templates/footer.php | docs/reference/admin-navigation.md | One extra fact on the status bar's left side when a subsystem is unhealthy; never becomes a banner |
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |
@@ -759,6 +768,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | x402.bot_user_agents | filter | installer/core/x402/config.php | — | Filters the user agent patterns treated as AI bots by the x402 paywall |
 | x402.payment_providers | filter | installer/core/x402-bootstrap.php | — | Collects x402 payment providers registered by plugins after plugin load |
 | x402.response_payload | filter | installer/core/x402/gate.php | — | Filters the HTTP 402 Payment Required response payload for a gated page |
+| x402.settings.license_types | filter | installer/admin/x402-settings.php | — | Filters the licence types the agent payment settings screen offers |
+| x402.settings.networks | filter | installer/admin/x402-settings.php | — | Filters the settlement networks the agent payment settings screen offers; receives the active provider |
+| x402.settings.updates | filter | installer/admin/x402-settings.php | — | Filters the agent payment settings about to be stored; receives the pending update and the current configuration |
 | x402.should_protect | filter | installer/core/x402/gate.php | — | Decides whether a request for a page is paywalled; receives the effective flag, slug and request context |
 
 ## MCP tools

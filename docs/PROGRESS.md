@@ -824,11 +824,62 @@
       pass, 5 warnings**, test-point rows 19 → **20** (row count confirmed to move, L-038) ·
       `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors**, core+admin
       baseline **158/423 — DOWN from 191/488**, never up (D-025).
-  - **NEXT ACTION — stage 5 batch B, screen 6 onward.** Still unblocked and backed:
-    **37 x402 settings** (`x402-settings.php`, wallet stays editable, minus pricing rules and the
-    402 body), plus the form halves of **26 Privacy**, **27 Profile**, **28 Licence**,
-    **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then stage 6
-    (editor, terminal, AI chat, preview).
+  - **Stage 5 of 6 — BATCH B, screen 6: entry 37 (x402 settings) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-098), L-043.** `x402-settings.php` rewritten against `template-record-form.md` and
+    `SPEC/manifest.md` §37, as **five cards** — Provider · Wallet and pricing · Licence · Who pays ·
+    Logging and statistics.
+    - **The per-screen survey was RE-RUN against `X402\Config`, `BotDetector` and the provider
+      registry** — D-089's rule, a sixth time, disagreeing a sixth time. Beyond the two cards already
+      recorded as unbacked, it found **two more nobody had written down**: *Exempt agents* is not
+      merely unbacked but **INVERTED** (the product's repeatable list ADDS agents to the charged set;
+      there is no subtractive list, and the built-ins are a class constant with no removal
+      affordance), and §37's **"the enable/disable control is a switch" delta has no global on/off
+      behind it at all** — `x402_enabled` is per PAGE, `x402_default_enabled` per POST TYPE, and the
+      `.htaccess` rules are written unconditionally. Both in `roadmap.md` §0c.
+    - **THE FINDING — a list anyone could add to and nobody could shorten.** `Config::update()`
+      merged with `array_replace_recursive()`, which merges arrays **index by index**, so
+      `['A','B']` updated with `['A']` came back `['A','B']`. `custom_bot_user_agents` decides who
+      meets the paywall and feeds both the detector and the `.htaccess` rules: an agent added by
+      mistake could be removed **through no surface in the product**, this screen or
+      `klytos_x402_update_config` over MCP. Fixed test-first; the red names the defect and the two
+      opposite-direction tests passed from the start.
+    - **A SECOND FINDING IS A DISCLOSURE.** The shipped screen wrote the stored provider setting into
+      its input's `value=` — including the Stripe provider's `password`-typed secret key. **A live
+      payment credential was in the admin page's HTML on every load**, readable in view-source, in a
+      proxy log and in any cached copy. Secret fields are no longer populated, a blank post means
+      *keep* (said in words in the hint), and the claim is pinned by a test that reads the RAW HTML,
+      because the field works either way.
+    - **Four more shipped defects closed in passing**, each driven: the provider could never actually
+      be changed (the new provider's required fields were validated against a form that had rendered
+      the OLD provider's) · `default_price_usd` stored whatever was typed, so `abc` became the price
+      of every protected page · the built-in agent list was `disabled` rather than `readonly`, out of
+      the tab order entirely · a stored network the active provider no longer supports was silently
+      rewritten by the next save.
+    - **One defect of my own, found by driving:** a refused save re-rendered the STORED values, so the
+      screen showed `0.075` beside an error saying the price is not a number. Every posted field is
+      now restored for display on a refusal. Proven by planting it back and restoring byte-identically.
+    - **A CHECK THAT WAS BLIND TO A WHOLE DIRECTORY (L-043).** `installer/lang/x402/` is a **third**
+      catalogue root and `keel-verify`'s locale-parity check had only ever walked two, so four of its
+      twenty catalogues had been two keys short since the module shipped and nothing could say so.
+      The check now globs `installer/lang/*`: **120 files across 6 sets → 140 across 7**, count
+      confirmed to have moved (L-038), and **proven to FAIL on a gap planted in the newly covered
+      root** before being trusted. The four missing translations were written in the same change.
+    - **Two adaptations** (§5.9 rows 42–43): the **wallet stays EDITABLE** (mono and copyable, but
+      this screen is the only affordance in the product that sets it, so `readonly` would leave a
+      required value unreachable), and **two cards the manifest does not name are built anyway** —
+      Licence and the bot lists, shipped product with no other surface (D-091's call).
+    - **i18n: 45 new keys × 20 catalogues**, plus the 2 that closed the pre-existing gap; parity PASS
+      at **87 keys** each. **Twelve new hooks** (3 filters, 9 actions), INDEX **1012 → 1024**.
+    - **Tree state (re-measured):** PHP **350 tests / 1660 assertions**, 0 skips (was 345 / 1651) ·
+      browser tier **353 passing** (was 319; +34), whole tier re-run · `keel-verify` **21 checks: 16
+      pass, 5 warnings**, test-point rows 21 → **22** (row count confirmed to move, L-038) ·
+      `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors**, core+admin
+      baseline **151/423 — DOWN from 158/423**, never up (D-025).
+  - **NEXT ACTION — stage 5 batch B, screen 7 onward.** Still unblocked and backed: the **form
+    halves** of **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks**
+    — whose TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview),
+    which is unblocked: DR-007's rework is done, so its four console-stream consumers inherit the
+    corrected template with nothing owed.
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
       built before entry 19 were each reported as accessibility-passed while the shell went
       unscanned, and re-scoping one spec is what found it. Entry 39 is what that rule bought on its

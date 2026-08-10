@@ -430,8 +430,16 @@ keel_report( 'docs/api/INDEX.md parity: every row has its doc, every doc its row
 // catalogues BY HAND — this is what catches the one that gets missed.
 
 $problems      = [];
+// `installer/lang/*` is a THIRD catalogue root and was not covered until entry
+// 37 built the screen that reads one. The x402 module registers its catalogues
+// from there (`klytos_register_translations( 'klytos-x402', … )`), and four of
+// its twenty files had been two keys short since the module shipped — invisible
+// because this check only ever looked at the two roots it was written against.
+// A check that proves the directories it happens to know about is L-030's shape
+// in a check; the fix is the extra root, not a note to remember.
 $catalogueDirs = array_merge(
     [ $repoRoot . '/installer/core/lang' ],
+    glob( $repoRoot . '/installer/lang/*', GLOB_ONLYDIR ) ?: [],
     glob( $repoRoot . '/installer/plugins/*/lang' ) ?: []
 );
 $catalogueCount = 0;
