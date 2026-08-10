@@ -1946,3 +1946,140 @@ fidelity decision.
 Not gated in the page, and that is correct: `core/admin-gate.php:105` maps
 `webhooks.php` to `webhooks.manage` centrally. Verified before building rather
 than assumed.
+
+## D-104 — Stage 6's survey ran against all four screens at once, and three of them are an ENGINE the delivery never drew
+
+**Date:** 2026-08-10 · **Phase 4, stage 6 of 6, before the first line** · Supersedes nothing.
+
+**The per-screen survey ran for the TWELFTH, THIRTEENTH and FOURTEENTH times, in
+one batch, and disagreed on every screen.** It was run against all four at once
+rather than screen by screen because stage 6's screens share nothing with each
+other and the questions they raise are the SAME question — so the user answered
+it once instead of four times.
+
+### The finding that governs the whole stage
+
+**Three of the four screens are a third-party or whole-response ENGINE where the
+delivery draws a hand-built surface.** This is not a missing card and not a
+missing column width; it is the delivery specifying the INTERIOR of software
+this product did not write.
+
+- **Entry 2 (Page editor).** The delivery's canvas is "the blocks as bordered
+  cards with a mono eyebrow", each a `role="group"` with a name of the form
+  "*Kind* block — *first words*", each with a `contenteditable`
+  `role="textbox" aria-multiline` region, and each with an **"Edit as form"**
+  link opening the same block in a `record-form` page
+  (`template-editor-split.md:22-26`, `:41-53`, `:112-121`). The product mounts
+  **Gutenberg** (`isolated-block-editor.js`) or **TinyMCE**, chosen per post type
+  by `PostTypeManager`'s stored `editor`, and branches on it at
+  `installer/admin/page-editor.php:657`. The vendored files carry the comment
+  "NEVER modify these" (`:707`, `:713`). The block cards, their roles, their
+  names and their focus model are Gutenberg's own DOM.
+- **Entry 23 (Terminal).** The delivery's stream is a `<pre>` inside a labelled
+  focusable container whose LINES are focusable and selectable with `↑`/`↓` and
+  `Enter` — and `accessibility.md` §7.1 makes that keyboard operability a
+  **CONDITION** of the one sub-24px target the admin is allowed. The product
+  renders into an **xterm.js canvas** (`terminal.php:241`, `:301-337`), which has
+  no line-focus model at all.
+- **Entry 12 (AI chat).** The delivery's turn is **streamed** into a
+  `role="log" aria-live="polite" aria-relevant="additions"` region, with an
+  aria-hidden streaming node swapped on completion, a real Stop button as the
+  first focusable node after the streaming turn, and tool calls that pass through
+  **running** and **needs permission** states. The product returns **one whole
+  JSON body** — `api/ai-chat.php:171-191` calls `processMessage()` and responds
+  once; `chat-engine.php` has no streaming path of any kind. A partial turn
+  cannot exist, so neither can Stop, nor a running tool call, nor an inline
+  permission confirm. Consent is currently delegated to the model by a sentence
+  in the system prompt (`chat-engine.php:401`), which is not a UI state.
+
+### The answer, and it is the user's (asked before any code)
+
+**Build the chrome to the letter; defer the engine interiors.** Everything the
+product backs — shell, toolbar, control row, inspector, the states that exist,
+the tokens, the identifiers, the accessibility contract, i18n — is built exactly
+as specified. Each engine interior is recorded in `roadmap.md` §0c as unbacked
+product with its precise reason, which is **D-088's standing answer 1** applied
+for the twenty-somethingth time, and the first time it has applied to a whole
+SUBSYSTEM rather than to a card.
+
+**Entry 42 (Template preview) is deferred WHOLE, to §0b.** It is the emptiest
+screen this survey has ever measured, and it is deferred for the same reason
+entries 11, 14, 17 and 22 were: it is product, not fidelity.
+
+- **None of the nine specified checks exists anywhere in the product.** The only
+  adjacent primitive is `ThemeManager::contrastPairs()`
+  (`installer/core/theme-manager.php:247-286`), which scores the THEME's colour
+  pairs and never sees a rendered template. A heading-level check, a skip-link
+  check, an alt-decision check, a form-label check and a target-size check would
+  each need a DOM check runner this product does not have.
+- **There is no default-template concept to "set as default".** No
+  `default_template` / `set_default` key exists anywhere under `installer/`, per
+  post type or globally — so the manifest's own delta ("a template failing a hard
+  check cannot be set as the site default") has nothing to write and nothing to
+  prevent.
+- **There is no preview endpoint.** Both preview surfaces render `srcdoc` with a
+  bare fragment — `renderPage()` returns the wrapper `<div class="klytos-page">`
+  and nothing else (`page-template-manager.php:87`, `:384-387`) — so there is no
+  `<!DOCTYPE>`, no `<html lang>`, no `<head>` and no site stylesheet inside the
+  frame. Three of the nine checks (`lang` set, one `main`, a skip link) would
+  therefore fail structurally for EVERY template regardless of its quality, and
+  contrast is untestable because the theme CSS is not in the frame. `blocks.php:82`
+  wraps its own srcdoc in a real document; this screen does not.
+- And the screen is **unreachable from the UI**: nothing in `installer/admin/`
+  links to `template-preview.php` — `templates.php:117` links to its own
+  `?preview=` instead — so it is reachable only by typing the URL.
+
+### Four shipped defects are fixed INSIDE stage 6 (user decision, all four)
+
+1. **A cross-site scripting hole in the terminal's command panel, reachable by
+   any installed plugin.** `terminal.php:660-683` builds the panel's HTML by
+   string concatenation from `commandsMetadata` — `cmd.usage` into a `title=`
+   attribute, `cmd.name` and `cmd.description` into element bodies — and assigns
+   the result to `panel.innerHTML`. That metadata is served by
+   `api/terminal-autocomplete.php` from `getCommandsMetadata()`, which is passed
+   through the **`terminal.commands` filter** (`terminal-executor.php:62`,
+   `:1016`), so a plugin's command description executes script in the owner's
+   admin. **The repository is public: this is fix-then-disclose, never a public
+   issue first** (`docs/issues.md`'s standing rule).
+2. **`validate_key` validates nothing.** `api/ai-chat.php:308` is
+   `$valid = !empty($apiKey) && strlen($apiKey) > 10;` while the file's own
+   docblock (`:17`) says "Test an API key against the provider." Any eleven
+   characters report valid. **This is entry 24's shape exactly** — a test control
+   that reports success without ever reaching anything — arriving on a second
+   screen one session later.
+3. **The no-provider state is defeated at runtime.** PHP hides the welcome panel
+   when no provider is configured (`ai-chat.php:233`), then `showWelcome()` runs
+   unconditionally at init and un-hides it (`klytos-ai-chat.js:136-146`) and
+   focuses its textarea (`:150`) — and that textarea, unlike the chat view's
+   composer (`ai-chat.php:286`), carries no `disabled`. Without a key the user is
+   given an enabled, auto-focused composer beside the box explaining there is no
+   provider.
+4. **NEW-33 — the terminal's hardcoded Spanish** — is closed in the same slice.
+   Its recorded review trigger was "the next slice touching
+   `terminal-executor.php`", and stage 6 is that slice. `terminal.php` calls
+   `__()` **zero** times and every string on the screen is a Spanish literal,
+   several of them unaccented ("autenticacion", "Sesion", "rapida"); the executor
+   returns Spanish to all 20 locales (`terminal-executor.php:131-135`, `:207`,
+   `:238`, `:352`, `:491`, `:783`), with only five `__()` calls in the whole file
+   (`:561`, `:573`, `:580`, `:593`, `:605`).
+
+### Further findings recorded, not fixed here
+
+- **Ctrl+C cannot be reached while a command runs** — which is precisely what
+  §23's own delta promises. `terminal.php:365` returns from the key handler
+  whenever `isExecuting` is true, and `isExecuting` covers the whole fetch, so
+  the Ctrl+C branch at `:372-380` can only ever clear an unsent input line. There
+  is no Stop button and no server-side cancellation primitive, so this is not a
+  wiring bug — it is the deferred interior above.
+- **The persisted command history is write-only and unscoped.** It is written on
+  every command to one record keyed `'terminal'`/`'history'` with no user id
+  (`terminal-executor.php:50-53`, `:256-261`), keeping up to 2,000 characters of
+  each command's OUTPUT, and `getHistory()` (`:103-109`) has no caller anywhere
+  in the tree and no `history` command is registered. Recorded for the hardening
+  step.
+- **`templates.php:111` renders every active template with the Draft badge** — it
+  compares `status` to `'approved'` while `approve()` writes `'active'`
+  (`page-template-manager.php:249`) and the seed writes `'active'`
+  (`seed-data.php:236`). `template-preview.php:85` compares the same field
+  correctly, so the two screens disagree about the same record. It belongs to
+  entry 31/42's slices, both of which are out of stage 6's scope.

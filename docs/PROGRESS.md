@@ -1140,12 +1140,44 @@
       browser tier **451 passing** (was 436), whole tier re-run in one pass · `keel-verify` **23
       checks: 17 pass, 6 warnings** (unchanged), test-point rows 26 → **27** (count confirmed to
       move, L-038) · lint on the touched files **0 errors, 0 warnings** · playground was `KPORT=8175`.
-  - **NEXT ACTION — stage 6 of 6: the specialised four** (editor, terminal, AI chat, preview).
-    It is unblocked — DR-007's rework is done, so its console-stream consumers inherit the corrected
-    template with nothing owed. **Entry 24's TABLE half (the delivery log) stays deferred** for the
-    data reason above, not for DR-006's widths — and it was §24's delivery log that made 24 Webhooks
-    "both" a record-form and a console-stream screen, so **stage 6's four consumers are now the only
-    ones left** and they inherit DR-007's corrected template with nothing owed.
+  - **STAGE 6 SURVEYED — all four screens at once, 2026-08-10 (D-104), and the answers are in.**
+    The survey ran for the **twelfth, thirteenth and fourteenth times** in one batch rather than
+    screen by screen, because stage 6's screens share nothing with each other and raise the SAME
+    question — so the user answered it once instead of four times. **It disagreed on every screen,
+    and harder than on any previous stage.**
+    - **THE FINDING: three of the four screens are an ENGINE the delivery never drew.** Not a
+      missing card and not a missing column width — the delivery specifies the **interior of
+      software this product did not write**. Entry 2's canvas is **Gutenberg** or **TinyMCE**
+      (vendored, "NEVER modify these", branched at `page-editor.php:657`) where the spec draws its
+      own block cards, per-block `role="group"` and `contenteditable`. Entry 23's stream is an
+      **xterm.js canvas** (`terminal.php:241`) where the spec needs focusable `<pre>` LINES — and
+      `accessibility.md` §7.1 makes that keyboard operability a **CONDITION** of the admin's one
+      sub-24px target, so the exception cannot be claimed there. Entry 12 responds **once, whole**
+      (`api/ai-chat.php:171-191`; `chat-engine.php` has no streaming path), so a partial turn cannot
+      exist — and Stop, a running tool call and an inline permission confirm are all states of one.
+    - **USER DECISION 1 — chrome to spec, interiors deferred.** Everything the product backs is
+      built to the letter; each interior is recorded in `roadmap.md` §0c under its own new
+      subsection, which is **D-088's standing answer 1 applied to a SUBSYSTEM** for the first time
+      rather than to a card.
+    - **USER DECISION 2 — entry 42 (Template preview) is deferred WHOLE, to §0b**, beside 11, 14,
+      17 and 22. **None of its nine checks exists anywhere in the product**, there is **no
+      default-template concept at all** to "set as default", and there is **no preview endpoint** —
+      `srcdoc` carries the bare wrapper fragment with no `<!DOCTYPE>`, no `<html lang>`, no `<head>`
+      and no site CSS, so three of the nine would fail structurally for every template whatever its
+      quality. It is also **unreachable from the UI**.
+    - **USER DECISION 3 — four shipped defects are fixed inside stage 6**, all four accepted: the
+      terminal command panel's **cross-site scripting hole reachable by any installed plugin**
+      (`terminal.php:660-683` concatenates `terminal.commands`-filtered metadata into `innerHTML`;
+      the repo is public, so **fix-then-disclose**) · **`validate_key` validates nothing**
+      (`api/ai-chat.php:308` is `strlen($apiKey) > 10` under a docblock promising a provider test —
+      **entry 24's shape one session later**) · the **no-provider state defeated at runtime** (PHP
+      hides the welcome panel, `showWelcome()` un-hides and focuses it, and that textarea carries no
+      `disabled`) · and **NEW-33**, whose recorded trigger — "the next slice touching
+      `terminal-executor.php`" — fires here.
+  - **NEXT ACTION — build stage 6's three remaining screens**, in the recorded order
+    (entry 2 editor, entry 23 terminal, entry 12 AI chat), each as chrome-to-spec with its interior
+    deferred. DR-007's rework is done, so entry 23 inherits the corrected console-stream template
+    with nothing owed.
     - **Run the per-screen survey against the manager BEFORE the first line.** It has now disagreed
       **eleven times in eleven**, and on entries 27, 28, 32 and 24 it removed whole cards each time.
     - **And carry the DR-006 correction, now paid for SIX TIMES:** entry 26's third card, entry
