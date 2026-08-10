@@ -187,11 +187,25 @@ class PostTypeManager
 
         klytos_do_action('post_type.before_delete', $id);
 
+        /*
+         * The taxonomy list is read BEFORE the record is removed, because the
+         * only place it exists is inside that record. The shipped order was the
+         * other way round: `deleteAllTerms()` re-read the post type it had just
+         * deleted, its `catch` swallowed the failure, and so the cleanup never
+         * ran once — every term of every deleted post type stayed in storage,
+         * and a post type re-created under the same id inherited them
+         * (tests/Unit/PostTypeTermCleanupTest.php).
+         */
+        $taxonomyIds = array_values(array_filter(array_map(
+            static fn(array $tax): string => (string) ($tax['id'] ?? ''),
+            $this->storage->read(self::COLLECTION, $id)['taxonomies'] ?? []
+        )));
+
         $result = $this->storage->delete(self::COLLECTION, $id);
 
         if ($result) {
             // Also delete all taxonomy term data for this post type.
-            $this->deleteAllTerms($id);
+            $this->deleteAllTerms($id, $taxonomyIds);
             klytos_do_action('post_type.after_delete', $id);
         }
 
@@ -1162,16 +1176,21 @@ class PostTypeManager
 
     /**
      * Delete all terms for all taxonomies in a post type.
+     *
+     * The taxonomy ids are PASSED IN rather than looked up, because the caller
+     * has already deleted the record that holds them. Looking them up here is
+     * what made this method a no-op on every install — see `delete()`.
+     *
+     * @param string        $postTypeId  The post type whose terms go.
+     * @param array<string> $taxonomyIds Its taxonomy ids, read before deletion.
      */
-    private function deleteAllTerms(string $postTypeId): void
+    private function deleteAllTerms(string $postTypeId, array $taxonomyIds): void
     {
-        try {
-            $postType = $this->get($postTypeId);
-            foreach ($postType['taxonomies'] as $tax) {
-                $this->deleteTermsForTaxonomy($postTypeId, $tax['id'] ?? '');
+        foreach ($taxonomyIds as $taxonomyId) {
+            if ($taxonomyId === '') {
+                continue;
             }
-        } catch (\RuntimeException $e) {
-            // Post type already deleted, nothing to clean up.
+            $this->deleteTermsForTaxonomy($postTypeId, $taxonomyId);
         }
     }
 
