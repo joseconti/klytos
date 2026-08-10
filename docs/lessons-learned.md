@@ -1615,3 +1615,46 @@ directory of its subject matter were absent from its list — if the answer is `
 scope is a silent assumption and the next one added to the project will not be covered
 either. Prefer a glob over a hand-written list, and where a list is genuinely necessary,
 make the check state its own coverage in its output, so the number is there to notice.
+
+## L-044 — I planted the defect back to prove the fix, and every test stayed green: the comment named the wrong mechanism
+
+**What happened.** Entry 26's shipped defect was a per-section erasure result table that had
+never rendered: `$foundUser` was assigned only in the search branch, the results block sat
+nested inside `if ( $foundUser !== null )`, and the `erase_data` POST therefore always found
+it null. The rewrite did two things — it stopped nesting the table inside the subject check,
+and it re-resolved the subject after the erasure — and the second one got the comment reading
+**"THE FIX"**, because it was the line that visibly restored the missing variable.
+
+Then, following this project's own ritual, I planted that line back (`$erasureUser = null;`)
+to watch the owning test go red.
+
+**All 22 tests passed.**
+
+**What that meant, and it was two things at once.** The re-resolution is *not* what fixes the
+table — the un-nesting is. The table now renders on `$erasureResults`, which is the thing it
+is actually about, so the subject can be null and the report still appears. Had I not planted,
+the file would have shipped a confident comment naming the wrong mechanism, and the next reader
+"simplifying" the un-nesting away would have restored the original defect while carefully
+preserving the line the comment told them was load-bearing.
+
+And the green also said something about the suite: the re-resolution's real benefit — the
+subject and the remaining sections staying on screen, so erasing a second section does not send
+you back to the search box — **had no test at all**. It was a behaviour I had written, believed
+in, and never asserted. That is L-039's shape ("a layer built ahead of its consumer is
+unverified") arriving from the other direction: not code without a consumer, but behaviour
+without a witness.
+
+**Fix.** The comment now states what each change does and says plainly that the distinction was
+established by planting, not by reading. The missing assertion was written. Then BOTH mechanisms
+were planted back separately: nulling the subject fails the new "stay on screen" test, and
+reconstructing the original defect exactly — nulling the subject *and* re-nesting the table
+inside a check on it — fails "an erasure reports what it did". Restored byte-identically after
+each.
+
+**The rule earned.** A plant-back that leaves the suite green is not a failed experiment and it
+is never a reason to move on: it is the experiment succeeding and telling you that the sentence
+you were about to commit is false. Plant the line the comment CLAIMS is the fix, not the change
+you are most confident about — those are different lines more often than it feels — and when a
+plant comes back green, resolve it before continuing, because exactly one of two things is true
+and both need action: either the mechanism is not what you wrote down, or the behaviour it
+protects has no test.

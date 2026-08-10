@@ -875,11 +875,65 @@
       pass, 5 warnings**, test-point rows 21 → **22** (row count confirmed to move, L-038) ·
       `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors**, core+admin
       baseline **151/423 — DOWN from 158/423**, never up (D-025).
-  - **NEXT ACTION — stage 5 batch B, screen 7 onward.** Still unblocked and backed: the **form
-    halves** of **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks**
-    — whose TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview),
+  - **Stage 5 of 6 — BATCH B, screen 7: entry 26 (Privacy) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-099), L-044.** `privacy.php` rewritten against `template-record-form.md` and
+    `SPEC/manifest.md` §26, as **two cards** — Export requests · Erasure requests.
+    - **The per-screen survey disagreed a SEVENTH time, and this time it changed what was
+      blocking.** The third card (the site-wide per-section list-table) was on the DR-006 list
+      waiting for column widths; it would not have been buildable with them. There is **no
+      site-wide section registry** (`collectErasableData()` takes a `$userId`), **`Last run` is
+      stored nowhere**, the vocabulary `Automatic` / `Manual` / `Not covered` **maps to nothing**,
+      and the "appears on Tasks" delta **needs a generator that does not exist**. Four independent
+      gaps, none of them the widths. Deferred into `roadmap.md` §0c.
+    - **THE FINDING — a report that had never rendered, on the one screen where it matters most.**
+      The shipped screen built a per-section erasure result table and **it has never rendered on
+      any install since it shipped**: `$foundUser` was assigned only in the `search_user` branch
+      while the results block sat nested inside `if ( $foundUser !== null )`, so the `erase_data`
+      POST always found it null. Somebody who had just **irreversibly** erased another person's
+      data saw one green sentence and nothing else. L-041's family, with a dead branch in place of
+      an empty `catch`. Reproduced FIRST against the shipped markup, before a line of the rewrite.
+    - **Two more defects were hiding BEHIND it**, unreachable while the table never drew: the rows
+      printed the section ID and never the label, and the manager returns status `deleted` while
+      the catalogue had no `privacy.deleted` — so the commonest erasure of all would have rendered
+      its own key.
+    - **Four more shipped defects closed in passing**, each driven: the search fields were
+      placeholder-as-label with no `<label>` at all · a retained section was explained only by a
+      `title` attribute on a padlock icon · the empty-selection guard was a JavaScript `alert()`
+      and the confirm a browser `confirm()`, both replaced by §2's server-side two-step and a real
+      field error · the tabs shared one subject, so a search on one silently re-pointed the other.
+    - **One defect of my own, found by driving:** the section list rendered only when something was
+      erasable, so on the owner — every section retained — the screen said "nothing can be erased"
+      and never said WHICH or WHY. The padlock defect I had just fixed, one level up.
+    - **L-044 — THE PLANT-BACK CAME BACK GREEN.** Planting the line whose comment said "THE FIX"
+      left **all 22 tests passing**: the un-nesting is the fix, the re-resolution is a separate
+      improvement — and one that **had no test at all**. Without planting, the file would have
+      shipped a confident comment naming the wrong mechanism. Both were then planted separately
+      and each failed its own owning test; the original defect was reconstructed exactly and failed
+      the right one. Restored byte-identically after each.
+    - **Two adaptations** (§5.9 rows 44–45): the two cards are the flows the product HAS **under
+      the manifest's own headings** (§26's names are queue language and the product stores no
+      request of any kind), and **no toolbar Save** — the screen has no savable state, and a
+      toolbar button that saves nothing is an invented control.
+    - **One extension point deliberately NOT created:** `$exportActions` stays a plain array,
+      because the handler dispatches on a closed list and a plugin-added entry would render a
+      button that does nothing.
+    - **i18n: 18 new keys × 20 catalogues**, pure additions — and **verified rather than assumed**:
+      every pre-existing key compared before and after across all 20 files, **0 changed, 0 removed,
+      exactly 18 added each**. Parity PASS. **Three new hooks**, INDEX **1024 → 1027**.
+    - **Tree state (re-measured):** PHP **350 tests / 1660 assertions**, 0 skips (unchanged — the
+      defect lives in the screen, which only the browser tier reaches) · browser tier **376
+      passing** (was 353; +23), whole tier re-run · `keel-verify` **21 checks: 16 pass, 5
+      warnings**, test-point rows 22 → **23** (count confirmed to move, L-038) · `keel-doctor
+      --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**, core+admin
+      baseline **148/420 — DOWN from 151/423 on BOTH counts** (D-025).
+  - **NEXT ACTION — stage 5 batch B, screen 8 onward.** Still unblocked and backed: the **form
+    halves** of **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose TABLE
+    halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview),
     which is unblocked: DR-007's rework is done, so its four console-stream consumers inherit the
     corrected template with nothing owed.
+    - **And carry entry 26's correction to the DR-006 reading:** "blocked by DR-006" was true of
+      that card and was never the binding constraint. Run the survey against the product before
+      assuming a width is what a remaining table half is waiting for.
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
       built before entry 19 were each reported as accessibility-passed while the shell went
       unscanned, and re-scoping one spec is what found it. Entry 39 is what that rule bought on its

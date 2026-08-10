@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 337 |
-| Filters | 143 |
+| Actions | 339 |
+| Filters | 144 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1024** |
+| **Total** | **1027** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -354,7 +354,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.post_types.after | action | installer/admin/post-types.php | — | Emitted at the tail of the post types screen; no payload, echo extra HTML |
 | admin.post_types.before | action | installer/admin/post-types.php | — | Emitted at the top of the post types screen; no payload, echo extra HTML |
 | admin.privacy.after | action | installer/admin/privacy.php | — | Emitted at the tail of the privacy tools screen; no payload, echo extra HTML |
+| admin.privacy.after_export | action | installer/admin/privacy.php | docs/reference/privacy-screen.md | Emitted between the Export requests and Erasure requests cards; no payload, echo extra HTML |
 | admin.privacy.before | action | installer/admin/privacy.php | — | Emitted at the top of the privacy tools screen; no payload, echo extra HTML |
+| admin.privacy.before_export | action | installer/admin/privacy.php | docs/reference/privacy-screen.md | Emitted above the Export requests card; no payload, echo extra HTML |
 | admin.profile.after | action | installer/admin/profile.php | — | Emitted at the tail of the user profile screen; no payload, echo extra HTML |
 | admin.profile.after_fields | action | installer/admin/profile.php | — | Emitted below the built-in profile form fields; receives the user being edited |
 | admin.profile.before | action | installer/admin/profile.php | — | Emitted at the top of the user profile screen; no payload, echo extra HTML |
@@ -747,6 +749,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | privacy.erase_plugin_data | filter | installer/core/privacy-manager.php | — | Filters the erasure results so plugins can erase their own user data |
 | privacy.export_data | filter | installer/core/privacy-manager.php | — | Filters the collected personal data sections for a user data export |
 | privacy.export_html_sections | filter | installer/core/privacy-manager.php | — | Filters the HTML of a personal data export so plugins can append sections |
+| privacy.status_labels | filter | installer/admin/privacy.php | docs/reference/privacy-screen.md | Filters the status → catalogue-key map the erasure result table renders, so a plugin section can name its own outcome |
 | security.hsts | filter | installer/core/auth.php | docs/reference/security-headers.md | Filters the Strict-Transport-Security value (HTTPS responses only); CAN weaken or suppress transport security |
 | shortcode.output | filter | installer/core/shortcode-manager.php | — | Filters a shortcode's output after its callback runs |
 | shortcode.pre_process | filter | installer/core/shortcode-manager.php | — | Filters content before shortcodes are parsed and executed |

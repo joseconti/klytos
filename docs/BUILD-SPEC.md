@@ -1028,7 +1028,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 23 | Terminal | ☐ | ☐ §23 | ☐ | ☐ |
 | 24 | Webhooks | ☐ | ☐ §24 | ☐ | ☐ |
 | 25 | Consent | ☐ | ☐ §25 | ☐ | ☐ |
-| 26 | Privacy | ☐ | ☐ §26 | ☐ | ☐ |
+| 26 | Privacy | ☑ | ◐ §26 — see note | ☑ | ☑ 23 browser tests, 4 states × both themes |
 | 27 | Profile | ☐ | ☐ §27 | ☐ | ☐ |
 | 28 | Licence | ☐ | ☐ §28 | ☐ | ☐ |
 | 29 | AI images | ☐ | ☐ §29 | ☐ | ☐ |
@@ -1047,6 +1047,16 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 42 | Template preview | ☐ | ☐ §42 | ☐ | ☐ |
 | 43 | Reset password | ☐ | ☐ §43 | ☐ | ☐ |
 | 44 | **Dashboard** | ☐ | ☐ §44 | ☐ | ☐ |
+
+**Note on entry 26's `◐`.** Its template rows, accessibility and driven evidence are complete (23
+browser tests, four states × both themes, whole-page axe — D-099). Its **manifest deltas are partial
+by decision**: the third card, the site-wide *per-section method and status* list-table, is deferred
+as unbacked product in `docs/roadmap.md` §0c under D-088's standing answer 1 — and it is worth
+saying that the DR-006 block on its widths was never the real obstruction. The product has no
+site-wide section registry (`collectErasableData()` requires a user), stores no per-section erasure
+timestamp for the `Last run` column, has no vocabulary matching `Automatic` / `Manual` /
+`Not covered`, and no mechanism deriving a Task from privacy coverage. Four independent gaps, and
+the widths would have unblocked none of them.
 
 **Note on entry 37's `◐`.** Same shape, same reason. Its template rows, accessibility and driven
 evidence are complete (34 browser tests, three states × both themes, whole-page axe — D-098). Its
@@ -1388,6 +1398,8 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 41 | **The encryption-key affordance MOVES from entry 9 to entry 6** (Security → Recovery keys) | `manifest.md` §9 names no encryption section and §6 names Recovery keys, so the shipped Settings card was a second surface for one duty — the duplication D-090 refused. It is moved rather than deleted because it holds the only affordance in the product that actually yields the key material (D-075/D-079: removing shipped capability is not a fidelity decision) | Yes, and it also closed a defect: the card's "Mark as backed up" wrote a `SiteConfig` key `set()` silently dropped, so an undismissable error notice was unclearable on every install. The two flags are now written together by the one confirmation, and `SiteConfigSetTest` was seen failing before the fix |
 | 42 | **The wallet stays EDITABLE** (mono and copyable, but not `readonly`) | `manifest.md` §37 says "Wallet (read-only mono + copy)", and `template-record-form.md` §2 uses the wallet as its own example of the read-only pattern. But this screen is the ONLY affordance in the product that sets the address — no MCP tool, no CLI command and no other screen writes it — so `readonly` would leave a required value unreachable from every surface | Yes. Mono, `spellcheck="false"`, `autocapitalize="off"` and the copy button are all built, so the design's intent (an address you can read and copy exactly) is met; only the immutability is dropped, and removing shipped capability is not a fidelity decision (D-075, D-079, D-091). One block to restore if a second write path ever exists |
 | 43 | **Two cards the manifest's list does not name are built anyway** — Licence, and the bot lists | §37 lists five cards and the shipped screen carries these two as well. They are shipped product, this screen is their only surface, and no other manifest entry claims them | Yes — D-091's call on entry 6, for the same reason and with the same limit: shipped behaviour is kept, nothing is invented. Both keep their `site.configure` gate exactly where it was |
+| 44 | **Entry 26's two cards are the flows the product HAS, under the manifest's own headings** — "Export requests" and "Erasure requests" | §26 names both cards in queue language, and the product stores no request of any kind: nothing anywhere holds a pending export or a pending erasure. What it has is one live flow per card — find a person, then export; find a person, then erase | Yes, and it is a naming reading rather than a design change: both headings are rendered exactly as the manifest writes them, and each card carries the flow the product actually performs. Building a queue instead would be inventing a whole storage surface out of two card titles |
+| 45 | **Entry 26 contributes no toolbar Save**, although `template-record-form.md` §1 puts the primary Save there and calls it "the same button on every form screen" | The screen has no savable state at all. Every control on it is an action that completes on its own post — search, download, send, arm, confirm. A toolbar button that saves nothing would be an invented control with no behaviour behind it | Yes. The seam (`admin.topbar_actions`) is untouched and still carries the Save on every screen that has something to save; §1's rule is honoured where it applies rather than satisfied with a decorative control |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16
