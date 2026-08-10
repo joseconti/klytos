@@ -451,8 +451,8 @@
     "requests_today": "Bugünkü istekler",
     "permission_denied": "Erişim reddedildi: bu bağlantının \"{tool}\" aracını çağırma yetkisi yok. Site sahibinden bu bağlantıya gerekli yetkiyi vermesini isteyin."
   },
-  "plugin_license": {
-    "title": "Eklenti Lisansı",
+  "license": {
+    "title": "Lisans",
     "key": "Lisans anahtarı",
     "status": "Durum",
     "active": "Aktif",
@@ -464,7 +464,31 @@
     "activated_on": "Etkinleştirilme tarihi",
     "last_check": "Son kontrol",
     "grace_period": "{date} tarihine kadar ek süre",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Geçerli anahtar",
+    "key_new": "Yeni anahtar",
+    "key_hint": "Klytos’u başka bir sitede etkinleştirmek için kullanın. Şifrelenmiş olarak saklanır.",
+    "key_none": "Kayıtlı bir lisans anahtarı yok.",
+    "key_copy": "Lisans anahtarını kopyala",
+    "key_copied": "Lisans anahtarı kopyalandı.",
+    "key_copy_failed": "Kopyalanamadı. Anahtarı seçip elle kopyalayın.",
+    "activate_hint": "Hesabınızdaki anahtarı yapıştırın. Etkinleştirmek, kayıtlı olan anahtarın yerine geçer.",
+    "activated": "Lisans etkinleştirildi.",
+    "plan_empty": "Etkin bir lisans yok. Klytos lisanssız da çalışır; lisans güncellemeleri ve desteği ekler.",
+    "plan_empty_action": "Bir lisans anahtarı etkinleştir",
+    "check_now": "Şimdi denetle",
+    "check_hint": "Bu lisansın hâlâ geçerli olup olmadığını lisans sunucusuna sorar. Hiçbir şey bunu kendiliğinden denetlemez; bu yüzden yukarıdaki tarih yalnızca bunu kullandığınızda değişir.",
+    "checked": "Lisans denetlendi.",
+    "summary_title": "Bu lisans güncellenmedi.",
+    "error_csrf": "Bu form gönderilmeden önce zaman aşımına uğradı. Hiçbir şey değişmedi — yeniden gönderin.",
+    "error_key_required": "Bir lisans anahtarı girin.",
+    "error_activate_failed": "Lisans sunucusu bu anahtarı reddetti. Denetleyip yeniden deneyin.",
+    "error_unreachable": "Lisans sunucusuna ulaşılamadı. Hiçbir şey değişmedi — birkaç dakika sonra yeniden deneyin.",
+    "error_check_failed": "Bu lisans denetlenemedi.",
+    "notice_expired": "Bu lisansın süresi doldu. Yönetim çalışmaya devam eder; güncellemeler ve destek duraklatılır.",
+    "notice_revoked": "Bu lisans iptal edildi. Yönetim çalışmaya devam eder; güncellemeler ve destek duraklatılır.",
+    "bar_expired": "Lisans süresi doldu",
+    "bar_revoked": "Lisans iptal edildi"
   },
   "updates": {
     "title": "Güncellemeler",

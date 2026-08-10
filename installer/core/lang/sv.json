@@ -451,8 +451,8 @@
     "requests_today": "Förfrågningar idag",
     "permission_denied": "Åtkomst nekad: den här anslutningen har inte behörighet att anropa verktyget ”{tool}”. Be webbplatsens ägare att ge anslutningen den behörighet som krävs."
   },
-  "plugin_license": {
-    "title": "Pluginlicens",
+  "license": {
+    "title": "Licens",
     "key": "Licensnyckel",
     "status": "Status",
     "active": "Aktiv",
@@ -464,7 +464,31 @@
     "activated_on": "Aktiverad den",
     "last_check": "Senaste kontroll",
     "grace_period": "Respitperiod till {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Nuvarande nyckel",
+    "key_new": "Ny nyckel",
+    "key_hint": "Använd den för att aktivera Klytos på en annan webbplats. Den lagras krypterad.",
+    "key_none": "Ingen licensnyckel är sparad.",
+    "key_copy": "Kopiera licensnyckeln",
+    "key_copied": "Licensnyckeln är kopierad.",
+    "key_copy_failed": "Kopieringen misslyckades. Markera nyckeln och kopiera den för hand.",
+    "activate_hint": "Klistra in nyckeln från ditt konto. Aktivering ersätter en nyckel som redan är sparad.",
+    "activated": "Licensen är aktiverad.",
+    "plan_empty": "Ingen licens är aktiv. Klytos fungerar även utan; en licens lägger till uppdateringar och support.",
+    "plan_empty_action": "Aktivera en licensnyckel",
+    "check_now": "Kontrollera nu",
+    "check_hint": "Frågar licensservern om den här licensen fortfarande är giltig. Ingenting kontrollerar det på egen hand, så datumet ovan ändras bara när du använder det här.",
+    "checked": "Licensen är kontrollerad.",
+    "summary_title": "Den här licensen uppdaterades inte.",
+    "error_csrf": "Det här formuläret gick ut innan det skickades. Ingenting ändrades — skicka det igen.",
+    "error_key_required": "Ange en licensnyckel.",
+    "error_activate_failed": "Licensservern avvisade den här nyckeln. Kontrollera den och försök igen.",
+    "error_unreachable": "Licensservern gick inte att nå. Ingenting ändrades — försök igen om några minuter.",
+    "error_check_failed": "Den här licensen gick inte att kontrollera.",
+    "notice_expired": "Den här licensen har gått ut. Administrationen fungerar fortfarande; uppdateringar och support är pausade.",
+    "notice_revoked": "Den här licensen har återkallats. Administrationen fungerar fortfarande; uppdateringar och support är pausade.",
+    "bar_expired": "Licensen har gått ut",
+    "bar_revoked": "Licensen är återkallad"
   },
   "updates": {
     "title": "Uppdateringar",

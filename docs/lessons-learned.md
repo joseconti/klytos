@@ -1695,3 +1695,38 @@ bytes. One of the four plants showed a stale artifact from the previous plant in
 reason. It changed no verdict here — each plant still failed its own test with its own message — but
 a plant-back that reads a cached file is a measurement of nothing. Pause after the restore, or
 re-run once, before trusting the green.
+
+## L-046 — Twenty catalogues agreed with each other perfectly, on a root nothing used, while the screen that needed it printed its keys on every install
+
+**What happened.** Entry 28's very first drive of the SHIPPED Licence screen came back with a
+document title of `license.title — Klytos Admin` and a page body reading `license.status`,
+`license.plan`, `license.domain`, `license.activated_on`, `license.key` — thirteen catalogue keys,
+rendered verbatim. The screen had done this on every install, in all 20 languages, since it shipped.
+The cause was a pair, and each half looked innocent: the screen called the root `license.*`, and the
+catalogues defined the root `plugin_license` — which **nothing in the tree referenced at all**.
+
+**Why nothing caught it.** This project has a locale-catalogue parity check, and it passed, because
+it compares the twenty files **against each other**. Twenty files can be in perfect agreement about a
+root that no code will ever ask for; agreement is not usage. From the other side, nothing anywhere
+compares a `__( 'x.y' )` call against the catalogues, so a call to a root that does not exist is
+invisible too. Between the two checks there is a gap exactly the width of this defect, and PHP's own
+tooling cannot see it either — `__()` returns a string in both cases, so no error, no warning, no
+lint, no failing test. The only detector was a person or a driver LOOKING at the rendered page.
+
+**And it is the second time in two screens.** Entry 27 found `common.default` rendering as itself in
+the language select. That looked like a one-key oversight; this is the same defect at thirteen keys
+and one root, which is what makes it a class rather than an incident: **a translation key is the one
+kind of reference in this codebase that fails silently in production and nowhere else.**
+
+**The rule.** Catalogue parity is necessary and it is not sufficient. The check that matters is the
+other direction — **every `__( 'root.key' )` in the tree resolves in the base catalogue** — and until
+that check exists, every screen a slice touches is driven and its rendered text asserted to contain
+no `root.key`-shaped string. `tests/E2E/licence.spec.js` does exactly that, in all four states, and
+deliberately matches the SHAPE `/\blicense\.[a-z_]+/` rather than the thirteen known keys: the defect
+is the class, and the next unresolved key on that screen has to fail a test rather than be noticed by
+whoever happens to read the page.
+
+**The corollary, which is the cheaper half.** A catalogue root that no code references is not
+harmless dead weight — it is half of this defect sitting in the repository waiting for the other
+half. `grep -r "plugin_license" --include "*.php"` returned one unrelated storage path and nothing
+else, and that single command would have found this years earlier than a browser did.

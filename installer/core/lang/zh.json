@@ -451,8 +451,8 @@
     "requests_today": "今日请求数",
     "permission_denied": "权限被拒绝：此连接无权调用工具 \"{tool}\"。请让站点所有者为此连接授予所需权限。"
   },
-  "plugin_license": {
-    "title": "插件许可证",
+  "license": {
+    "title": "许可证",
     "key": "许可证密钥",
     "status": "状态",
     "active": "已激活",
@@ -464,7 +464,31 @@
     "activated_on": "激活日期",
     "last_check": "上次检查",
     "grace_period": "宽限期至 {date}",
-    "plan": "方案"
+    "plan": "方案",
+    "key_current": "当前密钥",
+    "key_new": "新密钥",
+    "key_hint": "用它在另一个站点上激活 Klytos。它以加密方式保存。",
+    "key_none": "未保存任何许可证密钥。",
+    "key_copy": "复制许可证密钥",
+    "key_copied": "许可证密钥已复制。",
+    "key_copy_failed": "复制失败。请选中密钥并手动复制。",
+    "activate_hint": "粘贴你账户中的密钥。激活会替换已经保存的密钥。",
+    "activated": "许可证已激活。",
+    "plan_empty": "没有生效的许可证。Klytos 没有许可证也能正常运行；许可证会带来更新和支持。",
+    "plan_empty_action": "激活许可证密钥",
+    "check_now": "立即检查",
+    "check_hint": "向许可证服务器询问此许可证是否仍然有效。没有任何机制会自动检查，因此上面的日期只有在你使用此功能时才会变化。",
+    "checked": "已检查许可证。",
+    "summary_title": "此许可证未更新。",
+    "error_csrf": "此表单在发送前已过期。没有任何内容被更改——请重新发送。",
+    "error_key_required": "请输入许可证密钥。",
+    "error_activate_failed": "许可证服务器拒绝了此密钥。请检查后重试。",
+    "error_unreachable": "无法连接到许可证服务器。没有任何内容被更改——请几分钟后重试。",
+    "error_check_failed": "无法检查此许可证。",
+    "notice_expired": "此许可证已过期。管理后台继续可用；更新和支持已暂停。",
+    "notice_revoked": "此许可证已被吊销。管理后台继续可用；更新和支持已暂停。",
+    "bar_expired": "许可证已过期",
+    "bar_revoked": "许可证已吊销"
   },
   "updates": {
     "title": "更新",

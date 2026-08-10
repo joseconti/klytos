@@ -451,8 +451,8 @@
     "requests_today": "Gaurko eskaerak",
     "permission_denied": "Baimena ukatuta: konexio hau ez dago «{tool}» tresnari deitzeko baimenduta. Eskatu gunearen jabeari beharrezko baimena emateko."
   },
-  "plugin_license": {
-    "title": "Pluginaren lizentzia",
+  "license": {
+    "title": "Lizentzia",
     "key": "Lizentzia-gakoa",
     "status": "Egoera",
     "active": "Aktiboa",
@@ -464,7 +464,31 @@
     "activated_on": "Aktibatua",
     "last_check": "Azken egiaztapena",
     "grace_period": "Grazia-aldia {date} arte",
-    "plan": "Plana"
+    "plan": "Plana",
+    "key_current": "Uneko gakoa",
+    "key_new": "Gako berria",
+    "key_hint": "Erabili Klytos beste gune batean aktibatzeko. Zifratuta gordetzen da.",
+    "key_none": "Ez dago lizentzia-gakorik gordeta.",
+    "key_copy": "Kopiatu lizentzia-gakoa",
+    "key_copied": "Lizentzia-gakoa kopiatu da.",
+    "key_copy_failed": "Ezin izan da kopiatu. Hautatu gakoa eta kopiatu eskuz.",
+    "activate_hint": "Itsatsi zure kontuko gakoa. Aktibatzean lehendik gordeta zegoena ordezten da.",
+    "activated": "Lizentzia aktibatu da.",
+    "plan_empty": "Ez dago lizentzia aktiborik. Klytosek lanean jarraitzen du hura gabe; lizentzia batek eguneraketak eta laguntza gehitzen ditu.",
+    "plan_empty_action": "Aktibatu lizentzia-gako bat",
+    "check_now": "Egiaztatu orain",
+    "check_hint": "Galdetu lizentzia-zerbitzariari lizentzia hau baliozkoa den oraindik. Ezerk ez du bere kabuz egiaztatzen, beraz goiko data hau erabiltzean bakarrik aldatzen da.",
+    "checked": "Lizentzia egiaztatu da.",
+    "summary_title": "Lizentzia hau ez da eguneratu.",
+    "error_csrf": "Inprimaki hau bidali aurretik iraungi da. Ez da ezer aldatu; bidali berriro.",
+    "error_key_required": "Sartu lizentzia-gako bat.",
+    "error_activate_failed": "Lizentzia-zerbitzariak gako hau baztertu du. Egiaztatu eta saiatu berriro.",
+    "error_unreachable": "Ezin izan da lizentzia-zerbitzariarekin konektatu. Ez da ezer aldatu; saiatu berriro minutu batzuk barru.",
+    "error_check_failed": "Ezin izan da lizentzia hau egiaztatu.",
+    "notice_expired": "Lizentzia hau iraungi da. Administrazioak lanean jarraitzen du; eguneraketak eta laguntza eten dira.",
+    "notice_revoked": "Lizentzia hau baliogabetu da. Administrazioak lanean jarraitzen du; eguneraketak eta laguntza eten dira.",
+    "bar_expired": "Lizentzia iraungita",
+    "bar_revoked": "Lizentzia baliogabetuta"
   },
   "updates": {
     "title": "Eguneraketak",

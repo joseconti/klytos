@@ -449,6 +449,21 @@
     white-space: nowrap;
 }
 
+/* The fact's link inherits the degraded colour rather than taking the global
+   accent. Measured before this rule existed, when entry 28 became the filter's
+   first consumer: the anchor rendered `--color-acento` (#5b8def) on the status
+   bar's #2a2a2e at **4.42:1 in dark** — a fail, and a composition the delivered
+   contrast audit does not contain, because until now nothing had ever put a link
+   in this bar.
+
+   The underline is not decoration either: with the colour inherited, colour can
+   no longer distinguish the link from the text beside it, and §1.3 forbids
+   colour as the only channel. */
+.k-statusbar-degraded a {
+    color: inherit;
+    text-decoration: underline;
+}
+
 /* Offline — the right side only; the rest of the shell is unchanged and the
    admin never throws up a full-screen offline state. */
 .k-statusbar-offline {

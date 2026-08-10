@@ -451,8 +451,8 @@
     "requests_today": "Żądania dzisiaj",
     "permission_denied": "Odmowa dostępu: to połączenie nie ma uprawnień do wywołania narzędzia „{tool}”. Poproś właściciela witryny o przyznanie mu wymaganego uprawnienia."
   },
-  "plugin_license": {
-    "title": "Licencja wtyczki",
+  "license": {
+    "title": "Licencja",
     "key": "Klucz licencyjny",
     "status": "Status",
     "active": "Aktywna",
@@ -464,7 +464,31 @@
     "activated_on": "Aktywowana dnia",
     "last_check": "Ostatnie sprawdzenie",
     "grace_period": "Okres karencji do {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Bieżący klucz",
+    "key_new": "Nowy klucz",
+    "key_hint": "Użyj go, aby aktywować Klytos w innej witrynie. Jest przechowywany w postaci zaszyfrowanej.",
+    "key_none": "Nie zapisano żadnego klucza licencyjnego.",
+    "key_copy": "Kopiuj klucz licencyjny",
+    "key_copied": "Klucz licencyjny skopiowany.",
+    "key_copy_failed": "Kopiowanie się nie powiodło. Zaznacz klucz i skopiuj go ręcznie.",
+    "activate_hint": "Wklej klucz ze swojego konta. Aktywacja zastępuje klucz, który już był zapisany.",
+    "activated": "Licencja aktywowana.",
+    "plan_empty": "Żadna licencja nie jest aktywna. Klytos działa również bez niej; licencja dodaje aktualizacje i wsparcie.",
+    "plan_empty_action": "Aktywuj klucz licencyjny",
+    "check_now": "Sprawdź teraz",
+    "check_hint": "Pyta serwer licencji, czy ta licencja jest nadal ważna. Nic nie sprawdza tego samo z siebie, więc data powyżej zmienia się tylko wtedy, gdy tego użyjesz.",
+    "checked": "Licencja sprawdzona.",
+    "summary_title": "Ta licencja nie została zaktualizowana.",
+    "error_csrf": "Ten formularz wygasł przed wysłaniem. Nic nie zostało zmienione — wyślij go ponownie.",
+    "error_key_required": "Wprowadź klucz licencyjny.",
+    "error_activate_failed": "Serwer licencji odrzucił ten klucz. Sprawdź go i spróbuj ponownie.",
+    "error_unreachable": "Nie udało się połączyć z serwerem licencji. Nic nie zostało zmienione — spróbuj ponownie za kilka minut.",
+    "error_check_failed": "Nie udało się sprawdzić tej licencji.",
+    "notice_expired": "Ta licencja wygasła. Panel administracyjny działa dalej; aktualizacje i wsparcie są wstrzymane.",
+    "notice_revoked": "Ta licencja została cofnięta. Panel administracyjny działa dalej; aktualizacje i wsparcie są wstrzymane.",
+    "bar_expired": "Licencja wygasła",
+    "bar_revoked": "Licencja cofnięta"
   },
   "updates": {
     "title": "Aktualizacje",

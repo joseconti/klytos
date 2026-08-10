@@ -273,6 +273,43 @@ klytos_add_filter( 'notice.condition.encryption_key_not_backed_up', function ( b
     return ! ( $config['encryption_key_backed_up'] ?? false );
 } );
 
+// ─── Status bar — the licence fact (manifest entry 28) ──────
+/*
+ * `SPEC/manifest.md` §28: "an expired licence degrades this screen only — the
+ * admin keeps working, and the STATUS BAR carries one fact."
+ *
+ * The shell created `admin.statusbar_degraded` for precisely this in stage 2 and
+ * it had no listener until now. It is registered HERE rather than in
+ * `admin/license.php` because the fact belongs on every admin page and a screen
+ * only ever renders itself.
+ *
+ * `template-shell.md` §1 bounds the shape: ONE short phrase with a link, never a
+ * banner and never two lines. A healthy or absent licence returns the input
+ * unchanged, which is what keeps a filter a filter.
+ *
+ * This is a read of a local encrypted file — no outbound request, no write. The
+ * seven-day remote re-check the manager implements is NOT wired up anywhere
+ * (`License::checkIfDue()` has no caller in the tree), and wiring it into a page
+ * render would put a network call on every admin load of a released product;
+ * that is recorded as a finding, not fixed in a fidelity slice.
+ */
+klytos_add_filter( 'admin.statusbar_degraded', function ( string $degraded ): string {
+    $status = klytos_app()->getLicense()->getStatus();
+    $state  = (string) ( $status['license_status'] ?? '' );
+
+    if ( ! in_array( $state, [ 'expired', 'revoked' ], true ) ) {
+        return $degraded;
+    }
+
+    // The word is the fact; the colour on `.k-statusbar-degraded` is decoration
+    // beside it, never instead of it (accessibility.md §1.3).
+    return sprintf(
+        '<a href="%s">%s</a>',
+        klytos_esc_url( \Klytos\Core\Helpers::url( 'admin/license.php' ) ),
+        klytos_esc_html( $state === 'expired' ? __( 'license.bar_expired' ) : __( 'license.bar_revoked' ) )
+    );
+} );
+
 // ─── Auth guard ──────────────────────────────────────────────
 // If not authenticated and not on a pre-auth page, refuse — in the shape the
 // caller can parse. This used to 302 EVERY unauthenticated request to the HTML

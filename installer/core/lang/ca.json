@@ -451,8 +451,8 @@
     "requests_today": "Peticions avui",
     "permission_denied": "Permís denegat: aquesta connexió no està autoritzada a cridar l'eina «{tool}». Demana al propietari del lloc que li concedeixi el permís necessari."
   },
-  "plugin_license": {
-    "title": "Llicència del connector",
+  "license": {
+    "title": "Llicència",
     "key": "Clau de llicència",
     "status": "Estat",
     "active": "Activa",
@@ -464,7 +464,31 @@
     "activated_on": "Activada el",
     "last_check": "Última comprovació",
     "grace_period": "Període de gràcia fins a {date}",
-    "plan": "Pla"
+    "plan": "Pla",
+    "key_current": "Clau actual",
+    "key_new": "Clau nova",
+    "key_hint": "Fes-la servir per activar Klytos en un altre lloc. Es desa xifrada.",
+    "key_none": "No hi ha cap clau de llicència desada.",
+    "key_copy": "Copia la clau de llicència",
+    "key_copied": "Clau de llicència copiada.",
+    "key_copy_failed": "No s'ha pogut copiar. Selecciona la clau i copia-la a mà.",
+    "activate_hint": "Enganxa la clau del teu compte. En activar-la se substitueix la que ja hi hagués desada.",
+    "activated": "Llicència activada.",
+    "plan_empty": "No hi ha cap llicència activa. Klytos continua funcionant sense cap; una llicència hi afegeix actualitzacions i suport.",
+    "plan_empty_action": "Activa una clau de llicència",
+    "check_now": "Comprova-ho ara",
+    "check_hint": "Pregunta al servidor de llicències si aquesta llicència encara és vàlida. Res no ho comprova pel seu compte, així que la data de dalt només canvia quan fas servir això.",
+    "checked": "Llicència comprovada.",
+    "summary_title": "Aquesta llicència no s'ha actualitzat.",
+    "error_csrf": "Aquest formulari ha caducat abans d'enviar-se. No s'ha canviat res; torna-l'hi a enviar.",
+    "error_key_required": "Introdueix una clau de llicència.",
+    "error_activate_failed": "El servidor de llicències ha rebutjat aquesta clau. Revisa-la i torna-ho a provar.",
+    "error_unreachable": "No s'ha pogut contactar amb el servidor de llicències. No s'ha canviat res; torna-ho a provar d'aquí a uns minuts.",
+    "error_check_failed": "No s'ha pogut comprovar aquesta llicència.",
+    "notice_expired": "Aquesta llicència ha caducat. L'administració continua funcionant; les actualitzacions i el suport queden aturats.",
+    "notice_revoked": "Aquesta llicència s'ha revocat. L'administració continua funcionant; les actualitzacions i el suport queden aturats.",
+    "bar_expired": "Llicència caducada",
+    "bar_revoked": "Llicència revocada"
   },
   "updates": {
     "title": "Actualitzacions",

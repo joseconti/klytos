@@ -980,16 +980,81 @@
       5 warnings**, test-point rows 23 → **24** (count confirmed to move, L-038) · `keel-doctor
       --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**, core+admin
       baseline **147/412 — DOWN from 148/420 on BOTH counts** (D-025).
-  - **NEXT ACTION — stage 5 batch B, screen 9 onward.** Still unblocked and backed: the **form
-    halves** of **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay
-    DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview), which is unblocked: DR-007's
-    rework is done, so its four console-stream consumers inherit the corrected template with nothing
-    owed.
+  - **Stage 5 of 6 — THE FORM SCREENS — BATCH B, screen 9: entry 28 (Licence), 2026-08-10
+    (D-101), L-046.** Built against `template-record-form.md`, `SPEC/accessibility.md` and
+    `SPEC/manifest.md` §28, as **two cards of four** — Plan · Licence key. The file keeps its
+    shipped name; `licence.php` stays a recorded mapping (a filename is a URL on a released product).
+    - **The per-screen survey disagreed a NINTH time, and it removed half the specified screen.**
+      **Activated domains** has no collection behind it — `License::activate()` writes exactly ONE
+      `domain` and one `site_url`, and the licence API is never asked for a list. **That is the
+      FOURTH card recorded as DR-006-blocked whose real obstruction was never a column width**,
+      after entry 26 and entry 27 twice. **Entitlements** has no record of any kind: `plan` is a
+      bare string and nothing reads it to grant or refuse anything. Both in `roadmap.md` §0c, and
+      the spec asserts their ABSENCE so building either later means deleting an assertion.
+    - **THE FINDING — every label on the screen was a literal catalogue key, in all 20 languages,
+      since it shipped.** The screen called `license.title`, `license.status`, `license.key` and ten
+      more; the catalogues defined the root **`plugin_license`**, which nothing in the tree
+      referenced. Driven first: the title came back `license.title — Klytos Admin`. **Neither half
+      is visible to any check this project runs** — catalogue parity compares the 20 files against
+      EACH OTHER and they agreed perfectly, on a root nobody used, and nothing compares a `__()`
+      call against the catalogues at all (**L-046**). The root is renamed in all 20, which resolves
+      the thirteen calls and reuses thirteen finished translations rather than discarding them.
+    - **The rename is positively justified, not merely convenient:** `License::$itemName` is
+      hardcoded to `Klytos` and the record is `config/license.json.enc` — one licence per install.
+      `app.php:310` claimed the opposite ("for premium plugins only, NOT core"), which the code has
+      never done; premium plugins are licensed per plugin by `PluginLoader`. That comment is
+      corrected in the same slice.
+    - **Three more shipped defects, each reproduced first:** a refused CSRF post said **nothing at
+      all** (`if ( POST && verify )` with no else — L-041's family, the identical defect entry 27
+      found) · both dates printed with bare **`date()`**, so every timestamp rendered in the
+      SERVER's timezone · an error message built by **concatenation** (`__( 'license.key' ) . ' is
+      required.'`), reachable by no catalogue. The activation field's placeholder was also a
+      **real-looking 56-character key committed in the source**; it is gone, and §4 forbids
+      placeholder-as-label anyway.
+    - **A fifth found by DRIVING the new work.** §28's "the status bar carries one fact" is built on
+      `admin.statusbar_degraded` — the shell's own filter from stage 2, which **had no listener at
+      all** until now. Being its first consumer is what exposed the defect: the fact's link took the
+      global `--color-acento` over the bar's ground at **4.42:1 in dark**. It now inherits
+      `.k-statusbar-degraded`'s colour plus an underline; re-measured out of the browser at
+      **6.92:1 dark / 5.57:1 light**. Not a DR-005 addendum — the colour is the delivery's own and
+      it passes.
+    - **Two findings RECORDED rather than fixed, both product scope:** `License::checkIfDue()` has
+      **no caller anywhere**, so the seven-day automatic re-verification never runs on any install
+      — the screen therefore does not CLAIM one, and a test pins that wording · `License::isActive()`
+      has no caller either, so the licence gates no feature, which makes §28's "the admin keeps
+      working" true by construction rather than a control this slice built. A third, for entry 15:
+      `PluginLoader::verifyPluginLicense()` constructs a `License` it never uses.
+    - **Three adaptations** (§5.9 rows 49–51): the activation form STAYS (the readonly rule governs
+      the key that is stored, not the only affordance for putting one there — the entry-6 precedent)
+      · the toolbar's primary action is **Activate**, because this form has no single save · the
+      status-bar listener lives in `bootstrap.php` and is a READ, never a write, so nothing changes
+      state on a GET.
+    - **i18n: the root renamed `plugin_license` → `license` plus 24 new keys × 20 catalogues**,
+      spliced as TEXT (D-097, L-043): **27 additions / 3 deletions per file**, every existing value
+      verified unmoved and five gratuitously-reworded `activate` values restored. Parity PASS across
+      140 files in 7 sets. **Six new surfaces** (6 actions), INDEX **1030 → 1036**, new doc
+      `docs/reference/licence-screen.md`.
+    - **Tree state (re-measured):** PHP **350 tests / 1660 assertions**, 0 skips (unchanged — every
+      defect here lives in the screen, which only the browser tier reaches) · browser tier **424
+      passing** (was 402; +22), whole tier re-run in one pass · `keel-verify` **21 checks: 16 pass,
+      5 warnings**, test-point rows 24 → **25** (count confirmed to move, L-038) · `keel-doctor
+      --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**; `license.php`
+      2 warnings → **0**, core+admin baseline **147/409 — warnings DOWN from 412, errors
+      unchanged** (D-025).
+  - **NEXT ACTION — stage 5 batch B, screen 10 onward.** Still unblocked and backed: the **form
+    halves** of **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then
+    stage 6 (editor, terminal, AI chat, preview), which is unblocked: DR-007's rework is done, so
+    its four console-stream consumers inherit the corrected template with nothing owed.
     - **Run the per-screen survey against the manager BEFORE the first line.** It has now disagreed
-      **eight times in eight**, and on entry 27 it removed a whole card and four fifths of another.
-    - **And carry the DR-006 correction, now paid for TWICE:** entry 26's third card and entry 27's
-      Sessions card were both recorded as blocked by missing column widths, and neither was. Run the
-      survey before assuming a width is what a remaining table half is waiting for.
+      **nine times in nine**, and on entries 27 and 28 it removed whole cards each time.
+    - **And carry the DR-006 correction, now paid for FOUR TIMES:** entry 26's third card, entry
+      27's Sessions card, and both of entry 28's remaining cards were recorded as blocked by missing
+      column widths, and not one of them was. Run the survey before assuming a width is what a
+      remaining table half is waiting for.
+    - **And carry L-046:** catalogue parity compares the 20 files against each other, which cannot
+      see a root nobody calls or a call to a root that does not exist. Drive every screen a slice
+      touches and assert its rendered text carries no `root.key`-shaped string — and grep for a
+      catalogue root with no consumer, which is the same defect waiting for its other half.
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`.
     - **And carry L-045:** commit the slice before planting anything back, and restore from a copy.
     - **`BUILD-SPEC.md` §4 owes a delta walk for entries 1 and 3** — both built and driven, both

@@ -307,9 +307,23 @@ class App
         $this->i18n = new I18n($locale, $this->corePath . '/lang');
         $this->registerI18nGlobal();
 
-        // Step 6: Initialize license manager (for premium plugins only, NOT core).
-        // Klytos core is free to use. The License class handles plugin license
-        // verification against plugins.joseconti.com when premium plugins are active.
+        // Step 6: Initialize the license manager — the KLYTOS licence, not a
+        // plugin's. `License::$itemName` is hardcoded to 'Klytos' and the record
+        // it reads and writes is `config/license.json.enc`, one licence for the
+        // install. Manifest entry 28 (`admin/license.php`) is its screen.
+        //
+        // The comment here used to read "for premium plugins only, NOT core",
+        // which the code has never done: premium plugins are licensed
+        // separately, per plugin, out of `config/plugin_licenses/{id}.json.enc`
+        // by `PluginLoader::verifyPluginLicense()`. Corrected when entry 28 was
+        // built, because a comment that contradicts the code it sits on sends
+        // the next reader looking for behaviour that is not there.
+        //
+        // Nothing calls `License::isActive()` or `License::checkIfDue()`, so the
+        // licence currently gates no feature and the seven-day automatic
+        // re-verification never runs. Recorded as a finding rather than changed
+        // here: wiring the check into a page render would put an outbound
+        // request on every admin load of a released product.
         $this->license = new License($this->storage, $this->configPath);
 
         // Step 7: Initialize authentication.

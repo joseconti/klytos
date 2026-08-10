@@ -451,8 +451,8 @@
     "requests_today": "Foresporsler i dag",
     "permission_denied": "Tilgang nektet: denne tilkoblingen har ikke tillatelse til å kalle verktøyet «{tool}». Be nettstedets eier om å gi tilkoblingen den nødvendige rettigheten."
   },
-  "plugin_license": {
-    "title": "Plugin-lisens",
+  "license": {
+    "title": "Lisens",
     "key": "Lisensnokkel",
     "status": "Status",
     "active": "Aktiv",
@@ -464,7 +464,31 @@
     "activated_on": "Aktivert den",
     "last_check": "Siste kontroll",
     "grace_period": "Frist til {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Gjeldende nøkkel",
+    "key_new": "Ny nøkkel",
+    "key_hint": "Bruk den til å aktivere Klytos på et annet nettsted. Den lagres kryptert.",
+    "key_none": "Ingen lisensnøkkel er lagret.",
+    "key_copy": "Kopier lisensnøkkelen",
+    "key_copied": "Lisensnøkkelen er kopiert.",
+    "key_copy_failed": "Kopieringen mislyktes. Merk nøkkelen og kopier den manuelt.",
+    "activate_hint": "Lim inn nøkkelen fra kontoen din. Aktivering erstatter en nøkkel som allerede er lagret.",
+    "activated": "Lisensen er aktivert.",
+    "plan_empty": "Ingen lisens er aktiv. Klytos virker også uten; en lisens legger til oppdateringer og støtte.",
+    "plan_empty_action": "Aktiver en lisensnøkkel",
+    "check_now": "Sjekk nå",
+    "check_hint": "Spør lisensserveren om denne lisensen fortsatt er gyldig. Ingenting sjekker det av seg selv, så datoen over endrer seg bare når du bruker dette.",
+    "checked": "Lisensen er sjekket.",
+    "summary_title": "Denne lisensen ble ikke oppdatert.",
+    "error_csrf": "Dette skjemaet utløp før det ble sendt. Ingenting ble endret — send det på nytt.",
+    "error_key_required": "Skriv inn en lisensnøkkel.",
+    "error_activate_failed": "Lisensserveren avviste denne nøkkelen. Sjekk den og prøv igjen.",
+    "error_unreachable": "Lisensserveren kunne ikke nås. Ingenting ble endret — prøv igjen om et par minutter.",
+    "error_check_failed": "Denne lisensen kunne ikke sjekkes.",
+    "notice_expired": "Denne lisensen er utløpt. Administrasjonen virker fortsatt; oppdateringer og støtte er satt på pause.",
+    "notice_revoked": "Denne lisensen er trukket tilbake. Administrasjonen virker fortsatt; oppdateringer og støtte er satt på pause.",
+    "bar_expired": "Lisensen er utløpt",
+    "bar_revoked": "Lisensen er trukket tilbake"
   },
   "updates": {
     "title": "Oppdateringer",

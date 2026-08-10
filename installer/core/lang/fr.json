@@ -451,8 +451,8 @@
     "requests_today": "Requêtes aujourd'hui",
     "permission_denied": "Autorisation refusée : cette connexion n'est pas autorisée à appeler l'outil « {tool} ». Demandez au propriétaire du site de lui accorder l'autorisation requise."
   },
-  "plugin_license": {
-    "title": "Licence du plugin",
+  "license": {
+    "title": "Licence",
     "key": "Clé de licence",
     "status": "Statut",
     "active": "Active",
@@ -464,7 +464,31 @@
     "activated_on": "Activée le",
     "last_check": "Dernière vérification",
     "grace_period": "Période de grâce jusqu'au {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Clé actuelle",
+    "key_new": "Nouvelle clé",
+    "key_hint": "Utilisez-la pour activer Klytos sur un autre site. Elle est stockée chiffrée.",
+    "key_none": "Aucune clé de licence n'est enregistrée.",
+    "key_copy": "Copier la clé de licence",
+    "key_copied": "Clé de licence copiée.",
+    "key_copy_failed": "La copie a échoué. Sélectionnez la clé et copiez-la à la main.",
+    "activate_hint": "Collez la clé de votre compte. L'activation remplace toute clé déjà enregistrée.",
+    "activated": "Licence activée.",
+    "plan_empty": "Aucune licence n'est active. Klytos continue de fonctionner sans licence ; une licence ajoute les mises à jour et le support.",
+    "plan_empty_action": "Activer une clé de licence",
+    "check_now": "Vérifier maintenant",
+    "check_hint": "Demande au serveur de licences si cette licence est toujours valide. Rien ne le vérifie tout seul : la date ci-dessus ne bouge que lorsque vous utilisez ceci.",
+    "checked": "Licence vérifiée.",
+    "summary_title": "Cette licence n'a pas été mise à jour.",
+    "error_csrf": "Ce formulaire a expiré avant son envoi. Rien n'a été modifié ; renvoyez-le.",
+    "error_key_required": "Saisissez une clé de licence.",
+    "error_activate_failed": "Le serveur de licences a refusé cette clé. Vérifiez-la et réessayez.",
+    "error_unreachable": "Le serveur de licences est injoignable. Rien n'a été modifié ; réessayez dans quelques minutes.",
+    "error_check_failed": "Cette licence n'a pas pu être vérifiée.",
+    "notice_expired": "Cette licence a expiré. L'administration continue de fonctionner ; les mises à jour et le support sont suspendus.",
+    "notice_revoked": "Cette licence a été révoquée. L'administration continue de fonctionner ; les mises à jour et le support sont suspendus.",
+    "bar_expired": "Licence expirée",
+    "bar_revoked": "Licence révoquée"
   },
   "updates": {
     "title": "Mises à jour",

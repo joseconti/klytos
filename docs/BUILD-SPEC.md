@@ -1030,7 +1030,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 25 | Consent | ☐ | ☐ §25 | ☐ | ☐ |
 | 26 | Privacy | ☑ | ◐ §26 — see note | ☑ | ☑ 23 browser tests, 4 states × both themes |
 | 27 | Profile | ☑ | ◐ §27 — see note | ☑ | ☑ 26 browser tests, 3 states × both themes, plus a JavaScript-disabled pass |
-| 28 | Licence | ☐ | ☐ §28 | ☐ | ☐ |
+| 28 | Licence | ☑ | ◐ §28 — see note | ☑ | ☑ 22 browser tests, 4 states × both themes plus the error state, and a JavaScript-disabled pass |
 | 29 | AI images | ☐ | ☐ §29 | ☐ | ☐ |
 | 30 | Options | ☐ | ☐ §30 | ☐ | ☐ |
 | 31 | Templates | ☐ | ☐ §31 | ☐ | ☐ |
@@ -1069,6 +1069,18 @@ entry 8. Of the five preferences the delta names, only the theme is persisted by
 live in `localStorage` and two exist nowhere. The *Security* card carries the password alone, also
 by decision: entry 6 is this product's self-service surface for the second factor, passkeys and
 recovery codes, and a second set here would be two surfaces for one duty (D-090).
+
+**Note on entry 28's `◐`.** Its template rows, accessibility and driven evidence are complete (22
+browser tests, four states × both themes plus the ERROR state, whole-page axe, and a
+JavaScript-disabled pass — D-101). Its **manifest deltas are partial by decision**: the *Activated
+domains* list-table and the *Entitlements* stat row are deferred as unbacked product in
+`docs/roadmap.md` §0c. Activated domains is the **FOURTH** card recorded as DR-006-blocked whose real
+obstruction was never a column width — after entry 26 and entry 27 twice: `License::activate()`
+stores exactly ONE `domain` and one `site_url`, the licence API is never asked for a list, and no
+width unblocks a table with no rows to draw. Entitlements has no record of any kind behind it —
+`plan` is a bare string and `License::isActive()` has no caller in the tree, so nothing reads it to
+grant or refuse anything. Both absences are asserted by the spec, so building either later means
+deleting an assertion deliberately.
 
 **Note on entry 37's `◐`.** Same shape, same reason. Its template rows, accessibility and driven
 evidence are complete (34 browser tests, three states × both themes, whole-page axe — D-098). Its
@@ -1415,6 +1427,9 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 46 | **Entry 27 renders NO avatar preview**, although the screen it replaces drew one | The admin sends `img-src 'self' data:` on every response (`Auth::buildSecurityHeaders()`), and the default avatar for every account is a Gravatar URL — off-origin by construction, as is any avatar a person would paste. So the preview could not load on ANY install, and driving the shipped screen proved it: a blocked request and a console error on every single page load, caught by the read-back duty rather than by a test | Yes, and it removes nothing that worked. The URL field and the stored value are untouched, because the PUBLISHED site renders the avatar under a different policy; what goes is an `<img>` the product forbids itself from fetching and the script that kept re-pointing it. Restoring it would need a CSP change, which is a security decision and not a fidelity one |
 | 47 | **The username is `readonly`, not `disabled`** | `template-record-form.md` §2 states the rule and the shipped screen had it backwards. `disabled` also removes the control from the tab order, so the one field on the screen that a person most often wants to COPY was the one they could not reach with the keyboard | Yes — and the constraint behind it is real rather than decorative: `UserManager::update()`'s whitelist does not contain `username`, so no code path can change it. The control carries no `name` either: a readonly control still posts, and a value nothing reads is how a field starts looking editable to the next reader |
 | 48 | **The four social networks are a FILTERED list that the POST HANDLER also reads** (`admin.profile.social_networks`) | The shipped screen hardcoded the same four names twice — once in the markup and once in the handler — so the two could drift, and neither could be extended. Klytos is an extensible product and this is a per-user field set a plugin has an obvious reason to add to | Yes, and it is the entry-26 rule applied forwards rather than backwards: there, `$exportActions` was made filterable and then UN-made, because the handler dispatched on a closed list and a plugin's entry would have rendered a button that did nothing. Here the list is read once and used for both, so a network a plugin adds is a field that actually saves |
+| 49 | **Entry 28 keeps its activation form**, although §28 specifies the licence key as `readonly` | The readonly rule governs the key that IS stored. It cannot govern the only affordance in the entire product for putting one there — `License::activate()` is the sole writer, and without a field there is no way to reach it. Deleting it would have removed the screen's whole purpose on an unlicensed install | Yes, and it is the entry-6 precedent applied again: the encryption key's material was MOVED rather than deleted for the same reason. Both live in the Key card — the stored key readonly, mono, selectable and IN FULL with a copy button (the shipped screen masked it eight-and-eight, which makes the copy §28 asks for pointless), and below it the field that activates or replaces one |
+| 50 | **Entry 28's toolbar primary action is Activate, not "Save"** | `template-record-form.md` §1 puts the primary Save in the toolbar, and this form has no single save: its two writes — activate a key, check the stored one — are distinct operations on the same record. A toolbar "Save" performing neither would be a control that does nothing, which is the shape D-089 called worse than an absent one | Yes — Activate is the screen's primary write and reaches the toolbar by `form=` exactly as §1 specifies, which also makes it the key field's implicit submit: Enter in that field activates, with no JavaScript. Check now stays a secondary button in the Plan card's footer, which is where `overview-stats` §2 puts an on-demand check |
+| 51 | **§28's "the status bar carries one fact" is built on `admin.statusbar_degraded`, and its listener lives in `admin/bootstrap.php`** | The fact has to appear on EVERY admin page and a screen only renders itself, so a listener inside `license.php` would put the warning solely in front of the person already looking at the licence. The filter is the shell's own purpose-built extension point from stage 2 and had **no listener at all** until now | Yes, and it is a READ, never a write — a notice written while drawing a page would be a state change on a GET, which is why `NoticeManager` was rejected for this. Being the filter's first consumer is also what exposed a real contrast defect: the fact's link took the global `--color-acento` over the bar's ground at **4.42:1 dark**. Corrected to inherit `.k-statusbar-degraded`'s own colour plus an underline — re-measured at **6.92:1 dark / 5.57:1 light** |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

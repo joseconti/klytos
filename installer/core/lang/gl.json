@@ -451,8 +451,8 @@
     "requests_today": "Peticións hoxe",
     "permission_denied": "Permiso denegado: esta conexión non está autorizada a chamar a ferramenta «{tool}». Pídelle ao propietario do sitio que lle conceda o permiso necesario."
   },
-  "plugin_license": {
-    "title": "Licenza do complemento",
+  "license": {
+    "title": "Licenza",
     "key": "Clave de licenza",
     "status": "Estado",
     "active": "Activa",
@@ -464,7 +464,31 @@
     "activated_on": "Activada o",
     "last_check": "Última comprobación",
     "grace_period": "Período de graza ata {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Chave actual",
+    "key_new": "Chave nova",
+    "key_hint": "Úsaa para activar Klytos noutro sitio. Gárdase cifrada.",
+    "key_none": "Non hai ningunha chave de licenza gardada.",
+    "key_copy": "Copiar a chave de licenza",
+    "key_copied": "Chave de licenza copiada.",
+    "key_copy_failed": "Non se puido copiar. Selecciona a chave e cópiaa a man.",
+    "activate_hint": "Pega a chave da túa conta. Ao activala substitúese a que xa estivese gardada.",
+    "activated": "Licenza activada.",
+    "plan_empty": "Non hai ningunha licenza activa. Klytos segue funcionando sen ela; unha licenza engade actualizacións e soporte.",
+    "plan_empty_action": "Activar unha chave de licenza",
+    "check_now": "Comprobar agora",
+    "check_hint": "Pregúntalle ao servidor de licenzas se esta licenza segue sendo válida. Nada o comproba pola súa conta, así que a data de arriba só cambia cando usas isto.",
+    "checked": "Licenza comprobada.",
+    "summary_title": "Esta licenza non se actualizou.",
+    "error_csrf": "Este formulario caducou antes de enviarse. Non se cambiou nada; envíao de novo.",
+    "error_key_required": "Introduce unha chave de licenza.",
+    "error_activate_failed": "O servidor de licenzas rexeitou esta chave. Revísaa e téntao de novo.",
+    "error_unreachable": "Non se puido contactar co servidor de licenzas. Non se cambiou nada; téntao de novo nuns minutos.",
+    "error_check_failed": "Non se puido comprobar esta licenza.",
+    "notice_expired": "Esta licenza caducou. A administración segue funcionando; as actualizacións e o soporte quedan en pausa.",
+    "notice_revoked": "Esta licenza foi revogada. A administración segue funcionando; as actualizacións e o soporte quedan en pausa.",
+    "bar_expired": "Licenza caducada",
+    "bar_revoked": "Licenza revogada"
   },
   "updates": {
     "title": "Actualizacións",

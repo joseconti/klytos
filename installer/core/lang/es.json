@@ -451,8 +451,8 @@
     "requests_today": "Peticiones hoy",
     "permission_denied": "Permiso denegado: esta conexión no está autorizada a llamar a la herramienta «{tool}». Pide al propietario del sitio que le conceda el permiso necesario."
   },
-  "plugin_license": {
-    "title": "Licencia de plugin",
+  "license": {
+    "title": "Licencia",
     "key": "Clave de licencia",
     "status": "Estado",
     "active": "Activa",
@@ -464,7 +464,31 @@
     "activated_on": "Activada el",
     "last_check": "Última verificación",
     "grace_period": "Período de gracia hasta {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Clave actual",
+    "key_new": "Clave nueva",
+    "key_hint": "Úsala para activar Klytos en otro sitio. Se guarda cifrada.",
+    "key_none": "No hay ninguna clave de licencia guardada.",
+    "key_copy": "Copiar la clave de licencia",
+    "key_copied": "Clave de licencia copiada.",
+    "key_copy_failed": "No se pudo copiar. Selecciona la clave y cópiala a mano.",
+    "activate_hint": "Pega la clave de tu cuenta. Al activarla se sustituye la que ya estuviera guardada.",
+    "activated": "Licencia activada.",
+    "plan_empty": "No hay ninguna licencia activa. Klytos sigue funcionando sin ella; una licencia añade actualizaciones y soporte.",
+    "plan_empty_action": "Activar una clave de licencia",
+    "check_now": "Comprobar ahora",
+    "check_hint": "Pregunta al servidor de licencias si esta licencia sigue siendo válida. Nada lo comprueba por su cuenta, así que la fecha de arriba solo cambia cuando usas esto.",
+    "checked": "Licencia comprobada.",
+    "summary_title": "Esta licencia no se ha actualizado.",
+    "error_csrf": "Este formulario caducó antes de enviarse. No se ha cambiado nada; vuelve a enviarlo.",
+    "error_key_required": "Introduce una clave de licencia.",
+    "error_activate_failed": "El servidor de licencias ha rechazado esta clave. Revísala e inténtalo de nuevo.",
+    "error_unreachable": "No se ha podido contactar con el servidor de licencias. No se ha cambiado nada; inténtalo de nuevo en unos minutos.",
+    "error_check_failed": "No se ha podido comprobar esta licencia.",
+    "notice_expired": "Esta licencia ha expirado. La administración sigue funcionando; las actualizaciones y el soporte quedan en pausa.",
+    "notice_revoked": "Esta licencia ha sido revocada. La administración sigue funcionando; las actualizaciones y el soporte quedan en pausa.",
+    "bar_expired": "Licencia expirada",
+    "bar_revoked": "Licencia revocada"
   },
   "updates": {
     "title": "Actualizaciones",

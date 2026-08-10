@@ -451,8 +451,8 @@
     "requests_today": "Anfragen heute",
     "permission_denied": "Zugriff verweigert: Diese Verbindung ist nicht berechtigt, das Werkzeug „{tool}“ aufzurufen. Bitten Sie den Websitebesitzer, ihr die erforderliche Berechtigung zu erteilen."
   },
-  "plugin_license": {
-    "title": "Plugin-Lizenz",
+  "license": {
+    "title": "Lizenz",
     "key": "Lizenzschlüssel",
     "status": "Status",
     "active": "Aktiv",
@@ -464,7 +464,31 @@
     "activated_on": "Aktiviert am",
     "last_check": "Letzte Prüfung",
     "grace_period": "Karenzzeit bis {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Aktueller Schlüssel",
+    "key_new": "Neuer Schlüssel",
+    "key_hint": "Damit aktivierst du Klytos auf einer anderen Website. Er wird verschlüsselt gespeichert.",
+    "key_none": "Es ist kein Lizenzschlüssel gespeichert.",
+    "key_copy": "Lizenzschlüssel kopieren",
+    "key_copied": "Lizenzschlüssel kopiert.",
+    "key_copy_failed": "Kopieren fehlgeschlagen. Markiere den Schlüssel und kopiere ihn von Hand.",
+    "activate_hint": "Füge den Schlüssel aus deinem Konto ein. Beim Aktivieren wird ein bereits gespeicherter Schlüssel ersetzt.",
+    "activated": "Lizenz aktiviert.",
+    "plan_empty": "Es ist keine Lizenz aktiv. Klytos funktioniert auch ohne; eine Lizenz ergänzt Updates und Support.",
+    "plan_empty_action": "Lizenzschlüssel aktivieren",
+    "check_now": "Jetzt prüfen",
+    "check_hint": "Fragt den Lizenzserver, ob diese Lizenz noch gültig ist. Nichts prüft das von selbst — das Datum oben ändert sich nur, wenn du das hier benutzt.",
+    "checked": "Lizenz geprüft.",
+    "summary_title": "Diese Lizenz wurde nicht aktualisiert.",
+    "error_csrf": "Dieses Formular ist vor dem Absenden abgelaufen. Es wurde nichts geändert — sende es erneut.",
+    "error_key_required": "Gib einen Lizenzschlüssel ein.",
+    "error_activate_failed": "Der Lizenzserver hat diesen Schlüssel abgelehnt. Prüfe ihn und versuche es erneut.",
+    "error_unreachable": "Der Lizenzserver war nicht erreichbar. Es wurde nichts geändert — versuche es in ein paar Minuten erneut.",
+    "error_check_failed": "Diese Lizenz konnte nicht geprüft werden.",
+    "notice_expired": "Diese Lizenz ist abgelaufen. Die Verwaltung funktioniert weiter; Updates und Support pausieren.",
+    "notice_revoked": "Diese Lizenz wurde widerrufen. Die Verwaltung funktioniert weiter; Updates und Support pausieren.",
+    "bar_expired": "Lizenz abgelaufen",
+    "bar_revoked": "Lizenz widerrufen"
   },
   "updates": {
     "title": "Updates",

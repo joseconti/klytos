@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 341 |
+| Actions | 347 |
 | Filters | 145 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1030** |
+| **Total** | **1036** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -329,6 +329,12 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.forms.before | action | installer/plugins/klytos-forms/admin/forms.php | — | Emitted at the top of the forms listing screen; no payload, echo extra HTML |
 | admin.head | action | installer/admin/templates/header.php | — | Emitted inside the admin document head; receives the CSP nonce for assets and inline code |
 | admin.head_meta | action | installer/admin/templates/header.php | — | Emitted in the admin head meta area for extra meta or link tags; receives the CSP nonce |
+| admin.licence.after | action | installer/admin/license.php | docs/reference/licence-screen.md | After the card stack of the Licence screen; receives the licence record, echo extra HTML |
+| admin.licence.after_cards | action | installer/admin/license.php | docs/reference/licence-screen.md | Below the Licence key card, inside the card stack; receives the licence record |
+| admin.licence.after_key_field | action | installer/admin/license.php | docs/reference/licence-screen.md | Below the key field inside the activation form; receives the licence record |
+| admin.licence.before | action | installer/admin/license.php | docs/reference/licence-screen.md | At the top of the Licence screen, above the status line; receives the licence record |
+| admin.licence.before_cards | action | installer/admin/license.php | docs/reference/licence-screen.md | Above the Plan card, inside the card stack; receives the licence record |
+| admin.licence.before_key_field | action | installer/admin/license.php | docs/reference/licence-screen.md | Above the key field inside the activation form; receives the licence record |
 | admin.logs.after | action | installer/admin/logs.php | — | Emitted at the tail of the logs viewer screen; no payload, echo extra HTML |
 | admin.logs.before | action | installer/admin/logs.php | — | Emitted at the top of the logs viewer screen; no payload, echo extra HTML |
 | admin.mcp.after | action | installer/admin/mcp.php | — | Emitted at the tail of the MCP settings screen; no payload, echo extra HTML |

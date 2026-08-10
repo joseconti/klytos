@@ -451,8 +451,8 @@
     "requests_today": "Verzoeken vandaag",
     "permission_denied": "Toegang geweigerd: deze verbinding mag de tool \"{tool}\" niet aanroepen. Vraag de site-eigenaar om deze verbinding de vereiste bevoegdheid te geven."
   },
-  "plugin_license": {
-    "title": "Pluginlicentie",
+  "license": {
+    "title": "Licentie",
     "key": "Licentiesleutel",
     "status": "Status",
     "active": "Actief",
@@ -464,7 +464,31 @@
     "activated_on": "Geactiveerd op",
     "last_check": "Laatste controle",
     "grace_period": "Respijtperiode tot {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Huidige sleutel",
+    "key_new": "Nieuwe sleutel",
+    "key_hint": "Gebruik hem om Klytos op een andere site te activeren. Hij wordt versleuteld bewaard.",
+    "key_none": "Er is geen licentiesleutel opgeslagen.",
+    "key_copy": "Licentiesleutel kopiëren",
+    "key_copied": "Licentiesleutel gekopieerd.",
+    "key_copy_failed": "Kopiëren mislukt. Selecteer de sleutel en kopieer hem met de hand.",
+    "activate_hint": "Plak de sleutel uit je account. Activeren vervangt een sleutel die al is opgeslagen.",
+    "activated": "Licentie geactiveerd.",
+    "plan_empty": "Er is geen licentie actief. Klytos blijft ook zonder werken; een licentie voegt updates en ondersteuning toe.",
+    "plan_empty_action": "Een licentiesleutel activeren",
+    "check_now": "Nu controleren",
+    "check_hint": "Vraagt de licentieserver of deze licentie nog geldig is. Niets controleert dat uit zichzelf, dus de datum hierboven verandert alleen als je dit gebruikt.",
+    "checked": "Licentie gecontroleerd.",
+    "summary_title": "Deze licentie is niet bijgewerkt.",
+    "error_csrf": "Dit formulier is verlopen voordat het werd verzonden. Er is niets gewijzigd — verstuur het opnieuw.",
+    "error_key_required": "Voer een licentiesleutel in.",
+    "error_activate_failed": "De licentieserver heeft deze sleutel geweigerd. Controleer hem en probeer het opnieuw.",
+    "error_unreachable": "De licentieserver was niet bereikbaar. Er is niets gewijzigd — probeer het over een paar minuten opnieuw.",
+    "error_check_failed": "Deze licentie kon niet worden gecontroleerd.",
+    "notice_expired": "Deze licentie is verlopen. Het beheer blijft werken; updates en ondersteuning staan stil.",
+    "notice_revoked": "Deze licentie is ingetrokken. Het beheer blijft werken; updates en ondersteuning staan stil.",
+    "bar_expired": "Licentie verlopen",
+    "bar_revoked": "Licentie ingetrokken"
   },
   "updates": {
     "title": "Updates",

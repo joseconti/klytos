@@ -451,8 +451,8 @@
     "requests_today": "Forespørgsler i dag",
     "permission_denied": "Adgang nægtet: denne forbindelse har ikke tilladelse til at kalde værktøjet \"{tool}\". Bed webstedets ejer om at give forbindelsen den nødvendige rettighed."
   },
-  "plugin_license": {
-    "title": "Plugin-licens",
+  "license": {
+    "title": "Licens",
     "key": "Licensnøgle",
     "status": "Status",
     "active": "Aktiv",
@@ -464,7 +464,31 @@
     "activated_on": "Aktiveret den",
     "last_check": "Seneste kontrol",
     "grace_period": "Respit indtil {date}",
-    "plan": "Plan"
+    "plan": "Plan",
+    "key_current": "Nuværende nøgle",
+    "key_new": "Ny nøgle",
+    "key_hint": "Brug den til at aktivere Klytos på et andet websted. Den gemmes krypteret.",
+    "key_none": "Der er ingen licensnøgle gemt.",
+    "key_copy": "Kopiér licensnøglen",
+    "key_copied": "Licensnøglen er kopieret.",
+    "key_copy_failed": "Kopieringen mislykkedes. Markér nøglen, og kopiér den manuelt.",
+    "activate_hint": "Indsæt nøglen fra din konto. Aktivering erstatter en nøgle, der allerede er gemt.",
+    "activated": "Licensen er aktiveret.",
+    "plan_empty": "Ingen licens er aktiv. Klytos fungerer også uden; en licens tilføjer opdateringer og support.",
+    "plan_empty_action": "Aktivér en licensnøgle",
+    "check_now": "Tjek nu",
+    "check_hint": "Spørger licensserveren, om denne licens stadig er gyldig. Intet tjekker det af sig selv, så datoen ovenfor ændrer sig kun, når du bruger dette.",
+    "checked": "Licensen er tjekket.",
+    "summary_title": "Denne licens blev ikke opdateret.",
+    "error_csrf": "Denne formular udløb, før den blev sendt. Intet blev ændret — send den igen.",
+    "error_key_required": "Indtast en licensnøgle.",
+    "error_activate_failed": "Licensserveren afviste denne nøgle. Tjek den, og prøv igen.",
+    "error_unreachable": "Licensserveren kunne ikke nås. Intet blev ændret — prøv igen om et par minutter.",
+    "error_check_failed": "Denne licens kunne ikke tjekkes.",
+    "notice_expired": "Denne licens er udløbet. Administrationen fungerer fortsat; opdateringer og support er sat på pause.",
+    "notice_revoked": "Denne licens er tilbagekaldt. Administrationen fungerer fortsat; opdateringer og support er sat på pause.",
+    "bar_expired": "Licensen er udløbet",
+    "bar_revoked": "Licensen er tilbagekaldt"
   },
   "updates": {
     "title": "Opdateringer",
