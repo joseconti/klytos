@@ -146,13 +146,28 @@ const test = base.test.extend( {
  * Asserts the session actually landed rather than trusting the redirect.
  */
 async function login( page, role ) {
+    return loginAs( page, role, passwordFor( role ) );
+}
+
+/**
+ * Log in through the real form as ANY account, seeded or not.
+ *
+ * Entry 27 (Profile) edits the person who is logged in — including their
+ * password — so it is driven as a disposable account of its own
+ * (`fixtures/reset-profile.php`) rather than as a seeded role whose password
+ * `passwordFor()` hardcodes for every other spec in the run.
+ *
+ * `login()` above delegates here rather than duplicating the form walk: one
+ * definition of "a real login", two entry points.
+ */
+async function loginAs( page, username, password ) {
     await page.goto( '/installer/admin/login.php' );
 
     // login.php predates the data-testid convention (Keel v5.0.0) — it is
     // manifest entry "Login" and gets its identifiers when stage 5 rebuilds it.
     // Until then, locate by the form's own name attributes.
-    await page.locator( 'input[name="username"]' ).fill( role );
-    await page.locator( 'input[name="password"]' ).fill( passwordFor( role ) );
+    await page.locator( 'input[name="username"]' ).fill( username );
+    await page.locator( 'input[name="password"]' ).fill( password );
     await Promise.all( [
         page.waitForURL( ( url ) => ! url.pathname.endsWith( '/login.php' ) ),
         page.locator( 'form button[type="submit"]' ).first().click(),
@@ -273,6 +288,7 @@ module.exports = {
     test,
     expect: base.expect,
     login,
+    loginAs,
     ROLES,
     passwordFor,
     KNOWN_DELIVERY_GAPS,

@@ -1029,7 +1029,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 24 | Webhooks | ☐ | ☐ §24 | ☐ | ☐ |
 | 25 | Consent | ☐ | ☐ §25 | ☐ | ☐ |
 | 26 | Privacy | ☑ | ◐ §26 — see note | ☑ | ☑ 23 browser tests, 4 states × both themes |
-| 27 | Profile | ☐ | ☐ §27 | ☐ | ☐ |
+| 27 | Profile | ☑ | ◐ §27 — see note | ☑ | ☑ 26 browser tests, 3 states × both themes, plus a JavaScript-disabled pass |
 | 28 | Licence | ☐ | ☐ §28 | ☐ | ☐ |
 | 29 | AI images | ☐ | ☐ §29 | ☐ | ☐ |
 | 30 | Options | ☐ | ☐ §30 | ☐ | ☐ |
@@ -1057,6 +1057,18 @@ site-wide section registry (`collectErasableData()` requires a user), stores no 
 timestamp for the `Last run` column, has no vocabulary matching `Automatic` / `Manual` /
 `Not covered`, and no mechanism deriving a Task from privacy coverage. Four independent gaps, and
 the widths would have unblocked none of them.
+
+**Note on entry 27's `◐`.** Its template rows, accessibility and driven evidence are complete (26
+browser tests, three states × both themes, whole-page axe, plus a JavaScript-disabled pass — D-100).
+Its **manifest deltas are partial by decision**, on the user's answers recorded in D-100: the
+*Sessions* card and four of the five *Preferences* are deferred as unbacked product in
+`docs/roadmap.md` §0c. The Sessions card is the SECOND card recorded as DR-006-blocked that was
+never blocked by the widths — there is no session registry at all, `forceLogoutAllSessions()` is
+all-or-nothing, and the MCP clients carry no user id, so they are install-wide and already belong to
+entry 8. Of the five preferences the delta names, only the theme is persisted by the product; two
+live in `localStorage` and two exist nowhere. The *Security* card carries the password alone, also
+by decision: entry 6 is this product's self-service surface for the second factor, passkeys and
+recovery codes, and a second set here would be two surfaces for one duty (D-090).
 
 **Note on entry 37's `◐`.** Same shape, same reason. Its template rows, accessibility and driven
 evidence are complete (34 browser tests, three states × both themes, whole-page axe — D-098). Its
@@ -1400,6 +1412,9 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 43 | **Two cards the manifest's list does not name are built anyway** — Licence, and the bot lists | §37 lists five cards and the shipped screen carries these two as well. They are shipped product, this screen is their only surface, and no other manifest entry claims them | Yes — D-091's call on entry 6, for the same reason and with the same limit: shipped behaviour is kept, nothing is invented. Both keep their `site.configure` gate exactly where it was |
 | 44 | **Entry 26's two cards are the flows the product HAS, under the manifest's own headings** — "Export requests" and "Erasure requests" | §26 names both cards in queue language, and the product stores no request of any kind: nothing anywhere holds a pending export or a pending erasure. What it has is one live flow per card — find a person, then export; find a person, then erase | Yes, and it is a naming reading rather than a design change: both headings are rendered exactly as the manifest writes them, and each card carries the flow the product actually performs. Building a queue instead would be inventing a whole storage surface out of two card titles |
 | 45 | **Entry 26 contributes no toolbar Save**, although `template-record-form.md` §1 puts the primary Save there and calls it "the same button on every form screen" | The screen has no savable state at all. Every control on it is an action that completes on its own post — search, download, send, arm, confirm. A toolbar button that saves nothing would be an invented control with no behaviour behind it | Yes. The seam (`admin.topbar_actions`) is untouched and still carries the Save on every screen that has something to save; §1's rule is honoured where it applies rather than satisfied with a decorative control |
+| 46 | **Entry 27 renders NO avatar preview**, although the screen it replaces drew one | The admin sends `img-src 'self' data:` on every response (`Auth::buildSecurityHeaders()`), and the default avatar for every account is a Gravatar URL — off-origin by construction, as is any avatar a person would paste. So the preview could not load on ANY install, and driving the shipped screen proved it: a blocked request and a console error on every single page load, caught by the read-back duty rather than by a test | Yes, and it removes nothing that worked. The URL field and the stored value are untouched, because the PUBLISHED site renders the avatar under a different policy; what goes is an `<img>` the product forbids itself from fetching and the script that kept re-pointing it. Restoring it would need a CSP change, which is a security decision and not a fidelity one |
+| 47 | **The username is `readonly`, not `disabled`** | `template-record-form.md` §2 states the rule and the shipped screen had it backwards. `disabled` also removes the control from the tab order, so the one field on the screen that a person most often wants to COPY was the one they could not reach with the keyboard | Yes — and the constraint behind it is real rather than decorative: `UserManager::update()`'s whitelist does not contain `username`, so no code path can change it. The control carries no `name` either: a readonly control still posts, and a value nothing reads is how a field starts looking editable to the next reader |
+| 48 | **The four social networks are a FILTERED list that the POST HANDLER also reads** (`admin.profile.social_networks`) | The shipped screen hardcoded the same four names twice — once in the markup and once in the handler — so the two could drift, and neither could be extended. Klytos is an extensible product and this is a per-user field set a plugin has an obvious reason to add to | Yes, and it is the entry-26 rule applied forwards rather than backwards: there, `$exportActions` was made filterable and then UN-made, because the handler dispatched on a closed list and a plugin's entry would have rendered a button that did nothing. Here the list is read once and used for both, so a network a plugin adds is a field that actually saves |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

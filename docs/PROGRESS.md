@@ -926,22 +926,72 @@
       warnings**, test-point rows 22 → **23** (count confirmed to move, L-038) · `keel-doctor
       --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**, core+admin
       baseline **148/420 — DOWN from 151/423 on BOTH counts** (D-025).
-  - **NEXT ACTION — stage 5 batch B, screen 8 onward.** Still unblocked and backed: the **form
-    halves** of **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose TABLE
-    halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview),
-    which is unblocked: DR-007's rework is done, so its four console-stream consumers inherit the
-    corrected template with nothing owed.
-    - **And carry entry 26's correction to the DR-006 reading:** "blocked by DR-006" was true of
-      that card and was never the binding constraint. Run the survey against the product before
-      assuming a width is what a remaining table half is waiting for.
-    - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
-      built before entry 19 were each reported as accessibility-passed while the shell went
-      unscanned, and re-scoping one spec is what found it. Entry 39 is what that rule bought on its
-      second outing: it found a below-AA pair in the section-nav layer nothing had ever rendered.
-    - **And carry L-030's corollary, which entry 39 paid for a fifth time:** when a slice writes a
-      component the screens it builds do not consume, that component is UNTESTED — the section nav
-      shipped in D-088 and painted nothing until this screen. Prefer building a layer with its
-      consumer, and where that is impossible, say in the record that it is unverified.
+  - **Stage 5 of 6 — THE FORM SCREENS — BATCH B, screen 8: entry 27 (Profile), 2026-08-10
+    (D-100), L-045.** Built against `template-record-form.md`, `SPEC/accessibility.md` and
+    `SPEC/manifest.md` §27, as **three cards of four** — Identity · Security · Preferences.
+    - **The per-screen survey disagreed an EIGHTH time, and half the screen was affected.** Three
+      questions went to the user before the first line and all three were answered (D-100):
+      the **Sessions** card has no product behind it at all — sessions are plain `$_SESSION`, so no
+      device, IP, location or start time is stored anywhere, `forceLogoutAllSessions()` is
+      all-or-nothing, and the MCP clients carry **no user id**, so they are install-wide and already
+      belong to entry 8. **It is the SECOND card recorded as DR-006-blocked that the widths were
+      never blocking** — entry 26's correction, twice. Of the five **Preferences** the delta names,
+      only the theme is persisted; two are `localStorage` and two exist nowhere. **Security** is
+      entry 6's, so this card carries the password and a link. All deferrals in `roadmap.md` §0c.
+    - **THE FINDING — a save reported as FAILED that had already written half of itself.** The
+      shipped handler ran `update()` first and `changePassword()` second, and the 12-character floor
+      lives inside `changePassword()`: a short new password produced an error while the name, email,
+      bio, avatar, website, language and social links **had already been written**. Reproduced
+      against the server first — `Expected: "Profile" · Received: "Renamed"`. The fix is the
+      ordering, and the floor became `public const UserManager::MIN_PASSWORD_LENGTH` so the hint,
+      the `minlength` and the server check read one number instead of three copies.
+      **The first red was the BROWSER** — `minlength` refuses the submit before any request exists
+      (L-042's rule, third time in one spec).
+    - **Three more shipped defects, each reproduced first:** a refused CSRF post said **nothing at
+      all** (`if ( POST && verify )` with no else — L-041's family) · **not one control had a
+      programmatic label** (`label × 4, select-name × 1, color-contrast × 1`) · and the language
+      select rendered the literal string **`common.default`**, because that key exists in none of
+      the 20 catalogues and this mechanism returns the key when it misses.
+    - **A fourth found by the READ-BACK DUTY, not by a test:** the avatar preview requested
+      `gravatar.com` on every load and the admin's own CSP is `img-src 'self' data:`, so it has been
+      a blocked request plus a console error on every install since it shipped — and unloadable for
+      **any** avatar URL. Withdrawn (§5.9 row 46); the field and the stored value stay, because the
+      published site renders them under a different policy.
+    - **Two defects of my own, caught by driving:** an invented CSS class (`k-field-error`; the sheet
+      has `k-error` with the icon §1.3 requires) and a link inside a hint sentence failing
+      `link-in-text-block`.
+    - **L-045 — the plant-back deleted the file.** Restoring the first plant with
+      `git checkout -- installer/admin/profile.php` reverted to HEAD, which is the SHIPPED screen:
+      the whole rewrite, never staged, was gone. Rebuilt and re-verified to 26/26, with the
+      remaining three plants restored from a scratchpad copy. **A plant-back restores from a copy
+      taken before the plant, never from git, unless the baseline is committed** — and the cheaper
+      form: commit the slice before deliberately breaking it.
+    - **Three adaptations** (§5.9 rows 46–48): the withdrawn preview · `readonly` not `disabled` on
+      the username (§2's own rule, which the shipped screen had backwards) · the social networks as
+      a **filtered list the POST handler also reads**, which is entry 26's `$exportActions` rule
+      applied forwards rather than backwards.
+    - **i18n: 33 new keys × 20 catalogues** (32 `profile.*` plus the missing `common.default`),
+      spliced as TEXT (D-097, L-043): **33 additions, 0 deletions in every file**, every existing
+      value verified unmoved. Parity PASS across 140 files in 7 sets. **Three new surfaces**
+      (2 actions, 1 filter), INDEX **1027 → 1030**, new doc `docs/reference/profile-screen.md`.
+    - **Tree state (re-measured):** PHP **350 tests / 1660 assertions**, 0 skips (unchanged — every
+      defect here lives in the screen, which only the browser tier reaches) · browser tier **402
+      passing** (was 376; +26), whole tier re-run in one pass · `keel-verify` **21 checks: 16 pass,
+      5 warnings**, test-point rows 23 → **24** (count confirmed to move, L-038) · `keel-doctor
+      --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**, core+admin
+      baseline **147/412 — DOWN from 148/420 on BOTH counts** (D-025).
+  - **NEXT ACTION — stage 5 batch B, screen 9 onward.** Still unblocked and backed: the **form
+    halves** of **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay
+    DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview), which is unblocked: DR-007's
+    rework is done, so its four console-stream consumers inherit the corrected template with nothing
+    owed.
+    - **Run the per-screen survey against the manager BEFORE the first line.** It has now disagreed
+      **eight times in eight**, and on entry 27 it removed a whole card and four fifths of another.
+    - **And carry the DR-006 correction, now paid for TWICE:** entry 26's third card and entry 27's
+      Sessions card were both recorded as blocked by missing column widths, and neither was. Run the
+      survey before assuming a width is what a remaining table half is waiting for.
+    - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`.
+    - **And carry L-045:** commit the slice before planting anything back, and restore from a copy.
     - **`BUILD-SPEC.md` §4 owes a delta walk for entries 1 and 3** — both built and driven, both
       rows still unticked, recorded under the state matrix rather than ticked from someone else's
       evidence.

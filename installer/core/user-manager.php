@@ -49,7 +49,20 @@ class UserManager
     private const VALID_ROLES = ['owner', 'admin', 'editor', 'viewer'];
 
     /** @var int Minimum password length. */
-    private const MIN_PASSWORD_LENGTH = 12;
+    /**
+     * The minimum password length this manager accepts, anywhere.
+     *
+     * PUBLIC since entry 27 (Profile), and deliberately so: the floor is
+     * enforced here, in `create()` and `changePassword()`, and every screen that
+     * asks a person for a password has to state the same number in its hint and
+     * in its `minlength` attribute. While it was private, each of those was a
+     * hand-copied `12` that nothing tied to this one — the shipped profile
+     * screen carried exactly that, and a change here would have left three
+     * screens promising the old floor.
+     *
+     * @var int
+     */
+    public const MIN_PASSWORD_LENGTH = 12;
 
     /** @var int Bcrypt cost factor. Higher = slower but more secure. */
     private const BCRYPT_COST = 12;

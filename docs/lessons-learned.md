@@ -1658,3 +1658,40 @@ you are most confident about — those are different lines more often than it fe
 plant comes back green, resolve it before continuing, because exactly one of two things is true
 and both need action: either the mechanism is not what you wrote down, or the behaviour it
 protects has no test.
+
+## L-045 — I restored a planted defect with `git checkout` and deleted the whole day's file, because the baseline was never committed
+
+**What happened.** Entry 27's rewrite was finished, driven and green at 26/26 when the plant-back
+ritual started. The first plant went in, failed exactly the right test, and I restored it with
+`git checkout -- installer/admin/profile.php`. That command does not undo the plant. It replaces the
+file with **HEAD**, and HEAD held the screen as it shipped — so the restore silently reverted the
+entire rewrite, comments, tests-worth of fixes and all. Nothing warned: `git checkout --` on a
+tracked file is a normal, quiet, successful command.
+
+**Why it felt safe, and why it was not.** Every other restore in this project's plant-backs has been
+"put the file back the way it was", and for a file whose baseline is COMMITTED, `git checkout --` is
+precisely that. The whole rewrite lived in one working-tree file that had never been `git add`ed,
+which is exactly the state this project's own rule warns about from the other direction: work that is
+only in the working tree survives nothing. Here it did not even survive a routine command from the
+person who wrote it.
+
+**What it cost, and what it did not.** The file was rebuilt from the session's own context and
+re-verified to 26/26, and the remaining three plants ran against a scratchpad copy. What made the
+recovery possible was that the tests already existed and were themselves saved: the rebuilt file was
+not "looks the same", it was 26 driven tests green again. Had the plant-back come first and the tests
+later, the rewrite would simply have been gone.
+
+**The rule.** **A plant-back restores from a copy taken immediately BEFORE the plant — never from
+git — unless the baseline is already committed.** Take the copy (`cp` to a scratchpad path) as the
+first action of the ritual, restore with `cp`, and verify with a checksum, not with a status line.
+When the baseline IS committed, `git checkout --` is fine and is the better tool. And the cheaper
+form of the same rule: **commit the slice before starting to break it on purpose.** A plant-back is a
+deliberate act of damage; doing it to work that exists in exactly one unstaged file is doing it
+without a net.
+
+**A second, quieter thing this exposed.** `php -S` serves through opcache with a 2-second
+revalidation, so a plant restored and immediately re-driven can be measured against the PLANTED
+bytes. One of the four plants showed a stale artifact from the previous plant in its output for that
+reason. It changed no verdict here — each plant still failed its own test with its own message — but
+a plant-back that reads a cached file is a measurement of nothing. Pause after the restore, or
+re-run once, before trusting the green.

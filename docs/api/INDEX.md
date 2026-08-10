@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 339 |
-| Filters | 144 |
+| Actions | 341 |
+| Filters | 145 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1027** |
+| **Total** | **1030** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -258,7 +258,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\TranslationManager` | class | installer/core/translation-manager.php | — | Manages translation sources, reference keys and saved per-language strings |
 | `Klytos\Core\TwoFactor` | class | installer/core/two-factor.php | docs/reference/authentication.md | TOTP, magic-link, passkey and recovery-code second-factor authentication; `verifyPasskeyAssertion()` is what the login dispatcher calls and `sendPasskeyEnrolledEmail()` notifies the account holder on enrolment |
 | `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups |
-| `Klytos\Core\UserManager` | class | installer/core/user-manager.php | docs/reference/authentication.md | User CRUD, authentication (`authenticate()` is the sole login authority — D-056), password resets, the ONE capability matrix (`hasPermission()` — see docs/reference/authorization.md) and ownership transfer; the owner can be neither deleted nor suspended |
+| `Klytos\Core\UserManager` | class | installer/core/user-manager.php | docs/reference/authentication.md | User CRUD, authentication (`authenticate()` is the sole login authority — D-056), password resets, the ONE capability matrix (`hasPermission()` — see docs/reference/authorization.md) and ownership transfer; the owner can be neither deleted nor suspended. `MIN_PASSWORD_LENGTH` is public: it is the single definition of the password floor that `create()`, `changePassword()` and every screen's `minlength` and hint all read |
 | `Klytos\Core\VersionManager` | class | installer/core/version-manager.php | — | Saves, lists, diffs, prunes and restores page revisions |
 | `Klytos\Core\WebhookManager` | class | installer/core/webhook-manager.php | — | Manages webhook subscriptions and dispatches events to their endpoints |
 | `Klytos\Core\X402\BotDetector` | class | installer/core/x402/bot-detector.php | — | Identifies AI bots and reads x402 payment receipts from incoming requests |
@@ -357,11 +357,13 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.privacy.after_export | action | installer/admin/privacy.php | docs/reference/privacy-screen.md | Emitted between the Export requests and Erasure requests cards; no payload, echo extra HTML |
 | admin.privacy.before | action | installer/admin/privacy.php | — | Emitted at the top of the privacy tools screen; no payload, echo extra HTML |
 | admin.privacy.before_export | action | installer/admin/privacy.php | docs/reference/privacy-screen.md | Emitted above the Export requests card; no payload, echo extra HTML |
-| admin.profile.after | action | installer/admin/profile.php | — | Emitted at the tail of the user profile screen; no payload, echo extra HTML |
-| admin.profile.after_fields | action | installer/admin/profile.php | — | Emitted below the built-in profile form fields; receives the user being edited |
-| admin.profile.before | action | installer/admin/profile.php | — | Emitted at the top of the user profile screen; no payload, echo extra HTML |
-| admin.profile.before_fields | action | installer/admin/profile.php | — | Emitted above the built-in profile form fields; receives the user being edited |
-| admin.profile.custom_fields | action | installer/admin/profile.php | — | Emitted where plugins render their own profile inputs; receives the user being edited |
+| admin.profile.after | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted at the tail of the user profile screen; no payload, echo extra HTML |
+| admin.profile.after_fields | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted below the built-in profile form fields; receives the user being edited |
+| admin.profile.before_preferences | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted before the Preferences card of the profile screen; receives the user being edited |
+| admin.profile.before_security | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted before the Security card of the profile screen; receives the user being edited |
+| admin.profile.before | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted at the top of the user profile screen; no payload, echo extra HTML |
+| admin.profile.before_fields | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted above the built-in profile form fields; receives the user being edited |
+| admin.profile.custom_fields | action | installer/admin/profile.php | docs/reference/profile-screen.md | Emitted where plugins render their own profile inputs; receives the user being edited |
 | admin.security.after | action | installer/admin/security.php | — | Emitted at the foot of the Security screen; receives the sanitized two-factor config and the user id, echo extra HTML |
 | admin.security.after_2fa | action | installer/admin/security.php | — | Emitted below the Recovery codes card; receives the sanitized two-factor config and the user id, echo extra HTML |
 | admin.security.after_encryption | action | installer/admin/security.php | — | Emitted below the Recovery keys card; receives the current encryption level, echo extra HTML |
@@ -653,6 +655,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.post_type.custom_fields | filter | installer/admin/post-type-edit.php | — | Filters the custom field rows the post type screen draws, in the order it draws them |
 | admin.post_type.statuses | filter | installer/admin/post-type-edit.php | — | Filters the status rows the post type screen draws — system definitions followed by the post type's own |
 | admin.post_type_edit.update_data | filter | installer/admin/post-type-edit.php | — | Filters the post type update payload before it is saved from the edit screen |
+| admin.profile.social_networks | filter | installer/admin/profile.php | docs/reference/profile-screen.md | The social networks the profile's Identity card renders AND its POST handler reads, keyed by storage key; adding one adds a field that saves |
 | admin.security.methods | filter | installer/admin/security.php | — | Filters the second-factor rows the Security screen draws, so a plugin can render its own factor as a switch |
 | admin.security.passkeys | filter | installer/admin/security.php | — | Filters the passkey rows the Security screen lists for the acting user |
 | admin.settings.sections | filter | installer/admin/settings.php | — | The Settings screen's section list (slug => label i18n key); adding a row adds a nav item and a page load |
