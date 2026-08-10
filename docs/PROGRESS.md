@@ -1174,6 +1174,22 @@
       hides the welcome panel, `showWelcome()` un-hides and focuses it, and that textarea carries no
       `disabled`) · and **NEW-33**, whose recorded trigger — "the next slice touching
       `terminal-executor.php`" — fires here.
+  - **THE SECURITY FIX LANDED FIRST, ALONE — 2026-08-10 (D-104).** The terminal command panel's
+    XSS is fixed and pushed as its own commit rather than buried inside a 700-line redesign.
+    **Red observed against the SHIPPED code**, not against a plant-back:
+    `locator('.k-xss-probe-description') resolved to 1 element`. The fix is a change of MECHANISM
+    (`textContent` + `setAttribute`, which cannot produce an element from a value) rather than an
+    escaper that has to be remembered at every interpolation.
+    - It needed a fixture of a shape no previous screen has: `tests/E2E/fixtures/reset-terminal.php`
+      turns the **seeded owner's** second factor on and off, because a disposable subject is
+      impossible here — `terminal.php` refuses to render without 2FA active and `terminal.access` is
+      granted to `['owner']` alone, while the owner role is UNIQUE (`create()` refuses a second,
+      `update()` refuses to promote one). The spec computes a real TOTP and logs in THROUGH the
+      second factor; `--off` is idempotent and runs in `afterAll` whichever way the body went,
+      because an owner left needing a code would strand every other spec in the tier.
+    - Tree state: browser tier **452 passing** (was 451), whole tier in one pass on `KPORT=8176`;
+      `keel-verify` **23 checks: 17 pass, 6 warnings** (unchanged); test-point rows 27 → **28**;
+      lint on the touched files 0 errors.
   - **NEXT ACTION — build stage 6's three remaining screens**, in the recorded order
     (entry 2 editor, entry 23 terminal, entry 12 AI chat), each as chrome-to-spec with its interior
     deferred. DR-007's rework is done, so entry 23 inherits the corrected console-stream template

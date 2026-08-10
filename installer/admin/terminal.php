@@ -666,19 +666,50 @@ $termVersion = klytos_version();
             categories[cat].push({ name: cmd, description: meta.description || '', usage: meta.usage || cmd });
         });
 
-        var html = '';
+        /*
+         * Built as DOM NODES, never as an HTML string.
+         *
+         * `commandsMetadata` is not ours: `api/terminal-autocomplete.php` serves
+         * it from `TerminalExecutor::getCommandsMetadata()`, which passes the
+         * command table through the `terminal.commands` filter — so `name`,
+         * `description`, `usage` and `category` are all values an installed
+         * PLUGIN can set. The previous implementation concatenated them into a
+         * string and assigned it to `panel.innerHTML`, which made a command
+         * description a script-execution primitive in the owner's admin.
+         *
+         * `textContent` and `setAttribute` cannot produce an element or an
+         * attribute from a value, whatever the value contains — which is why the
+         * fix is a change of MECHANISM and not an escaping function. An escaper
+         * has to be remembered at every interpolation; this cannot be forgotten
+         * at one of them and still look right at the others.
+         *
+         * Reproduced first, red observed, in tests/E2E/terminal.spec.js.
+         */
+        panel.textContent = '';
+
         Object.keys(categories).forEach(function(cat) {
-            var label = categoryLabels[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
-            html += '<h4>' + label + '</h4>';
+            var heading = document.createElement('h4');
+            heading.textContent = categoryLabels[cat] || cat.charAt(0).toUpperCase() + cat.slice(1);
+            panel.appendChild(heading);
+
             categories[cat].forEach(function(cmd) {
-                html += '<div class="cmd-item" title="' + cmd.usage + '">'
-                      + '<span class="cmd-name">' + cmd.name + '</span>'
-                      + '<span class="cmd-desc">' + cmd.description + '</span>'
-                      + '</div>';
+                var item = document.createElement('div');
+                item.className = 'cmd-item';
+                item.setAttribute('title', cmd.usage);
+
+                var name = document.createElement('span');
+                name.className = 'cmd-name';
+                name.textContent = cmd.name;
+
+                var desc = document.createElement('span');
+                desc.className = 'cmd-desc';
+                desc.textContent = cmd.description;
+
+                item.appendChild(name);
+                item.appendChild(desc);
+                panel.appendChild(item);
             });
         });
-
-        panel.innerHTML = html;
     }
 
     // --- 2FA Revalidation ---
