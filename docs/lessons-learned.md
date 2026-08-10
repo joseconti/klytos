@@ -1458,3 +1458,62 @@ it, which is worse than not having written it.
 source says `hidden` and looks right. When a defect class recurs and its prevention is a sentence
 somebody has to remember, stop rewriting the sentence: the recurrence is the evidence that prose is
 the wrong instrument, and the count is how you know.
+
+## L-041 — A `catch` with no body hid a compliance feature returning nothing, on every install, since it shipped
+
+**What happened.** Building manifest entry 25, the fixture created two consent declarations
+through the product's own manager. The files landed on disk. The screen said
+"declared cookies: 0". So did the audit's totals, so did the JSON export, so did the
+CSV export, and so did both MCP tools that read the same method.
+
+**The mechanism.** `StorageInterface::list()` returns *decrypted records* — its docblock
+says so, and every other manager in core uses it that way. `ConsentManager` alone read
+them as IDs:
+
+```php
+$ids = $this->storage->list( self::COLLECTION );
+foreach ( $ids as $id ) {
+    try {
+        $declarations[] = $this->storage->read( self::COLLECTION, $id );
+    } catch ( \Throwable ) {
+        continue;
+    }
+}
+```
+
+`read()` wants a string id and was handed an array, so it threw on **every** record — and
+the empty `catch` turned every throw into a `continue`. The method returned `[]` always.
+
+**Why nothing caught it for a whole release cycle.** Not one of the usual reasons. The
+code reads correctly at a glance: a loop, a defensive try, a sensible-looking skip. There
+was no error in any log, because the throw was consumed. There was no failing test,
+because there was no test. And the *output* was plausible: "no plugin has declared
+anything" is a perfectly normal state for a fresh site, so the screen looked right in
+exactly the situation someone would check it in.
+
+**What made it worse than an ordinary bug, and this is the part worth keeping.** This is a
+GDPR audit trail. An absent audit is a visible gap someone fixes. An audit that reports
+"no cookies declared" *whatever is declared* is a confident wrong answer, and it is the
+answer a person would carry into a compliance review. **The failure mode of a
+record-keeping feature is not "it breaks", it is "it agrees with you".**
+
+**The rule earned, and it is about the `catch`, not about the loop.** A `catch` that
+discards is a decision to make one class of failure invisible, and it has to be worth
+that. Here it was doing two jobs — surviving a record the storage genuinely cannot
+return, and hiding a defect that fired on 100% of records — and only the first was
+wanted. So the fix keeps the skip and NARROWS it to the one shape it was for
+(a non-array entry), which is what makes the difference: the same file that would have
+survived a corrupt record now cannot survive a systematically broken read.
+**Never write a bare `catch ( \Throwable ) { continue; }` around the normal path of a
+loop. Narrow it to the abnormal case, or let it throw.**
+
+**And the red has to name the defect.** These tests were written first, in `tests/Unit/`,
+and failed with `App::getOptionsManager(): … null returned` — the absent App, because
+`getConfig()` reads through the options layer. That is a red, and it is worthless: it
+would have gone green on a fix that changed nothing about the bug. Moved to the
+integration tier, the red reads `Failed asserting that actual size 0 matches expected
+size 1`, which is the defect itself. **A red you did not read is not a red first.**
+
+**How it was found, which was the only way it could be.** By driving. The screen was built,
+the fixture ran, and the number on the page disagreed with the files on disk. Every
+reading of that method's source says it works.

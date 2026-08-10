@@ -131,15 +131,34 @@ class ConsentManager
      */
     public function getPluginDeclarations(): array
     {
-        $ids = $this->storage->list( self::COLLECTION );
+        /*
+         * `StorageInterface::list()` returns "Array of decrypted RECORDS", and
+         * every other manager in core uses it that way.
+         *
+         * This method alone treated the return as a list of IDS and fed each
+         * one back into `read()`, which wants a string. Every record therefore
+         * threw, a bare `catch ( \Throwable ) { continue; }` swallowed it, and
+         * the method returned an empty array on every install, always — so the
+         * cookie audit, the JSON and CSV exports, and the two MCP tools that
+         * read them all reported that nothing was declared, whatever was
+         * declared. A compliance record that answers confidently and wrongly is
+         * worse than one that is absent. Found by DRIVING manifest entry 25,
+         * never by reading: the files were plainly on disk.
+         *
+         * The skip is kept and NARROWED rather than deleted. It was doing two
+         * jobs — hiding this defect, and surviving a record the storage cannot
+         * return — and only the first one is unwanted. A non-array entry is the
+         * one shape `list()` can yield that the rest of this class cannot use,
+         * so that is what is skipped, and nothing else is silenced.
+         */
         $declarations = [];
 
-        foreach ( $ids as $id ) {
-            try {
-                $declarations[] = $this->storage->read( self::COLLECTION, $id );
-            } catch ( \Throwable ) {
+        foreach ( $this->storage->list( self::COLLECTION ) as $record ) {
+            if ( ! is_array( $record ) || ! isset( $record['plugin_id'] ) ) {
                 continue;
             }
+
+            $declarations[] = $record;
         }
 
         return klytos_apply_filters( 'consent.declarations', $declarations );
@@ -284,12 +303,26 @@ class ConsentManager
             if ( empty( $cookie['name'] ) ) {
                 continue;
             }
+            /*
+             * The default is resolved ONCE, before it is tested.
+             *
+             * This was written as `in_array( $cookie['type'] ?? 'cookie', … ) ?
+             * $cookie['type'] : 'cookie'`, where the ?? guards the CONDITION and
+             * the true branch reads the key raw — so a declaration that omits
+             * `type`, which every one of them may, passed the test on the
+             * defaulted value and then stored `null` while raising "Undefined
+             * array key". The type is what tells a compliance reader whether an
+             * entry is a cookie or browser storage, and it was being nulled for
+             * exactly the declarations that did not state one.
+             */
+            $type = (string) ( $cookie['type'] ?? 'cookie' );
+
             $result[] = [
                 'name'        => trim( (string) $cookie['name'] ),
                 'duration'    => trim( (string) ( $cookie['duration'] ?? 'Session' ) ),
                 'description' => trim( (string) ( $cookie['description'] ?? '' ) ),
-                'type'        => in_array( $cookie['type'] ?? 'cookie', ['cookie', 'localStorage', 'sessionStorage'], true )
-                    ? $cookie['type']
+                'type'        => in_array( $type, ['cookie', 'localStorage', 'sessionStorage'], true )
+                    ? $type
                     : 'cookie',
                 'paths'       => (array) ( $cookie['paths'] ?? ['/'] ),
             ];

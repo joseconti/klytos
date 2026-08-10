@@ -44,6 +44,27 @@
   var CONSENT_COOKIE_DAYS = 365;
   var CONSENT_VERSION = 1;
 
+  /*
+   * Every string the banner draws, with the value shipped before manifest
+   * entry 25 as its fallback.
+   *
+   * The banner used to hardcode these in Spanish, on a product whose recorded
+   * base language is English and which ships 20 catalogues (D-006). They now
+   * arrive translated from the server through `ConsentManager.init({labels})`,
+   * built by `BuildEngine::buildConsentManagerJsTag()` from the site's own
+   * locale. The fallbacks are kept — and kept in the language they shipped in —
+   * so a site rebuilt from an older stored config, or a caller that inits this
+   * library by hand, renders exactly what it rendered before instead of
+   * rendering `undefined`.
+   */
+  var DEFAULT_LABELS = {
+    bannerTitle: 'Cookies',
+    acceptAll: 'Aceptar todas',
+    rejectAll: 'Rechazar todas',
+    preferences: 'Configurar',
+    privacyPolicy: 'Politica de privacidad'
+  };
+
   var CATEGORIES = {
     necessary: {
       id: 'necessary',
@@ -144,13 +165,40 @@
     }
   }
 
+  /**
+   * One banner string, from the server's catalogue or the shipped fallback.
+   *
+   * @param {string} key A key of DEFAULT_LABELS.
+   * @returns {string}
+   */
+  function label(key) {
+    var supplied = _config.labels && _config.labels[key];
+    return (typeof supplied === 'string' && supplied !== '') ? supplied : DEFAULT_LABELS[key];
+  }
+
+  /**
+   * How long the visitor's choice is remembered.
+   *
+   * The admin screen has offered "Consent cookie duration (days)" since this
+   * feature shipped, and the value never reached this file: `cookie_days` was
+   * stored, was never passed to `init()`, and the constant below won every
+   * time. Configuring it did nothing at all. The constant is now the fallback
+   * it always should have been.
+   *
+   * @returns {number}
+   */
+  function consentCookieDays() {
+    var days = parseInt(_config.cookieDays, 10);
+    return (isFinite(days) && days > 0) ? days : CONSENT_COOKIE_DAYS;
+  }
+
   function saveConsent(categories) {
     var data = {
       version: CONSENT_VERSION,
       timestamp: new Date().toISOString(),
       categories: categories
     };
-    setCookie(CONSENT_COOKIE_NAME, JSON.stringify(data), CONSENT_COOKIE_DAYS);
+    setCookie(CONSENT_COOKIE_NAME, JSON.stringify(data), consentCookieDays());
     _consent = data;
   }
 
@@ -384,16 +432,35 @@
       '.cm-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 999999; background: #fff; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); padding: 24px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; color: #333; transform: translateY(100%); transition: transform 0.4s ease; }',
       '.cm-banner.cm-visible { transform: translateY(0); }',
       '.cm-banner-inner { max-width: 1200px; margin: 0 auto; }',
+      '.cm-banner-title { font-size: 16px; font-weight: 600; margin: 0 0 8px; color: #1a1a1a; }',
       '.cm-banner-text { margin-bottom: 16px; line-height: 1.5; }',
       '.cm-banner-text a { color: #0066cc; }',
       '.cm-banner-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }',
       '.cm-btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s, transform 0.1s; }',
       '.cm-btn:active { transform: scale(0.97); }',
+      /*
+       * accessibility.md §10.4: "Reject all is a control of the same
+       * prominence, size and level as Accept all — same component, same size,
+       * no ghost button, no colour trick."
+       *
+       * ONE rule serves both choices, so there is nothing to keep in sync and
+       * no way for one to drift lighter than the other. `min-width` is here so
+       * that the two are the same size even when the words are not the same
+       * length — "Accept all" and "Reject all" differ in every one of the 20
+       * catalogues, and equal padding on unequal text is unequal buttons.
+       *
+       * The pair that shipped was `cm-btn-primary` against `cm-btn-secondary`,
+       * which is precisely the pattern the rule names.
+       */
+      '.cm-btn-choice { background: #0066cc; color: #fff; min-width: 168px; text-align: center; }',
+      '.cm-btn-choice:hover { background: #0052a3; }',
       '.cm-btn-primary { background: #0066cc; color: #fff; }',
       '.cm-btn-primary:hover { background: #0052a3; }',
       '.cm-btn-secondary { background: #e8e8e8; color: #333; }',
       '.cm-btn-secondary:hover { background: #d0d0d0; }',
       '.cm-btn-link { background: none; color: #0066cc; padding: 10px 12px; text-decoration: underline; }',
+      /* §3.1 — a visible focus indicator the page's own styles cannot remove. */
+      '.cm-banner .cm-btn:focus-visible, .cm-panel .cm-btn:focus-visible { outline: 2px solid #0066cc; outline-offset: 2px; }',
       '',
       '/* Panel de configuracion */',
       '.cm-panel { position: fixed; top: 0; right: 0; width: 520px; max-width: 100%; height: 100%; z-index: 999999; background: #fff; box-shadow: -4px 0 20px rgba(0,0,0,0.2); transform: translateX(100%); transition: transform 0.3s ease; overflow-y: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; color: #333; }',
@@ -465,20 +532,98 @@
     document.head.appendChild(style);
   }
 
+  /*
+   * =========================================================================
+   * The banner — accessibility.md §10.4, "the hardest case and the strictest
+   * rule", and manifest entry 25's two deltas.
+   *
+   * Five properties are required and NONE of them was here before. Each is
+   * built below and each is asserted by `tests/E2E/consent.spec.js`:
+   *
+   *   1. role="dialog" aria-modal="true"
+   *   2. a REAL heading, referenced by aria-labelledby — not an aria-label
+   *   3. focus moved into the banner on show, and TRAPPED
+   *   4. Esc rejects non-essential (it is not merely a dismiss)
+   *   5. "Reject all" is the same COMPONENT, the same SIZE and the same LEVEL
+   *      as "Accept all" — no ghost button, no colour trick
+   *
+   * On (5), what shipped was the exact pattern the rule forbids: accept was
+   * `cm-btn-primary` and its reject-equivalent ("Solo obligatorias") was
+   * `cm-btn-secondary`, so the two choices were drawn at different weights.
+   * Both now carry ONE class, `cm-btn-choice`, and neither carries a modifier
+   * the other does not — which is why the property is checkable rather than
+   * merely intended: there is no second class to drift.
+   *
+   * On (3) and §10.4's closing sentence, "the site is operable by keyboard
+   * before a choice is made": a trap and an operable page are reconciled by
+   * (4), not by weakening the trap. Esc is always available, it makes the
+   * lawful minimal choice, and it dismisses — so the keyboard user is never in
+   * a dead end. That is the reading the manifest's own delta states
+   * ("Esc = reject non-essential") and it is the one built.
+   * =========================================================================
+   */
+
+  /** @type {Element|null} What had focus before the banner took it. */
+  var _bannerReturnFocus = null;
+
+  /** Every focusable descendant of the banner, in DOM order. */
+  function bannerFocusables() {
+    if (!_bannerElement) return [];
+    return Array.prototype.slice.call(
+      _bannerElement.querySelectorAll('a[href], button:not([disabled])')
+    );
+  }
+
+  /**
+   * §10.4 (3): keep Tab inside the dialog, in both directions.
+   *
+   * @param {KeyboardEvent} event
+   */
+  function onBannerKeydown(event) {
+    if (event.key === 'Escape' || event.key === 'Esc') {
+      // §10.4 (4). Esc is a CHOICE, not a dismissal: leaving the banner
+      // without recording one would re-open it on the next page and would
+      // leave non-essential scripts in whatever state they were in.
+      event.preventDefault();
+      ConsentManager.acceptNecessaryOnly();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    var focusables = bannerFocusables();
+    if (focusables.length === 0) return;
+
+    var first = focusables[0];
+    var last = focusables[focusables.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   function buildBanner() {
     var privacyLink = _config.privacyUrl
-      ? ' <a href="' + _config.privacyUrl + '">Politica de privacidad</a>.'
+      ? ' <a href="' + _config.privacyUrl + '">' + label('privacyPolicy') + '</a>.'
       : '';
 
     var bannerHtml = [
       '<div class="cm-banner-inner">',
+      '  <h2 class="cm-banner-title" id="cm-banner-title">' + label('bannerTitle') + '</h2>',
       '  <div class="cm-banner-text">',
       '    ' + (_config.bannerText || 'Este sitio utiliza cookies propias y de terceros. Puedes aceptar todas, solo las obligatorias, o configurar tus preferencias.') + privacyLink,
       '  </div>',
       '  <div class="cm-banner-actions">',
-      '    <button class="cm-btn cm-btn-primary" data-cm-action="accept-all">Aceptar todas</button>',
-      '    <button class="cm-btn cm-btn-secondary" data-cm-action="accept-necessary">Solo obligatorias</button>',
-      '    <button class="cm-btn cm-btn-link" data-cm-action="show-settings">Configurar</button>',
+      // The two choices are adjacent, identical in class, and drawn at the
+      // same weight. Order is reject-then-accept so neither reading order nor
+      // focus order privileges accepting.
+      '    <button type="button" class="cm-btn cm-btn-choice" data-cm-action="accept-necessary">' + label('rejectAll') + '</button>',
+      '    <button type="button" class="cm-btn cm-btn-choice" data-cm-action="accept-all">' + label('acceptAll') + '</button>',
+      '    <button type="button" class="cm-btn cm-btn-link" data-cm-action="show-settings">' + label('preferences') + '</button>',
       '  </div>',
       '</div>'
     ].join('\n');
@@ -486,7 +631,11 @@
     _bannerElement = document.createElement('div');
     _bannerElement.className = 'cm-banner';
     _bannerElement.setAttribute('role', 'dialog');
-    _bannerElement.setAttribute('aria-label', 'Configuracion de cookies');
+    // §10.4 (1) and (2). aria-labelledby points at the real <h2>; the
+    // aria-label this replaces named the dialog without giving the page a
+    // heading anyone could navigate to.
+    _bannerElement.setAttribute('aria-modal', 'true');
+    _bannerElement.setAttribute('aria-labelledby', 'cm-banner-title');
     _bannerElement.innerHTML = bannerHtml;
 
     document.body.appendChild(_bannerElement);
@@ -502,9 +651,20 @@
       ConsentManager.showSettings();
     });
 
+    _bannerElement.addEventListener('keydown', onBannerKeydown);
+
     // Mostrar con animacion
     requestAnimationFrame(function() {
       _bannerElement.classList.add('cm-visible');
+
+      // §10.4 (3): focus moves INTO the dialog. Taken after the frame that
+      // makes it visible, because focusing a translated-off-screen element
+      // scrolls the page to it in Chromium.
+      _bannerReturnFocus = document.activeElement;
+      var focusables = bannerFocusables();
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      }
     });
   }
 
@@ -667,15 +827,41 @@
   }
 
   function hideBanner() {
-    if (_bannerElement) {
-      _bannerElement.classList.remove('cm-visible');
-      setTimeout(function() {
-        if (_bannerElement && _bannerElement.parentNode) {
-          _bannerElement.parentNode.removeChild(_bannerElement);
-          _bannerElement = null;
-        }
-      }, 400);
+    if (!_bannerElement) return;
+
+    _bannerElement.classList.remove('cm-visible');
+
+    /*
+     * Focus leaves BEFORE the removal, not after it.
+     *
+     * The element stays in the DOM for the 400ms of its transition and its
+     * keydown trap stays live with it, so a Tab pressed in that window would
+     * still be caught by a dialog the visitor has already answered. Returning
+     * focus here also keeps the keyboard user's place: focus otherwise falls
+     * to <body> when the element is removed, and the next Tab restarts from
+     * the top of the document (WCAG 2.4.3).
+     *
+     * Only a real, still-connected element is restored — `document.activeElement`
+     * is <body> on a fresh page load, which cannot take focus and must not be
+     * asked to. There is no re-open loop of D-077's shape here: nothing in the
+     * page opens this banner on focus.
+     */
+    var returnTo = _bannerReturnFocus;
+    _bannerReturnFocus = null;
+
+    if (returnTo && returnTo !== document.body && typeof returnTo.focus === 'function'
+      && document.contains(returnTo)) {
+      returnTo.focus();
+    } else if (_bannerElement.contains(document.activeElement)) {
+      document.activeElement.blur();
     }
+
+    setTimeout(function() {
+      if (_bannerElement && _bannerElement.parentNode) {
+        _bannerElement.parentNode.removeChild(_bannerElement);
+        _bannerElement = null;
+      }
+    }, 400);
   }
 
   function destroySettingsPanel() {

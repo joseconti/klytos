@@ -54,8 +54,44 @@ redesign is **not reportable as complete** while they stand.
 | **9 Settings** | **URLs** · **Media** sections | Two of the seven designed sections have no shipped settings at all. They are omitted from the nav until they have content — one line each to restore (D-088 answer 3) |
 | **19 Content model** | **Statuses** (editable set) | There is no global, editable status set. The four system statuses are class CONSTANTS (`PostTypeManager::SYSTEM_STATUS_DEFS`) and every custom status belongs to ONE post type (`addStatus( $postTypeId, … )`). Entry 39 names the same card at the level where it IS backed and `post-type-edit.php` already manages it there. A global set is a new product surface (D-089) |
 | **19 Content model** | the **"and orders"** delta | Nothing in this product orders post types or taxonomies: `position` exists on CUSTOM FIELDS alone, and the only reorder surfaces are `reorderCustomFields()` and `reorderStatuses()`. Ordering is a manager change with its own storage and MCP consequences, not a card (D-089) |
+| **25 Consent** | **Acceptance stats** (stat row) | The product stores no acceptance data of any kind. Klytos publishes a STATIC site; the visitor's choice is written to a cookie in their own browser; there is no endpoint that receives it, no collection that stores it and nothing that aggregates it. The prototype draws "Accepted everything 62% · Essential only 31% · Ignored the banner 7%", which is visitor telemetry — a whole collection surface, and one with its own privacy question, since counting consent choices is itself processing (D-092) |
 
 Review trigger, for all of them: **the close of the Phase 4 build**, exactly as §0b.
+
+## 0d. Product ideas raised in conversation, parked rather than built
+
+Not design gaps and not deferrals of drawn cards: things the user asked for that are **new product**,
+recorded at the moment they were raised so they are not lost and not smuggled into a fidelity stage.
+
+### A third editor: raw HTML (raised 2026-08-10)
+
+Today a post type chooses between exactly two editors, and the choice is real rather than decorative:
+`PostTypeManager` stores `editor` (default `gutenberg`), both entry 19 and entry 39 validate against
+`[ 'gutenberg', 'tinymce' ]`, and `page-editor.php:657` branches on it to mount TinyMCE from
+`assets/vendor/tinymce/tinymce.min.js`. Adding `html` is therefore a small change in four places —
+the manager's allow-list, the two screens' validation, the catalogues, and the editor's branch.
+
+**What makes it a slice and not a one-liner is the one question it cannot answer for itself: what
+happens to `klytos_kses_post()`.** Page content is filtered through the KSES tag map on the way out,
+and that map exists precisely to stop stored content becoming script on the public site. An editor
+advertised as "100% HTML" is one of two different products depending on the answer:
+
+- **Filtered** — the author writes raw HTML and KSES still governs what survives. Safe, consistent
+  with every other content path, and it is *not* 100% HTML: `<script>`, `<style>`, `<iframe>` and
+  event-handler attributes are dropped, which is exactly the freedom the idea is asking for.
+- **Unfiltered** — genuinely raw. That is stored XSS by design, so it cannot be available to every
+  role that can currently edit a page: it needs its own capability (owner, plausibly owner-only),
+  and it interacts with the CSP Klytos already sends per request with a nonce — inline script pasted
+  by an author has no nonce and would be blocked anyway, which is worth knowing before promising it.
+
+There is a third shape worth putting on the table when this is planned: filtered by default with an
+explicit, per-page, capability-gated "allow unfiltered HTML" that is **recorded** like §10.7's
+contrast override — who allowed it and when — rather than a global switch nobody can audit later.
+
+Not started. It is product scope, it was raised during a Phase 4 fidelity stage, and the three
+preceding slices each refused exactly this kind of widening (D-088, D-090, D-091). Review trigger:
+**the close of the Phase 4 build**, or sooner on the user's word — the answer to the KSES question is
+theirs and nothing else in the slice can be decided without it.
 
 ## 1. The `.gitattributes` review — first, and it is one line
 

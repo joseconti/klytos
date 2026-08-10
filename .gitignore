@@ -171,3 +171,28 @@ docs/continuation-prompt.md
 # are never history. Twice now (DR-001, DR-003) this tree was left behind after
 # its audit and dirtied the working tree for weeks.
 docs/klytos-cms-redesign/
+
+# ─── The generated static site (build output, never source) ───
+# `BuildEngine::buildAll()` writes the published site into the repository root:
+# one directory per page plus the shared assets, the SEO surfaces and the x402
+# gate. It is OUTPUT — regenerated from `installer/` on every build — and any
+# admin save that touches site content triggers it, so it appears in the working
+# tree during ordinary development and during every E2E run that exercises a
+# save. Committing it would put a build artifact in history and make every
+# session's diff depend on which screens its tests happened to save.
+#
+# `.htaccess` is deliberately NOT listed: it is tracked source that the build
+# REWRITES, so it has to stay visible in `git status` — a change there is a real
+# change to a file the repository ships.
+/home/
+/about/
+/contact/
+/search/
+/assets/
+/.well-known/
+/llms.txt
+/llms-full.txt
+/robots.txt
+/sitemap.xml
+/search-index.json
+/x402-gate.php

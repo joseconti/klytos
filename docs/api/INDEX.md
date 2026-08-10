@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 324 |
-| Filters | 137 |
+| Actions | 328 |
+| Filters | 139 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1005** |
+| **Total** | **1011** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -304,6 +304,10 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.bulk_action.before | action | installer/core/mcp/tools/bulk-tools.php +1 more | — | Emitted before a bulk page operation runs; receives the action name and the target slugs |
 | admin.consent.after | action | installer/admin/consent.php | — | Emitted at the tail of the cookie consent settings screen; no payload, echo extra HTML |
 | admin.consent.before | action | installer/admin/consent.php | — | Emitted at the top of the cookie consent settings screen; no payload, echo extra HTML |
+| admin.consent.after_audit | action | installer/admin/consent.php | — | Emitted after the cookie audit card; no payload, echo extra HTML |
+| admin.consent.after_banner | action | installer/admin/consent.php | — | Emitted after the banner configuration card; no payload, echo extra HTML |
+| admin.consent.before_audit | action | installer/admin/consent.php | — | Emitted before the cookie audit card; no payload, echo extra HTML |
+| admin.consent.before_banner | action | installer/admin/consent.php | — | Emitted before the banner configuration card; no payload, echo extra HTML |
 | admin.content_model.after_taxonomies | action | installer/admin/post-types.php | — | Emitted after the Taxonomies card on the Content model screen; no payload, echo extra HTML |
 | admin.content_model.before_post_types | action | installer/admin/post-types.php | — | Emitted before the Post types card on the Content model screen; no payload, echo extra HTML |
 | admin.content_model.before_taxonomies | action | installer/admin/post-types.php | — | Emitted between the Post types and Taxonomies cards on the Content model screen; no payload |
@@ -617,6 +621,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
 | admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
+| admin.consent.audit_rows | filter | installer/admin/consent.php | — | Filters the cookie audit table's rows, so a plugin can surface a cookie it sets outside a declaration |
+| admin.consent.declarations | filter | installer/admin/consent.php | — | Filters the plugin consent declarations the audit card lists and offers a Remove for |
 | admin.content_model.post_types | filter | installer/admin/post-types.php | — | Filters the post types the Content model screen lists, after the manager returns them |
 | admin.content_model.taxonomies | filter | installer/admin/post-types.php | — | Filters the flattened taxonomy rows the Content model screen lists, each carrying its post type |
 | admin.design_tokens | filter | installer/admin/templates/header.php | docs/reference/design-tokens.md | Filters the ordered list of design-handoff token stylesheets loaded before the component layer |

@@ -703,12 +703,69 @@
       `keel-verify` **21 checks: 16 pass, 5 warnings**, test-point rows 17 → **18** (row count
       confirmed to move, L-038) · `keel-doctor --check` green · lint on both new files **0/0** ·
       `docs/api/INDEX.md` **1005**.
-  - **NEXT ACTION — stage 5 batch B, screen 4 onward.** Still unblocked and backed, in the order
-    the survey suggests: **25 Consent** (`consent.php`), **9 Settings** (five sections, per D-088
-    answer 3), **37 x402 settings** (wallet stays editable, minus pricing rules and the 402 body),
-    plus the form halves of **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and
-    **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI
-    chat, preview).
+  - **Stage 5 of 6 — BATCH B, screen 4: entry 25 (Consent) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-092), L-041.** `consent.php` rewritten against `template-record-form.md`,
+    `SPEC/manifest.md` §25 and `SPEC/accessibility.md` §10.4 — **and it is the only screen in the
+    build whose manifest entry reaches OUT of the admin.**
+    - **The per-screen survey was RE-RUN against `ConsentManager`** (D-089's rule, a fourth time).
+      Banner configuration and Cookie audit are backed. **Acceptance stats is NOT** and is deferred:
+      the product stores no acceptance data at all — Klytos publishes a STATIC site, the choice
+      lives in the visitor's own cookie, and nothing receives, stores or aggregates it. The
+      prototype's "Accepted everything 62%" is visitor telemetry. `roadmap.md` §0c.
+    - **THE SLICE'S LARGEST FINDING IS NOT ABOUT THIS SCREEN (L-041).**
+      `ConsentManager::getPluginDeclarations()` had been returning **nothing on every install since
+      the feature shipped**: `StorageInterface::list()` yields RECORDS, this one method read them as
+      IDS, `read()` threw on every record, and a bare `catch ( \Throwable ) { continue; }` swallowed
+      every throw. So the cookie audit, the JSON and CSV exports and BOTH MCP tools reported that
+      nothing was declared, whatever was declared — **a GDPR audit trail that answers confidently
+      and wrongly.** Found by DRIVING (files on disk, screen said zero), fixed **test-first**, skip
+      **narrowed** rather than deleted, and **proven by planting the original loop back**. A second
+      defect rode along: `sanitizeCookies()` guarded its `??` on the CONDITION and read the key raw
+      in the true branch, storing `null` for every declaration that omits `type`.
+    - **The first red was the WRONG red and was not accepted.** Written in `tests/Unit/` first, it
+      failed on the absent App (`getConfig()` reads through the options layer), not on the defect.
+      Moved to the integration tier, where the red names the defect itself.
+    - **THE SHIPPED BANNER MET NONE OF §10.4's FIVE PROPERTIES**, and §25's deltas put it in scope:
+      no `aria-modal`, no heading, no focus move, no trap, no Esc, and its reject-equivalent drawn
+      as `cm-btn-secondary` beside a `cm-btn-primary` accept — **precisely the colour trick the rule
+      names**. All five built and driven against the real library served into a real page. Both
+      choices now carry ONE class with `min-width`, so there is no second declaration to drift.
+      **Esc records a CHOICE**, which is how §10.4's trap and its "operable by keyboard" reconcile.
+      Two shipped fields that did nothing were closed in the same change: `cookie_days` never
+      reached the library, and the banner's words were hardcoded Spanish against D-006.
+    - **DR-008 is DRAFTED, not sent** — the delivery contradicts its own strictest rule TWICE: the
+      prototype draws `Aceptar` primary beside `Rechazar` secondary, and draws a switch labelled
+      "Reject is as prominent as accept" that §25 says does not exist. Built to the SPEC on D-074's
+      precedent; the rule renders as a `<p>` **asserted to contain no control**.
+    - **DR-006 gained an ADDENDUM: there are FOURTEEN list surfaces, not thirteen.** Entry 25's
+      cookie audit has no columns and no widths in the manifest. Taken from the prototype on the
+      **user's decision**, because DR-006's stated obstruction — prototype columns contradicting the
+      manifest's — does not exist where the manifest is silent and three sources agree.
+    - **One contrast defect, the build's own and therefore FIXED not registered:** the preview's body
+      text at **4.46:1 light**, DR-005 gap 2's pair on a fourth surface. No delivered file states
+      that control's colour, so it is **D-090's call exactly**. Now 14.79 / 15.29, proven red on the
+      planted original.
+    - **A save that deleted data it does not edit, fixed and pinned:** the shipped screen rebuilt
+      `categories` from a field it never rendered, wiping every MCP-created custom category on
+      every save.
+    - **One thing checked and found NOT to be a defect:** `consent.php` has no in-file capability
+      call because it is mapped centrally in `klytos_admin_gate_map()` (S-07's fix).
+    - **i18n: 40 new keys × 20 catalogues**, a new `consent.*` domain where none existed, spliced as
+      TEXT rather than re-serialised — **840 insertions, 0 deletions**, parity PASS.
+    - **Six new hooks** (2 filters, 4 actions) with their INDEX rows (**1005 → 1011**). **The INDEX
+      check caught my own mistake**: both filters were written into the Actions section until the
+      count and parity checks failed — L-038 earning its keep a second time.
+    - **Tree state (re-measured):** PHP **340 tests / 1643 assertions**, 0 skips (was 335/1629) ·
+      browser tier **275 passing** (was 253; +22), whole tier re-run · `keel-verify` **21 checks: 16
+      pass, 5 warnings**, test-point rows 18 → **19** (row count confirmed to move, L-038) ·
+      `keel-doctor --check` green, 14 rows · lint on `consent.php` **0 errors / 0 warnings** ·
+      `docs/api/INDEX.md` **1011**.
+  - **NEXT ACTION — stage 5 batch B, screen 5 onward.** Still unblocked and backed, in the order
+    the survey suggests: **9 Settings** (`settings.php`, five sections per D-088 answer 3),
+    **37 x402 settings** (`x402-settings.php`, wallet stays editable, minus pricing rules and the
+    402 body), plus the form halves of **26 Privacy**, **27 Profile**, **28 Licence**,
+    **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then stage 6
+    (editor, terminal, AI chat, preview).
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
       built before entry 19 were each reported as accessibility-passed while the shell went
       unscanned, and re-scoping one spec is what found it. Entry 39 is what that rule bought on its
@@ -767,7 +824,17 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **FOUR.**
+- Open Design Requests: **FIVE.**
+  **DR-008 — DRAFTED 2026-08-10 (D-092), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-008.md` and sending it is the user's call. The Consent
+  prototype contradicts the delivery's own **strictest rule** twice: it draws the preview's
+  `Aceptar` as `variant="primary"` beside `Rechazar` as `variant="secondary"` — the exact prominence
+  difference `accessibility.md` §10.4 forbids — and it draws a switch labelled "Reject is as
+  prominent as accept", which is the option `manifest.md` §25 says "does not exist". Two normative
+  files agree and only the drawing disagrees, so entry 25 follows the SPEC on **D-074's precedent**
+  and the rule renders as a `<p>` **asserted to contain no control**. It also asks Design to confirm
+  the status of three further prototype toggles that map to no stored setting. **Blocks nothing** —
+  entry 25 is built, driven and shipped.
   **DR-007 — DRAFTED 2026-08-09 (D-085), NOT SENT** — the ready-to-paste prompt is the last
   section of `docs/design/design-requests/DR-007.md` and sending it is the user's call.
   Raised by DRIVING entry 41, not by reading the delivery. Two findings, both properties of
@@ -783,7 +850,15 @@
   what makes the finding specific. **Blocks nothing** — entry 41 is built and shipped; both
   are excluded from the axe pass **by selector** with their measured ratios **pinned as
   floors**, so an open request cannot become a licence to regress.
-  **DR-006 — SENT 2026-07-29 (D-079)**, raised by stage 4 before its first line.
+  **DR-006 — SENT 2026-07-29 (D-079), and it now carries an ADDENDUM that postdates the prompt in
+  the file — whoever re-sends it must send the addendum too.** There are **FOURTEEN** list surfaces,
+  not thirteen: entry 25's **cookie audit** names a list-table and records neither columns nor
+  widths, and the sent table never enumerated it. It was **built anyway, on the user's decision**,
+  because DR-006's own stated obstruction does not exist here — the prototypes were refused for
+  carrying DIFFERENT COLUMNS from the manifest's, and entry 25's manifest names none to differ from,
+  while the prototype (`170px 120px 90px 1fr` over Cookie · Type · Duration · Description) and the
+  shipped screen's four headings agree. Design is still asked to record the value normatively.
+  Raised by stage 4 before its first line.
   `grid-template-columns` is delegated to the consuming screen by `template-list-table.md` §1 and
   recorded in `SPEC/manifest.md` for **one** of the thirteen list surfaces. Twelve have no widths;
   **three of those have no column list at all** (28 Licence, 35 Updates ×2) and cannot be built in

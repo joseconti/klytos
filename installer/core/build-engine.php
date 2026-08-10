@@ -858,10 +858,32 @@ class BuildEngine
             return '';
         }
 
-        // Build the JS init config object.
+        /*
+         * Build the JS init config object.
+         *
+         * `cookieDays` and `labels` are new with manifest entry 25, and both
+         * close a gap rather than adding a feature:
+         *
+         * - `cookie_days` has been an editable field on the Consent screen
+         *   since the feature shipped and was never passed here, so the
+         *   library's own 365-day constant won every time and configuring the
+         *   duration did nothing at all.
+         * - the banner's own words were hardcoded Spanish inside the library,
+         *   on a product whose base language is English with 20 catalogues
+         *   (D-006). They are translated here, server-side, because the
+         *   generated site is static and has no runtime to translate in.
+         */
         $jsConfig = [
             'bannerText' => $config['banner_text'],
             'autoShow'   => true,
+            'cookieDays' => (int) ( $config['cookie_days'] ?? 365 ),
+            'labels'     => [
+                'bannerTitle'   => __( 'consent.banner_title' ),
+                'acceptAll'     => __( 'consent.banner_accept_all' ),
+                'rejectAll'     => __( 'consent.banner_reject_all' ),
+                'preferences'   => __( 'consent.banner_preferences' ),
+                'privacyPolicy' => __( 'consent.banner_privacy_policy' ),
+            ],
         ];
 
         if ( !empty( $config['privacy_url'] ) ) {
