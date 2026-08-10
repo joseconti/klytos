@@ -42,7 +42,9 @@
     "no_results": "Keine Ergebnisse",
     "forbidden": "Zugriff verweigert",
     "no_permission": "Sie haben keine Berechtigung, auf diese Seite zuzugreifen.",
-    "authentication_required": "Anmeldung erforderlich"
+    "authentication_required": "Anmeldung erforderlich",
+    "activate": "Aktivieren",
+    "not_found": "Nicht gefunden"
   },
   "auth": {
     "login": "Anmelden",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Protokolle aktivieren",
     "disable_logs": "Protokolle deaktivieren",
-    "page_declares_no_capability": "Diese Plugin-Seite deklariert keine erforderliche Berechtigung, daher wird der Zugriff verweigert. Das Plugin muss beim Registrieren der Seite eine „capability“ angeben."
+    "page_declares_no_capability": "Diese Plugin-Seite deklariert keine erforderliche Berechtigung, daher wird der Zugriff verweigert. Das Plugin muss beim Registrieren der Seite eine „capability“ angeben.",
+    "not_active": "Dieses Plugin ist nicht aktiv",
+    "page_not_found": "Diese Plugin-Seite wurde nicht gefunden"
   },
   "privacy": {
     "title": "Datenschutz",

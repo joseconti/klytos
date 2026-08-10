@@ -1041,20 +1041,83 @@
       --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**; `license.php`
       2 warnings → **0**, core+admin baseline **147/409 — warnings DOWN from 412, errors
       unchanged** (D-025).
-  - **NEXT ACTION — stage 5 batch B, screen 10 onward.** Still unblocked and backed: the **form
-    halves** of **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then
-    stage 6 (editor, terminal, AI chat, preview), which is unblocked: DR-007's rework is done, so
-    its four console-stream consumers inherit the corrected template with nothing owed.
+  - **Stage 5 of 6 — THE FORM SCREENS — BATCH B, screen 10: entry 32 (Taxonomies), 2026-08-10
+    (D-102), L-047.** The **FORM half** is built against `template-record-form.md` and
+    `SPEC/manifest.md` §32. The file keeps its shipped name; `taxonomies.php` stays a recorded
+    mapping.
+    - **The survey disagreed a TENTH time, and changed what "blocked" means.** §32's **`Count`**
+      column has no data source anywhere: **no record in this product is ever associated with a
+      term** — `PageManager` stores none, no MCP tool assigns one, and entry 19's count is of terms
+      IN a taxonomy, a different fact. So the five-column terms table cannot be built as specified
+      even with DR-006's widths in hand. **That is the FIFTH card recorded as DR-006-blocked whose
+      real obstruction was never a width**, after entry 26, entry 27 twice and entry 28. In
+      `roadmap.md` §0c.
+    - **THE SCREEN'S IDENTITY IS A CONTRADICTION BETWEEN TWO RECORDED ARTIFACTS — DR-010 DRAFTED,
+      NOT SENT.** §32 specifies one `taxonomies.php` with H1 "Taxonomies" and `SPEC/navigation.md`
+      gives it a bare-URL nav item, while the product stores taxonomies INSIDE post types and this
+      file redirects without both query parameters. **That nav item has bounced to Content model on
+      every install since stage 2 and has never once reached the screen it names.** Found by being
+      its first consumer — the same trap entry 28 hit with `admin.statusbar_degraded`.
+    - **FIVE DEFECTS, each reproduced against the shipped screen first:** the **Parent field never
+      existed** (`addTerm()` accepts `parent`, the handler read `$_POST['parent']`, no such control
+      was ever rendered — hierarchy has been unreachable from the admin since it shipped, and it is
+      also §32's fourth field) · **three labels were literal catalogue keys** · **a refused CSRF
+      post said nothing at all** (the THIRD screen with the identical defect, after 27 and 28) · **a
+      raw exception reached the person**, English-only and naming internal ids · **delete raised a
+      browser `confirm()`**, which §2 forbids by name. Plus a dead `update_term` branch reachable by
+      nothing, removed.
+    - **A SIXTH, found by the fixture and committed first (`962cfef`): `PostTypeManager::delete()`
+      has never deleted a post type's terms, on any install.** It removed the record and then
+      re-read it, and a `catch` swallowed the failure — so every term of every deleted post type is
+      still in storage and a post type re-created under the same id inherits them. Proven by
+      re-creating one and reading `ghost` back. L-041's shape a third time, and the only one that
+      also leaves data behind.
+    - **A SEVENTH found by driving the new work, and it was this build's own:** `.k-code` paints a
+      SUNKEN ground, so the slug line inside an elevated card measured **4.46:1 light**. Corrected
+      to the bare `<code>` entry 19 uses; re-measured out of the browser at **4.85:1 dark / 5.07:1
+      light**. Not a Design Request — the composition was mine.
+    - **L-046'S GAP IS NOW CLOSED MECHANICALLY — `keel-verify` gains TWO checks** (a call resolving
+      nowhere FAILs; a root nobody calls WARNs). **And the check failed its own audit first
+      (L-047):** version one reported PASS over **137 calls in a tree that has 1303**, because
+      `token_get_all()` emits whitespace and this project writes `__( 'key' )` with spaces. The tell
+      was not the green — it was the same check calling `content_model`, `auth` and `assets` orphan
+      roots, which is impossible. Fixed, it immediately found **`notice-manager.php` labelling every
+      dismissible notice `aria-label="notices.close"`**, a root no catalogue defines, on every
+      install. Four more calls got their keys added. **Four orphan roots remain as warnings**, each
+      explained: `install` and `klytos_forms` (both hardcode their copy — their own slices), and
+      **`media_edit` / `post_lock`**, 14 keys × 20 catalogues for features that exist nowhere.
+    - **Five plant-backs, five reds each owning its own test**, tree restored clean after each — and
+      the slice was committed BEFORE the first plant (L-045).
+    - **i18n:** new `taxonomy` root, **26 keys × 20 catalogues**, plus 4 keys × 20 for the calls the
+      new check found; spliced as TEXT (D-097, L-043), every pre-existing key verified unmoved.
+      **Seven new surfaces** (6 actions, 1 filter), INDEX **1036 → 1043**, new doc
+      `docs/reference/taxonomy-screen.md`.
+    - **Tree state (re-measured):** PHP **352 tests / 1664 assertions**, 0 skips (was 350/1660) ·
+      browser tier **436 passing** (was 424), whole tier re-run in one pass · `keel-verify` **23
+      checks: 17 pass, 6 warnings** (was 21/16/5), test-point rows 25 → **26** (count confirmed to
+      move, L-038) · `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors, 0
+      warnings** · playground was `KPORT=8173`.
+  - **NEXT ACTION — stage 5 batch B, screen 11: the form half of 24 Webhooks.** Its TABLE half
+    stays DR-006-blocked. Note that **24 Webhooks is both** — a record-form screen (endpoint + HMAC)
+    whose delivery log is a console-stream consumer, so it inherits DR-007's corrected template as
+    well as the record-form rows. Then stage 6 (editor, terminal, AI chat, preview), which is
+    unblocked: DR-007's rework is done, so its four console-stream consumers inherit the corrected
+    template with nothing owed.
     - **Run the per-screen survey against the manager BEFORE the first line.** It has now disagreed
-      **nine times in nine**, and on entries 27 and 28 it removed whole cards each time.
-    - **And carry the DR-006 correction, now paid for FOUR TIMES:** entry 26's third card, entry
-      27's Sessions card, and both of entry 28's remaining cards were recorded as blocked by missing
-      column widths, and not one of them was. Run the survey before assuming a width is what a
-      remaining table half is waiting for.
-    - **And carry L-046:** catalogue parity compares the 20 files against each other, which cannot
-      see a root nobody calls or a call to a root that does not exist. Drive every screen a slice
-      touches and assert its rendered text carries no `root.key`-shaped string — and grep for a
-      catalogue root with no consumer, which is the same defect waiting for its other half.
+      **ten times in ten**, and on entries 27, 28 and 32 it removed whole cards each time.
+    - **And carry the DR-006 correction, now paid for FIVE TIMES:** entry 26's third card, entry
+      27's Sessions card, both of entry 28's remaining cards, and entry 32's terms table were
+      recorded as blocked by missing column widths, and not one of them was — entry 32's `Count`
+      column has no data source at all. Run the survey before assuming a width is what a remaining
+      table half is waiting for.
+    - **L-046 IS NOW A CHECK, not a discipline** — `keel-verify` fails on a `__()` key that resolves
+      in no catalogue and warns on a root nobody calls. Keep driving every screen a slice touches
+      and asserting its rendered text carries no `root.key`-shaped string anyway: the check reads
+      static literals, and a key assembled at runtime is still invisible to it.
+    - **And carry L-047, which the check itself bought:** a new check states the SIZE of what it
+      examined, and that number is compared against an independently known total before the check is
+      believed. When a check's two halves disagree, the impossible half is evidence about the CHECK,
+      not about the tree — chase it before touching a threshold or an allow-list.
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`.
     - **And carry L-045:** commit the slice before planting anything back, and restore from a copy.
     - **`BUILD-SPEC.md` §4 owes a delta walk for entries 1 and 3** — both built and driven, both
@@ -1107,7 +1170,14 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **FIVE.**
+- Open Design Requests: **SIX.**
+  **DR-010 — DRAFTED 2026-08-10 (D-102), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-010.md`. §32 plus `SPEC/navigation.md` describe ONE global
+  Taxonomies screen; the product stores taxonomies inside post types, so the screen cannot render
+  without knowing which one, and **its own nav item has redirected to Content model on every install
+  since stage 2**. It asks for the no-selection state, the H1 with a taxonomy in context, and how a
+  person reaches one. **Blocks the screen's heading and its nav destination only** — the add-term
+  form is built and the screen is fully usable from entry 19's links.
   **DR-009 — DRAFTED 2026-08-10 (D-094), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-009.md`. `--texto-sutil` (an unselected stream line's structure)
   on a **tint** over `--fondo-ventana` measures **3.88 / 4.18** (peligro) and **3.94 / 3.73** (aviso)

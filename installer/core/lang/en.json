@@ -42,7 +42,9 @@
     "no_results": "No results",
     "forbidden": "Forbidden",
     "no_permission": "You do not have permission to access this page.",
-    "authentication_required": "Authentication required"
+    "authentication_required": "Authentication required",
+    "activate": "Activate",
+    "not_found": "Not found"
   },
   "auth": {
     "login": "Log in",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Enable Logs",
     "disable_logs": "Disable Logs",
-    "page_declares_no_capability": "This plugin page declares no required capability, so access is denied. The plugin must declare a \"capability\" when registering the page."
+    "page_declares_no_capability": "This plugin page declares no required capability, so access is denied. The plugin must declare a \"capability\" when registering the page.",
+    "not_active": "This plugin is not active",
+    "page_not_found": "This plugin page was not found"
   },
   "privacy": {
     "title": "Privacy",

@@ -42,7 +42,9 @@
     "no_results": "Emaitzarik ez",
     "forbidden": "Sarbidea ukatuta",
     "no_permission": "Ez duzu orri honetara sartzeko baimenik.",
-    "authentication_required": "Autentikazioa beharrezkoa da"
+    "authentication_required": "Autentikazioa beharrezkoa da",
+    "activate": "Aktibatu",
+    "not_found": "Ez da aurkitu"
   },
   "auth": {
     "login": "Hasi saioa",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Erregistroak aktibatu",
     "disable_logs": "Erregistroak desgaitu",
-    "page_declares_no_capability": "Plugin-orri honek ez du beharrezko gaitasunik deklaratzen, beraz sarbidea ukatu da. Pluginak «capability» bat deklaratu behar du orria erregistratzean."
+    "page_declares_no_capability": "Plugin-orri honek ez du beharrezko gaitasunik deklaratzen, beraz sarbidea ukatu da. Pluginak «capability» bat deklaratu behar du orria erregistratzean.",
+    "not_active": "Plugin hau ez dago aktibo",
+    "page_not_found": "Plugin honen orri hau ez da aurkitu"
   },
   "privacy": {
     "title": "Pribatutasuna",

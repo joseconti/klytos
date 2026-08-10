@@ -42,7 +42,9 @@
     "no_results": "Sonuç bulunamadı",
     "forbidden": "Erişim reddedildi",
     "no_permission": "Bu sayfaya erişim izniniz yok.",
-    "authentication_required": "Kimlik doğrulama gerekli"
+    "authentication_required": "Kimlik doğrulama gerekli",
+    "activate": "Etkinleştir",
+    "not_found": "Bulunamadı"
   },
   "auth": {
     "login": "Giriş yap",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Günlükleri Etkinleştir",
     "disable_logs": "Günlükleri Devre Dışı Bırak",
-    "page_declares_no_capability": "Bu eklenti sayfası gerekli bir yetki bildirmiyor, bu nedenle erişim reddedildi. Eklenti, sayfayı kaydederken bir \"capability\" bildirmelidir."
+    "page_declares_no_capability": "Bu eklenti sayfası gerekli bir yetki bildirmiyor, bu nedenle erişim reddedildi. Eklenti, sayfayı kaydederken bir \"capability\" bildirmelidir.",
+    "not_active": "Bu eklenti etkin değil",
+    "page_not_found": "Bu eklenti sayfası bulunamadı"
   },
   "privacy": {
     "title": "Gizlilik",

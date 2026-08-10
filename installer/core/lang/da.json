@@ -42,7 +42,9 @@
     "no_results": "Ingen resultater",
     "forbidden": "Adgang nægtet",
     "no_permission": "Du har ikke tilladelse til at få adgang til denne side.",
-    "authentication_required": "Godkendelse påkrævet"
+    "authentication_required": "Godkendelse påkrævet",
+    "activate": "Aktivér",
+    "not_found": "Ikke fundet"
   },
   "auth": {
     "login": "Log ind",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Aktiver logfiler",
     "disable_logs": "Deaktiver logfiler",
-    "page_declares_no_capability": "Denne pluginside angiver ingen påkrævet rettighed, så adgang nægtes. Pluginet skal angive en \"capability\", når siden registreres."
+    "page_declares_no_capability": "Denne pluginside angiver ingen påkrævet rettighed, så adgang nægtes. Pluginet skal angive en \"capability\", når siden registreres.",
+    "not_active": "Dette plugin er ikke aktivt",
+    "page_not_found": "Denne plugin-side blev ikke fundet"
   },
   "privacy": {
     "title": "Privatliv",

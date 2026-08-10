@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 347 |
-| Filters | 145 |
+| Actions | 353 |
+| Filters | 146 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1036** |
+| **Total** | **1043** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -400,6 +400,12 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.system_options.before | action | installer/admin/system-options.php | — | Emitted at the top of the system options screen; no payload, echo extra HTML |
 | admin.tasks.after | action | installer/admin/tasks.php | — | Emitted at the tail of the tasks screen; no payload, echo extra HTML |
 | admin.tasks.before | action | installer/admin/tasks.php | — | Emitted at the top of the tasks screen; no payload, echo extra HTML |
+| admin.taxonomy.after | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | After the card stack of the Taxonomy terms screen; receives the post type and taxonomy ids, echo extra HTML |
+| admin.taxonomy.after_cards | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Below the Terms card, inside the card stack; receives the post type and taxonomy ids |
+| admin.taxonomy.after_fields | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Below the last field of the add-term form, inside the form; receives the post type and taxonomy ids |
+| admin.taxonomy.before | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | At the top of the Taxonomy terms screen, above the status line; receives the post type and taxonomy ids |
+| admin.taxonomy.before_cards | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Above the add-term card, inside the card stack; receives the post type and taxonomy ids |
+| admin.taxonomy.before_fields | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Above the first field of the add-term form, inside the form; receives the post type and taxonomy ids |
 | admin.templates.after | action | installer/admin/templates.php | — | Emitted at the tail of the templates screen; no payload, echo extra HTML |
 | admin.templates.before | action | installer/admin/templates.php | — | Emitted at the top of the templates screen; no payload, echo extra HTML |
 | admin.theme.after | action | installer/admin/theme.php | — | Emitted at the tail of the theme customization screen; no payload, echo extra HTML |
@@ -670,6 +676,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.sidebar_section_order | filter | installer/admin/templates/sidebar.php | — | Filters the display order of admin sidebar sections |
 | admin.statusbar_degraded | filter | installer/admin/templates/footer.php | docs/reference/admin-navigation.md | One extra fact on the status bar's left side when a subsystem is unhealthy; never becomes a banner |
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
+| admin.taxonomy.parent_options | filter | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | The Parent select's options on a hierarchical taxonomy; receives slug/name pairs plus the post type and taxonomy ids |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |
 | admin.theme_choice | filter | installer/admin/api/theme.php | docs/reference/admin-navigation.md | The admin colour scheme about to be persisted for this person, after validation |
 | admin.toolbar_allowed_tags | filter | installer/admin/templates/sidebar.php | — | Filters the tag/attribute allow-list the admin toolbar renders its actions through |

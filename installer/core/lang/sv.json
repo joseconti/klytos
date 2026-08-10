@@ -42,7 +42,9 @@
     "no_results": "Inga resultat",
     "forbidden": "Åtkomst nekad",
     "no_permission": "Du har inte behörighet att öppna den här sidan.",
-    "authentication_required": "Autentisering krävs"
+    "authentication_required": "Autentisering krävs",
+    "activate": "Aktivera",
+    "not_found": "Hittades inte"
   },
   "auth": {
     "login": "Logga in",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Aktivera loggar",
     "disable_logs": "Inaktivera loggar",
-    "page_declares_no_capability": "Den här tilläggssidan anger ingen nödvändig behörighet, så åtkomst nekas. Tillägget måste ange en ”capability” när sidan registreras."
+    "page_declares_no_capability": "Den här tilläggssidan anger ingen nödvändig behörighet, så åtkomst nekas. Tillägget måste ange en ”capability” när sidan registreras.",
+    "not_active": "Det här tillägget är inte aktivt",
+    "page_not_found": "Den här tilläggssidan hittades inte"
   },
   "privacy": {
     "title": "Integritet",

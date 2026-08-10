@@ -1698,3 +1698,136 @@ not "never use it" — it is "commit first, and then it is safe."
 PHP **350 tests / 1660 assertions**, 0 skips (unchanged — every defect here lives in the screen, which only the browser tier reaches) · licence spec **22 tests**, whole tier re-run at **424 passing** (was 402) · axe over the WHOLE page in **4 states × 2 themes** plus the ERROR state, plus a JavaScript-disabled pass · `keel-verify` **21 checks: 16 pass, 5 warnings** · `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**; `license.php` 2 warnings → **0**, `bootstrap.php` and `app.php` byte-identical counts to HEAD, core+admin baseline **147/409 — warnings DOWN from 412, errors unchanged** · `docs/api/INDEX.md` **1030 → 1036** (6 actions) · new surface docs at `docs/reference/licence-screen.md` · playground `KPORT=8171`, bind confirmed, owning PID 34456, no `Server:` header, reseeded `--reset`.
 - Alternatives rejected (and why): **build Activated domains once DR-006's widths arrive** (there is no collection behind a single column) · **derive entitlements from the `plan` string** (inventing a product surface out of a word) · **delete the dead `plugin_license` root and author a fresh one** (throws away 13 × 20 finished translations for a rename that costs one line per file) · **keep the root and change the thirteen calls** (the calls are right; `App::getLicense()` IS the Klytos licence, which is what the corrected `app.php` comment now says) · **wire `checkIfDue()` into the admin boot** (an outbound request on every admin page load of a released product, decided by nobody) · **write the status-bar fact through `NoticeManager`** (a notice written while drawing a page is a state change on a GET; `admin.statusbar_degraded` is the purpose-built read) · **print `$result['error']` from the licence server** (untranslated remote text in 20 locales — it goes to the log) · **keep the key masked** (a copy button over eight visible characters).
 - Bounds: `installer/admin/license.php` (rewritten), `installer/admin/bootstrap.php` (the statusbar listener), `installer/admin/assets/css/klytos-shell.css` (`.k-statusbar-degraded a`), `installer/core/app.php` (one comment corrected), `installer/core/lang/*.json` (20), `tests/E2E/licence.spec.js` (new), `tests/E2E/fixtures/reset-licence.php` (new), `docs/api/INDEX.md`, `docs/reference/licence-screen.md` (new), `docs/BUILD-SPEC.md` §5.4 + §5.9, `docs/roadmap.md` §0c, `docs/05-test-points.md`, `docs/lessons-learned.md` (L-046). Supersedes nothing.
+
+## D-102 — Entry 32 (Taxonomies) is built as its form half only, a fourth field that never existed is added, and L-046's gap is closed by a check that first had to fail its own audit
+
+**Date:** 2026-08-10 · **Phase 4 Step 4, stage 5 (the form screens), batch B screen 10.**
+
+### The per-screen survey disagreed a TENTH time, in a new way
+Nine surveys had removed cards. This one changed what "blocked" means for the tenth:
+
+- **§32's `Count` column has no data source anywhere in the product.** No record is ever associated
+  with a term — `PageManager` stores none, no MCP tool assigns one, and the only count in the tree
+  is entry 19's count of terms IN a taxonomy, which is a different fact. So the five-column terms
+  table cannot be built as specified even with DR-006's widths in hand. **That is the FIFTH card
+  recorded as DR-006-blocked whose real obstruction was never a column width**, after entry 26,
+  entry 27 twice and entry 28. Recorded in `roadmap.md` §0c; the spec asserts the absence, so
+  building it later means deleting an assertion.
+- **The screen's identity is a contradiction between two recorded artifacts**, which is a stop-and-ask
+  row rather than a choice: §32 specifies one `taxonomies.php` with H1 "Taxonomies", and
+  `SPEC/navigation.md` gives it a nav item at a bare URL — while the product stores taxonomies
+  INSIDE post types and this file redirects without both query parameters. **That nav item has
+  bounced to Content model on every install since stage 2 shipped it and has never once reached the
+  screen it names.** Found by being its first consumer, exactly as entry 28 found the contrast
+  defect by being the first consumer of `admin.statusbar_degraded`. **DR-010 is drafted, not sent**;
+  the composite title the screen has always shown is kept meanwhile, and neither artifact is
+  silently picked.
+
+### Five defects, each reproduced against the shipped screen first
+1. **The Parent field never existed.** `addTerm()` accepts `parent`, the handler read
+   `$_POST['parent']`, and no control of that name was ever rendered — so hierarchy has been
+   unreachable from the admin since it shipped, and every term ever created here carries
+   `parent => ''`. It is also §32's fourth field: the manifest says four and the form had three.
+   *red observed:* `getByTestId('taxonomy.field.parent') — element(s) not found`.
+2. **Three labels were literal catalogue keys** — `common.add`, `common.slug`,
+   `common.auto_generated`, defined by no catalogue. *red observed:* main read
+   `E2E categories — common.add / Name / common.slug / Description / common.add`.
+3. **A refused CSRF post said nothing at all** — `if ( klytos_verify_csrf() )` with no else. The
+   THIRD screen with the identical defect, after entries 27 and 28. *red observed:* `ALERTS: 0`.
+4. **A raw exception reached the person**, English-only and naming internal ids. *red observed:*
+   `Term 'e2e-parent-term' already exists in taxonomy 'e2e-tax-cat'.`
+5. **Delete raised a browser `confirm()`**, which §2 forbids by name. *red observed:*
+   `DIALOG: "Are you sure you want to delete this?"`.
+
+Plus a **dead branch removed**: `update_term` was implemented and reachable by nothing on the screen.
+
+### A sixth defect, found by the fixture, fixed in the manager and committed first (`962cfef`)
+**`PostTypeManager::delete()` has never deleted a post type's terms, on any install.** It removed
+the record first and then called `deleteAllTerms()`, whose first act was to re-read that record; the
+read failed and a `catch ( \RuntimeException )` swallowed it. So every term of every deleted post
+type is still in storage, and a post type re-created under the same id inherits the dead one's
+terms — proven by re-creating one and reading `ghost` back. L-041's shape for the third time, and
+the only one of the three that also leaves data behind. The taxonomy ids are now read BEFORE the
+record is removed and passed in, so the lookup that could not work is gone rather than guarded.
+
+### A contrast defect found by driving the new work — and it was this build's own
+`.k-code` paints `--fondo-ventana`, a SUNKEN ground. Putting that class on the slug line inside an
+elevated card measured **4.46:1 in light**, below AA. Corrected to the bare `<code>` entry 19
+already uses for the same fact, re-measured out of the browser at **4.85:1 dark / 5.07:1 light**.
+Not a Design Request and not a DR-005 addendum: the composition was mine, and the delivery's own
+`.k-collection-meta code` rule was already right.
+
+### L-046's gap is closed mechanically — and the check failed its own audit first (L-047)
+`keel-verify` gains **two** checks, because the two directions are not the same fact: a call that
+resolves in no catalogue is always a defect (**FAIL**), a root nobody calls may be a screen not yet
+built (**WARN**). The scan walks the PHP token stream rather than a regular expression, so a key in
+a docblock is not a call and `__( 'security.enc_' . $level )` is not a missing key.
+
+**The first version reported PASS over 137 calls in a tree that has 1303.** `token_get_all()` emits
+whitespace as a token and this project's own style is `__( 'key' )`, so every call written in the
+house style was skipped. The tell was not the green — it was the *other* half of the same check
+listing `content_model`, `auth`, `assets` and `bulk` as orphan roots, which is impossible. Reading
+that as noise and adding an allow-list would have shipped both halves broken, one silently. Fixed,
+it immediately found a real defect: **`notice-manager.php` gives every dismissible admin notice
+`aria-label="notices.close"`, a root no catalogue defines** — corrected to `common.close`. Four
+further calls it found (`common.activate`, `common.not_found`, `plugins.not_active`,
+`plugins.page_not_found`) got their keys added rather than their calls changed, because the calls
+are right.
+
+Four orphan roots remain as warnings, each explained rather than deleted: **`install`** (the setup
+wizard hardcodes its copy — the catalogue waits for the slice D-072 deferred), **`klytos_forms`**
+(the plugin hardcodes its copy too — its own slice), and **`media_edit`** / **`post_lock`** (14 keys
+× 20 catalogues for features that exist nowhere in the tree). Deleting somebody's translations is
+not this check's call.
+
+### The plant-back ritual — five plants, five reds, and the slice committed first
+The CSRF else-branch, the Parent field, the `.k-code` class, a catalogue key and — separately — a
+bad key against the new `keel-verify` check were each planted back, and each produced a red owning
+its own test: `a refused CSRF token is reported`, `a hierarchical taxonomy offers a Parent field`,
+`the whole page is clean under axe` naming both `<code>` nodes, `no catalogue key reaches the
+screen` printing `common.slug`, and `keel-verify` FAILing with the file and line. Tree restored
+clean after each. **The slice was committed before the first plant** (L-045), which is what makes
+`git checkout --` the right restore rather than a file-destroying one.
+
+### Adaptations logged in §5.9
+- **The file keeps its shipped name** — `taxonomies.php` stays a recorded mapping, as with
+  `theme.php`, `post-types.php`, `post-type-edit.php` and `license.php`.
+- **The H1 stays the composite the screen has always shown**, pending DR-010.
+- **The Parent field is ABSENT on a flat taxonomy, not disabled.** §2's disabled state is for a
+  control that exists and is momentarily unavailable and requires a reason beside the label; a flat
+  taxonomy has no parenthood to explain, so the honest form is three fields.
+- **The toolbar's primary action is "Add term"**, this screen's one write, which also makes it the
+  form's implicit submit.
+- **The terms are listed with the `k-collection` component entry 19 already uses** rather than a
+  four-column table invented to stand in for §32's five — it needs no grid widths and invents no
+  column.
+
+### Evidence
+PHP **352 tests / 1664 assertions**, 0 skips (was 350/1660) · browser tier **436 passing** (was
+424), whole tier re-run in one pass · taxonomy spec **12 tests**, axe over the WHOLE page in **4
+states × 2 themes** plus a JavaScript-disabled pass · `keel-verify` **23 checks: 17 pass, 6
+warnings** (was 21/16/5 — the count was confirmed to move, L-038) · `keel-doctor --check` green, 14
+rows · lint on the touched files **0 errors, 0 warnings** · `docs/api/INDEX.md` **1036 → 1043** (6
+actions, 1 filter) · new surface docs at `docs/reference/taxonomy-screen.md` · i18n: new `taxonomy`
+root **26 keys × 20 catalogues** plus 4 keys × 20 for the calls the new check found, spliced as TEXT
+(D-097, L-043), every pre-existing key verified unmoved by re-parsing each file · playground
+`KPORT=8173`, bind confirmed, owning PID checked, no `Server:` header, reseeded `--reset`.
+
+- Alternatives rejected (and why): **build the terms table once DR-006 answers** (one of its five
+  columns has no data source, so the widths were never the whole blocker) · **invent a four-column
+  terms table** (a deviation dressed as progress) · **render the Parent field disabled on a flat
+  taxonomy** (§2 requires a reason beside the label, and there is none that is true) · **point the
+  nav item at `post-types.php`** (duplicates entry 19's item and hides the contradiction instead of
+  recording it) · **keep the browser `confirm()`** (§2 forbids it by name) · **print the manager's
+  exception** (English-only text naming internal ids, in 20 locales) · **add an allow-list to the
+  orphan-root warning when it looked noisy** (it was reporting the check's own blind spot — L-047) ·
+  **delete `media_edit` and `post_lock`** (somebody's translations, and not this check's call).
+- Bounds: `installer/admin/taxonomy.php` (rewritten), `installer/core/post-type-manager.php`
+  (`delete()` / `deleteAllTerms()`), `installer/core/notice-manager.php` (one key),
+  `installer/core/lang/*.json` (20), `scripts/keel-verify` (two checks),
+  `tests/Unit/PostTypeTermCleanupTest.php` (new), `tests/Unit/KeelVerifyTest.php`,
+  `tests/E2E/taxonomy.spec.js` (new), `tests/E2E/fixtures/reset-taxonomy.php` (new),
+  `docs/api/INDEX.md`, `docs/reference/taxonomy-screen.md` (new), `docs/BUILD-SPEC.md` §5.9,
+  `docs/roadmap.md` §0c, `docs/05-test-points.md`, `docs/design/design-requests/DR-010.md` (new),
+  `docs/lessons-learned.md` (L-047 + the index rows L-040…L-046 that had stopped being written).
+  Supersedes nothing.

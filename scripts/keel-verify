@@ -496,6 +496,182 @@ keel_report(
 );
 
 // ─────────────────────────────────────────────────────────────
+// Check: every `__( 'root.key' )` call resolves in a catalogue.
+// ─────────────────────────────────────────────────────────────
+// Added 2026-08-10 for L-046, whose whole point is that NOTHING here could see
+// the defect it names. The parity check above compares the 20 files AGAINST
+// EACH OTHER, so twenty catalogues can agree perfectly about a root nobody
+// calls while the screen that needs it prints its own keys — which is exactly
+// what entry 28 shipped, in all 20 languages, for as long as it existed. And a
+// missing key renders as the key itself (`core/i18n.php::get()`), silently: no
+// error, no console warning, no failed request. Between the parity check and
+// nothing at all lay a gap the width of that defect, and prose cannot close it.
+//
+// Both directions, reported differently because they are not the same fact:
+//
+//   FAIL — a call that resolves in no catalogue. That is always a defect: the
+//          person is shown `taxonomy.field_slug` where a sentence belongs.
+//   WARN — a root no PHP or JS file references. Dead weight, or a catalogue
+//          shipped ahead of a screen that has not been built yet. Worth seeing
+//          every time; not something this check may decide to delete.
+//
+// The scan uses the PHP tokenizer rather than a regular expression, so a key
+// named inside a comment or a docblock is not a call (`core/i18n.php` documents
+// `__('hello_ai.modal_title')` in its own docblock), and a key built by
+// concatenation — `__( 'security.enc_' . $level )` — is skipped rather than
+// reported as missing, because its full name is not knowable here.
+
+$catalogueKeys  = [];
+$catalogueRoots = [];
+
+foreach ( $catalogueDirs as $dir ) {
+    foreach ( glob( $dir . '/*.json' ) ?: [] as $file ) {
+        $decoded = json_decode( (string) file_get_contents( $file ), true );
+        if ( ! is_array( $decoded ) ) {
+            continue;
+        }
+        foreach ( keel_flatten_keys( $decoded ) as $key ) {
+            $catalogueKeys[ $key ] = true;
+        }
+        foreach ( array_keys( $decoded ) as $top ) {
+            // A catalogue may be nested (`"taxonomy": { "add": … }`) or flat
+            // (`"hello_ai.button_label": …`) — `core/i18n.php` resolves both.
+            // The ROOT is the part before the first dot either way; reading the
+            // flat form as a root of its own produced one "orphan" per string.
+            $root = explode( '.', (string) $top )[0];
+            if ( $root !== '_meta' ) {
+                $catalogueRoots[ $root ] = true;
+            }
+        }
+    }
+}
+
+/**
+ * Every PHP file that could carry a `__()` call, product code only.
+ *
+ * `installer/*.php` is listed explicitly: `install.php` is the setup wizard and
+ * the only consumer of the whole `install` catalogue root, so leaving the
+ * directory's own top level out reported that root as an orphan — the check
+ * accusing the tree of a defect that was the check's own blind spot (L-043).
+ */
+$sourceFiles = glob( $repoRoot . '/installer/*.php' ) ?: [];
+foreach ( [ '/installer/core', '/installer/admin', '/installer/plugins', '/installer/public' ] as $sub ) {
+    $dir = $repoRoot . $sub;
+    if ( ! is_dir( $dir ) ) {
+        continue;
+    }
+    $walker = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $dir ) );
+    foreach ( $walker as $entry ) {
+        if ( $entry->isFile() && in_array( $entry->getExtension(), [ 'php', 'js' ], true ) ) {
+            $sourceFiles[] = $entry->getPathname();
+        }
+    }
+}
+sort( $sourceFiles );
+
+$problems  = [];
+$callCount = 0;
+$rootsUsed = [];
+
+foreach ( $sourceFiles as $file ) {
+    $source   = (string) file_get_contents( $file );
+    $relative = ltrim( str_replace( $repoRoot, '', $file ), '/' );
+
+    if ( substr( $file, -3 ) === '.js' ) {
+        // JS never calls `__()` here; it carries catalogue text on data
+        // attributes. Root usage is still counted, so a root read only from a
+        // script is not reported as an orphan.
+        foreach ( array_keys( $catalogueRoots ) as $root ) {
+            if ( strpos( $source, $root . '.' ) !== false ) {
+                $rootsUsed[ $root ] = true;
+            }
+        }
+        continue;
+    }
+
+    $tokens = @token_get_all( $source );
+    $count  = count( $tokens );
+
+    for ( $i = 0; $i < $count; $i++ ) {
+        $token = $tokens[ $i ];
+
+        if ( ! is_array( $token ) || $token[0] !== T_STRING || $token[1] !== '__' ) {
+            continue;
+        }
+
+        /*
+         * `__` `(` '<literal>' — with WHITESPACE allowed between every part.
+         * The project's own style is `__( 'key' )`, spaces inside the parens
+         * (`.claude/rules/code-style.md`), so a walk that assumed adjacency
+         * matched only the tight form and counted 137 calls where the tree has
+         * more than a thousand. The first version of this check did exactly
+         * that and reported PASS, which is the shape of defect it exists to
+         * catch: a check that proves a property of the subset it happens to
+         * see. It is not a hypothetical — every root the tree really uses came
+         * out as an "orphan" in the same run, which is what gave it away.
+         */
+        $skip = static function ( array $tokens, int $from ): int {
+            $count = count( $tokens );
+            while ( $from < $count && is_array( $tokens[ $from ] ) && $tokens[ $from ][0] === T_WHITESPACE ) {
+                $from++;
+            }
+            return $from;
+        };
+
+        $at = $skip( $tokens, $i + 1 );
+        if ( ( $tokens[ $at ] ?? null ) !== '(' ) {
+            continue;
+        }
+
+        $at  = $skip( $tokens, $at + 1 );
+        $arg = $tokens[ $at ] ?? null;
+        if ( ! is_array( $arg ) || $arg[0] !== T_CONSTANT_ENCAPSED_STRING ) {
+            continue;
+        }
+
+        // A dot after the literal means the key is assembled at runtime.
+        $at = $skip( $tokens, $at + 1 );
+        if ( ( $tokens[ $at ] ?? null ) === '.' ) {
+            continue;
+        }
+
+        $key = trim( $arg[1], "'\"" );
+        if ( strpos( $key, '.' ) === false ) {
+            continue;
+        }
+
+        $callCount++;
+        $rootsUsed[ explode( '.', $key )[0] ] = true;
+
+        if ( ! isset( $catalogueKeys[ $key ] ) ) {
+            $problems[] = "{$relative}:{$arg[2]} calls '{$key}', which no catalogue defines — "
+                . 'it renders as its own key on every install.';
+        }
+    }
+}
+
+keel_report(
+    sprintf(
+        'every __() key resolves in a catalogue (%d calls across %d files)',
+        $callCount,
+        count( $sourceFiles )
+    ),
+    $problems
+);
+
+$orphanRoots = array_values( array_diff( array_keys( $catalogueRoots ), array_keys( $rootsUsed ) ) );
+sort( $orphanRoots );
+
+keel_warn(
+    'every catalogue root has a consumer',
+    array_map(
+        static fn( string $root ): string => "catalogue root '{$root}' is referenced by no PHP or JS file — "
+            . 'either dead translations, or a screen that has not been built yet.',
+        $orphanRoots
+    )
+);
+
+// ─────────────────────────────────────────────────────────────
 // Check: no placeholder copy in distributable surfaces.
 // ─────────────────────────────────────────────────────────────
 // "Distributable" is not a guess: it is whatever `git check-attr export-ignore`

@@ -62,6 +62,18 @@
 | **L-037** | Every accessibility pass was scoped to `#main`, so the one component on every screen was the one component nothing scanned |
 | **L-038** | A blank line above a table row orphans it from the table, and the check that validates the row passes because it never sees it |
 | **L-039** | A whole component was written two slices before anything rendered it, so it shipped below AA and every pass in between was honest and blind |
+| **L-040** | The stylesheet said `hidden` five times and the browser painted it five times, and the comment explaining why was already there |
+| **L-041** | A `catch` with no body hid a compliance feature returning nothing, on every install, since it shipped |
+| **L-042** | Two of my tests failed for the right screen, the wrong reason, and passing them would have proved the browser works |
+| **L-043** | The parity check proved the directories it knew about, and a third catalogue root had been drifting since it shipped |
+| **L-044** | I planted the defect back to prove the fix, and every test stayed green: the comment named the wrong mechanism |
+| **L-045** | I restored a planted defect with `git checkout` and deleted the whole day's file, because the baseline was never committed |
+| **L-046** | Twenty catalogues agreed with each other perfectly, on a root nothing used, while the screen that needed it printed its keys on every install |
+| **L-047** | The check I wrote to close the last lesson passed on a tenth of the tree, and every root it knew was used came back an orphan |
+
+*(Rows L-040 to L-046 were added 2026-08-10 with L-047: the index had stopped
+being updated at L-039 seven lessons earlier, which is the same class of drift
+the lessons themselves keep recording.)*
 
 ## L-001 — The embedded Keel copy silently rotted 20+ releases behind
 - Problem: The repo carried `.claude/skills/keel/` at v1.11.0 while the installed skill was at v3.3.0, and the `CLAUDE.md` lock block was stamped v1.11.0. Any session reading the embedded copy was running an obsolete protocol, and `AGENTS.md` did not exist at all — so a fork opened in Codex/Copilot/Cursor/Gemini was bound by nothing.
@@ -1730,3 +1742,51 @@ whoever happens to read the page.
 harmless dead weight — it is half of this defect sitting in the repository waiting for the other
 half. `grep -r "plugin_license" --include "*.php"` returned one unrelated storage path and nothing
 else, and that single command would have found this years earlier than a browser did.
+
+---
+
+## L-047 — The check I wrote to close the last lesson passed on a tenth of the tree, and every root it knew was used came back an orphan
+
+**What happened.** L-046 ended with a rule and a promise: catalogue parity is necessary and not
+sufficient, and *"until that check exists"* every touched screen is driven and asserted. Entry 32
+wrote the check — `keel-verify`'s "every `__()` key resolves in a catalogue", scanning the PHP
+token stream rather than a regular expression precisely so that a key in a docblock is not a call
+and `__( 'security.enc_' . $level )` is not a missing key. It ran, it reported **PASS**, and it
+said so over **137 calls across 443 files**.
+
+Klytos has more than a thousand `__()` calls.
+
+**The mechanism.** `token_get_all()` returns whitespace as a token. This project's own style is
+`__( 'key' )` — spaces inside the parentheses, written down in `.claude/rules/code-style.md` and
+enforced by `phpcs.xml` — so the tokens are `T_STRING(__)`, `(`, **`T_WHITESPACE`**,
+`T_CONSTANT_ENCAPSED_STRING`, … . The walk assumed adjacency: `$tokens[$i+2]` was the space, not
+the string, and every call written in the house style was skipped. What it did match was the tight
+`__('key')` form, which survives in a handful of older files. The check was therefore measuring a
+tenth of the tree and reporting on all of it.
+
+**Why the PASS was not the tell, and what was.** A green from a new check is exactly what one hopes
+for, and the count in the label — the thing that was supposed to make it auditable — reads fine
+until you know the real number. The tell was the *other* half of the same check, and it was
+screaming: the orphan-root warning listed `content_model`, `auth`, `assets`, `bulk`, `admin_bar` —
+roots that are obviously, heavily used, several of them by screens built in the last two weeks. A
+result that absurd is not noise to be tuned away; it is the check telling you which of its own
+inputs is wrong. Reading it as "the orphan direction is too noisy" and adding an allow-list would
+have shipped both halves broken, one of them silently.
+
+Fixed, it found **1303 calls** — and one real defect the first version had passed straight over:
+`notice-manager.php` gives every dismissible admin notice `aria-label="notices.close"`, a root no
+catalogue defines, on every install and in all 20 languages since it shipped.
+
+**The rule.** **A new check states the size of what it examined, and that number is compared against
+an independently known total before the check is believed.** "PASS" and "PASS over the wrong subset"
+are the same output, and the second is worse than no check, because it retires the manual discipline
+the first one replaced — L-046's driven per-screen assertion was written to hold *until this check
+exists*. `grep -c "__(" -r installer/` takes two seconds and is the whole of the diligence required.
+
+**And the corollary, which is where this lesson generalises past parsing.** When a check's two
+halves disagree — one satisfied, one reporting the impossible — **the impossible half is evidence
+about the check, not about the tree.** Chase it before touching a threshold, an exclusion or an
+allow-list. Every one of those makes a broken check quieter, and quiet is what this project has now
+paid for four times: L-030 (the gate proved the file was intact and never asked what it contained),
+L-043 (the parity check proved the directories it knew about), L-020 (a drift guard built against an
+artifact it had never produced), and this.

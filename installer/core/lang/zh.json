@@ -42,7 +42,9 @@
     "no_results": "无结果",
     "forbidden": "访问被拒绝",
     "no_permission": "您没有权限访问此页面。",
-    "authentication_required": "需要身份验证"
+    "authentication_required": "需要身份验证",
+    "activate": "启用",
+    "not_found": "未找到"
   },
   "auth": {
     "login": "登录",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "启用日志",
     "disable_logs": "禁用日志",
-    "page_declares_no_capability": "此插件页面未声明所需权限，因此访问被拒绝。插件必须在注册页面时声明 \"capability\"。"
+    "page_declares_no_capability": "此插件页面未声明所需权限，因此访问被拒绝。插件必须在注册页面时声明 \"capability\"。",
+    "not_active": "此插件未启用",
+    "page_not_found": "未找到此插件页面"
   },
   "privacy": {
     "title": "隐私",

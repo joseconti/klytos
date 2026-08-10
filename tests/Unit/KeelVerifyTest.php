@@ -100,6 +100,17 @@ final class KeelVerifyTest extends TestCase
         // stylesheet already carried a comment stating the rule; a comment that
         // has been forgotten five times is not a control.
         'a hidden `k-*` component actually hides',
+        // Added 2026-08-10 with manifest entry 32 (D-102) for L-046, the one
+        // lesson whose whole point is that NOTHING here could see the defect it
+        // names: locale parity compares the 20 files against EACH OTHER, so
+        // twenty catalogues can agree perfectly about a root nobody calls while
+        // the screen that needs it prints its own keys. Two checks, because the
+        // two directions are not the same fact — a call that resolves nowhere
+        // is always a defect (FAIL), a root nobody calls may be a screen that
+        // has not been built yet (WARN). Both are registered so that neither
+        // can be quietly dropped.
+        'every __() key resolves in a catalogue',
+        'every catalogue root has a consumer',
     ];
 
     /**

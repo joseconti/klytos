@@ -42,7 +42,9 @@
     "no_results": "Geen resultaten",
     "forbidden": "Toegang geweigerd",
     "no_permission": "U hebt geen toestemming om deze pagina te openen.",
-    "authentication_required": "Authenticatie vereist"
+    "authentication_required": "Authenticatie vereist",
+    "activate": "Activeren",
+    "not_found": "Niet gevonden"
   },
   "auth": {
     "login": "Inloggen",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Logboeken inschakelen",
     "disable_logs": "Logboeken uitschakelen",
-    "page_declares_no_capability": "Deze pluginpagina declareert geen vereiste bevoegdheid, dus toegang wordt geweigerd. De plugin moet een \"capability\" opgeven bij het registreren van de pagina."
+    "page_declares_no_capability": "Deze pluginpagina declareert geen vereiste bevoegdheid, dus toegang wordt geweigerd. De plugin moet een \"capability\" opgeven bij het registreren van de pagina.",
+    "not_active": "Deze plugin is niet actief",
+    "page_not_found": "Deze pluginpagina is niet gevonden"
   },
   "privacy": {
     "title": "Privacy",

@@ -42,7 +42,9 @@
     "no_results": "Brak wyników",
     "forbidden": "Brak dostępu",
     "no_permission": "Nie masz uprawnień dostępu do tej strony.",
-    "authentication_required": "Wymagane uwierzytelnienie"
+    "authentication_required": "Wymagane uwierzytelnienie",
+    "activate": "Aktywuj",
+    "not_found": "Nie znaleziono"
   },
   "auth": {
     "login": "Zaloguj się",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Włącz logi",
     "disable_logs": "Wyłącz logi",
-    "page_declares_no_capability": "Ta strona wtyczki nie deklaruje wymaganego uprawnienia, więc dostęp został odrzucony. Wtyczka musi zadeklarować „capability” podczas rejestrowania strony."
+    "page_declares_no_capability": "Ta strona wtyczki nie deklaruje wymaganego uprawnienia, więc dostęp został odrzucony. Wtyczka musi zadeklarować „capability” podczas rejestrowania strony.",
+    "not_active": "Ta wtyczka nie jest aktywna",
+    "page_not_found": "Nie znaleziono tej strony wtyczki"
   },
   "privacy": {
     "title": "Prywatność",

@@ -42,7 +42,9 @@
     "no_results": "結果がありません",
     "forbidden": "アクセスが拒否されました",
     "no_permission": "このページにアクセスする権限がありません。",
-    "authentication_required": "認証が必要です"
+    "authentication_required": "認証が必要です",
+    "activate": "有効化",
+    "not_found": "見つかりません"
   },
   "auth": {
     "login": "ログイン",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "ログを有効にする",
     "disable_logs": "ログを無効にする",
-    "page_declares_no_capability": "このプラグインページは必要な権限を宣言していないため、アクセスは拒否されました。プラグインはページ登録時に「capability」を宣言する必要があります。"
+    "page_declares_no_capability": "このプラグインページは必要な権限を宣言していないため、アクセスは拒否されました。プラグインはページ登録時に「capability」を宣言する必要があります。",
+    "not_active": "このプラグインは有効ではありません",
+    "page_not_found": "このプラグインページは見つかりませんでした"
   },
   "privacy": {
     "title": "プライバシー",

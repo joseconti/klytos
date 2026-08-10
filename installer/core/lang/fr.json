@@ -42,7 +42,9 @@
     "no_results": "Aucun résultat",
     "forbidden": "Accès refusé",
     "no_permission": "Vous n'avez pas l'autorisation d'accéder à cette page.",
-    "authentication_required": "Authentification requise"
+    "authentication_required": "Authentification requise",
+    "activate": "Activer",
+    "not_found": "Introuvable"
   },
   "auth": {
     "login": "Se connecter",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Activer les journaux",
     "disable_logs": "Désactiver les journaux",
-    "page_declares_no_capability": "Cette page d'extension ne déclare aucune capacité requise ; l'accès est donc refusé. L'extension doit déclarer une « capability » lors de l'enregistrement de la page."
+    "page_declares_no_capability": "Cette page d'extension ne déclare aucune capacité requise ; l'accès est donc refusé. L'extension doit déclarer une « capability » lors de l'enregistrement de la page.",
+    "not_active": "Cette extension n'est pas active",
+    "page_not_found": "Cette page d'extension est introuvable"
   },
   "privacy": {
     "title": "Confidentialité",

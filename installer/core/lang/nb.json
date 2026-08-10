@@ -42,7 +42,9 @@
     "no_results": "Ingen resultater",
     "forbidden": "Ingen tilgang",
     "no_permission": "Du har ikke tilgang til denne siden.",
-    "authentication_required": "Pålogging kreves"
+    "authentication_required": "Pålogging kreves",
+    "activate": "Aktiver",
+    "not_found": "Ikke funnet"
   },
   "auth": {
     "login": "Logg inn",
@@ -993,7 +995,9 @@
   "plugins": {
     "enable_logs": "Aktiver logger",
     "disable_logs": "Deaktiver logger",
-    "page_declares_no_capability": "Denne programtilleggssiden angir ingen påkrevd rettighet, så tilgang nektes. Programtillegget må angi en «capability» når siden registreres."
+    "page_declares_no_capability": "Denne programtilleggssiden angir ingen påkrevd rettighet, så tilgang nektes. Programtillegget må angi en «capability» når siden registreres.",
+    "not_active": "Denne utvidelsen er ikke aktiv",
+    "page_not_found": "Denne utvidelsessiden ble ikke funnet"
   },
   "privacy": {
     "title": "Personvern",

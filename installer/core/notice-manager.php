@@ -377,7 +377,14 @@ class NoticeManager
                 $html .= '<button type="button" class="alert-close" '
                        . 'data-dismiss-notice="' . $id . '" '
                        . ( $persistent ? 'data-persistent="1" ' : '' )
-                       . 'aria-label="' . klytos_esc_attr( __( 'notices.close' ) ) . '">'
+                       // `notices.close` was defined by no catalogue, so the
+                       // accessible name of the dismiss button on EVERY admin
+                       // notice has been the literal string `notices.close`, on
+                       // every install and in all 20 languages, since it
+                       // shipped. `common.close` is the key that exists and
+                       // that every catalogue already translates. Found by
+                       // keel-verify's `__()` resolution check (L-046).
+                       . 'aria-label="' . klytos_esc_attr( __( 'common.close' ) ) . '">'
                        . '<i class="fa-solid fa-xmark"></i>'
                        . '</button>';
             }
