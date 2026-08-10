@@ -1680,6 +1680,20 @@ Neither half of that pair is visible to any check the project runs. The catalogu
 - **The toolbar's primary action is Activate, not "Save".** This form has no single save: its two writes are distinct operations, and a toolbar Save performing neither would be a control that does nothing. Activate reaches the toolbar exactly as §1 specifies, which also makes it the key field's implicit submit — Enter in that field activates, with no script.
 - **`required` is deliberately absent from the key field.** The browser's own constraint validation refuses the submit before a request exists, which would put the empty-key refusal in Chromium instead of in the handler that owns it. L-042, paid for three times inside entry 27's spec alone.
 
+### The plant-back ritual — four plants, four reds, and the slice committed first
+The CSRF else-branch, the catalogue root, the `.k-statusbar-degraded a` colour rule and the
+concatenated error message were each planted back. Each produced a red owning its own test: plant 1
+failed *a refused CSRF post reports it* alone; plant 3 failed *axe — expired, dark* and *axe —
+revoked, dark* and nothing else; plant 4 failed *an empty key is refused by the SERVER* alone. Plant
+2 cascaded to five tests, which is correct rather than a blunt assertion — a broken catalogue root
+breaks every label on the screen, so a test that reads any of them must fail. Tree restored and
+re-driven to 22/22 after the last one.
+
+**The slice was committed BEFORE the first plant**, which is L-045's cheaper form applied
+deliberately: with the baseline in HEAD, `git checkout --` is exactly the right restore, and it is
+the same command that destroyed entry 27's whole rewrite when the baseline was not. The lesson is
+not "never use it" — it is "commit first, and then it is safe."
+
 ### Evidence
 PHP **350 tests / 1660 assertions**, 0 skips (unchanged — every defect here lives in the screen, which only the browser tier reaches) · licence spec **22 tests**, whole tier re-run at **424 passing** (was 402) · axe over the WHOLE page in **4 states × 2 themes** plus the ERROR state, plus a JavaScript-disabled pass · `keel-verify` **21 checks: 16 pass, 5 warnings** · `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors, 0 warnings**; `license.php` 2 warnings → **0**, `bootstrap.php` and `app.php` byte-identical counts to HEAD, core+admin baseline **147/409 — warnings DOWN from 412, errors unchanged** · `docs/api/INDEX.md` **1030 → 1036** (6 actions) · new surface docs at `docs/reference/licence-screen.md` · playground `KPORT=8171`, bind confirmed, owning PID 34456, no `Server:` header, reseeded `--reset`.
 - Alternatives rejected (and why): **build Activated domains once DR-006's widths arrive** (there is no collection behind a single column) · **derive entitlements from the `plan` string** (inventing a product surface out of a word) · **delete the dead `plugin_license` root and author a fresh one** (throws away 13 × 20 finished translations for a rename that costs one line per file) · **keep the root and change the thirteen calls** (the calls are right; `App::getLicense()` IS the Klytos licence, which is what the corrected `app.php` comment now says) · **wire `checkIfDue()` into the admin boot** (an outbound request on every admin page load of a released product, decided by nobody) · **write the status-bar fact through `NoticeManager`** (a notice written while drawing a page is a state change on a GET; `admin.statusbar_degraded` is the purpose-built read) · **print `$result['error']` from the licence server** (untranslated remote text in 20 locales — it goes to the log) · **keep the key masked** (a copy button over eight visible characters).
