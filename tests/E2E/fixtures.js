@@ -209,6 +209,25 @@ const KNOWN_DELIVERY_GAPS = [
     // fails while the request is open.
     '.k-error',
 
+    // DR-005 gap 3 AGAIN, dark theme, on the other half of the population the
+    // request itself named: "every error message and destructive button inside
+    // a card". The message arrived on entry 3; the BUTTON arrives on entry 6,
+    // where the re-auth step's Confirm is `--color-peligro` on
+    // `--fondo-elevado` — the identical pair, measured at 4.32:1.
+    //
+    // It is not new and it is not entry 6's: `.k-btn--destructive` has existed
+    // since stage 3 and entry 19 and entry 39 both render it. Neither ever
+    // scanned it, because in both screens it appears only in the ARMED state of
+    // a two-step confirm and every axe run there measured the default, the
+    // populated and the error states. This screen's re-auth pass is the first
+    // to scan a page with an armed destructive control on it — L-030's shape
+    // once more, this time about which STATE a pass reaches rather than which
+    // element it scopes to.
+    //
+    // Registered rather than fixed, exactly like the message: the palette is
+    // Design's (Phase 4 rule 2). The floor is pinned in security.spec.js.
+    '.k-btn--destructive',
+
     // DR-005 ADDENDUM 2, both themes. The SIDEBAR's current item:
     // --color-acento on --fila-seleccion composited over the sidebar's own
     // background.

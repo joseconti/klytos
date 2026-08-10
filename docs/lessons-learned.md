@@ -1420,3 +1420,41 @@
   **build a component with the screen that consumes it, and where a layer genuinely must
   come first, write down in the record that the unconsumed part is UNVERIFIED — not
   "built" — so the next slice inherits a suspicion instead of a green line.**
+
+## L-040 — The stylesheet said `hidden` five times and the browser painted it five times, and the comment explaining why was already there
+
+**What happened.** The Security screen's passkey enrolment form is revealed only where
+`navigator.credentials` exists, because adding a passkey is a WebAuthn ceremony and a button that
+cannot run one is a control that does nothing. It is written `hidden` in the markup and unhidden by
+the script. Driven with JavaScript disabled, the form was **on the screen and operable**.
+
+**The mechanism, which is always the same one.** `[hidden] { display: none }` lives in the user
+agent stylesheet at specificity (0,1,0). `.k-field { display: flex }` is also (0,1,0) — and an
+author stylesheet beats the user agent on ORIGIN, whatever the source order. The element keeps its
+attribute, every reading of the DOM reports it as hidden, and it is painted, clickable and in the
+tab order. Assistive technology and the browser disagree about whether it exists.
+
+**Why this is a lesson and not a bug report.** It is the FIFTH occurrence: the bulk bar visible on
+load (D-079), the Logs payload copy button (D-085), and this. And the stylesheet already carried the
+rule, in a comment written at `.k-btn[hidden]` after the second occurrence, saying in as many words
+that "any component here that sets `display` and is toggled with `hidden` needs its own `[hidden]`
+rule". It was read, it was correct, and it was forgotten three more times.
+
+**A rule that is only prose is a rule that is still open.** That is Keel's own standing principle
+and this is the clearest instance of it in the project: the prose was not vague, was not buried, and
+was not wrong. It simply required someone to remember it at the exact moment they wrote a new
+`display` declaration, which is not a thing people do reliably. So the fix is not a better comment.
+`scripts/keel-verify` check 21 now walks the admin's markup for every element carrying a bare
+`hidden` attribute, resolves its `k-*` classes against the component stylesheets, and FAILS when one
+declares a non-`none` `display` with no `[hidden]` rule of its own.
+
+**And the check had to be proven twice.** Once by planting the missing rule back and watching it
+name the real file and the real class — the project's standing duty. And once against itself: the
+first run reported the sidebar's avatar, because `\bhidden\b` matches inside `aria-hidden="true"`
+(`-` is a word boundary). A check whose first output is a false positive teaches people to ignore
+it, which is worse than not having written it.
+
+**The rule earned.** Every one of these five was found by DRIVING, never by reading, because the
+source says `hidden` and looks right. When a defect class recurs and its prevention is a sentence
+somebody has to remember, stop rewriting the sentence: the recurrence is the evidence that prose is
+the wrong instrument, and the count is how you know.

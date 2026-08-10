@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 321 |
-| Filters | 135 |
+| Actions | 324 |
+| Filters | 137 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1000** |
+| **Total** | **1005** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -356,11 +356,14 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.profile.before | action | installer/admin/profile.php | — | Emitted at the top of the user profile screen; no payload, echo extra HTML |
 | admin.profile.before_fields | action | installer/admin/profile.php | — | Emitted above the built-in profile form fields; receives the user being edited |
 | admin.profile.custom_fields | action | installer/admin/profile.php | — | Emitted where plugins render their own profile inputs; receives the user being edited |
-| admin.security.after_2fa | action | installer/admin/security.php | — | Emitted below the two-factor authentication panel; no payload, echo extra HTML |
-| admin.security.after_encryption | action | installer/admin/security.php | — | Emitted below the encryption settings panel; no payload, echo extra HTML |
-| admin.security.before | action | installer/admin/security.php | — | Emitted at the top of the security screen; no payload, echo extra HTML |
-| admin.security.before_2fa | action | installer/admin/security.php | — | Emitted above the two-factor authentication panel; no payload, echo extra HTML |
-| admin.security.before_encryption | action | installer/admin/security.php | — | Emitted above the encryption settings panel; no payload, echo extra HTML |
+| admin.security.after | action | installer/admin/security.php | — | Emitted at the foot of the Security screen; receives the sanitized two-factor config and the user id, echo extra HTML |
+| admin.security.after_2fa | action | installer/admin/security.php | — | Emitted below the Recovery codes card; receives the sanitized two-factor config and the user id, echo extra HTML |
+| admin.security.after_encryption | action | installer/admin/security.php | — | Emitted below the Recovery keys card; receives the current encryption level, echo extra HTML |
+| admin.security.before | action | installer/admin/security.php | — | Emitted at the top of the Security screen; receives the acting user id, echo extra HTML |
+| admin.security.before_2fa | action | installer/admin/security.php | — | Emitted above the Two-factor card; receives the sanitized two-factor config and the user id, echo extra HTML |
+| admin.security.before_encryption | action | installer/admin/security.php | — | Emitted above the encryption settings panel; receives the current encryption level, echo extra HTML |
+| admin.security.before_passkeys | action | installer/admin/security.php | — | Emitted above the Passkeys card; receives the passkey rows and the user id, echo extra HTML |
+| admin.security.before_recovery_codes | action | installer/admin/security.php | — | Emitted above the Recovery codes card; receives the remaining code count and the user id, echo extra HTML |
 | admin.settings.after | action | installer/admin/settings.php | — | Emitted at the tail of the site settings screen; no payload, echo extra HTML |
 | admin.settings.after_save | action | installer/admin/settings.php | — | Emitted once a settings section has been persisted; receives the section slug and raw POST |
 | admin.settings.after_section | action | installer/admin/settings.php | — | Emitted below each settings section block; receives the section slug being rendered |
@@ -632,6 +635,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.plugins_row_data | filter | installer/admin/plugins.php | — | Filters a plugin's row data before it is rendered in the Plugins list |
 | admin.post_type.custom_fields | filter | installer/admin/post-type-edit.php | — | Filters the custom field rows the post type screen draws, in the order it draws them |
 | admin.post_type.statuses | filter | installer/admin/post-type-edit.php | — | Filters the status rows the post type screen draws — system definitions followed by the post type's own |
+| admin.security.methods | filter | installer/admin/security.php | — | Filters the second-factor rows the Security screen draws, so a plugin can render its own factor as a switch |
+| admin.security.passkeys | filter | installer/admin/security.php | — | Filters the passkey rows the Security screen lists for the acting user |
 | admin.post_type_edit.update_data | filter | installer/admin/post-type-edit.php | — | Filters the post type update payload before it is saved from the edit screen |
 | admin.sidebar_items | filter | installer/admin/templates/sidebar.php | — | Filters the admin sidebar menu items so plugins can add, remove or modify entries |
 | admin.sidebar_section_label | filter | installer/admin/templates/sidebar.php | — | Filters the displayed label of an admin sidebar section |

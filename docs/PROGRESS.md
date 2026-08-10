@@ -647,12 +647,68 @@
     card" and uses a post type as its own example; entry 39's manifest card list does not include
     one, and entry 19 already deletes post types with a driven two-step confirm. Built without it
     (adaptation 24); restoring it is one block.
-  - **NEXT ACTION — stage 5 batch B, screen 3 onward.** Still unblocked and backed, in the order
-    the survey suggests: **6 Security** (`security.php`, minus CSP and Integrity score),
-    **25 Consent**, **9 Settings** (five sections, per D-088 answer 3), **37 x402 settings**
-    (wallet stays editable, minus pricing rules and the 402 body), plus the form halves of
-    **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and **24 Webhooks** — whose
-    TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI chat, preview).
+  - **Stage 5 of 6 — BATCH B, screen 3: entry 6 (Security) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-091), L-040.** `security.php` rewritten against `template-record-form.md` and
+    `SPEC/manifest.md` §6, as **three of its five cards plus three the manifest never named**.
+    - **The per-screen survey was RE-RUN against `TwoFactor` and `UserManager`**, not against
+      D-088's record — the rule D-089 earned, applied a third time. Two-factor, Passkeys (list and
+      remove) and Recovery codes are backed. **CSP and Integrity score are NOT** and stay deferred:
+      Klytos SENDS a CSP and has no editor, store or validator for one, and the integrity data
+      belongs to entry 34 with nothing that summarises it into a figure. Both were already in
+      `roadmap.md` §0c; the redesign is not reportable as complete while they stand.
+    - **THREE cards the manifest's list does not name are built anyway** — Encryption level,
+      Recovery keys and the destructive Turn-off card. They are shipped product, this screen is
+      their only surface, and no other entry claims them. Removing shipped behaviour is not a
+      fidelity decision (D-075's standing rule). Each keeps its `site.configure` gate where it was,
+      driven as `editor`.
+    - **§6's re-auth step is built SERVER-SIDE and doubles as §2's destructive confirm** — one
+      mechanism, not two: the switch posts, the card re-renders asking for the current password,
+      the second post applies it. Driven **with JavaScript actually disabled**. Turning TOTP ON is
+      the one toggle with no password step, deliberately: its confirmation is the enrolment
+      ceremony, a strictly stronger claim, and **the absence of the password step is asserted** so
+      the two cannot be quietly collapsed later.
+    - **No toolbar Save** (adaptation 27): every control here is immediate-effect by §6's own
+      delta, so a Save would submit nothing — D-089's rule a second time. **Passkeys is a
+      collection, not a switch** (adaptation 30): a switch restores what it turns off, and a
+      credential has no off position.
+    - **ONE REAL PRODUCT DEFECT, and it is the FIFTH occurrence of one mechanism (L-040).**
+      `.k-field { display: flex }` beat the user agent's `[hidden] { display: none }` on ORIGIN, so
+      the passkey enrolment form was **painted and operable in a browser with no WebAuthn at all**.
+      Same shape as D-079's bulk bar and D-085's copy button — and the stylesheet already carried a
+      comment stating the rule, which had been forgotten three times since. So the fix is the rule
+      **plus `scripts/keel-verify` check 21**, proven to FAIL on the planted defect and restored
+      byte-identically. Its first run produced a false positive of its own (`\bhidden\b` matches
+      inside `aria-hidden`), fixed before the check was trusted.
+    - **ONE FINDING IS THE DELIVERY'S: DR-005 gap 3 reached the other half of the population it
+      named.** `.k-btn--destructive` is `--color-peligro` on `--fondo-elevado`, **4.32:1** dark —
+      the identical pair to the error message. Not new: the class has existed since stage 3 and
+      entries 19 and 39 both render it, but only in the ARMED state of a two-step confirm, which no
+      axe run had ever reached. **L-030's shape about which STATE a pass reaches** rather than which
+      element it scopes to. Registered, not fixed; both themes pinned as floors, each proven to
+      FAIL on a planted colour.
+    - **A floor that could not fail, caught by trying to make it fail.** `.k-card--secret`'s pair
+      was first pinned at 4.5 and PASSED with the override removed. Re-pinned at the measured
+      values (**6.75:1 dark / 5.95:1 light**) and re-proven red without it.
+    - **Two browser dialogs removed:** the shipped passkey flow used `prompt()` for the label and
+      `alert()` for both outcomes. The label is a real field with a visible `<label for>`; the
+      outcome is announced in the page's own `role="status"` region — §2's rule about `confirm()`,
+      applied to its siblings.
+    - **i18n: 39 new keys × 20 catalogues**, plus **one shipped string corrected**:
+      `recovery_codes_remaining` was "{count} codes remaining" and now reads as a label (D-076 —
+      this mechanism has no plural forms); the Spanish string also carried "codigos" unaccented.
+    - **Five new hooks** (2 filters, 3 actions) with their INDEX rows (**1000 → 1005**); the five
+      the shipped screen already fired keep firing exactly where they were, now with a payload.
+    - **Tree state (re-measured):** PHP **335 / 1629**, 0 skips (+1 assertion: check 21's row) ·
+      browser tier **253 passing** (was 218; +35), whole tier re-run because `fixtures.js` changed ·
+      `keel-verify` **21 checks: 16 pass, 5 warnings**, test-point rows 17 → **18** (row count
+      confirmed to move, L-038) · `keel-doctor --check` green · lint on both new files **0/0** ·
+      `docs/api/INDEX.md` **1005**.
+  - **NEXT ACTION — stage 5 batch B, screen 4 onward.** Still unblocked and backed, in the order
+    the survey suggests: **25 Consent** (`consent.php`), **9 Settings** (five sections, per D-088
+    answer 3), **37 x402 settings** (wallet stays editable, minus pricing rules and the 402 body),
+    plus the form halves of **26 Privacy**, **27 Profile**, **28 Licence**, **32 Taxonomies** and
+    **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then stage 6 (editor, terminal, AI
+    chat, preview).
     - **Carry L-037 into every one of them:** scan the WHOLE page, not `#main`. The four screens
       built before entry 19 were each reported as accessibility-passed while the shell went
       unscanned, and re-scoping one spec is what found it. Entry 39 is what that rule bought on its
@@ -749,6 +805,12 @@
   disabled. Blocks nothing structural. **The user chose to send it at the start of stage 4**, before
   the first list screen was built, because stage 4 renders gap 1 on every one of them; the
   ready-to-paste prompt is the last section of `docs/design/design-requests/DR-005.md`.
+  **Gap 3's population is now complete, and it is NOT a third addendum (D-091).** The request
+  itself named "every error message and destructive button inside a card". The message arrived on
+  entry 3; the **button** arrived on entry 6 — `.k-btn--destructive` at **4.32:1** dark, the
+  identical pair. Nothing about DR-005 changes: same gap, same pair, no new colour. It is recorded
+  here because it took until the fourth form screen for any axe run to reach the ARMED state of a
+  two-step confirm, which is the only state that renders it.
   **ADDENDUM 2 — 2026-08-10 (D-089), added AFTER the request was sent.** A fourth pair, and it is
   the worst of the four: the **sidebar's current nav item** — `--color-acento` on
   `--fila-seleccion` over the sidebar — measures **4.31:1 dark and 3.70:1 light**. It is on

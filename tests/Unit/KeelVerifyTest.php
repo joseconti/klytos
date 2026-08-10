@@ -93,6 +93,13 @@ final class KeelVerifyTest extends TestCase
         '`Red first` holds one of its five values in every test-point row',
         'every `observed` row carries the failure line it claims to have seen',
         'test-first: rows carrying a judgment a person must make',
+        // Added 2026-08-10 with manifest entry 6 (D-091). The fifth time an
+        // author `display` rule beat the UA's `[hidden] { display: none }` and
+        // left an element painted while the DOM said it was hidden — this time
+        // the passkey enrolment form, in browsers with no WebAuthn at all. The
+        // stylesheet already carried a comment stating the rule; a comment that
+        // has been forgotten five times is not a control.
+        'a hidden `k-*` component actually hides',
     ];
 
     /**

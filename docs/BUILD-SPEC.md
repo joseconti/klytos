@@ -947,7 +947,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 3 | Design (theme) | ☐ | ☐ §3 | ☐ | ☐ |
 | 4 | Assets | ☐ | ☐ §4 | ☐ | ☐ |
 | 5 | Users | ☐ | ☐ §5 | ☐ | ☐ |
-| 6 | Security | ☐ | ☐ §6 | ☐ | ☐ |
+| 6 | Security | ☑ | ◐ §6 — see note | ☑ | ☑ |
 | 7 | Analytics | ☐ | ☐ §7 | ☐ | ☐ |
 | 8 | MCP | ☐ | ☐ §8 | ☐ | ☐ |
 | 9 | Settings | ☐ | ☐ §9 | ☐ | ☐ |
@@ -992,6 +992,17 @@ decision, not by omission**: the *Statuses (editable set)* card and the *"and or
 delta are DEFERRED as unbacked product under D-088's standing answer 1, and are recorded in
 `docs/roadmap.md` §0c. The box is half-ticked rather than ticked so this file cannot be read as
 saying entry 19 is finished — the redesign is not reportable as complete while those two stand.
+
+**Note on entry 6's `◐`.** Same shape, same reason as 19 and 39. Its template rows, accessibility
+and driven evidence are complete (35 browser tests, both themes, whole-page axe over four states —
+D-091), and it is the FIRST screen in this build whose controls are SWITCHES and the first consumer
+of `.k-card--secret`. Its **manifest deltas are partial by decision**: the *Content-Security-Policy*
+and *Integrity score* cards are DEFERRED as unbacked product — Klytos SENDS a CSP but has no editor
+or store for one, and the integrity data lives on entry 34 with nothing that summarises it into a
+score. Both recorded in `docs/roadmap.md` §0c under D-088's standing answer 1. Three cards the
+manifest's list does NOT name are built anyway, because they are shipped product with no other
+surface (Encryption level, Recovery keys, and the destructive Turn-off card) — logged as §5.9 row 29
+rather than left as a silent addition.
 
 **Note on entry 39's `◐`.** Same shape, same reason. Its template rows, accessibility and driven
 evidence are complete (28 browser tests, both themes, whole-page axe — D-090), and it is the FIRST
@@ -1272,6 +1283,12 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 24 | **Manifest entry 39 renders no "Delete this post type" card**, although `template-record-form.md` §2 names a destructive section on this template and uses a post type as its example | §2's destructive section is a TEMPLATE property; entry 39's own card list does not include one, and entry 19's Post types collection already carries the delete — with its server-side two-step confirm and the truthful armed label adaptation 22 records. A second destructive path to the same operation is duplication | **Raised with the user rather than decided silently** (session report, D-090). Reversible in one block if the answer is that entry 39 should carry one too |
 | 25 | The custom-field OPTION rows are three static rows in the markup plus a JavaScript "Add another option" button, where the shipped screen built every row in script and showed them only for choice types | Not a design deviation — the delivery specifies no option editor at all. With the script absent the shipped screen let a `select` be created with **no options and no explanation**; three rows in the markup make the capability work with JavaScript off, and the button restores the unbounded case on top | Yes — driven **with JavaScript actually disabled**: a two-option `select` is created and the row reports "Options: 2", while the enhancement button stays hidden because its script never ran |
 | 26 | `.k-section-nav-item` paints `--texto-primario`, where the record-form layer first wrote `--texto-secundario` | Not a design deviation — **a defect the build introduced and the build fixed.** The section nav sits on `--fondo-ventana`, outside any card, and that pair measures **4.46:1** in light: under AA by 0.04, and DR-005 gap 2's own pair. No delivered file states this control's colour — §1 names the nav and gives its geometry only — so the token was the build's choice — the same call D-078 made for three pairs `klytos-admin.css` already ruled on | Yes — **14.79:1 light / 15.29:1 dark**, recomputed independently in Python and agreeing with axe, both pinned as floors and **proven to FAIL on the planted original** before being trusted |
+
+| 27 | **Manifest entry 6 renders NO toolbar Save**, where `template-record-form.md` §1 says the primary Save lives in the toolbar and "is the same button on every form screen" | §6's own delta makes every second-factor control immediate-effect, and §4 defines exactly that as the switch idiom — so there is no pending form state for a Save to submit. The one card with staged fields, Encryption level, carries its Save in that card's footer because it submits that card's two fields and nothing else | Yes — D-089's rule applied a second time: a control that lies about what it does is worse than a control that is absent. Pinned by a test asserting the toolbar carries no submit button |
+| 28 | **The re-auth step §6's delta requires is a SERVER-SIDE second step**, and it doubles as §2's destructive confirm | §6 says the switches are "each confirmed by a re-auth step" and §2 requires an inline two-step confirm that is never a browser `confirm()`. One mechanism serves both: the switch posts, the card re-renders asking for the current password, the second post applies it. Turning TOTP ON is the one toggle with no password step — its confirmation is the enrolment ceremony, which proves possession of the authenticator and is a strictly stronger claim | Yes — driven in both directions, and **driven with JavaScript actually disabled**, which is what the "never a browser `confirm()`" rule is really about. `UserManager::authenticate()` is reused rather than a third password comparison written (D-056's authority) |
+| 29 | **Three cards the manifest's card list does not name are built**: Encryption level, Recovery keys, and the destructive Turn-off card | All three are shipped product and this screen is their only surface; no other manifest entry claims them (entry 34 is System integrity, which is a different thing). Removing shipped behaviour is not a fidelity decision — the standing rule since D-075 | Yes — each keeps its `site.configure` gate exactly as it was, enforced on the POST branch and mirrored in the markup's visibility, and the role split is driven as `editor` |
+| 30 | **The Passkeys card is a COLLECTION with a destructive row action, not a switch**, although §6's delta says "2FA and passkey controls are switches" | A switch restores what it turns off. A passkey is created by a WebAuthn ceremony and destroyed by `removePasskey()`; there is no state an "off" position could put back, and an account may hold several | Yes — the row's Remove goes through the same re-auth step, and the ADD control is hidden where `navigator.credentials` is absent rather than shown as a control that cannot act |
+| 31 | `.k-card--secret` layers `--tinte-aviso` OVER `--fondo-elevado` instead of replacing the card's background with it | Not a design deviation — §6's delta specifies the tint and the border, and the tint is translucent. Every other consumer of `--sobre-tinte-aviso` sits on a card, so writing `background: var(--tinte-aviso)` alone would composite it over `--fondo-ventana` and quietly measure a different pair — DR-005's addendum in miniature | Yes — axe passes on the card in both themes with the codes rendered, and the token pair is pinned as a floor at its measured value (6.75:1 dark / 5.95:1 light), **proven to fail with the override removed** |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

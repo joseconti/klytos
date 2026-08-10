@@ -346,6 +346,38 @@
     overflow: hidden;
 }
 
+/* The ONE bordered card in the admin — manifest §6's second delta, for the
+   recovery-codes card: "--tinte-aviso with a 1px color-mix border … because it
+   is a one-time secret." `.k-card` above says "no coloured borders" as the
+   general rule, and this is the single stated exception rather than a licence
+   to add more: the manifest names the card, the tint and the border, and
+   nothing else in the delivery asks for one.
+
+   The tint is TRANSLUCENT (colors.css declares it rgba), and --sobre-tinte-aviso
+   is measured against it composited over --fondo-elevado — which is what every
+   other consumer of the pair (.k-badge--aviso, .k-stat-tile--aviso) sits on.
+   A card sits on --fondo-ventana instead, so writing `background: var(--tinte-aviso)`
+   alone would composite the tint over the WINDOW and quietly measure a different
+   pair. That is DR-005's addendum in miniature — the same tokens, one surface
+   further out, below AA. So the card keeps its elevated background and LAYERS
+   the tint over it, which is the composite the token was defined for.
+
+   `.k-hint` inside this card therefore leaves --texto-sutil for
+   --sobre-tinte-aviso — the same call D-078 made for the three pairs
+   klytos-admin.css had already ruled on. Measured on the real screen in both
+   themes; the floors are pinned by security.spec.js. */
+.k-card--secret {
+    background:
+        linear-gradient(var(--tinte-aviso), var(--tinte-aviso)),
+        var(--fondo-elevado);
+    border: 1px solid color-mix(in srgb, var(--color-aviso) 40%, transparent);
+}
+
+.k-card--secret .k-hint,
+.k-card--secret .k-collection-meta {
+    color: var(--sobre-tinte-aviso);
+}
+
 /* Gap between cards: 14px; gap inside a card's stack: 12–15px
    (README "Spacing, radius, elevation"; template-record-form.md §1). */
 .k-card-stack {
@@ -660,6 +692,25 @@
     display: flex;
     flex-direction: column;
     gap: var(--esp-4);
+}
+
+/* THE FIFTH COMPONENT IN THIS FILE TO NEED THIS, and the first one a DRIVEN
+   test found rather than a reading. `.k-field { display: flex }` is (0,1,0),
+   the same specificity as the UA's `[hidden] { display: none }`, and wins on
+   origin — so a `.k-field` carrying `hidden` is still painted and still
+   operable. On the Security screen that meant the passkey enrolment form, which
+   is revealed only where `navigator.credentials` exists, was VISIBLE in a
+   browser that has no WebAuthn at all: a control that cannot do the one thing
+   it exists for, which is exactly what the template rules out.
+
+   Same fix as `.k-btn[hidden]` and `.k-bulkbar[hidden]` above — the attribute
+   selector ON the class, (0,2,0), beating it by structure rather than by
+   position. Five occurrences is no longer a coincidence, and the note at
+   `.k-btn[hidden]` saying "any component that sets display and is toggled with
+   hidden needs its own rule" is prose that has now been forgotten five times;
+   `scripts/keel-verify` check 21 enforces it. */
+.k-field[hidden] {
+    display: none;
 }
 
 /* template-record-form.md §1: label `600 12px`. Written literally because no

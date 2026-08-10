@@ -1381,6 +1381,124 @@ if ( $guides === null ) {
     keel_warn( 'test-first: rows carrying a judgment a person must make', $judgment );
 }
 
+/*
+ * Check 21 — a `k-*` component that sets `display` still hides when `hidden`.
+ *
+ * Added 2026-08-10 (D-091), and the reason it is a check rather than a comment
+ * is that the comment already existed and has now been forgotten FIVE times.
+ *
+ * The mechanism is always the same. `[hidden] { display: none }` lives in the
+ * user-agent stylesheet at specificity (0,1,0). A component rule like
+ * `.k-field { display: flex }` is also (0,1,0) — and an author stylesheet beats
+ * the UA on ORIGIN, whatever the order. So the element keeps its `hidden`
+ * attribute, keeps being reported as hidden by every reading of the DOM, and is
+ * painted on the screen and operable with the mouse and the keyboard. Assistive
+ * technology and the browser disagree about whether it exists.
+ *
+ * It has arrived as: the bulk bar visible on load (D-079), the Logs payload
+ * copy button (D-085), and the Security screen's passkey enrolment form, which
+ * appeared in browsers with no WebAuthn at all — a control that cannot do the
+ * only thing it exists for. Every one of them was found by driving, never by
+ * reading, because the source says `hidden` and looks right.
+ *
+ * What it checks: every element in the admin's own markup that carries a bare
+ * `hidden` attribute and a `k-*` class, against the component stylesheets. If
+ * that class declares a `display` other than `none`, a `.class[hidden]` rule
+ * must exist. Deliberately narrow — markup only, single-class rules only —
+ * because a check that guesses is a check nobody trusts.
+ *
+ * FAIL, not WARN: nobody owns this elsewhere and the fix is one rule.
+ */
+{
+    $problems = [];
+
+    $sheets = [
+        'installer/admin/assets/css/klytos-components.css',
+        'installer/admin/assets/css/klytos-shell.css',
+    ];
+
+    /** @var array<string,string> class => the display value it declares */
+    $displays = [];
+    /** @var array<string,bool> class => it has its own [hidden] rule */
+    $guarded = [];
+
+    foreach ( $sheets as $relative ) {
+        $path = $repoRoot . '/' . $relative;
+        if ( ! is_file( $path ) ) {
+            $problems[] = $relative . ' is missing — the component layer cannot be checked';
+            continue;
+        }
+
+        $css = (string) file_get_contents( $path );
+
+        // Single-class rules only: `.k-foo { … display: X … }`. A compound or
+        // descendant selector is skipped rather than guessed at.
+        preg_match_all( '/(^|\})\s*\.(k-[a-z0-9-]+)\s*\{([^}]*)\}/m', $css, $rules, PREG_SET_ORDER );
+        foreach ( $rules as $rule ) {
+            if ( preg_match( '/(^|;)\s*display\s*:\s*([a-z-]+)/', $rule[3], $display ) ) {
+                if ( $display[2] !== 'none' ) {
+                    $displays[ $rule[2] ] = $display[2];
+                }
+            }
+        }
+
+        preg_match_all( '/\.(k-[a-z0-9-]+)\[hidden\]/', $css, $hidden );
+        foreach ( $hidden[1] as $class ) {
+            $guarded[ $class ] = true;
+        }
+    }
+
+    /** Every admin source that can emit markup. */
+    $sources = [];
+    $adminDir = $repoRoot . '/installer/admin';
+    if ( is_dir( $adminDir ) ) {
+        $iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $adminDir ) );
+        foreach ( $iterator as $file ) {
+            $path = $file->getPathname();
+            if ( substr( $path, -4 ) === '.php' && strpos( $path, '/assets/vendor/' ) === false ) {
+                $sources[] = $path;
+            }
+        }
+    }
+    sort( $sources );
+
+    foreach ( $sources as $path ) {
+        $markup = (string) file_get_contents( $path );
+
+        /*
+         * Any start tag carrying a BARE `hidden` attribute.
+         *
+         * `\bhidden\b` is wrong here and the first run proved it: `-` is a word
+         * boundary, so it matches the `hidden` inside `aria-hidden="true"` and
+         * reported the sidebar's avatar — an element that is correctly visible
+         * and correctly hidden from the accessibility tree. The lookbehind is
+         * what separates the attribute from every `*-hidden` attribute name.
+         */
+        preg_match_all( '/<[a-z][^>]*?(?<![-\w])hidden(?=[\s>])[^>]*>/is', $markup, $tags );
+        foreach ( $tags[0] as $tag ) {
+            if ( ! preg_match( '/class="([^"]*)"/i', $tag, $classAttr ) ) {
+                continue;
+            }
+            foreach ( preg_split( '/\s+/', $classAttr[1] ) as $class ) {
+                if ( ! isset( $displays[ $class ] ) || isset( $guarded[ $class ] ) ) {
+                    continue;
+                }
+                $problems[] = sprintf(
+                    '%s renders .%s with the `hidden` attribute, but that class declares '
+                    . '`display: %s` and has no `.%s[hidden] { display: none }` rule — '
+                    . 'the element stays PAINTED while the DOM says it is hidden',
+                    str_replace( $repoRoot . '/', '', $path ),
+                    $class,
+                    $displays[ $class ],
+                    $class
+                );
+            }
+        }
+    }
+
+    keel_report( 'a hidden `k-*` component actually hides', array_values( array_unique( $problems ) ) );
+}
+
 // ─────────────────────────────────────────────────────────────
 
 echo "\n";
