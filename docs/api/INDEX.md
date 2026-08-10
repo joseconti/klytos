@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 353 |
-| Filters | 146 |
+| Actions | 359 |
+| Filters | 148 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1043** |
+| **Total** | **1051** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -260,7 +260,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups |
 | `Klytos\Core\UserManager` | class | installer/core/user-manager.php | docs/reference/authentication.md | User CRUD, authentication (`authenticate()` is the sole login authority — D-056), password resets, the ONE capability matrix (`hasPermission()` — see docs/reference/authorization.md) and ownership transfer; the owner can be neither deleted nor suspended. `MIN_PASSWORD_LENGTH` is public: it is the single definition of the password floor that `create()`, `changePassword()` and every screen's `minlength` and hint all read |
 | `Klytos\Core\VersionManager` | class | installer/core/version-manager.php | — | Saves, lists, diffs, prunes and restores page revisions |
-| `Klytos\Core\WebhookManager` | class | installer/core/webhook-manager.php | — | Manages webhook subscriptions and dispatches events to their endpoints |
+| `Klytos\Core\WebhookManager` | class | installer/core/webhook-manager.php | docs/reference/webhooks-screen.md | Manages webhook subscriptions, dispatches events to their endpoints, and sends a per-endpoint test delivery with sendTestEvent() |
 | `Klytos\Core\X402\BotDetector` | class | installer/core/x402/bot-detector.php | — | Identifies AI bots and reads x402 payment receipts from incoming requests |
 | `Klytos\Core\X402\Config` | class | installer/core/x402/config.php | — | Reads and updates x402 paywall configuration and effective per-page settings |
 | `Klytos\Core\X402\Gate` | class | installer/core/x402/gate.php | — | Enforces the x402 paywall on a request before any content is served |
@@ -423,10 +423,14 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.users.before | action | installer/admin/users.php | — | Emitted at the top of the users screen; no payload, echo extra HTML |
 | admin.users.edit_form.after_fields | action | installer/admin/users.php | — | Emitted at the end of the user edit form markup; receives the current users array |
 | admin.users.edit_form.before_fields | action | installer/admin/users.php | — | Emitted just above the first user edit form field; receives the current users array |
-| admin.webhooks.after | action | installer/admin/webhooks.php | — | Emitted at the very bottom of the webhooks admin screen; no payload |
-| admin.webhooks.after_form | action | installer/admin/webhooks.php | — | Emitted right below the webhook create/edit form markup; no payload |
-| admin.webhooks.before | action | installer/admin/webhooks.php | — | Emitted at the top of the webhooks admin screen, before its content; no payload |
-| admin.webhooks.before_form | action | installer/admin/webhooks.php | — | Emitted right above the webhook create/edit form markup; no payload |
+| admin.webhooks.after_cards | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Below the last card, inside the card stack; no payload |
+| admin.webhooks.after_fields | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Below the last field of the add-endpoint form, inside the form; no payload |
+| admin.webhooks.after | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | At the very bottom of the Webhooks screen; no payload |
+| admin.webhooks.after_form | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Right below the add-endpoint form; no payload |
+| admin.webhooks.before | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | At the top of the Webhooks screen, above the status line; no payload |
+| admin.webhooks.before_form | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Right above the add-endpoint form; no payload |
+| admin.webhooks.before_cards | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Above the first card, inside the card stack; no payload |
+| admin.webhooks.before_fields | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Above the first field of the add-endpoint form, inside the form; no payload |
 | admin.x402_settings.after | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings screen's card stack |
 | admin.x402_settings.after_provider | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings screen's Payment provider card |
 | admin.x402_settings.before | action | installer/admin/x402-settings.php | — | Fired before the agent payment settings screen's card stack |
@@ -631,8 +635,10 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | user.role_changed | action | installer/core/user-manager.php | — | Fired on update only when the role actually differs; receives user ID, new role and old role |
 | user.updated | action | installer/core/user-manager.php | — | Fired once account changes are persisted; receives the sanitized updated user record |
 | webhook.after_create | action | installer/core/webhook-manager.php | — | Lets plugins act once a webhook subscription is stored; receives the webhook record |
+| webhook.after_test | action | installer/core/webhook-manager.php | docs/reference/webhooks-screen.md | After a test delivery is attempted, whatever its outcome; receives the webhook record and the result array |
 | webhook.after_delete | action | installer/core/webhook-manager.php | — | Lets plugins act once a webhook subscription is removed; receives the webhook ID |
 | webhook.before_create | action | installer/core/webhook-manager.php | — | Lets plugins act before a webhook subscription is stored; receives the submitted data |
+| webhook.before_test | action | installer/core/webhook-manager.php | docs/reference/webhooks-screen.md | Before a test delivery is attempted; receives the webhook record |
 | webhook.before_delete | action | installer/core/webhook-manager.php | — | Lets plugins act before a webhook subscription is removed; receives the webhook ID |
 | x402.config.updated | action | installer/core/x402-mcp-tools.php +1 more | — | Fired when x402 paywall settings are changed; receives the map of updated config values |
 | x402.payment_failed | action | installer/core/x402/gate.php | — | Fired when paywall verification rejects a request; receives slug, error text and user agent |
@@ -677,6 +683,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.statusbar_degraded | filter | installer/admin/templates/footer.php | docs/reference/admin-navigation.md | One extra fact on the status bar's left side when a subsystem is unhealthy; never becomes a banner |
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
 | admin.taxonomy.parent_options | filter | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | The Parent select's options on a hierarchical taxonomy; receives slug/name pairs plus the post type and taxonomy ids |
+| admin.webhooks.event_choices | filter | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | The event checkboxes the add-endpoint form offers, as event name => description, in draw order |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |
 | admin.theme_choice | filter | installer/admin/api/theme.php | docs/reference/admin-navigation.md | The admin colour scheme about to be persisted for this person, after validation |
 | admin.toolbar_allowed_tags | filter | installer/admin/templates/sidebar.php | — | Filters the tag/attribute allow-list the admin toolbar renders its actions through |
@@ -783,6 +790,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | translations.stats | filter | installer/core/translation-manager.php | — | Filters the translation coverage statistics before they are returned |
 | user.avatar_url | filter | installer/core/helpers-global.php | — | Filters the avatar URL resolved for a user at a given size |
 | user.profile_fields | filter | installer/core/user-manager.php | — | Filters the user record on update so plugins can add custom profile fields |
+| webhook.test_payload | filter | installer/core/webhook-manager.php | docs/reference/webhooks-screen.md | The decoded payload of a test send, before it is signed; receives the payload and the webhook record |
 | webhooks.events | filter | installer/core/webhook-manager.php | — | Filters the available webhook event list so plugins can register more events |
 | x402.bot_user_agents | filter | installer/core/x402/config.php | — | Filters the user agent patterns treated as AI bots by the x402 paywall |
 | x402.payment_providers | filter | installer/core/x402-bootstrap.php | — | Collects x402 payment providers registered by plugins after plugin load |

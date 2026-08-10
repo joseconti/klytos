@@ -63,6 +63,18 @@ class WebhookManager
     private const HTTP_TIMEOUT = 10;
 
     /**
+     * The event name a test send carries.
+     *
+     * Deliberately NOT added to CORE_EVENTS: it is not something to subscribe
+     * to, it is what `sendTestEvent()` puts in the payload so the receiving end
+     * can tell a drill from a real event. Adding it to the subscribable list
+     * was considered and rejected — it would appear in every install's
+     * subscription checklist and a test would still only reach endpoints that
+     * had opted in.
+     */
+    private const TEST_EVENT = 'test.ping';
+
+    /**
      * Core events that Klytos fires. Plugins can add more via the 'webhooks.events' filter.
      */
     private const CORE_EVENTS = [
@@ -284,6 +296,103 @@ class WebhookManager
         foreach ($webhooks as $webhook) {
             $this->deliver($webhook, $payload);
         }
+    }
+
+    /**
+     * Send a test event to one webhook, whatever it is subscribed to.
+     *
+     * The subscription filter is deliberately NOT consulted. Both test controls
+     * in this product — the admin screen's and the MCP tool
+     * `klytos_test_webhook` — used to call `dispatch( 'test.ping', … )`, and
+     * `dispatch()` keeps only the webhooks whose stored `events` contain that
+     * event. Nothing can contain it: `test.ping` is in neither `CORE_EVENTS`
+     * nor any `webhooks.events` filter, and `create()` refuses an event that
+     * `getAvailableEvents()` does not list. So the test reached no endpoint on
+     * any install while both callers reported success — and the MCP tool
+     * additionally ignored the `webhook_id` its own published schema requires.
+     * This method is that contract, honoured: the test goes to the webhook it
+     * was given. See `tests/Unit/WebhookTestEventTest.php`.
+     *
+     * Three differences from a real delivery, each deliberate:
+     *
+     *  - **One attempt, no retry ladder.** `deliver()` retries five times with
+     *    1-2-4-8-second sleeps, which is right for an event nobody is watching
+     *    and wrong for a control a person just pressed. `SPEC/manifest.md` §24
+     *    makes retry a deliberate act of its own ("Retry is a form post per
+     *    delivery"), so this states the outcome once.
+     *  - **`failure_count` and `status` are untouched.** A diagnostic must not
+     *    be able to disable a live integration: ten presses of a Test button
+     *    would otherwise trip `deliver()`'s auto-disable.
+     *  - **`last_triggered` is untouched**, because no event happened. It
+     *    records when this webhook last received one, and a test is not one.
+     *
+     * The attempt IS written to the delivery log, because it is a real outbound
+     * request and the log is where an operator looks for what left the host.
+     *
+     * @param  string $webhookId Webhook ID to test.
+     * @return array{success:bool, code:int, error:string} The outcome of the single attempt.
+     * @throws \InvalidArgumentException When no webhook has that ID.
+     */
+    public function sendTestEvent(string $webhookId): array
+    {
+        if ($webhookId === '' || !$this->storage->exists(self::COLLECTION, $webhookId)) {
+            throw new \InvalidArgumentException('Unknown webhook.');
+        }
+
+        $webhook = $this->storage->read(self::COLLECTION, $webhookId);
+
+        /**
+         * Filter the payload of a webhook test send.
+         *
+         * @param array  $payload   Decoded payload about to be signed and sent.
+         * @param array  $webhook   The webhook being tested.
+         */
+        $payload = (array) klytos_apply_filters(
+            'webhook.test_payload',
+            [
+                'event'     => self::TEST_EVENT,
+                'timestamp' => Helpers::now(),
+                'data'      => [
+                    'message'    => 'This is a test event from Klytos.',
+                    'webhook_id' => $webhookId,
+                ],
+            ],
+            $webhook
+        );
+
+        $body      = (string) json_encode($payload, JSON_UNESCAPED_UNICODE);
+        $signature = 'sha256=' . hash_hmac('sha256', $body, (string) ($webhook['secret'] ?? ''));
+
+        klytos_do_action('webhook.before_test', $webhook);
+
+        $success = false;
+        $code    = 0;
+        $error   = '';
+
+        try {
+            $code = $this->sendHttpPost((string) ($webhook['url'] ?? ''), $body, $signature);
+
+            // Same success band as a real delivery, so a test cannot report a
+            // different verdict from the one the next real event will get.
+            $success = $code >= 200 && $code < 400;
+
+            if (!$success) {
+                $error = "HTTP {$code}";
+            }
+        } catch (\Throwable $e) {
+            // Read, not swallowed (L-041): the reason is returned to the caller
+            // AND written to the delivery log. A test that fails silently is
+            // the defect this whole method exists to end.
+            $error = $e->getMessage();
+        }
+
+        $this->logDelivery($webhookId, $success, 1, $error);
+
+        $result = ['success' => $success, 'code' => $code, 'error' => $error];
+
+        klytos_do_action('webhook.after_test', $webhook, $result);
+
+        return $result;
     }
 
     /**

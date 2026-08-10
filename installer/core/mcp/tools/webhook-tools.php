@@ -96,16 +96,26 @@ function registerWebhookTools(ToolRegistry $registry, App $app): void
             $webhookManager = new \Klytos\Core\WebhookManager($app->getStorage());
             $webhook = $webhookManager->get($params['webhook_id']);
 
-            // Dispatch a test event to this specific webhook.
-            $webhookManager->dispatch('test.ping', [
-                'message' => 'This is a test event from Klytos.',
-                'webhook_id' => $params['webhook_id'],
-                'timestamp' => \Klytos\Core\Helpers::now(),
-            ]);
+            /*
+             * This handler used to call dispatch( 'test.ping', … ), which
+             * resolves its targets by SUBSCRIPTION — and nothing can subscribe
+             * to test.ping, so the test reached no endpoint on any install
+             * while this tool returned success: true with the endpoint's URL in
+             * the message. The webhook_id its own schema requires was read once,
+             * for the message, and never used to choose a target.
+             *
+             * sendTestEvent() is that declared contract honoured, and the
+             * result it returns is reported instead of being assumed.
+             */
+            $result = $webhookManager->sendTestEvent((string) $params['webhook_id']);
 
             return [
-                'success' => true,
-                'message' => 'Test event dispatched to ' . ($webhook['url'] ?? 'unknown'),
+                'success' => $result['success'],
+                'code'    => $result['code'],
+                'error'   => $result['error'],
+                'message' => $result['success']
+                    ? 'Test event delivered to ' . ($webhook['url'] ?? 'unknown')
+                    : 'Test event to ' . ($webhook['url'] ?? 'unknown') . ' failed: ' . $result['error'],
             ];
         },
         ['title' => 'Test Webhook', 'readOnlyHint' => false],

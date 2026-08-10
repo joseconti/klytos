@@ -1831,3 +1831,118 @@ root **26 keys × 20 catalogues** plus 4 keys × 20 for the calls the new check 
   `docs/roadmap.md` §0c, `docs/05-test-points.md`, `docs/design/design-requests/DR-010.md` (new),
   `docs/lessons-learned.md` (L-047 + the index rows L-040…L-046 that had stopped being written).
   Supersedes nothing.
+
+## D-103 — Entry 24 (Webhooks) is built as its form half, and its test control had never delivered to anyone
+
+**Date:** 2026-08-10 · **Phase 4, stage 5 batch B, screen 11** · Supersedes nothing.
+
+**The per-screen survey ran against `WebhookManager` before the first line, and it
+disagreed with the delivery for the ELEVENTH time in eleven.** Three of its
+findings needed the user's decision and were batched before any code was
+written; all three answers are recorded below.
+
+### What is built
+
+§24's first two cards — **Endpoints** (the form) and **Event subscriptions** (a
+checkbox set in a `<fieldset>`) — as ONE form spanning two cards, associated by
+`form="k-webhook-add"` rather than by wrapping, which is the only mechanism that
+keeps two separate cards posting as one record without JavaScript and is the
+same association the toolbar's Save already uses across the shell boundary. Plus
+the endpoints the form creates, drawn with the collection component entries 19
+and 32 already use, each with a per-endpoint test and §2's inline two-step
+delete. The signing secret is handed over once, on the request that creates its
+webhook, as a `readonly` mono field.
+
+### What is NOT built, and why (roadmap §0c)
+
+- **The HMAC secret card** — user decision: defer. §24 specifies "read-only mono
+  + rotate" with a two-step confirm naming the consequence, and **the product
+  has no rotate of any kind**: `update()`'s `$updatable` list is
+  `['url','events','description','status']` and nothing in the tree regenerates
+  a secret. The card also assumes ONE secret while the product stores one PER
+  WEBHOOK. Rotation is a product change on live integrations, not a card.
+- **The Delivery log list-table** — and this is **THE SIXTH CARD RECORDED AS
+  DR-006-BLOCKED WHOSE REAL OBSTRUCTION WAS NEVER THE COLUMN WIDTHS**, after
+  entry 26, entry 27 twice, entry 28 and entry 32. `logDelivery()` writes exactly
+  five fields — `webhook_id`, `success`, `attempts`, `error`, `timestamp` — so of
+  §24's six specified columns, **Event**, **Code** and **Duration** have no data
+  source at all. The "Retry is a form post per delivery" delta has no primitive
+  either: the log does not keep the payload, so there is nothing to re-send.
+
+### THE FINDING — "Send test event" had reached no endpoint, on any install
+
+Both test controls — the admin screen's and the MCP tool `klytos_test_webhook` —
+called `dispatch( 'test.ping', … )`. `dispatch()` resolves its targets through
+`getWebhooksForEvent()`, which keeps only webhooks whose stored `events` array
+CONTAINS that event, and **nothing can contain it**: `test.ping` is in neither
+`CORE_EVENTS` nor any `webhooks.events` filter (the one in the tree adds three
+`x402.*` events), while `create()` refuses any event `getAvailableEvents()` does
+not list. So the dispatch returned at its own empty guard and **both callers
+reported success anyway** — "Test event dispatched to all active webhooks", and
+`success: true` with the endpoint's URL in the message.
+
+That is **L-041's shape again**: a feature that reaches nobody behind a confident
+report. The MCP tool carried a second half of it — its published schema requires
+a `webhook_id` and its description says "Send a test event to a webhook", and the
+handler read that id only to build the message.
+
+**User decision: deliver directly to the chosen webhook.** This is the code
+meeting its own published contract rather than new product.
+`WebhookManager::sendTestEvent()` is test-first
+(`tests/Unit/WebhookTestEventTest.php`, **red observed** as `Call to undefined
+method`), and it differs from a real delivery in three deliberate ways, each
+asserted: **one attempt** rather than the 1-2-4-8-second retry ladder (§24's own
+delta makes retry a deliberate act); **`failure_count` and `status` untouched**,
+so a diagnostic cannot trip the ten-failure auto-disable and take a live
+integration down; **`last_triggered` untouched**, because no event happened. The
+attempt IS logged, because it is a real outbound request.
+
+`test.ping` is deliberately NOT added to the subscribable list — the rejected
+alternative — and a test pins that: it would put a synthetic event in every
+install's subscription checklist and a test would still only reach endpoints
+that had opted in.
+
+**No socket is opened by any of the seven tests.** They store a webhook whose URL
+SafeHttp refuses at delivery time — the exact case `sendHttpPost()`'s own comment
+describes — so the refusal happens before any network I/O, and the delivery log,
+written on every attempt, is what proves the attempt was made.
+
+### FOUR MORE the shipped screen carried, all of them entry 32's shapes again
+
+1. **A refused CSRF post reported nothing at all** — `if ( … &&
+   klytos_verify_csrf() )` with no `else`. **The FOURTH screen with the identical
+   defect**, after entries 27, 28 and 32.
+2. **The manager's raw English exception reached the person** in all 20 locales.
+   It now goes to the log — where it is useful, and where the deliberately
+   generic anti-oracle wording of `create()`'s refusal stays readable to the
+   operator and not to the caller — and the person gets §2's field-level shape.
+3. **Delete raised a browser `confirm()`**, which §2 forbids by name.
+4. **The file contained no `__()` call at all** — every string was hardcoded
+   English — and it used bare `date()` on a stored UTC timestamp, so every
+   install showed the server's clock as if it were the reader's.
+
+Also corrected without ceremony: each event's own description was hidden in a
+`title` attribute with the machine name as the visible label. `title` is
+announced by no screen reader reliably and is unreachable by touch, so the
+description is the label and the machine name sits beside it in a `<code>`.
+
+### Two things worth keeping as method
+
+**Four CSS classes were invented and caught before they shipped** — `k-inline-form`,
+`k-badge--success`, `k-badge--warning`, `k-badge--danger` — by the standing rule
+that every class is grepped against the components sheet before the file is run.
+The real modifiers are Spanish-named (`k-badge--exito`, `--aviso`, `--peligro`)
+and `.k-collection-actions` is already a flex row, so the fourth class had no
+reason to exist. The rule earned its keep at zero cost.
+
+**Two shipped hooks were dropped by the rewrite and restored** —
+`admin.webhooks.before_form` and `admin.webhooks.after_form`. In the shipped
+screen they bracketed the create modal; they now bracket the form that replaced
+it. D-076's rule: removing a seam a released plugin may be listening on is not a
+fidelity decision.
+
+### Authorization
+
+Not gated in the page, and that is correct: `core/admin-gate.php:105` maps
+`webhooks.php` to `webhooks.manage` centrally. Verified before building rather
+than assumed.
