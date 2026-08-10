@@ -1097,19 +1097,63 @@
       checks: 17 pass, 6 warnings** (was 21/16/5), test-point rows 25 → **26** (count confirmed to
       move, L-038) · `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors, 0
       warnings** · playground was `KPORT=8173`.
-  - **NEXT ACTION — stage 5 batch B, screen 11: the form half of 24 Webhooks.** Its TABLE half
-    stays DR-006-blocked. Note that **24 Webhooks is both** — a record-form screen (endpoint + HMAC)
-    whose delivery log is a console-stream consumer, so it inherits DR-007's corrected template as
-    well as the record-form rows. Then stage 6 (editor, terminal, AI chat, preview), which is
-    unblocked: DR-007's rework is done, so its four console-stream consumers inherit the corrected
-    template with nothing owed.
+  - **Stage 5 batch B, screen 11 — entry 24 (Webhooks), the FORM half — BUILT, DRIVEN and
+    COMPLETE 2026-08-10 (D-103).** §24's Endpoints and Event subscriptions cards, built as ONE form
+    across two cards (associated by `form="k-webhook-add"`, the only mechanism that keeps two
+    separate cards posting as one record without JavaScript), plus the endpoints collection with a
+    per-endpoint test and §2's inline two-step delete.
+    - **THE PER-SCREEN SURVEY DISAGREED FOR THE ELEVENTH TIME IN ELEVEN**, and its finding is a
+      shipped defect on every install: **"Send test event" reached NO endpoint, ever, and reported
+      success.** Both test controls dispatched `test.ping`, which resolves targets by SUBSCRIPTION,
+      and `test.ping` is in neither `CORE_EVENTS` nor any `webhooks.events` filter while `create()`
+      refuses what `getAvailableEvents()` does not list — so nothing could ever be subscribed to it.
+      L-041's shape again. The MCP tool `klytos_test_webhook` carried a second half: its published
+      schema requires a `webhook_id` and the handler read it only to build the message.
+      **`WebhookManager::sendTestEvent()` is the fix, test-first (red observed), and per endpoint** —
+      one attempt rather than the retry ladder, `failure_count`/`status`/`last_triggered` untouched,
+      the attempt still logged. **No socket is opened by any of its seven tests.**
+    - **TWO of §24's four cards are deferred to `roadmap.md` §0c, on the user's decisions.** The
+      **HMAC secret** card specifies a rotate the product does not have anywhere (`update()`'s
+      `$updatable` excludes `secret`) and assumes one site-wide secret where the product stores one
+      per webhook. The **Delivery log** is **THE SIXTH CARD RECORDED AS DR-006-BLOCKED WHOSE REAL
+      OBSTRUCTION WAS NEVER THE WIDTHS** — after entry 26, entry 27 twice, entry 28 and entry 32:
+      `logDelivery()` writes five fields, so **Event**, **Code** and **Duration** have no source at
+      all, and "Retry is a form post per delivery" has no primitive because the log does not keep
+      the payload.
+    - **FOUR MORE SHIPPED DEFECTS**, every one of them entry 32's shapes again: a refused CSRF post
+      reported **nothing at all** (the **FOURTH** screen, after 27, 28 and 32) · the manager's **raw
+      English exception** reached all 20 locales · **delete raised a browser `confirm()`**, which §2
+      forbids by name · **the file contained no `__()` call at all** and used bare `date()` on a
+      stored UTC timestamp, so every install showed the server's clock as the reader's.
+    - **Three plant-backs, three reds, each owning its own test**, tree clean after each — and the
+      slice was committed BEFORE the first plant (L-045). **Three TEST defects were separated from
+      the product**, which was again the work; the sharpest is that **`exclude( KNOWN_DELIVERY_GAPS )`
+      reads an array as a CHAINED selector and excludes nothing** — silently, in the safe-looking
+      direction — a trap `content-model.spec.js` had already recorded and this spec re-learned.
+    - **Four invented CSS classes were caught before the file was ever run**, by the standing rule
+      that every class is grepped against the components sheet first.
+    - **i18n:** new `webhooks` root, **34 keys × 20 catalogues**, spliced as TEXT (D-097, L-043),
+      every pre-existing root verified unmoved (37 insertions / 1 deletion per file, the deletion
+      being a comma). **8 new public surfaces**, INDEX **1043 → 1051**, new doc
+      `docs/reference/webhooks-screen.md`.
+    - **Tree state (re-measured):** PHP **360 tests / 1679 assertions**, 0 skips (was 352/1664) ·
+      browser tier **451 passing** (was 436), whole tier re-run in one pass · `keel-verify` **23
+      checks: 17 pass, 6 warnings** (unchanged), test-point rows 26 → **27** (count confirmed to
+      move, L-038) · lint on the touched files **0 errors, 0 warnings** · playground was `KPORT=8175`.
+  - **NEXT ACTION — stage 6 of 6: the specialised four** (editor, terminal, AI chat, preview).
+    It is unblocked — DR-007's rework is done, so its console-stream consumers inherit the corrected
+    template with nothing owed. **Entry 24's TABLE half (the delivery log) stays deferred** for the
+    data reason above, not for DR-006's widths — and it was §24's delivery log that made 24 Webhooks
+    "both" a record-form and a console-stream screen, so **stage 6's four consumers are now the only
+    ones left** and they inherit DR-007's corrected template with nothing owed.
     - **Run the per-screen survey against the manager BEFORE the first line.** It has now disagreed
-      **ten times in ten**, and on entries 27, 28 and 32 it removed whole cards each time.
-    - **And carry the DR-006 correction, now paid for FIVE TIMES:** entry 26's third card, entry
-      27's Sessions card, both of entry 28's remaining cards, and entry 32's terms table were
-      recorded as blocked by missing column widths, and not one of them was — entry 32's `Count`
-      column has no data source at all. Run the survey before assuming a width is what a remaining
-      table half is waiting for.
+      **eleven times in eleven**, and on entries 27, 28, 32 and 24 it removed whole cards each time.
+    - **And carry the DR-006 correction, now paid for SIX TIMES:** entry 26's third card, entry
+      27's Sessions card, both of entry 28's remaining cards, entry 32's terms table and now entry
+      24's delivery log were recorded as blocked by missing column widths, and not one of them was —
+      entry 32's `Count` column has no data source at all, and three of entry 24's six columns have
+      none either. Run the survey before assuming a width is what a remaining table half is
+      waiting for.
     - **L-046 IS NOW A CHECK, not a discipline** — `keel-verify` fails on a `__()` key that resolves
       in no catalogue and warns on a root nobody calls. Keep driving every screen a slice touches
       and asserting its rendered text carries no `root.key`-shaped string anyway: the check reads
