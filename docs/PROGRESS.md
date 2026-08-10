@@ -776,6 +776,21 @@
       (L-025's shape). The consent fixture now cleans up; `.htaccess` is never touched.
     - **§1's "the one line that matters" is deliberately NOT built** — Logs has no such concept, and
       building the rule would be a component with no consumer (L-039). Recorded as absent.
+  - **Entry 9 (Settings) — SURVEY DONE, BUILD NOT STARTED (D-095).** The per-screen survey disagreed
+    with the stage-wide one for the **fourth time in four**:
+    - The shipped screen has **eleven POST groups, not seven sections** (`general`, `social`,
+      `analytics`, `email`, `languages`, `appearance`, `developer`, `encryption_key_backup`, `ai`,
+      `maintenance`, `notices`), all cards on ONE page. §9 wants a seven-item nav where each section
+      is its own page load, so the work is a **re-partition**, not adding a nav. The mapping onto the
+      five buildable sections is written out in D-095 and is the build's own (D-088 answer 3).
+    - **`encryption_key_backup` may be a SECOND surface for entry 6's Recovery keys** (D-091).
+      Adjacent is not identical — **check before touching either**, do not assume.
+    - **THE DR-002 DELTA IS STILL UNBUILT and entry 9 owns it.** Indexing must move to
+      Settings → Advanced (checkbox + Save, gated `site.configure`); the user confirmed it in
+      **D-072 answer 1**. `index.php` still carries the toggle and `settings.php` has no indexing
+      control at all. It also touches entry 44 (Dashboard), which is not built either, so the two
+      halves should land together.
+    - **Nothing is unbacked** — the first stage-5 screen where the survey found no missing product.
   - **NEXT ACTION — stage 5 batch B, screen 5 onward.** Still unblocked and backed, in the order
     the survey suggests: **9 Settings** (`settings.php`, five sections per D-088 answer 3),
     **37 x402 settings** (`x402-settings.php`, wallet stays editable, minus pricing rules and the
