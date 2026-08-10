@@ -135,8 +135,11 @@ klytos_add_action( 'editor.sidebar.after_seo', function ( ?array $page, bool $is
     echo '<h3 class="klytos-sidebar__heading">' . klytos_esc_html( __( 'klytos-x402.x402_protection' ) ) . '</h3>';
 
     echo '<div class="klytos-field">';
-    echo '<label class="klytos-field__label">' . klytos_esc_html( __( 'klytos-x402.enabled' ) ) . '</label>';
-    echo '<select name="x402_enabled" class="klytos-field__select">';
+    // The label carried no `for` and did not wrap its control, so both fields
+    // shipped with NO accessible name — axe reports it critical. Pre-existing;
+    // found by the first accessibility pass that reached the page editor.
+    echo '<label class="klytos-field__label" for="x402-enabled">' . klytos_esc_html( __( 'klytos-x402.enabled' ) ) . '</label>';
+    echo '<select name="x402_enabled" id="x402-enabled" class="klytos-field__select">';
     echo '<option value=""'  . ( $pageEnabled === null ? ' selected' : '' ) . '>' . klytos_esc_html( $inheritLabel ) . '</option>';
     echo '<option value="1"' . ( $pageEnabled === true ? ' selected' : '' )  . '>' . klytos_esc_html( __( 'klytos-x402.enabled_on' ) ) . '</option>';
     echo '<option value="0"' . ( $pageEnabled === false ? ' selected' : '' ) . '>' . klytos_esc_html( __( 'klytos-x402.enabled_off' ) ) . '</option>';
@@ -144,10 +147,11 @@ klytos_add_action( 'editor.sidebar.after_seo', function ( ?array $page, bool $is
     echo '</div>';
 
     echo '<div class="klytos-field">';
-    echo '<label class="klytos-field__label">' . klytos_esc_html( __( 'klytos-x402.price_usd' ) ) . '</label>';
-    echo '<input type="text" name="x402_price_usd" value="' . klytos_esc_attr( $pagePrice ) . '" '
-       . 'placeholder="' . klytos_esc_attr( $defaultPrice ) . '" class="klytos-field__input" />';
-    echo '<span class="klytos-field__hint">' . klytos_esc_html( __( 'klytos-x402.price_hint' ) ) . '</span>';
+    echo '<label class="klytos-field__label" for="x402-price-usd">' . klytos_esc_html( __( 'klytos-x402.price_usd' ) ) . '</label>';
+    echo '<input type="text" name="x402_price_usd" id="x402-price-usd" value="' . klytos_esc_attr( $pagePrice ) . '" '
+       . 'placeholder="' . klytos_esc_attr( $defaultPrice ) . '" class="klytos-field__input" '
+       . 'aria-describedby="x402-price-hint" />';
+    echo '<span class="klytos-field__hint" id="x402-price-hint">' . klytos_esc_html( __( 'klytos-x402.price_hint' ) ) . '</span>';
     echo '</div>';
 
     echo '</div>';

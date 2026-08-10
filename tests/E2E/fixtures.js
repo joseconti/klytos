@@ -222,6 +222,35 @@ const KNOWN_DELIVERY_GAPS = [
     // on the one pair a Design Request is already open about. The floor is
     // pinned by a test in design.spec.js, so a REGRESSION below 4.32 still
     // fails while the request is open.
+    // DR-005 gap 2, light theme, arriving on its THIRD surface. The request
+    // itself measured --color-acento on --fondo-ventana at 4.23:1 in light,
+    // and stage 6's canvas renders exactly that pair: template-editor-split.md
+    // §1 requires the page editor's slug "in --color-acento", and the canvas
+    // sits on --fondo-ventana outside any card. Both halves are the
+    // delivery's, so it is registered rather than substituted (Phase 4 rule 2)
+    // and the ratio is pinned as a FLOOR in page-editor.spec.js.
+    //
+    // Scoped to the URL line, never a bare .k-control: the same control inside
+    // a card passes, and excluding it everywhere would hide a real defect to
+    // silence a known one.
+    // DR-005, ADDENDUM 3 — the sidebar's current nav item AGAIN, and this time
+    // its COUNT. Addendum 2 registered the item's LABEL (--color-acento on
+    // --fila-seleccion); the count beside it is --texto-sutil over the same
+    // tint and measures 3.39:1 dark / 3.96:1 light — worse than the label, and
+    // a different token pair, so it is not covered by that exclusion.
+    //
+    // It took until stage 6 to render because the current nav item has to
+    // carry a count for the pair to exist at all, and every earlier spec's
+    // screen (Design, Logs, Settings, Consent…) is a nav item with no count.
+    // The page editor's parent is Pages, which has one. L-037's shape a third
+    // time: the right scope, the right viewport, the wrong SCREEN.
+    //
+    // Both halves are §1's, so it is Design's (Phase 4 rule 2). Registered,
+    // never substituted, with both ratios pinned as floors.
+    '.k-nav-item[aria-current="page"] .k-nav-count',
+
+    '.k-editor-url .k-control',
+
     '.k-error',
 
     // DR-005 gap 3 AGAIN, dark theme, on the other half of the population the

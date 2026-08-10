@@ -108,7 +108,17 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         if ( $isEditing ) {
             $pm->update( $saveSlug, $data );
         } else {
-            $pm->create( $saveSlug, $data );
+            /*
+             * create() takes ONE argument — the data array, whose `slug` key
+             * it reads itself (page-manager.php:70). This call passed the slug
+             * first, so creating a page from this screen ended in an uncaught
+             * TypeError and an HTTP 500 on every install that has ever had
+             * one. It survived because nothing had driven the create path: the
+             * suite covers PageManager directly and the screen's own POST
+             * handler had no test at all, which is L-030's shape again — the
+             * artifact was verified, its CONSUMER was not.
+             */
+            $pm->create( $data );
             $isEditing = true;
         }
 
@@ -179,13 +189,9 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
         $pageCustomCss = $data['custom_css'];
         $pageCustomJs  = $data['custom_js'];
     } else {
-        $error = 'Title and slug are required.';
+        $error = __( 'editor.title_required' );
     }
 }
-
-$adminPageTitle = $isEditing
-    ? __( 'pages.edit_page' ) . ': ' . klytos_esc_html( $pageTitle )
-    : __( 'pages.create_page' );
 
 // Override CSP for the editor page: Gutenberg creates blob: iframes with
 // inline scripts that cannot carry a nonce. We must allow 'unsafe-inline'
@@ -314,345 +320,669 @@ if ( $editorType === 'gutenberg' ) {
     $customCsp = "default-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src {$imgSrc}; script-src 'self' 'unsafe-inline'; frame-src {$frameSrc}";
 }
 
-$pageTitle_header = $adminPageTitle;
+/*
+ * ─── Stage 6 of 6, entry 2 — the chrome, to template-editor-split.md ───
+ *
+ * §4: "<h1> is the page's title (the record being edited), not the word
+ * 'Editor'." The shell prints exactly one <h1> in main and repeats it as the
+ * breadcrumb's last crumb, so this screen emits none of its own and sets no
+ * $pageEmitsOwnH1. $recordTitle stays the field's value; $pageTitle is the
+ * heading, which for an unsaved record is the action rather than an empty
+ * string.
+ *
+ * The canvas INTERIOR is not built here and that is a recorded decision, not
+ * an omission: the product mounts Gutenberg or TinyMCE and the delivery draws
+ * the interior of software this product did not write (D-104, roadmap.md §0c).
+ */
+$recordTitle = $pageTitle;
+$pageTitle   = $recordTitle !== '' ? $recordTitle : __( 'pages.create_page' );
+$breadcrumb  = [ [ 'label' => __( 'pages.title' ), 'url' => 'pages.php' ] ];
+
+// template-shell.md's mechanism for a screen that owns the viewport, built in
+// stage 2 for this screen and the AI chat. It replaces the four !important
+// overrides this page carried, which hid the sidebar, the toolbar and the
+// status bar outright — the shell chrome template-editor-split.md §1 requires.
+$shellFullBleed = true;
+
+/*
+ * The status buttons, resolved BEFORE the header so the toolbar can carry
+ * them. template-shell.md §1: "Actions — up to two `sm` buttons, secondary
+ * then primary. NEVER three. A third action belongs in the page." This
+ * product has one submit per status, and a post type may define custom ones,
+ * so the bound is met by placing the primary and the draft in the toolbar and
+ * every remaining status in the inspector's Status section — the page. No
+ * shipped control is removed (D-076's rule) and none is duplicated.
+ */
+$editorStatuses = $app->getPostTypeManager()->getStatusesForPostType( $pagePostType );
+// Trashed and scheduled have their own mechanisms and were never offered here.
+$editorStatuses = array_values( array_filter(
+    $editorStatuses,
+    static fn( array $s ): bool => ! in_array( $s['id'], [ 'trashed', 'scheduled' ], true )
+) );
+
+$primaryStatus   = null;
+$secondaryStatus = null;
+$extraStatuses   = [];
+foreach ( $editorStatuses as $stDef ) {
+    if ( $stDef['id'] === 'published' && $primaryStatus === null ) {
+        $primaryStatus = $stDef;
+    } elseif ( $stDef['id'] === 'draft' && $secondaryStatus === null ) {
+        $secondaryStatus = $stDef;
+    } else {
+        $extraStatuses[] = $stDef;
+    }
+}
+// A post type without a published status still gets a primary action rather
+// than a toolbar with only a secondary in it.
+if ( $primaryStatus === null && $extraStatuses !== [] ) {
+    $primaryStatus = array_shift( $extraStatuses );
+}
+
+$editorFormId = 'k-page-editor-form';
+
+// The four shipped page templates, and the six languages the shipped selector
+// offers. The language names stay in their own language — an endonym is what a
+// person picking a locale recognises, and translating "Español" into twenty
+// catalogues would make the list unreadable for exactly the people it is for.
+$editorTemplateKeys = [
+    'default'   => 'common.default',
+    'landing'   => 'editor.template_landing',
+    'blog-post' => 'editor.template_blog_post',
+    'blank'     => 'editor.template_blank',
+];
+$editorLanguageNames = [
+    'en' => 'English',
+    'es' => 'Español',
+    'fr' => 'Français',
+    'de' => 'Deutsch',
+    'pt' => 'Português',
+    'ca' => 'Català',
+];
+
+/*
+ * §2's three autosave readings live in the toolbar's save-state slot. The
+ * server renders the resting one — an existing record has a last-saved time
+ * and a new one has nothing saved at all, which is why the filter returns ''
+ * there and the slot is then absent rather than empty.
+ */
+$editorSavedAt = '';
+if ( $isEditing && ! empty( $page['updated_at'] ) ) {
+    $editorSavedAt = klytos_date( 'H:i', klytos_datetime_to_timestamp( (string) $page['updated_at'] ) );
+}
+klytos_add_filter( 'admin.topbar_center', static function ( string $html ) use ( $editorSavedAt ): string {
+    /*
+     * The slot is claimed even when there is nothing to say yet — a record
+     * being created has never been saved — because the script writes the two
+     * live readings into it and a slot that only appears after the first
+     * autosave would move the toolbar's actions under the person's cursor.
+     * klytos_kses_post() keeps class and id on a <span> and drops everything
+     * else, which is why the test hook is on the shell's wrapper.
+     */
+    return $html . '<span id="k-editor-save-text">'
+        . klytos_esc_html( $editorSavedAt === '' ? '' : __( 'editor.saved_at', [ 'time' => $editorSavedAt ] ) )
+        . '</span>';
+} );
+
+klytos_add_filter(
+    'admin.topbar_actions',
+    static function ( string $html ) use ( $primaryStatus, $secondaryStatus, $editorFormId ): string {
+        /*
+         * §3, 900–1199 and below: the inspector becomes a sheet opened by a
+         * toolbar toggle carrying aria-expanded and aria-controls. It is in
+         * the DOM at every width and the media query hides it above 1199,
+         * so the markup never depends on a server-side guess about the
+         * viewport — stage 2's own rule for the drawer trigger.
+         */
+        $out = '<button type="button" class="k-btn k-btn--secondary k-btn--sm k-inspector-trigger"'
+            . ' id="k-inspector-trigger" aria-expanded="false" aria-controls="k-inspector" hidden'
+            . ' data-testid="editor.inspector_trigger">'
+            . klytos_esc_html( __( 'editor.inspector' ) )
+            . '</button>';
+
+        foreach ( [ [ $secondaryStatus, 'secondary' ], [ $primaryStatus, 'primary' ] ] as $pair ) {
+            [ $status, $variant ] = $pair;
+            if ( $status === null ) {
+                continue;
+            }
+            $out .= '<button type="submit" name="status" value="' . klytos_esc_attr( $status['id'] ) . '"'
+                . ' form="' . klytos_esc_attr( $editorFormId ) . '"'
+                . ' class="k-btn k-btn--' . $variant . ' k-btn--sm"'
+                . ' data-testid="editor.status.' . klytos_esc_attr( $status['id'] ) . '">'
+                . klytos_esc_html( $status['label'] )
+                . '</button>';
+        }
+
+        return $html . $out;
+    }
+);
+
 include __DIR__ . '/templates/header.php';
 include __DIR__ . '/templates/sidebar.php';
 ?>
 <?php klytos_do_action( 'admin.editor.before' ); ?>
 
-<!-- Override admin layout: hide sidebar/topbar, editor goes fullscreen -->
-<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
-    /* Stage 2 (the shell) renamed these nodes; the intent is unchanged and
-       whether this screen keeps the shell chrome at all is decided in stage 6
-       against its own template, not here. */
-    .k-sidebar   { display: none !important; }
-    .k-toolbar   { display: none !important; }
-    .k-statusbar { display: none !important; }
-    .k-main      { padding: 0 !important; }
-    .k-shell     { display: block !important; }
-</style>
-
-        <?php if ( isset( $success ) ): ?>
-            <div class="alert alert-success" style="position:fixed;top:0;left:0;right:0;z-index:200000;text-align:center;border-radius:0;"><?php echo __( 'common.success' ); ?></div>
+<?php
+/*
+ * §2 Success — "Published — klytos.io/pricing" in the status region, with the
+ * URL as a link. It is a role="status" line under the H1, which is the same
+ * shape every form screen already uses (template-record-form.md §2), so the
+ * announcement lands in one place on this screen too.
+ */
+?>
+<?php if ( isset( $success ) ) : ?>
+    <?php
+    $editorPublicUrl = rtrim( \Klytos\Core\Helpers::getBasePath(), '/' ) . '/' . ltrim( $slug, '/' ) . '/';
+    ?>
+    <p class="k-status-line" role="status" data-testid="editor.status_line">
+        <?php if ( $pageStatus === 'published' ) : ?>
+            <?php echo klytos_esc_html( __( 'editor.published' ) ); ?>
+            <a href="<?php echo klytos_esc_url( $editorPublicUrl ); ?>" target="_blank" rel="noopener">
+                <?php echo klytos_esc_html( $editorPublicUrl ); ?>
+            </a>
+        <?php else : ?>
+            <?php echo klytos_esc_html( __( 'editor.saved' ) ); ?>
         <?php endif; ?>
+    </p>
+<?php endif; ?>
 
-        <?php if ( isset( $error ) ): ?>
-            <div class="alert alert-error" style="position:fixed;top:0;left:0;right:0;z-index:200000;text-align:center;border-radius:0;"><?php echo klytos_esc_html( $error ); ?></div>
-        <?php endif; ?>
+<?php if ( isset( $error ) ) : ?>
+    <?php /*
+     * The form-level error summary the whole build uses: role="alert", focus
+     * moved to it on load, every failed field a link to that field
+     * (template-record-form.md §2). It replaces a fixed-position banner that
+     * covered the toolbar and named no field at all.
+     */ ?>
+    <div class="k-error-summary"
+         id="k-editor-error-summary"
+         role="alert"
+         tabindex="-1"
+         data-testid="editor.error_summary">
+        <h2><?php echo klytos_esc_html( __( 'editor.summary_title' ) ); ?></h2>
+        <ul>
+            <li>
+                <a href="#k-editor-title" data-testid="editor.error_link.0">
+                    <?php echo klytos_esc_html( $error ); ?>
+                </a>
+            </li>
+        </ul>
+    </div>
+<?php endif; ?>
 
-        <form method="post" id="page-editor-form">
-            <?php echo klytos_csrf_field(); ?>
-            <input type="hidden" name="slug" value="<?php echo klytos_esc_attr( $slug ); ?>" id="page-slug">
-            <input type="hidden" name="content_html" value="" id="content-html-field">
-            <input type="hidden" name="content_blocks" value="" id="content-blocks-field">
-            <input type="hidden" name="post_type" value="<?php echo klytos_esc_attr($pagePostType); ?>">
+<?php
+/*
+ * §2 Autosave — failed: after the SECOND consecutive failure the state
+ * becomes a role="alert" panel offering Retry now and Copy the content, and
+ * the buffer is never discarded. The panel is in the DOM from the start,
+ * hidden, because a role="alert" inserted into the document is announced
+ * inconsistently across screen readers while a hidden one that is revealed is
+ * not. Its text is filled by the script with the status the server returned.
+ */
+?>
+<div class="k-editor-alert"
+     id="k-editor-autosave-alert"
+     role="alert"
+     hidden
+     data-message="<?php echo klytos_esc_attr( __( 'editor.autosave_failed' ) ); ?>"
+     data-testid="editor.autosave_alert">
+    <span id="k-editor-autosave-message"></span>
+    <button type="button" class="k-btn k-btn--secondary k-btn--sm" id="k-editor-autosave-retry" data-testid="editor.autosave_retry">
+        <?php echo klytos_esc_html( __( 'list.retry' ) ); ?>
+    </button>
+    <button type="button" class="k-btn k-btn--secondary k-btn--sm" id="k-editor-autosave-copy" data-testid="editor.autosave_copy">
+        <?php echo klytos_esc_html( __( 'editor.copy_content' ) ); ?>
+    </button>
+</div>
 
-            <!-- ═══ FULLSCREEN EDITOR SHELL ═══ -->
-            <div class="klytos-editor-shell" id="klytos-editor-shell">
+<?php
+/*
+ * §1's three columns. The left rail is absent from the DOM rather than
+ * rendered empty: §1 marks it "[optional]" and its only content on this
+ * screen is the block list, which is the engine's own model and is deferred
+ * with the rest of the canvas interior (roadmap.md §0c, D-104). The modifier
+ * removes the track, exactly as .k-record-form--no-nav does for a form screen
+ * with no sections.
+ */
+?>
+<form method="post"
+      id="<?php echo klytos_esc_attr( $editorFormId ); ?>"
+      class="k-editor k-editor--no-rail"
+      data-testid="editor.screen">
+    <?php echo klytos_csrf_field(); ?>
+    <input type="hidden" name="content_html" value="" id="content-html-field">
+    <input type="hidden" name="content_blocks" value="" id="content-blocks-field">
+    <input type="hidden" name="post_type" value="<?php echo klytos_esc_attr( $pagePostType ); ?>">
 
-                <!-- ─── Top Header Bar (like WordPress) ─── -->
-                <div class="klytos-editor-header">
-                    <div class="klytos-editor-header__left">
-                        <a href="pages.php" class="klytos-editor-header__back" title="<?php echo __( 'common.back' ); ?>">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                        </a>
-                        <div class="klytos-editor-header__title-group">
-                            <input
-                                type="text"
-                                name="title"
-                                class="klytos-editor-header__title"
-                                placeholder="<?php echo __( 'pages.page_title' ); ?>..."
-                                value="<?php echo klytos_esc_attr( $pageTitle ); ?>"
-                                required
-                            >
-                            <?php if ( $isEditing ): ?>
-                            <span class="klytos-editor-header__slug">/<?php echo klytos_esc_html( $slug ); ?>/</span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+    <?php klytos_do_action( 'editor.before_canvas', $page ?? null, $isEditing ?? false ); ?>
 
-                    <div class="klytos-editor-header__center">
-                        <span class="klytos-editor-header__status" id="editor-status">
-                            <?php if ( $isEditing ): ?>
-                                <span class="badge-status badge-<?php echo $pageStatus; ?>"><?php echo ucfirst( $pageStatus ); ?></span>
-                            <?php else: ?>
-                                <span class="badge-status badge-draft"><?php echo __( 'pages.draft' ); ?></span>
-                            <?php endif; ?>
-                        </span>
-                    </div>
+    <?php // §4: "The canvas is <section aria-label="Page content">". ?>
+    <section class="k-editor-canvas"
+             aria-label="<?php echo klytos_esc_attr( __( 'editor.canvas' ) ); ?>"
+             data-testid="editor.canvas">
 
-                    <div class="klytos-editor-header__right">
-                        <button type="button" class="klytos-editor-header__btn klytos-editor-header__btn--icon active" id="klytos-sidebar-toggle" aria-pressed="true" title="Settings">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.289 4.836A1 1 0 0111.275 4h1.306a1 1 0 01.987.836l.244 1.466c.787.26 1.503.679 2.108 1.218l1.393-.522a1 1 0 011.216.437l.653 1.13a1 1 0 01-.23 1.273l-1.148.944a6.025 6.025 0 010 2.435l1.149.946a1 1 0 01.23 1.272l-.653 1.13a1 1 0 01-1.216.437l-1.394-.522c-.605.54-1.32.958-2.108 1.218l-.244 1.466a1 1 0 01-.987.836h-1.306a1 1 0 01-.986-.836l-.244-1.466a5.995 5.995 0 01-2.108-1.218l-1.394.522a1 1 0 01-1.217-.436l-.653-1.131a1 1 0 01.23-1.272l1.149-.946a6.026 6.026 0 010-2.435l-1.148-.944a1 1 0 01-.23-1.272l.653-1.131a1 1 0 011.217-.437l1.393.522a5.994 5.994 0 012.108-1.218l.244-1.466zM14.929 12a3 3 0 11-6 0 3 3 0 016 0z" clip-rule="evenodd"/></svg>
-                        </button>
-                        <?php if ( $isEditing ): ?>
-                        <a href="../<?php echo klytos_esc_url( $slug ); ?>/" target="_blank" class="klytos-editor-header__btn klytos-editor-header__btn--ghost">
-                            <?php echo __( 'common.preview' ); ?>
-                        </a>
-                        <?php endif; ?>
-                        <?php
-                        // Load all valid statuses for this post type (system + custom).
-                        $editorStatuses = $app->getPostTypeManager()->getStatusesForPostType( $pagePostType );
-                        // Filter out trashed and scheduled (they have their own mechanisms).
-                        $editorStatuses = array_filter( $editorStatuses, fn( $s ) => !in_array( $s['id'], ['trashed', 'scheduled'], true ) );
-                        foreach ( $editorStatuses as $stDef ):
-                            if ( $stDef['id'] === 'published' ) {
-                                $btnClass = 'klytos-editor-header__btn--primary';
-                            } elseif ( $stDef['id'] === 'draft' ) {
-                                $btnClass = 'klytos-editor-header__btn--secondary';
-                            } else {
-                                $btnClass = 'klytos-editor-header__btn--outline';
-                            }
-                        ?>
-                        <button type="submit" name="status" value="<?php echo klytos_esc_attr( $stDef['id'] ); ?>"
-                                class="klytos-editor-header__btn <?php echo $btnClass; ?>"
-                                <?php if ( !empty( $stDef['color'] ) && empty( $stDef['system'] ) ): ?>
-                                style="--btn-accent:<?php echo klytos_esc_attr( $stDef['color'] ); ?>"
-                                <?php endif; ?>>
-                            <?php echo klytos_esc_html( $stDef['label'] ); ?>
-                        </button>
+        <?php /*
+         * §1: "a URL line in mono at the top … with the slug in
+         * --color-acento and an edit affordance". §4 settles what the edit
+         * affordance is: "The URL/slug line is a real form control with a
+         * visible label, not an inline-editable span." It was a hidden input
+         * before this stage, so the slug could not be edited at all.
+         */ ?>
+        <div class="k-editor-url">
+            <label class="k-label" for="k-editor-slug">
+                <?php echo klytos_esc_html( __( 'pages.slug' ) ); ?>
+            </label>
+            <span class="k-editor-url-base" aria-hidden="true"><?php
+                echo klytos_esc_html( rtrim( \Klytos\Core\Helpers::getBasePath(), '/' ) . '/' );
+            ?></span>
+            <input type="text"
+                   class="k-control k-control--mono"
+                   id="k-editor-slug"
+                   name="slug"
+                   value="<?php echo klytos_esc_attr( $slug ); ?>"
+                   data-testid="editor.slug">
+        </div>
+
+        <?php /*
+         * The engine. Everything the delivery draws INSIDE this node — the
+         * blocks as bordered cards, their role="group" names, their
+         * contenteditable regions, the "Edit as form" fallback page per block
+         * and the two hard publish blockers — is Gutenberg's or TinyMCE's own
+         * DOM or product that exists nowhere, and is deferred with its reason
+         * in roadmap.md §0c (D-104). Not an omission: a recorded decision.
+         */ ?>
+        <div id="klytos-editor-container"></div>
+
+        <?php
+        // ─── Custom fields ───────────────────────────────────────────
+        // They stay in the canvas rather than moving into the inspector, and
+        // the reason is measurable: §1 makes inspector rows "label/control
+        // pairs at 30px" in a 300px column, and this product's custom fields
+        // are 27 typed controls including repeaters and rich text. The
+        // delivery draws none of them anywhere. Logged as an adaptation.
+        $cfDefs   = [];
+        $cfValues = [];
+        try {
+            $cfDefs = $app->getPostTypeManager()->listCustomFields( $pagePostType );
+        } catch ( \Throwable $e ) {
+            // Post type may not have custom fields.
+        }
+        if ( ! empty( $cfDefs ) && $isEditing && $slug ) {
+            $cfMeta = $app->getMetaManager()->getAll( 'pages', $slug );
+            foreach ( $cfMeta as $mk => $mv ) {
+                if ( str_starts_with( $mk, 'cf.' ) ) {
+                    $cfValues[ substr( $mk, 3 ) ] = $mv;
+                }
+            }
+        }
+        if ( ! empty( $cfDefs ) ) :
+            require_once __DIR__ . '/includes/custom-field-renderer.php';
+            ?>
+            <?php klytos_do_action( 'editor.before_custom_fields', $page ?? null, $isEditing ?? false ); ?>
+            <section class="k-card k-card--padded" aria-labelledby="k-editor-cf-heading">
+                <div class="k-card-body">
+                    <h2 class="k-card-heading" id="k-editor-cf-heading">
+                        <?php echo klytos_esc_html( __( 'editor.custom_fields' ) ); ?>
+                    </h2>
+                    <div class="k-field-grid">
+                        <?php foreach ( $cfDefs as $cfDef ) : ?>
+                            <?php echo renderCustomField( $cfDef, $cfValues[ $cfDef['id'] ] ?? null ); ?>
                         <?php endforeach; ?>
                     </div>
                 </div>
+            </section>
+        <?php endif; ?>
+        <?php klytos_do_action( 'editor.after_custom_fields', $page ?? null, $isEditing ?? false ); ?>
+    </section>
+    <?php klytos_do_action( 'editor.after_canvas', $page ?? null, $isEditing ?? false ); ?>
 
-                <!-- ─── Editor Body ─── -->
-                <div class="klytos-editor-body">
+    <?php /*
+     * §1 Inspector, and §2's "Empty — no selection in the inspector — never
+     * blank: document properties, as above". The tab pair this screen carried
+     * ("Page" / "Bloque") is gone with it: its second tab was a permanent
+     * "Select a block to see its settings", which is precisely the blank
+     * panel §2 forbids, and block properties are the engine's own inspector.
+     */ ?>
+    <aside class="k-inspector"
+           id="k-inspector"
+           aria-label="<?php echo klytos_esc_attr( __( 'editor.inspector' ) ); ?>"
+           data-testid="editor.inspector">
 
-                    <!-- Main Canvas (Gutenberg) -->
-                    <?php klytos_do_action( 'editor.before_canvas', $page ?? null, $isEditing ?? false ); ?>
-                    <div class="klytos-editor-canvas">
-                        <div id="klytos-editor-container"></div>
+        <?php
+        /**
+         * One inspector section: an <h3> whose button carries aria-expanded
+         * and controls its panel (§4). Written once and called per section so
+         * the disclosure contract cannot drift between them.
+         *
+         * @param string $id    Panel id, unique on the page.
+         * @param string $label Visible section name, already translated.
+         */
+        $editorSection = static function ( string $id, string $label ): void {
+            ?>
+            <h3 class="k-inspector-heading">
+                <button type="button"
+                        class="k-inspector-toggle"
+                        aria-expanded="true"
+                        aria-controls="<?php echo klytos_esc_attr( $id ); ?>"
+                        data-testid="editor.section.<?php echo klytos_esc_attr( $id ); ?>">
+                    <span><?php echo klytos_esc_html( $label ); ?></span>
+                    <span class="k-inspector-chevron" aria-hidden="true"></span>
+                </button>
+            </h3>
+            <?php
+        };
+        ?>
 
-                        <?php
-                        // ─── Custom Fields below the editor ───
-                        $cfDefs = [];
-                        $cfValues = [];
-                        try {
-                            $cfDefs = $app->getPostTypeManager()->listCustomFields($pagePostType);
-                        } catch (\Throwable $e) {
-                            // Post type may not have custom fields.
-                        }
-                        if (!empty($cfDefs) && $isEditing && $slug) {
-                            $cfMeta = $app->getMetaManager()->getAll('pages', $slug);
-                            foreach ($cfMeta as $mk => $mv) {
-                                if (str_starts_with($mk, 'cf.')) {
-                                    $cfValues[substr($mk, 3)] = $mv;
-                                }
-                            }
-                        }
-                        if (!empty($cfDefs)):
-                            require_once __DIR__ . '/includes/custom-field-renderer.php';
-                            ?>
-                            <?php klytos_do_action( 'editor.before_custom_fields', $page ?? null, $isEditing ?? false ); ?>
-                        <div class="klytos-custom-fields" style="padding:1.5rem 2rem;border-top:1px solid var(--klytos-border, #e2e8f0);background:var(--klytos-surface, #fff);">
-                            <h3 style="margin:0 0 1rem 0;font-size:0.95rem;font-weight:600;color:var(--klytos-text, #1e293b);">Custom Fields</h3>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem;">
-                                <?php foreach ($cfDefs as $cfDef): ?>
-                                    <?php echo renderCustomField($cfDef, $cfValues[$cfDef['id']] ?? null); ?>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                        <?php klytos_do_action( 'editor.after_custom_fields', $page ?? null, $isEditing ?? false ); ?>
+        <?php // ─── Document ─────────────────────────────────────────── ?>
+        <div class="k-inspector-section">
+            <?php $editorSection( 'k-insp-document', __( 'editor.section_document' ) ); ?>
+            <div class="k-inspector-panel" id="k-insp-document">
 
-                    </div>
-                    <?php klytos_do_action( 'editor.after_canvas', $page ?? null, $isEditing ?? false ); ?>
-
-                    <!-- ─── Klytos Sidebar ─── -->
-                    <div class="klytos-sidebar" id="klytos-sidebar">
-                        <div class="klytos-sidebar__header">
-                            <div class="klytos-sidebar__tabs" role="tablist">
-                                <button class="klytos-sidebar__tab is-active" role="tab" aria-selected="true" data-tab="page" type="button"><?php echo __( 'pages.title' ); ?></button>
-                                <button class="klytos-sidebar__tab" role="tab" aria-selected="false" data-tab="block" type="button">Bloque</button>
-                            </div>
-                        </div>
-                        <div class="klytos-sidebar__body">
-                            <div class="klytos-sidebar__panel" id="klytos-panel-page" role="tabpanel">
-                                <div class="klytos-page-panel" id="klytos-page-panel">
-
-                            <!-- Status & Template -->
-                            <div class="klytos-editor-settings__section">
-                                <h3 class="klytos-editor-settings__heading"><?php echo __( 'common.status' ); ?></h3>
-
-                                <label class="klytos-editor-settings__label"><?php echo __( 'pages.template' ); ?></label>
-                                <select name="template" class="klytos-editor-settings__input">
-                                    <option value="default" <?php echo $pageTemplate === 'default' ? 'selected' : ''; ?>>Default</option>
-                                    <option value="landing" <?php echo $pageTemplate === 'landing' ? 'selected' : ''; ?>>Landing</option>
-                                    <option value="blog-post" <?php echo $pageTemplate === 'blog-post' ? 'selected' : ''; ?>>Blog Post</option>
-                                    <option value="blank" <?php echo $pageTemplate === 'blank' ? 'selected' : ''; ?>>Blank</option>
-                                </select>
-
-                                <label class="klytos-editor-settings__label"><?php echo __( 'pages.language' ); ?></label>
-                                <select name="lang" class="klytos-editor-settings__input">
-                                    <option value="en" <?php echo $pageLang === 'en' ? 'selected' : ''; ?>>English</option>
-                                    <option value="es" <?php echo $pageLang === 'es' ? 'selected' : ''; ?>>Español</option>
-                                    <option value="fr" <?php echo $pageLang === 'fr' ? 'selected' : ''; ?>>Français</option>
-                                    <option value="de" <?php echo $pageLang === 'de' ? 'selected' : ''; ?>>Deutsch</option>
-                                    <option value="pt" <?php echo $pageLang === 'pt' ? 'selected' : ''; ?>>Português</option>
-                                    <option value="ca" <?php echo $pageLang === 'ca' ? 'selected' : ''; ?>>Català</option>
-                                </select>
-                            </div>
-
-                            <!-- Social Media -->
-                            <details class="klytos-editor-settings__section">
-                                <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Facebook / LinkedIn</summary>
-                                <div class="klytos-editor-settings__details-body">
-                                    <label class="klytos-editor-settings__label">OG Image <span class="klytos-editor-settings__hint">recommended</span></label>
-                                    <input type="text" name="og_image" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageOgImage ); ?>" placeholder="https://... (1200x630px)">
-                                    <div class="form-help">1200x630px recommended.</div>
-
-                                    <label class="klytos-editor-settings__label">OG Title</label>
-                                    <input type="text" name="og_title" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageOgTitle ); ?>" maxlength="70" placeholder="Leave empty to use page title">
-
-                                    <label class="klytos-editor-settings__label">OG Description</label>
-                                    <textarea name="og_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use meta description"><?php echo klytos_esc_textarea( $pageOgDesc ); ?></textarea>
-                                </div>
-                            </details>
-
-                            <!-- Twitter / X -->
-                            <details class="klytos-editor-settings__section">
-                                <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle">Twitter / X</summary>
-                                <div class="klytos-editor-settings__details-body">
-                                    <label class="klytos-editor-settings__label">Twitter Title</label>
-                                    <input type="text" name="twitter_title" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageTwTitle ); ?>" maxlength="70" placeholder="Leave empty to use OG title">
-
-                                    <label class="klytos-editor-settings__label">Twitter Description</label>
-                                    <textarea name="twitter_description" rows="2" maxlength="200" class="klytos-editor-settings__input" placeholder="Leave empty to use OG description"><?php echo klytos_esc_textarea( $pageTwDesc ); ?></textarea>
-                                    <div class="form-help">Uses OG image automatically.</div>
-                                </div>
-                            </details>
-
-                            <!-- Custom Code -->
-                            <details class="klytos-editor-settings__section">
-                                <summary class="klytos-editor-settings__heading klytos-editor-settings__heading--toggle"><?php echo __( 'pages.custom_css' ); ?> / JS</summary>
-                                <div class="klytos-editor-settings__details-body">
-                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_css' ); ?></label>
-                                    <textarea name="custom_css" rows="4" class="klytos-editor-settings__input mono"><?php echo klytos_esc_textarea( $pageCustomCss ); ?></textarea>
-
-                                    <label class="klytos-editor-settings__label"><?php echo __( 'pages.custom_js' ); ?></label>
-                                    <textarea name="custom_js" rows="4" class="klytos-editor-settings__input mono"><?php echo klytos_esc_textarea( $pageCustomJs ); ?></textarea>
-                                </div>
-                            </details>
-
-                            <?php klytos_do_action( 'editor.sidebar.before_seo', $page ?? null, $isEditing ?? false ); ?>
-                            <!-- SEO: Meta Description -->
-                            <div class="klytos-editor-settings__section">
-                                <h3 class="klytos-editor-settings__heading">Meta Description</h3>
-
-                                <textarea name="meta_description" rows="3" maxlength="160" class="klytos-editor-settings__input" placeholder="120-155 characters. Include keyword and call-to-action."><?php echo klytos_esc_textarea( $pageMetaDesc ); ?></textarea>
-                                <div class="form-help flex flex-between" id="meta-counter">
-                                    <span id="meta-count-text">0/160</span>
-                                    <span id="meta-quality"></span>
-                                </div>
-
-                                <label class="klytos-editor-settings__label">Canonical URL</label>
-                                <input type="url" name="canonical_url" class="klytos-editor-settings__input" value="<?php echo klytos_esc_attr( $pageCanonical ); ?>" placeholder="Leave empty (recommended)">
-
-                                <div style="margin-top:0.75rem;">
-                                    <label style="display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:400;font-size:0.85rem;">
-                                        <input type="checkbox" name="noindex" value="1" <?php echo $pageNoIndex ? 'checked' : ''; ?>>
-                                        noindex
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Search Preview -->
-                            <div class="klytos-editor-settings__section">
-                                <h3 class="klytos-editor-settings__heading">Search Preview</h3>
-                                <div class="klytos-seo-preview">
-                                    <div id="seo-preview-title" class="klytos-seo-preview__title"></div>
-                                    <div id="seo-preview-url" class="klytos-seo-preview__url"></div>
-                                    <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
-                                </div>
-                            </div>
-                            <?php klytos_do_action( 'editor.sidebar.after_seo', $page ?? null, $isEditing ?? false ); ?>
-
-                            <?php
-                            // Taxonomies section in sidebar.
-                            $ptDef = null;
-                            $ptTaxonomies = [];
-                            $taxAssigned = [];
-                            try {
-                                $ptDef = $app->getPostTypeManager()->get($pagePostType);
-                                $ptTaxonomies = $ptDef['taxonomies'] ?? [];
-                            } catch (\Throwable $e) {
-                                // Post type not found.
-                            }
-                            // Load assigned terms from _meta.
-                            if (!empty($ptTaxonomies) && $isEditing && $slug) {
-                                $allMetaSidebar = $app->getMetaManager()->getAll('pages', $slug);
-                                foreach ($allMetaSidebar as $mk => $mv) {
-                                    if (str_starts_with($mk, 'tax.')) {
-                                        $taxAssigned[substr($mk, 4)] = is_array($mv) ? $mv : [$mv];
-                                    }
-                                }
-                            }
-                            if (!empty($ptTaxonomies)):
-                                foreach ($ptTaxonomies as $taxonomy):
-                                    $taxId = $taxonomy['id'] ?? '';
-                                    $taxName = $taxonomy['name'] ?? ucfirst($taxId);
-                                    $isHierarchical = $taxonomy['hierarchical'] ?? false;
-                                    $currentTerms = $taxAssigned[$taxId] ?? [];
-
-                                    // Load available terms for this taxonomy.
-                                    $availableTerms = [];
-                                    try {
-                                        $availableTerms = $app->getPostTypeManager()->listTerms($pagePostType, $taxId);
-                                    } catch (\Throwable $e) {
-                                        // No terms.
-                                    }
-                                    ?>
-                            <div class="klytos-editor-settings__section">
-                                <h3 class="klytos-editor-settings__heading"><?php echo klytos_esc_html($taxName); ?></h3>
-                                    <?php if (!empty($availableTerms)): ?>
-                                        <?php if ($isHierarchical): ?>
-                                        <!-- Hierarchical: checkboxes (like WP categories) -->
-                                        <div style="max-height:180px;overflow-y:auto;padding:0.25rem 0;">
-                                            <?php foreach ($availableTerms as $term): ?>
-                                            <label style="display:flex;align-items:center;gap:0.5rem;padding:0.15rem 0;cursor:pointer;font-weight:400;font-size:0.85rem;">
-                                                <input type="checkbox" name="tax_<?php echo klytos_esc_attr($taxId); ?>[]" value="<?php echo klytos_esc_attr($term['slug']); ?>"
-                                                    <?php echo in_array($term['slug'], $currentTerms, true) ? 'checked' : ''; ?>>
-                                                <?php echo klytos_esc_html($term['name'] ?? $term['slug']); ?>
-                                            </label>
-                                            <?php endforeach; ?>
-                                        </div>
-                                        <?php else: ?>
-                                        <!-- Flat: tag-like multi-select -->
-                                        <select name="tax_<?php echo klytos_esc_attr($taxId); ?>[]" class="klytos-editor-settings__input" multiple size="<?php echo min(count($availableTerms), 6); ?>">
-                                            <?php foreach ($availableTerms as $term): ?>
-                                                <option value="<?php echo klytos_esc_attr($term['slug']); ?>"
-                                                    <?php echo in_array($term['slug'], $currentTerms, true) ? 'selected' : ''; ?>>
-                                                    <?php echo klytos_esc_html($term['name'] ?? $term['slug']); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <div class="form-help" style="font-size:0.75rem;">Hold Ctrl/Cmd to select multiple.</div>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                    <p class="text-sm text-muted">No terms available. <a href="taxonomy.php?post_type=<?php echo urlencode($pagePostType); ?>&taxonomy=<?php echo urlencode($taxId); ?>">Add terms</a></p>
-                                    <?php endif; ?>
-                            </div>
-                                    <?php
-                                endforeach;
-                            endif;
-                            ?>
-                            <?php klytos_do_action( 'editor.sidebar.after_panels', $page ?? null, $isEditing ?? false ); ?>
-
-                                </div>
-                            </div>
-                            <div class="klytos-sidebar__panel" id="klytos-panel-block" role="tabpanel" style="display:none;">
-                                <div class="klytos-sidebar__empty">
-                                    <p>Select a block to see its settings.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-title"><?php echo klytos_esc_html( __( 'pages.page_title' ) ); ?></label>
+                    <input type="text"
+                           class="k-control"
+                           id="k-editor-title"
+                           name="title"
+                           value="<?php echo klytos_esc_attr( $recordTitle ); ?>"
+                           required
+                           data-testid="editor.title">
                 </div>
 
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-template"><?php echo klytos_esc_html( __( 'pages.template' ) ); ?></label>
+                    <select class="k-control" id="k-editor-template" name="template" data-testid="editor.template">
+                        <?php foreach ( $editorTemplateKeys as $tpl => $tplKey ) : ?>
+                            <option value="<?php echo klytos_esc_attr( $tpl ); ?>" <?php echo $pageTemplate === $tpl ? 'selected' : ''; ?>>
+                                <?php echo klytos_esc_html( __( $tplKey ) ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-lang"><?php echo klytos_esc_html( __( 'pages.language' ) ); ?></label>
+                    <select class="k-control" id="k-editor-lang" name="lang" data-testid="editor.lang">
+                        <?php foreach ( $editorLanguageNames as $langCode => $langName ) : ?>
+                            <option value="<?php echo klytos_esc_attr( $langCode ); ?>" <?php echo $pageLang === $langCode ? 'selected' : ''; ?>>
+                                <?php echo klytos_esc_html( $langName ); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <?php if ( $extraStatuses !== [] ) : ?>
+                    <?php /*
+                     * template-shell.md §1's "a third action belongs in the
+                     * page", honoured literally: the toolbar carries the
+                     * primary and the draft, and every remaining status of
+                     * this post type submits from here. Nothing shipped is
+                     * removed and nothing is duplicated.
+                     */ ?>
+                    <div class="k-field">
+                        <span class="k-label" id="k-editor-more-statuses"><?php echo klytos_esc_html( __( 'editor.more_statuses' ) ); ?></span>
+                        <div class="k-collection-actions" role="group" aria-labelledby="k-editor-more-statuses">
+                            <?php foreach ( $extraStatuses as $stDef ) : ?>
+                                <button type="submit"
+                                        name="status"
+                                        value="<?php echo klytos_esc_attr( $stDef['id'] ); ?>"
+                                        class="k-btn k-btn--secondary k-btn--sm"
+                                        data-testid="editor.status.<?php echo klytos_esc_attr( $stDef['id'] ); ?>">
+                                    <?php echo klytos_esc_html( $stDef['label'] ); ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ( $isEditing ) : ?>
+                    <p class="k-hint">
+                        <a href="<?php echo klytos_esc_url( '../' . $slug . '/' ); ?>" target="_blank" rel="noopener" data-testid="editor.preview">
+                            <?php echo klytos_esc_html( __( 'common.preview' ) ); ?>
+                        </a>
+                    </p>
+                <?php endif; ?>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
+
+        <?php klytos_do_action( 'editor.sidebar.before_seo', $page ?? null, $isEditing ?? false ); ?>
+
+        <?php // ─── Search engine ────────────────────────────────────── ?>
+        <div class="k-inspector-section">
+            <?php $editorSection( 'k-insp-seo', __( 'editor.section_seo' ) ); ?>
+            <div class="k-inspector-panel" id="k-insp-seo">
+
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-meta"><?php echo klytos_esc_html( __( 'pages.meta_description' ) ); ?></label>
+                    <textarea class="k-control"
+                              id="k-editor-meta"
+                              name="meta_description"
+                              rows="3"
+                              maxlength="160"
+                              aria-describedby="meta-counter"
+                              data-testid="editor.meta_description"><?php echo klytos_esc_textarea( $pageMetaDesc ); ?></textarea>
+                    <p class="k-hint" id="meta-counter">
+                        <span id="meta-count-text">0/160</span>
+                        <span id="meta-quality"></span>
+                    </p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-canonical"><?php echo klytos_esc_html( __( 'editor.canonical' ) ); ?></label>
+                    <input type="url"
+                           class="k-control"
+                           id="k-editor-canonical"
+                           name="canonical_url"
+                           value="<?php echo klytos_esc_attr( $pageCanonical ); ?>"
+                           data-testid="editor.canonical">
+                </div>
+
+                <label class="k-choice k-hit-24" for="k-editor-noindex">
+                    <input type="checkbox"
+                           class="k-check"
+                           id="k-editor-noindex"
+                           name="noindex"
+                           value="1"
+                           <?php echo $pageNoIndex ? 'checked' : ''; ?>
+                           data-testid="editor.noindex">
+                    <span><?php echo klytos_esc_html( __( 'editor.noindex' ) ); ?></span>
+                </label>
+            </div>
+        </div>
+
+        <?php // ─── Search preview ───────────────────────────────────── ?>
+        <div class="k-inspector-section">
+            <?php $editorSection( 'k-insp-preview', __( 'editor.section_preview' ) ); ?>
+            <div class="k-inspector-panel" id="k-insp-preview">
+                <div class="klytos-seo-preview">
+                    <div id="seo-preview-title" class="klytos-seo-preview__title"></div>
+                    <div id="seo-preview-url" class="klytos-seo-preview__url"></div>
+                    <div id="seo-preview-desc" class="klytos-seo-preview__desc"></div>
+                </div>
+            </div>
+        </div>
+        <?php klytos_do_action( 'editor.sidebar.after_seo', $page ?? null, $isEditing ?? false ); ?>
+
+        <?php // ─── Social ───────────────────────────────────────────── ?>
+        <div class="k-inspector-section">
+            <?php $editorSection( 'k-insp-social', __( 'editor.section_social' ) ); ?>
+            <div class="k-inspector-panel" id="k-insp-social">
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-og-image"><?php echo klytos_esc_html( __( 'pages.og_image' ) ); ?></label>
+                    <input type="text"
+                           class="k-control"
+                           id="k-editor-og-image"
+                           name="og_image"
+                           value="<?php echo klytos_esc_attr( $pageOgImage ); ?>"
+                           aria-describedby="k-editor-og-image-hint"
+                           data-testid="editor.og_image">
+                    <p class="k-hint" id="k-editor-og-image-hint"><?php echo klytos_esc_html( __( 'editor.og_image_hint' ) ); ?></p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-og-title"><?php echo klytos_esc_html( __( 'pages.page_title' ) ); ?></label>
+                    <input type="text"
+                           class="k-control"
+                           id="k-editor-og-title"
+                           name="og_title"
+                           maxlength="70"
+                           value="<?php echo klytos_esc_attr( $pageOgTitle ); ?>"
+                           aria-describedby="k-editor-og-title-hint"
+                           data-testid="editor.og_title">
+                    <p class="k-hint" id="k-editor-og-title-hint"><?php echo klytos_esc_html( __( 'editor.inherits_title' ) ); ?></p>
+                </div>
+
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-og-desc"><?php echo klytos_esc_html( __( 'common.description' ) ); ?></label>
+                    <textarea class="k-control"
+                              id="k-editor-og-desc"
+                              name="og_description"
+                              rows="2"
+                              maxlength="200"
+                              aria-describedby="k-editor-og-desc-hint"
+                              data-testid="editor.og_description"><?php echo klytos_esc_textarea( $pageOgDesc ); ?></textarea>
+                    <p class="k-hint" id="k-editor-og-desc-hint"><?php echo klytos_esc_html( __( 'editor.inherits_description' ) ); ?></p>
+                </div>
+            </div>
+        </div>
+
+        <?php // ─── Twitter / X ──────────────────────────────────────── ?>
+        <div class="k-inspector-section">
+            <?php $editorSection( 'k-insp-twitter', __( 'editor.section_twitter' ) ); ?>
+            <div class="k-inspector-panel" id="k-insp-twitter">
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-tw-title"><?php echo klytos_esc_html( __( 'pages.page_title' ) ); ?></label>
+                    <input type="text"
+                           class="k-control"
+                           id="k-editor-tw-title"
+                           name="twitter_title"
+                           maxlength="70"
+                           value="<?php echo klytos_esc_attr( $pageTwTitle ); ?>"
+                           data-testid="editor.twitter_title">
+                </div>
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-tw-desc"><?php echo klytos_esc_html( __( 'common.description' ) ); ?></label>
+                    <textarea class="k-control"
+                              id="k-editor-tw-desc"
+                              name="twitter_description"
+                              rows="2"
+                              maxlength="200"
+                              data-testid="editor.twitter_description"><?php echo klytos_esc_textarea( $pageTwDesc ); ?></textarea>
+                </div>
+            </div>
+        </div>
+
+        <?php // ─── Custom code ──────────────────────────────────────── ?>
+        <div class="k-inspector-section">
+            <?php $editorSection( 'k-insp-code', __( 'editor.section_code' ) ); ?>
+            <div class="k-inspector-panel" id="k-insp-code">
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-css"><?php echo klytos_esc_html( __( 'pages.custom_css' ) ); ?></label>
+                    <textarea class="k-control k-control--mono"
+                              id="k-editor-css"
+                              name="custom_css"
+                              rows="4"
+                              data-testid="editor.custom_css"><?php echo klytos_esc_textarea( $pageCustomCss ); ?></textarea>
+                </div>
+                <div class="k-field">
+                    <label class="k-label" for="k-editor-js"><?php echo klytos_esc_html( __( 'pages.custom_js' ) ); ?></label>
+                    <textarea class="k-control k-control--mono"
+                              id="k-editor-js"
+                              name="custom_js"
+                              rows="4"
+                              data-testid="editor.custom_js"><?php echo klytos_esc_textarea( $pageCustomJs ); ?></textarea>
+                </div>
+            </div>
+        </div>
+
+        <?php
+        // ─── Taxonomies ──────────────────────────────────────────────
+        $ptDef        = null;
+        $ptTaxonomies = [];
+        $taxAssigned  = [];
+        try {
+            $ptDef        = $app->getPostTypeManager()->get( $pagePostType );
+            $ptTaxonomies = $ptDef['taxonomies'] ?? [];
+        } catch ( \Throwable $e ) {
+            // Post type not found.
+        }
+        if ( ! empty( $ptTaxonomies ) && $isEditing && $slug ) {
+            $allMetaSidebar = $app->getMetaManager()->getAll( 'pages', $slug );
+            foreach ( $allMetaSidebar as $mk => $mv ) {
+                if ( str_starts_with( $mk, 'tax.' ) ) {
+                    $taxAssigned[ substr( $mk, 4 ) ] = is_array( $mv ) ? $mv : [ $mv ];
+                }
+            }
+        }
+        foreach ( $ptTaxonomies as $taxonomy ) :
+            $taxId          = $taxonomy['id'] ?? '';
+            $taxName        = $taxonomy['name'] ?? ucfirst( $taxId );
+            $isHierarchical = $taxonomy['hierarchical'] ?? false;
+            $currentTerms   = $taxAssigned[ $taxId ] ?? [];
+            $availableTerms = [];
+            try {
+                $availableTerms = $app->getPostTypeManager()->listTerms( $pagePostType, $taxId );
+            } catch ( \Throwable $e ) {
+                // No terms.
+            }
+            $taxPanelId = 'k-insp-tax-' . preg_replace( '/[^a-z0-9_-]/i', '', (string) $taxId );
+            ?>
+            <div class="k-inspector-section">
+                <?php $editorSection( $taxPanelId, (string) $taxName ); ?>
+                <div class="k-inspector-panel" id="<?php echo klytos_esc_attr( $taxPanelId ); ?>">
+                    <?php if ( ! empty( $availableTerms ) ) : ?>
+                        <?php if ( $isHierarchical ) : ?>
+                            <fieldset class="k-fieldset">
+                                <legend class="k-legend"><?php echo klytos_esc_html( (string) $taxName ); ?></legend>
+                                <?php foreach ( $availableTerms as $term ) : ?>
+                                    <?php $termId = $taxPanelId . '-' . preg_replace( '/[^a-z0-9_-]/i', '', (string) $term['slug'] ); ?>
+                                    <label class="k-choice k-hit-24" for="<?php echo klytos_esc_attr( $termId ); ?>">
+                                        <input type="checkbox"
+                                               class="k-check"
+                                               id="<?php echo klytos_esc_attr( $termId ); ?>"
+                                               name="tax_<?php echo klytos_esc_attr( $taxId ); ?>[]"
+                                               value="<?php echo klytos_esc_attr( $term['slug'] ); ?>"
+                                               <?php echo in_array( $term['slug'], $currentTerms, true ) ? 'checked' : ''; ?>>
+                                        <span><?php echo klytos_esc_html( $term['name'] ?? $term['slug'] ); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </fieldset>
+                        <?php else : ?>
+                            <div class="k-field">
+                                <label class="k-label" for="<?php echo klytos_esc_attr( $taxPanelId ); ?>-select">
+                                    <?php echo klytos_esc_html( (string) $taxName ); ?>
+                                </label>
+                                <select class="k-control"
+                                        id="<?php echo klytos_esc_attr( $taxPanelId ); ?>-select"
+                                        name="tax_<?php echo klytos_esc_attr( $taxId ); ?>[]"
+                                        multiple
+                                        size="<?php echo (int) min( count( $availableTerms ), 6 ); ?>"
+                                        aria-describedby="<?php echo klytos_esc_attr( $taxPanelId ); ?>-hint">
+                                    <?php foreach ( $availableTerms as $term ) : ?>
+                                        <option value="<?php echo klytos_esc_attr( $term['slug'] ); ?>"
+                                            <?php echo in_array( $term['slug'], $currentTerms, true ) ? 'selected' : ''; ?>>
+                                            <?php echo klytos_esc_html( $term['name'] ?? $term['slug'] ); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="k-hint" id="<?php echo klytos_esc_attr( $taxPanelId ); ?>-hint">
+                                    <?php echo klytos_esc_html( __( 'editor.multi_select_hint' ) ); ?>
+                                </p>
+                            </div>
+                        <?php endif; ?>
+                    <?php else : ?>
+                        <p class="k-hint">
+                            <?php echo klytos_esc_html( __( 'editor.no_terms' ) ); ?>
+                            <a href="taxonomy.php?post_type=<?php echo urlencode( $pagePostType ); ?>&amp;taxonomy=<?php echo urlencode( (string) $taxId ); ?>">
+                                <?php echo klytos_esc_html( __( 'editor.add_terms' ) ); ?>
+                            </a>
+                        </p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        <?php klytos_do_action( 'editor.sidebar.after_panels', $page ?? null, $isEditing ?? false ); ?>
+    </aside>
+</form>
+
 
 <?php if ($editorType === 'tinymce') { ?>
 <!-- TinyMCE Editor -->
@@ -685,13 +1015,12 @@ include __DIR__ . '/templates/sidebar.php';
                 editor.setContent( <?php echo json_encode( $pageContent ); ?> );
             } );
             editor.on( 'change keyup', function() {
-                document.getElementById( 'editor-status' ).textContent = 'Unsaved changes';
-                document.getElementById( 'editor-status' ).className = 'klytos-page-editor__status dirty';
+                if ( window.KlytosPageEditor ) { window.KlytosPageEditor.dirty(); }
             } );
         }
     } );
 
-    document.getElementById( 'page-editor-form' ).addEventListener( 'submit', function() {
+    document.getElementById( 'k-page-editor-form' ).addEventListener( 'submit', function() {
         var content = tinymce.get( 'tinymce-editor' ).getContent();
         document.getElementById( 'content-html-field' ).value = content;
         document.getElementById( 'content-blocks-field' ).value = '';
@@ -800,21 +1129,22 @@ include __DIR__ . '/templates/sidebar.php';
         allowBlocks: null,
         autosaveInterval: 60,
 
-        onSave: function( response ) {
-            var el = document.getElementById( 'editor-status' );
-            if ( el ) el.innerHTML = '<span class="badge-status badge-published"><?php echo __( 'common.success' ); ?></span>';
+        // template-editor-split.md §2's three autosave readings. The engine
+        // reports; KlytosPageEditor owns what the toolbar says, so the two
+        // editors cannot drift into two different vocabularies.
+        onSave: function() {
+            if ( window.KlytosPageEditor ) { window.KlytosPageEditor.saved(); }
         },
-        onChange: function( html ) {
-            var el = document.getElementById( 'editor-status' );
-            if ( el ) el.innerHTML = '<span style="color:#f59e0b;font-size:0.8rem;">Unsaved changes</span>';
+        onChange: function() {
+            if ( window.KlytosPageEditor ) { window.KlytosPageEditor.dirty(); }
         },
         onError: function( err ) {
-            console.error( 'KlytosEditor error:', err );
+            if ( window.KlytosPageEditor ) { window.KlytosPageEditor.failed( err ); }
         }
     } );
 
     // Before form submit, inject content into hidden fields.
-    document.getElementById( 'page-editor-form' ).addEventListener( 'submit', function() {
+    document.getElementById( 'k-page-editor-form' ).addEventListener( 'submit', function() {
         document.getElementById( 'content-html-field' ).value = KlytosEditor.getContent();
         document.getElementById( 'content-blocks-field' ).value = JSON.stringify( KlytosEditor.getBlocks() );
     } );
@@ -830,13 +1160,24 @@ include __DIR__ . '/templates/sidebar.php';
 
     var titleField   = document.querySelector( 'input[name="title"]' );
     var metaField    = document.querySelector( 'textarea[name="meta_description"]' );
-    var slugField    = document.getElementById( 'page-slug' );
+    var slugField    = document.getElementById( 'k-editor-slug' );
     var countText    = document.getElementById( 'meta-count-text' );
     var qualityBadge = document.getElementById( 'meta-quality' );
     var previewTitle = document.getElementById( 'seo-preview-title' );
     var previewUrl   = document.getElementById( 'seo-preview-url' );
     var previewDesc  = document.getElementById( 'seo-preview-desc' );
     var siteUrl      = <?php echo json_encode( rtrim( \Klytos\Core\Helpers::publicUrl(), '/' ) ); ?>;
+    // These four verdicts and the two placeholders are on the screen, so they
+    // are catalogue keys like everything else on it. They were English
+    // literals before this stage.
+    var strings      = <?php echo json_encode( [
+        'missing'     => __( 'editor.meta_missing' ),
+        'short'       => __( 'editor.meta_short' ),
+        'good'        => __( 'editor.meta_good' ),
+        'long'        => __( 'editor.meta_long' ),
+        'titleHolder' => __( 'pages.page_title' ),
+        'descHolder'  => __( 'editor.preview_desc_placeholder' ),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
     var siteName     = <?php echo json_encode( $app->getSiteConfig()->getValue( 'site_name', 'Klytos' ) ); ?>;
 
     function updateSeoPreview() {
@@ -848,23 +1189,23 @@ include __DIR__ . '/templates/sidebar.php';
         // Counter.
         if ( countText ) {
             countText.textContent = len + '/160';
-            countText.style.color = len > 155 ? 'var(--admin-warning)' : '';
+            // The redesign removed the --admin-* tokens these three lines
+            // named, so the verdict painted as an unresolved variable — real
+            // text below AA on --fondo-elevado. Colour was never the only cue
+            // here (the words say it), so it is dropped rather than re-tinted.
+            countText.style.color = '';
         }
 
         // Quality badge.
         if ( qualityBadge ) {
             if ( len === 0 ) {
-                qualityBadge.textContent = 'Missing';
-                qualityBadge.style.color = 'var(--admin-error)';
+                qualityBadge.textContent = strings.missing;
             } else if ( len < 80 ) {
-                qualityBadge.textContent = 'Too short';
-                qualityBadge.style.color = 'var(--admin-warning)';
+                qualityBadge.textContent = strings.short;
             } else if ( len <= 155 ) {
-                qualityBadge.textContent = 'Good';
-                qualityBadge.style.color = 'var(--admin-success)';
+                qualityBadge.textContent = strings.good;
             } else {
-                qualityBadge.textContent = 'Too long';
-                qualityBadge.style.color = 'var(--admin-warning)';
+                qualityBadge.textContent = strings.long;
             }
         }
 
@@ -874,7 +1215,7 @@ include __DIR__ . '/templates/sidebar.php';
             if ( siteName && fullTitle.toLowerCase().indexOf( siteName.toLowerCase() ) === -1 ) {
                 fullTitle += ' — ' + siteName;
             }
-            previewTitle.textContent = fullTitle || 'Page Title';
+            previewTitle.textContent = fullTitle || strings.titleHolder;
         }
 
         if ( previewUrl ) {
@@ -883,9 +1224,8 @@ include __DIR__ . '/templates/sidebar.php';
         }
 
         if ( previewDesc ) {
-            previewDesc.textContent = desc || 'No meta description set. Google will generate one from the page content.';
+            previewDesc.textContent = desc || strings.descHolder;
             previewDesc.style.fontStyle = desc ? 'normal' : 'italic';
-            previewDesc.style.color = desc ? '#545454' : '#999';
         }
     }
 
@@ -900,157 +1240,32 @@ include __DIR__ . '/templates/sidebar.php';
 } )();
 </script>
 
-<!-- Klytos Sidebar: tab switching + Gutenberg inspector integration -->
-<script nonce="<?php echo $cspNonce; ?>">
-( function() {
-    'use strict';
-
-    var sidebar      = document.getElementById( 'klytos-sidebar' );
-    var toggle       = document.getElementById( 'klytos-sidebar-toggle' );
-    var pageTab      = sidebar.querySelector( '[data-tab="page"]' );
-    var blockTab     = sidebar.querySelector( '[data-tab="block"]' );
-    var pagePanel    = document.getElementById( 'klytos-panel-page' );
-    var blockPanel   = document.getElementById( 'klytos-panel-block' );
-
-    if ( ! sidebar || ! pageTab || ! blockTab ) return;
-
-    // ─── Gutenberg inspector helpers ─────────────────────────
-
-    /**
-     * Open the Gutenberg block inspector sidebar.
-     *
-     * isolated-block-editor uses the "isolated/editor" store
-     * (NOT "core/edit-post" like WordPress core).
-     */
-    function openGutenbergInspector() {
-        if ( window.wp && window.wp.data ) {
-            // Primary: isolated/editor store.
-            try {
-                var iso = window.wp.data.dispatch( 'isolated/editor' );
-                if ( iso && iso.openGeneralSidebar ) {
-                    iso.openGeneralSidebar( 'edit-post/block' );
-                    return;
-                }
-            } catch ( e ) { /* fall through */ }
-
-            // Secondary: core/edit-post (in case a future version uses it).
-            try {
-                var ep = window.wp.data.dispatch( 'core/edit-post' );
-                if ( ep && ep.openGeneralSidebar ) {
-                    ep.openGeneralSidebar( 'edit-post/block' );
-                    return;
-                }
-            } catch ( e ) { /* fall through */ }
-        }
-
-        // Last resort: click the Settings button directly.
-        var btn = document.querySelector(
-            '#klytos-editor-container .editor-header__settings button[aria-label="Settings"]'
-        );
-        if ( btn && btn.getAttribute( 'aria-pressed' ) !== 'true' ) {
-            btn.click();
-        }
-    }
-
-    function closeGutenbergInspector() {
-        if ( window.wp && window.wp.data ) {
-            try {
-                var iso = window.wp.data.dispatch( 'isolated/editor' );
-                if ( iso && iso.closeGeneralSidebar ) {
-                    iso.closeGeneralSidebar();
-                    return;
-                }
-            } catch ( e ) { /* fall through */ }
-
-            try {
-                var ep = window.wp.data.dispatch( 'core/edit-post' );
-                if ( ep && ep.closeGeneralSidebar ) {
-                    ep.closeGeneralSidebar();
-                    return;
-                }
-            } catch ( e ) { /* fall through */ }
-        }
-
-        var btn = document.querySelector(
-            '#klytos-editor-container .editor-header__settings button[aria-label="Settings"]'
-        );
-        if ( btn && btn.getAttribute( 'aria-pressed' ) === 'true' ) {
-            btn.click();
-        }
-    }
-
-    // ─── Tab switching ───────────────────────────────────────
-
-    function activatePageTab() {
-        pageTab.setAttribute( 'aria-selected', 'true' );
-        pageTab.classList.add( 'is-active' );
-        blockTab.setAttribute( 'aria-selected', 'false' );
-        blockTab.classList.remove( 'is-active' );
-        pagePanel.style.display = '';
-        blockPanel.style.display = 'none';
-        document.body.classList.remove( 'klytos-block-tab-active' );
-        closeGutenbergInspector();
-    }
-
-    function activateBlockTab() {
-        blockTab.setAttribute( 'aria-selected', 'true' );
-        blockTab.classList.add( 'is-active' );
-        pageTab.setAttribute( 'aria-selected', 'false' );
-        pageTab.classList.remove( 'is-active' );
-        pagePanel.style.display = 'none';
-        blockPanel.style.display = '';
-        document.body.classList.add( 'klytos-block-tab-active' );
-        openGutenbergInspector();
-    }
-
-    pageTab.addEventListener( 'click', function( e ) {
-        e.preventDefault();
-        activatePageTab();
-    } );
-
-    blockTab.addEventListener( 'click', function( e ) {
-        e.preventDefault();
-        activateBlockTab();
-    } );
-
-    // ─── Sidebar toggle (gear button) ────────────────────────
-
-    if ( toggle ) {
-        toggle.addEventListener( 'click', function( e ) {
-            e.preventDefault();
-            var isOpen = sidebar.style.display !== 'none';
-            sidebar.style.display = isOpen ? 'none' : '';
-            toggle.classList.toggle( 'active', ! isOpen );
-            toggle.setAttribute( 'aria-pressed', String( ! isOpen ) );
-            if ( isOpen ) {
-                document.body.classList.remove( 'klytos-block-tab-active' );
-                closeGutenbergInspector();
-            }
-        } );
-    }
-
-    // ─── Intercept Gutenberg's own close button ──────────────
-    // When Gutenberg closes its sidebar (via store), keep our sidebar in sync.
-
-    if ( window.wp && window.wp.data && window.wp.data.subscribe ) {
-        var prevOpen = false;
-        window.wp.data.subscribe( function() {
-            try {
-                var select = window.wp.data.select( 'core/edit-post' );
-                if ( ! select ) return;
-                var active = select.getActiveGeneralSidebarName();
-                var isOpen = !! active;
-                if ( prevOpen && ! isOpen && document.body.classList.contains( 'klytos-block-tab-active' ) ) {
-                    // Gutenberg closed its sidebar — switch to Page tab.
-                    activatePageTab();
-                }
-                prevOpen = isOpen;
-            } catch ( e ) { /* ignore */ }
-        } );
-    }
-
-} )();
+<?php /*
+ * The tab pair this block drove ("Page" / "Bloque") is gone with stage 6: its
+ * second tab was a permanent "Select a block to see its settings", which is
+ * the blank inspector template-editor-split.md §2 forbids, and block
+ * properties are the ENGINE's own inspector (roadmap.md §0c, D-104). The
+ * script also read #klytos-sidebar before its own null guard, so with the
+ * node removed it would have thrown on every load.
+ *
+ * What replaces it is the template's own chrome behaviour — the three
+ * autosave readings in the toolbar and the inspector's disclosure and sheet
+ * modes — in a file of its own rather than inline, because it is the same
+ * behaviour for every editor-split screen.
+ */ ?>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+    window.KLYTOS_EDITOR_STRINGS = <?php echo json_encode( [
+        'saving'    => __( 'editor.saving' ),
+        'savedAt'   => __( 'editor.saved_at', [ 'time' => '{time}' ] ),
+        'notSaved'  => __( 'editor.not_saved' ),
+        'failed'    => __( 'editor.autosave_failed', [ 'status' => '{status}' ] ),
+        'unsaved'   => __( 'editor.unsaved' ),
+        'copied'    => __( 'common.copied' ),
+        'inspector' => __( 'editor.inspector' ),
+        'close'     => __( 'common.close' ),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?>;
 </script>
+<script src="assets/js/klytos-page-editor.js" nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>"></script>
 
 <?php klytos_do_action( 'admin.editor.after' ); ?>
 <?php include __DIR__ . '/templates/footer.php'; ?>

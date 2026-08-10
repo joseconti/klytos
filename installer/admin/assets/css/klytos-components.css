@@ -77,7 +77,13 @@
    element selector and loses to every named component rule below — including
    `.k-table tbody th a` at (0,1,3), which is what the original problem was. The
    `:not()` chain is belt-and-braces, not load-bearing. */
-:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table)
+/* The container list is an ENUMERATION, which is the trap in it: a surface
+   that is not named here silently falls back to `klytos-base.css`'s bare `a`
+   and paints the pre-redesign #5B8DEF. That is exactly how `.k-inspector`
+   arrived on this list in stage 6 — measured out of the browser at
+   #5B8DEF on --fondo-elevado, 4.31:1 in dark, the identical pair D-079
+   found on a card. Build rule 1's mechanism again, on a new container. */
+:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector)
     :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
     color: var(--color-acento);
 }
@@ -2149,6 +2155,269 @@ a.k-stat:hover {
 
     .k-collection-actions,
     .k-collection-edit {
+        width: 100%;
+    }
+}
+
+/* ============================================================
+   EDITOR SPLIT — template-editor-split.md §1, §3 and §4
+   The three-column chrome the editor screens share: an optional left rail,
+   a canvas that scrolls on its own, and a 300px inspector on --fondo-elevado
+   with a left border. §1 says the template owns its own scroll regions and
+   main's padding is 0, which .k-main--flush provides.
+
+   What this layer does NOT contain is the canvas INTERIOR. Entry 2 mounts
+   Gutenberg or TinyMCE and the delivery draws a hand-built block canvas over
+   it; that interior is deferred product (roadmap.md §0c, D-104). The chrome
+   around it is here in full.
+
+   Base rules FIRST, media queries after — the order .k-record-form already
+   states the reason for.
+   ============================================================ */
+
+/* §1's first line — "main (padding 0 — this template owns its own scroll
+   regions)" — is already a shell mechanism: $shellFullBleed, built in stage 2
+   for exactly these two screens, sets .k-shell--full-bleed and zeroes main's
+   padding in klytos-shell.css. This layer reuses it rather than adding a
+   second way to say the same thing. */
+.k-editor {
+    display: grid;
+    /* §1: rail 240 + canvas + inspector 300. The rail track is absent unless
+       the screen renders one — .k-editor--no-rail below. */
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
+    /* min-height:0 on a grid child is what lets the two scroll regions below
+       actually scroll instead of stretching their row; min-width:0 is the same
+       fact on the other axis, and it is the one that keeps the page from
+       scrolling sideways at 320 CSS px. */
+    min-height: 0;
+    min-width: 0;
+    flex: 1;
+}
+
+/* Entry 2 renders no left rail: §1 marks it "[optional]" and its only content
+   is the block list, which is the engine's own model (roadmap.md §0c). The
+   track is removed rather than left empty — .k-record-form--no-nav's rule. */
+.k-editor--no-rail {
+    grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.k-editor-canvas {
+    /* §1: "scrolls independently, padding 20–28". */
+    padding: var(--esp-24);
+    /* Both axes, and the x is not decoration: §3 says the editor is usable at
+       320 CSS px, and the engine's own DOM is wider than that at every
+       viewport. Measured, the page scrolled 147px sideways (WCAG 1.4.10) —
+       the same failure D-078 and D-079 each shipped once, and each time the
+       containment READING said it was fine while the page really scrolled. */
+    overflow: auto;
+    min-height: 0;
+    /* A grid child's default min-width is auto, so without this the canvas
+       widens the whole track instead of scrolling inside it. */
+    min-width: 0;
+}
+
+/* §1 canvas, Page editor: "a URL line in mono at the top". §4 makes it a real
+   form control with a visible label, never an inline-editable span. */
+.k-editor-url {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--esp-8);
+    margin-bottom: var(--esp-16);
+}
+
+.k-editor-url-base {
+    font: var(--type-body-mono);
+    /* --texto-primario, and it is measured rather than aesthetic: the canvas
+       sits on --fondo-ventana, OUTSIDE any card, where --texto-secundario is
+       4.46:1 in light — DR-005 gap 2's exact pair, and the same arithmetic
+       .k-section-nav-item already carries. It is fixed here rather than
+       registered because NO delivered file states this element's colour:
+       template-editor-split.md §1 asks for a URL line "in mono" and names a
+       colour for the SLUG alone, so the token was the build's own choice and
+       the build owns the defect. */
+    color: var(--texto-primario);
+}
+
+/* §1: "with the slug in --color-acento". It is the control's own text, so the
+   colour lands on the input rather than on a span wrapping it. */
+.k-editor-url .k-control {
+    font: var(--type-body-mono);
+    color: var(--color-acento);
+    max-width: min(320px, 100%);
+}
+
+.k-inspector {
+    /* §1: 300px, --fondo-elevado, left border, scrolls independently. */
+    background: var(--fondo-elevado);
+    border-left: 1px solid var(--borde-control);
+    overflow-y: auto;
+    min-height: 0;
+    padding: var(--esp-16);
+}
+
+/* §1: "collapsible sections, each with a mono uppercase eyebrow and a
+   chevron". §4 makes the eyebrow an <h3> whose button carries aria-expanded
+   and controls its panel. */
+.k-inspector-section + .k-inspector-section {
+    margin-top: var(--esp-12);
+    border-top: 1px solid var(--borde-control);
+    padding-top: var(--esp-12);
+}
+
+.k-inspector-heading {
+    margin: 0;
+    font: var(--type-eyebrow);
+}
+
+.k-inspector-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-8);
+    width: 100%;
+    /* accessibility.md §7: 24 x 24 minimum; 30px is §1's own row height. */
+    min-height: 30px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--texto-secundario);
+    font: var(--type-eyebrow);
+    text-transform: uppercase;
+    text-align: left;
+    cursor: pointer;
+}
+
+.k-inspector-toggle:hover {
+    color: var(--texto-primario);
+}
+
+/* The chevron is CSS, not an icon in the sprite: navigation.md §8 assigns
+   ks-chevron_right to the rail's Expand button and nothing here, and inventing
+   a glyph is exactly what DR-003 exists to prevent. Rotating a bordered square
+   keeps it out of the accessibility tree entirely. */
+.k-inspector-chevron {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform var(--dur-hover) ease;
+}
+
+.k-inspector-toggle[aria-expanded="true"] .k-inspector-chevron {
+    transform: rotate(45deg);
+}
+
+.k-inspector-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-12);
+    padding-top: var(--esp-12);
+}
+
+/* §1: "Rows are label/control pairs at 30px." */
+.k-inspector-panel .k-control,
+.k-inspector-panel .k-choice {
+    min-height: 30px;
+}
+
+/* The toolbar's save state — template-shell.md §1 puts it between the
+   breadcrumb and the actions, and §2 of this template gives it three
+   readings. .k-save-state's geometry is the shell's; only the failed
+   reading's colour is the editor's, and it is a tint pair rather than the
+   bare --color-aviso, which is the composition DR-009 measures. */
+.k-save-state--failed {
+    background: var(--tinte-aviso);
+    color: var(--sobre-tinte-aviso);
+    border-radius: var(--radio-pildora);
+    padding: 0 var(--esp-8);
+}
+
+/* §2 Autosave — failed, second failure: an inline role="alert" under the
+   toolbar. It never covers the canvas and never takes focus away from it. */
+.k-editor-alert {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--esp-8);
+    margin: 0;
+    padding: var(--esp-12) var(--esp-16);
+    background: var(--tinte-peligro);
+    color: var(--sobre-tinte-peligro);
+    font: var(--type-body);
+}
+
+/* [hidden] must actually hide, and in this layer three nodes declare a
+   display that would otherwise beat the UA rule: the alert panel (flex), the
+   inspector's disclosure panels (flex, toggled by the script) and the toolbar
+   trigger (a .k-btn, inline-flex, which SHIPS hidden so that with JavaScript
+   off there is no dead control). This is the defect keel-verify's own check
+   caught here, after D-079's bulk bar and D-085's copy button — the third
+   time, and the first time a check found it instead of a person. */
+.k-editor-alert[hidden],
+.k-inspector-panel[hidden],
+.k-inspector-trigger[hidden] {
+    display: none;
+}
+
+/* §3, 1200–1439: inspector 280. */
+@media (max-width: 1439px) {
+    .k-editor {
+        grid-template-columns: 240px minmax(0, 1fr) 280px;
+    }
+
+    .k-editor--no-rail {
+        grid-template-columns: minmax(0, 1fr) 280px;
+    }
+}
+
+/* §3, 900–1199: the inspector becomes a right-side sheet opened from the
+   toolbar — role="dialog", non-modal, Esc closes and returns focus. The
+   canvas takes the full width. Below 900 §3 makes the same sheet full
+   screen, so one rule covers both and the query below only changes its
+   geometry. */
+@media (max-width: 1199px) {
+    .k-editor,
+    .k-editor--no-rail {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The sheet geometry is scoped to [role="dialog"], and only the script
+       sets that attribute. With JavaScript off there is no sheet at all: the
+       grid has already collapsed to one column, so the inspector simply
+       stacks under the canvas and every control in it is still reachable.
+       A fixed overlay that nothing can close would be the alternative, and
+       "the admin must work with JS disabled" is §2's own rule. */
+    .k-inspector[role="dialog"] {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        width: 320px;
+        max-width: 100%;
+        box-shadow: var(--sombra-hoja);
+    }
+}
+
+@media (max-width: 899px) {
+    /* §3, < 900: "Autosave state moves from the toolbar into the page status
+       region so it is not truncated." The script already writes every reading
+       to the shell's polite region, so moving it is removing it from here —
+       and it is also what stops a toolbar of trigger + breadcrumb + state +
+       two actions scrolling the page sideways at 320 CSS px. */
+    .k-save-state {
+        display: none;
+    }
+
+    .k-editor-canvas {
+        /* §3, < 900: "Canvas is single-column, padding 16." */
+        padding: var(--esp-16);
+    }
+
+    .k-inspector[role="dialog"] {
         width: 100%;
     }
 }

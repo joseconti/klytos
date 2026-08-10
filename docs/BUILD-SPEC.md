@@ -878,19 +878,25 @@ file at the moment the state is built**, never retroactively.
 | Chart + its `<details>` data table (mandatory); **table replaces chart below 900** | §3, §4 | ☐ |
 
 #### editor-split — `SPEC/screens/template-editor-split.md`
+
+> Entry 2 is built as **chrome to spec with the canvas interior deferred** (D-104,
+> `roadmap.md` §0c). The rows marked **deferred** are the engine's own DOM or product
+> that exists nowhere; they are not unbuilt work waiting on nobody. Entries 20, 29 and
+> 40 have not been built at all.
+
 | State | Spec | Built |
 |---|---|---|
-| Default (inspector shows document properties, never blank) | §2 | ☐ |
-| Block hover / focus (`role="group"` + name) / selected (2px accent, inspector switches) | §2 | ☐ |
-| Editing text (`contenteditable` + `role="textbox"`) **and the "Edit as form" fallback** | §2 | ☐ |
-| Autosave in flight / saved / failed (`role="alert"` after the 2nd failure; buffer never discarded) | §2 | ☐ |
-| Loading (media and AI only; cancellable indeterminate progressbar) | §2 | ☐ |
-| Empty — no blocks (inline inserter, not a modal) | §2 | ☐ |
-| Error — a block cannot render (still selectable and deletable) | §2 | ☐ |
-| Error — publish rejected (inline `role="alert"`, each blocker a link) | §2 | ☐ |
-| Success — "Published — <url>" in the status region | §2 | ☐ |
-| Disabled publish while blockers exist (count in the accessible name) | §2 | ☐ |
-| Responsive: inspector → sheet 900–1199; rail → `<select>` and inspector → modal <900 | §3 | ☐ |
+| Default (inspector shows document properties, never blank) | §2 | ☑ entry 2 (D-105) |
+| Block hover / focus (`role="group"` + name) / selected (2px accent, inspector switches) | §2 | **deferred — engine interior** |
+| Editing text (`contenteditable` + `role="textbox"`) **and the "Edit as form" fallback** | §2 | **deferred — engine interior** |
+| Autosave in flight / saved / failed (`role="alert"` after the 2nd failure; buffer never discarded) | §2 | ☑ entry 2 (D-105) |
+| Loading (media and AI only; cancellable indeterminate progressbar) | §2 | **deferred — engine interior** |
+| Empty — no blocks (inline inserter, not a modal) | §2 | **deferred — engine interior** |
+| Error — a block cannot render (still selectable and deletable) | §2 | **deferred — engine interior** |
+| Error — publish rejected (inline `role="alert"`, each blocker a link) | §2 | **deferred — no validator exists** |
+| Success — "Published — <url>" in the status region | §2 | ☑ entry 2 (D-105) |
+| Disabled publish while blockers exist (count in the accessible name) | §2 | **deferred — with the blockers** |
+| Responsive: inspector → sheet 900–1199; rail → `<select>` and inspector → modal <900 | §3 | ☑ entry 2 (D-105) — the rail is absent, §1 marks it optional |
 
 #### gallery-grid — `SPEC/screens/template-gallery-grid.md`
 | State | Spec | Built |
@@ -1005,7 +1011,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | # | Screen | Template rows | Manifest deltas | Accessibility (§5.5) | Driven (§5.9) |
 |---|---|---|---|---|---|
 | 1 | Pages | ☐ | ☐ §1 | ☐ | ☐ |
-| 2 | Page editor | ☐ | ☐ §2 | ☐ | ☐ |
+| 2 | Page editor | ☑ chrome | ☑ §2 | ☑ | ☑ (D-105; interior deferred, §0c) |
 | 3 | Design (theme) | ☐ | ☐ §3 | ☐ | ☐ |
 | 4 | Assets | ☐ | ☐ §4 | ☐ | ☐ |
 | 5 | Users | ☐ | ☐ §5 | ☐ | ☐ |
@@ -1434,6 +1440,10 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 53 | **Entry 32's H1 stays the composite `{taxonomy} — {post type}`**, where §32 specifies a flat **Taxonomies** | Two recorded artifacts disagree and neither may be silently picked: §32 plus `SPEC/navigation.md` describe one global Taxonomies screen, while the product stores taxonomies INSIDE post types and this screen cannot render without knowing which. **DR-010 is drafted, not sent** | Provisional and explicitly so. The composite names the thing actually on screen, which is the honest holding pattern; it is replaced by whatever DR-010 answers. The finding that raised it: entry 32 is the first consumer of the `taxonomies` nav row, and that row has redirected to Content model on every install since stage 2 |
 | 54 | **Entry 32's Parent field is ABSENT on a flat taxonomy, not disabled** | `template-record-form.md` §2's disabled state is for a control that exists and is momentarily unavailable, and it **requires a one-line reason beside the label**. A flat taxonomy has no parenthood to explain, so any reason written there would be untrue | Yes — the honest form is three fields on a flat taxonomy and four on a hierarchical one, which is also what `addTerm()`'s own scalar field set describes. Pinned by a test in both directions |
 | 55 | **Entry 32's terms are listed with `k-collection`, not §32's five-column `k-table`** | The table half is doubly blocked: its `grid-template-columns` are DR-006's, and its **`Count` column has no data source in the product at all** — no record is ever associated with a term. Building four of the five columns would be inventing a table; leaving the shipped legacy one would leave its own defects in place | Yes, and it invents nothing: `k-collection` is the component entry 19 already uses for these very records, it needs no grid widths, and it names a term's parent rather than drawing §32's nested `<ul>`, which belongs to the table. The deferral is in `roadmap.md` §0c (D-102) |
+| 56 | **Entry 2 renders NO left rail**, so the three-column template is built with two | `template-editor-split.md` §1 marks the rail "[optional]", and its only content on this screen is the BLOCK LIST — the engine's own model, deferred with the rest of the canvas interior (D-104, `roadmap.md` §0c). The track is removed rather than rendered empty, exactly as `.k-record-form--no-nav` removes the section-nav track | Yes — the geometry the delivery specifies for the remaining two columns is unchanged (canvas + 300px inspector, 280 at 1200–1439), and restoring the rail is one modifier the day the block list has a source |
+| 57 | **The custom fields stay in the CANVAS**, below the engine, rather than moving into the inspector | The delivery draws them nowhere at all, so there is no value to be faithful to — and §1 makes inspector rows "label/control pairs at 30px" in a 300px column, while this product's custom fields are 27 typed controls including repeaters and rich text. Squeezing them there would be inventing a layout the delivery never specified, in the narrowest place on the screen | Yes — no shipped control moves out of reach and nothing about the specified inspector changes. Recorded so the omission is a decision, never a forgotten row |
+| 58 | **Entry 2's toolbar carries the primary status and the draft; every other status of the post type submits from the inspector** | `template-shell.md` §1 bounds the toolbar at two actions — "NEVER three. A third action belongs in the page." This product renders one submit per status and a post type may define custom ones, so the bound and the shipped behaviour can only both hold by putting the remainder in the page, which is where §1 itself sends them | Yes, and it is the delivery's own instruction. No control is removed (D-076's rule) and none is duplicated: each status appears exactly once, and the two in the toolbar are secondary-then-primary in that order |
+| 59 | **The editor's chrome behaviour is a new file, `assets/js/klytos-page-editor.js`** | §5.9's table names a stylesheet per layer and no script for this template. The behaviour — three autosave readings, the disclosure sections, the sheet modes — belongs to editor-split rather than to entry 2, and the three other screens on this template will need it unchanged. Leaving it inline in `page-editor.php` would guarantee three copies | Yes — a filename is not a design value, exactly as adaptations 2, 3 and 6 record. It knows nothing about blocks by design: reaching into the engine's DOM is the one thing this stage must not do |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

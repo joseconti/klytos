@@ -2083,3 +2083,117 @@ entries 11, 14, 17 and 22 were: it is product, not fidelity.
   (`seed-data.php:236`). `template-preview.php:85` compares the same field
   correctly, so the two screens disagree about the same record. It belongs to
   entry 31/42's slices, both of which are out of stage 6's scope.
+
+## D-105 — Stage 6, entry 2 (Page editor): the chrome built to the letter, and five shipped defects the driving found
+
+**Date:** 2026-08-10 · **Phase 4, stage 6 of 6, slice 1 of 3** · Supersedes nothing.
+D-104 is the survey this implements; the canvas interior stays deferred exactly as it records.
+
+### What was built
+
+`template-editor-split.md`'s chrome, in full, around an engine this build does not
+touch:
+
+- **The shell is back.** The screen shipped `.k-sidebar { display: none !important }`
+  and three more like it, so the primary navigation, the breadcrumb and the status
+  bar were absent from the screen a person spends longest on. It now uses stage 2's
+  own `$shellFullBleed` mechanism, which was BUILT FOR THIS SCREEN in stage 2 and had
+  never had a consumer — L-030's shape once more.
+- **§4's heading rule:** the `<h1>` is the record being edited, the last crumb repeats
+  it and is not a link, and an unsaved record gets the action rather than an empty
+  string.
+- **§1's canvas:** `<section aria-label>` with the URL line at the top — and §4's
+  "a real form control with a visible label, not an inline-editable span", which the
+  slug was NOT: it was a hidden input, so the slug could not be edited here at all.
+- **§1's inspector:** `<aside aria-label>`, `<h3>` + `aria-expanded` disclosures, and
+  §2's "never blank" — document properties always. The tab pair it replaces had a
+  second tab whose only content was "Select a block to see its settings", which is
+  precisely the blank panel §2 forbids.
+- **§2's three autosave readings** in the toolbar's save-state slot, with `aria-busy`
+  on the shell's wrapper, one polite announcement per save, and the second-failure
+  `role="alert"` offering Retry now and Copy the content. Autosave itself already
+  existed (`api/autosave.php`, 60 s); what did not exist was any of its states.
+- **§3's sheet:** at ≤1199 the inspector is a `role="dialog"` non-modal sheet opened
+  from the toolbar, focus moves in, Esc closes and returns focus; below 900 the save
+  state leaves the toolbar for the page status region, exactly as §3 requires.
+- **template-shell.md §1's "NEVER three":** the toolbar carries the primary status and
+  the draft; every other status of the post type submits from the inspector — "a third
+  action belongs in the page", read literally. No shipped control is removed (D-076)
+  and none is duplicated.
+- **i18n: 36 new keys × 20 catalogues**, spliced as text and each file re-parsed.
+
+### The rail is deferred WITH the canvas, and that is a decision
+
+§1 marks the left rail "[optional]" and its only content here is the block list, which
+is the engine's own model. The track is removed rather than rendered empty, the same
+way `.k-record-form--no-nav` removes the section-nav track.
+
+### FIVE real defects, every one found by DRIVING
+
+1. **Creating a page from this screen was FATAL on every install.**
+   `$pm->create( $saveSlug, $data )` against `PageManager::create( array $data )` —
+   an uncaught `TypeError` and an HTTP 500. It survived because the suite covers
+   `PageManager` directly and the screen's POST handler had never had a test.
+   **`red observed: Uncaught TypeError: Klytos\Core\PageManager::create(): Argument #1
+   ($data) must be of type array, string given` in the product log**, before the fix.
+2. **The 56px rail left all 34 nav links with NO accessible name** —
+   `.k-nav-label` and `.k-nav-count` were `display: none`, which removes them from the
+   accessibility tree. Shipped since stage 2; found by the first axe pass run over the
+   WHOLE page at a rail width. Fixed with the visually-hidden treatment the group
+   caption one rule below already used.
+3. **The x402 editor fields had no accessible name either** — a `<label>` with no
+   `for` that did not wrap its control, on both the select and the price input
+   (`x402-bootstrap.php`). Pre-existing, critical, and reachable on every page that
+   has x402 in its post type.
+4. **The SEO preview painted three verdicts in `--admin-*` tokens the redesign
+   removed**, so the text rendered as an unresolved variable over `--fondo-elevado`.
+   Colour was never the only cue there, so the inline colours are dropped rather than
+   re-tinted.
+5. **147px of horizontal page scroll at 320 CSS px (WCAG 1.4.10)** — `1fr` is
+   `minmax(auto, 1fr)`, so the shell's own column sized to the block engine's
+   min-content and the WHOLE shell scrolled sideways, toolbar and status bar included.
+   `min-width: 0` on `<main>` could not help while the TRACK was still sizing to
+   content, which is why the first fix did not move the number. **Build rule 1's
+   mechanism for the seventh distinct time.**
+
+### DR-005 gains its THIRD addendum, and a fourth surface for gap 2
+
+- **Addendum 3 — the sidebar's current nav item AGAIN, its COUNT this time.**
+  `--texto-sutil` over `--fila-seleccion` measures **3.39:1 dark / 3.96:1 light** —
+  worse than the label addendum 2 registered, and a different token pair, so that
+  exclusion does not cover it. It took until stage 6 because the pair only exists when
+  the CURRENT nav item carries a count, and every earlier spec's screen is an item
+  without one. The page editor's parent is Pages, which has one.
+- **Gap 2 reaches its third surface:** `--color-acento` on `--fondo-ventana`,
+  **4.23:1** light — the ratio DR-005 itself measured — because §1 requires the slug
+  "in `--color-acento`" and the canvas sits outside any card. Registered by selector,
+  pinned as a floor, never substituted (Phase 4 rule 2).
+- **`.k-editor-url-base` was FIXED rather than registered**, on `.k-section-nav-item`'s
+  precedent: no delivered file states that element's colour, so the token was the
+  build's own choice and the build owns the 4.46:1.
+
+### The link layer's container list is an enumeration, and that is the trap
+
+`.k-inspector` had to be ADDED to `:is(.k-card, .k-bulkbar, …)` or a plain link in the
+inspector fell back to `klytos-base.css`'s bare `a` and painted the pre-redesign
+`#5B8DEF` — measured 4.31:1 dark, the identical pair D-079 found on a card. Every new
+container owes that line, and nothing enforces it yet.
+
+### Evidence
+
+`tests/E2E/page-editor.spec.js` — **25 tests**, all passing, both themes, four
+viewports, `KPORT=8176` (bind + owning PID 5231 + no `Server:` header confirmed,
+`--reset` seeded). PHP **360 / 1679**, 0 skips (unchanged — no PHP behaviour outside
+the two fixes above). `keel-verify` **23 checks: 17 pass, 6 warnings** — and its own
+"a hidden `k-*` component actually hides" check FAILED first, on `.k-editor-alert`,
+which is the third occurrence of that defect and the FIRST one a check caught instead
+of a person. `page-editor.php` lint **1 error → 0**.
+
+**And one finding about the TIER rather than about a screen, recorded rather than
+smoothed over:** the whole-tier run is **472 / 477**, and all five failures are
+30-second timeouts inside `login()`'s own `waitForURL`, from test 196 onward, across
+three spec files. The run now takes **12.2 minutes** and logs in once per test, so it
+has outgrown the login throttle. Re-running exactly those three files together gives
+**69 / 69 in 1.5 minutes**, which is what separates a harness-scale effect from a
+product defect. The fix is the harness's — a reused storage state, or a seed that
+lifts the limit — and it is owed before entries 23 and 12 make the tier larger still.

@@ -312,8 +312,18 @@ if ( ! function_exists( 'klytos_admin_icon' ) ) {
     // Save state — editor screens only; empty everywhere else.
     $saveState = klytos_apply_filters( 'admin.topbar_center', '' );
     if ( $saveState !== '' ):
+        /*
+         * aria-busy lives on the WRAPPER, which is the shell's node, because
+         * template-editor-split.md §2 puts it there: "the toolbar's save state
+         * reads 'Saving…' with aria-busy="true" on its wrapper". The screen
+         * fills the text; the shell owns the region and its identity, so a
+         * second editor screen cannot invent a second id for the same slot.
+         */
         ?>
-        <span class="k-save-state"><?php echo klytos_kses_post( $saveState ); ?></span>
+        <span class="k-save-state"
+              id="k-save-state"
+              aria-busy="false"
+              data-testid="shell.save_state"><?php echo klytos_kses_post( $saveState ); ?></span>
     <?php endif; ?>
 
     <?php
@@ -343,7 +353,7 @@ if ( ! function_exists( 'klytos_admin_icon' ) ) {
     $klytosToolbarTags = klytos_apply_filters( 'admin.toolbar_allowed_tags', [
         'button' => [
             'type' => true, 'class' => true, 'id' => true, 'name' => true, 'value' => true,
-            'form' => true, 'disabled' => true, 'aria-label' => true, 'aria-describedby' => true,
+            'form' => true, 'disabled' => true, 'hidden' => true, 'aria-label' => true, 'aria-describedby' => true,
             'aria-expanded' => true, 'aria-controls' => true, 'aria-pressed' => true,
             'data-testid' => true,
         ],

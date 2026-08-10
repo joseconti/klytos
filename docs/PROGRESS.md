@@ -1251,6 +1251,66 @@
     `css/klytos-components.css` (the file the BUILD writes — taking it would be a principle-8
     violation) and the prototypes' Font Awesome CDN link (scaffolding; the delivered sprite is the
     icon source).
+  - **Stage 6 of 6 — THE SPECIALISED SCREENS — SLICE 1: entry 2 (Page editor), 2026-08-10
+    (D-105).** Built as **chrome to spec with the canvas interior deferred**, which is
+    what D-104 decided before a line was written. The engine (Gutenberg or TinyMCE) is
+    untouched; everything around it is the delivery's, in full.
+    - **The shell is back on this screen.** It shipped `.k-sidebar { display: none
+      !important }` and three more like it, so the navigation, the breadcrumb and the
+      status bar were absent from the screen a person spends longest on. It now uses
+      stage 2's own `$shellFullBleed`, which was built FOR this screen and had never
+      had a consumer.
+    - **What is new and specified:** the `<h1>` is the record (§4) · the canvas is a
+      labelled `<section>` whose URL line is a **real form control with a visible
+      label** — the slug was a HIDDEN input, so it could not be edited here at all ·
+      the inspector is an `<aside>` of `<h3>` + `aria-expanded` disclosures that is
+      **never blank** (the tab it replaces was a permanent "Select a block to see its
+      settings") · §2's three autosave readings with `aria-busy` on the shell's
+      wrapper and the second-failure `role="alert"` · §3's `role="dialog"` sheet at
+      ≤1199 with focus in, Esc out and focus returned · the save state leaving the
+      toolbar below 900 · and template-shell.md's **"NEVER three"** met by putting the
+      primary status and the draft in the toolbar and every other status in the page.
+    - **FIVE real defects, every one found by driving.** (1) **Creating a page was
+      FATAL on every install** — `$pm->create( $saveSlug, $data )` against
+      `create( array $data )`, an uncaught `TypeError` and a 500, surviving because
+      the screen's POST handler had never had a test. (2) **The 56px rail left all 34
+      nav links with no accessible name** (`display:none` on the label and the count),
+      shipped since stage 2 and invisible until the first axe pass at a rail width.
+      (3) **The x402 editor fields had no accessible name either** — a `<label>` with
+      no `for` that wraps nothing. (4) The SEO preview painted verdicts in `--admin-*`
+      tokens the redesign removed. (5) **147px of horizontal page scroll at 320 CSS
+      px** — `1fr` is `minmax(auto, 1fr)`, so the SHELL's own track sized to the block
+      engine's min-content: **build rule 1's seventh distinct mechanism**, and the
+      reason `min-width: 0` on `<main>` did not move the number.
+    - **DR-005 gains a THIRD ADDENDUM** — the current nav item's **count**,
+      `--texto-sutil` over `--fila-seleccion`, **3.39:1 dark / 3.96:1 light**, worse
+      than the label addendum 2 registered and a different pair. It exists only when
+      the CURRENT item carries a count, which no earlier spec's screen does. **Gap 2
+      reaches a fourth surface** at its own 4.23:1 (the slug, which §1 requires in
+      `--color-acento`, on `--fondo-ventana`). Both registered by selector with their
+      ratios pinned as floors; `.k-editor-url-base` was FIXED instead, because no
+      delivered file states that element's colour.
+    - **`keel-verify`'s own "a hidden `k-*` component actually hides" check FAILED
+      first**, on `.k-editor-alert` — the third occurrence of that defect and the
+      first a check caught instead of a person.
+    - **i18n: 36 new keys × 20 catalogues**, spliced as text, every file re-parsed.
+    - **Tree state:** PHP **360 / 1679**, 0 skips (unchanged) · browser tier **477
+      tests** (452 + 25 new), `KPORT=8176`, bind + owning PID 5231 + no `Server:`
+      header confirmed, `--reset` seeded · `keel-verify` **23 checks: 17 pass, 6
+      warnings** (unchanged) · `page-editor.php` lint **1 error → 0**.
+    - **The whole-tier run was 472 / 477, and the five are NOT this slice's screens
+      failing — they are the TIER outgrowing the login throttle.** Every one is a
+      30-second timeout inside `login()`'s own `waitForURL`, spread across three spec
+      files (`page-editor` ×2, `content-model` ×1, `post-type` ×2) from test 196
+      onward; the run takes **12.2 minutes** and logs in once per test. Re-running
+      exactly those three files together: **69 / 69 passing in 1.5 minutes.** It is
+      reported rather than smoothed over, and the fix belongs to the HARNESS — a
+      reused storage state, or a playground seed that lifts the limit — not to any
+      screen. **First time the tier has had this shape**, and it will get worse with
+      entries 23 and 12.
+    - **Still owed for stage 6: entry 23 (Terminal, with NEW-33) and entry 12 (AI
+      chat, with its two shipped defects and the two-`<h1>` finding).**
+
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
   NEW-46 and NEW-49 cannot be reasoned about honestly until the client address is trustworthy —

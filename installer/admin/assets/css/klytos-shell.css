@@ -91,6 +91,33 @@
 .k-shell--full-bleed .k-main {
     padding: 0;
     overflow: hidden;
+    /* Stage 6 (template-editor-split.md §1) needs the second half of "this
+       template owns its own scroll regions": main must be a fixed-height
+       column so the canvas and the inspector inside it can scroll
+       independently. Without min-height:0 a grid/flex child grows to its
+       content instead of scrolling, and both panes would push the page. */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    /* The x axis of the same rule. A grid item's default min-width is auto, so
+       without this the 1fr column widens to the widest thing inside it — the
+       block engine's own DOM — and the WHOLE SHELL scrolls sideways, toolbar
+       and status bar included. Measured at 320 CSS px: 147px of horizontal
+       page scroll, WCAG 1.4.10. */
+    min-width: 0;
+}
+
+/* Paired with the rule above: the shell is exactly the viewport on these two
+   screens, never taller. .k-shell's own min-height:100vh lets it grow, which
+   is right everywhere else and wrong here. */
+.k-shell--full-bleed {
+    height: 100vh;
+    /* And the track itself, not only the item in it: `1fr` is `minmax(auto,
+       1fr)`, so its MINIMUM is the content's min-content width. min-width:0 on
+       <main> could not help while the column it sits in was still sizing to
+       the block engine's DOM — measured twice at 320 CSS px, 147px both times,
+       which is what stopped the first fix being believed. */
+    grid-template-columns: 232px minmax(0, 1fr);
 }
 
 /* ============================================================
@@ -572,15 +599,31 @@
 /* 900–1199 — 56px icon rail. */
 @media (min-width: 900px) and (max-width: 1199px) {
     .k-shell:not(.k-shell--nav-expanded) {
-        grid-template-columns: 56px 1fr;
+        grid-template-columns: 56px minmax(0, 1fr);
     }
 
-    .k-shell:not(.k-shell--nav-expanded) .k-nav-label,
-    .k-shell:not(.k-shell--nav-expanded) .k-nav-count,
     .k-shell:not(.k-shell--nav-expanded) .k-brand-version,
     .k-shell:not(.k-shell--nav-expanded) .k-account-identity,
     .k-shell:not(.k-shell--nav-expanded) .k-search-hint {
         display: none;
+    }
+
+    /* The label and the count are the nav link's ACCESSIBLE NAME, so at the
+       rail they are visually hidden — the same treatment the group caption
+       already had one rule below — and never `display: none`, which removes
+       them from the accessibility tree and leaves 34 links called nothing at
+       all. Shipped since stage 2 and invisible until stage 6, because this is
+       the first spec to run axe over the WHOLE page at a rail width: every
+       earlier one scanned the reference viewport. L-037's shape on the other
+       axis — the right scope, the wrong VIEWPORT. */
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-label,
+    .k-shell:not(.k-shell--nav-expanded) .k-nav-count {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
     }
 
     /* Group captions become 1px rules; the <h2> stays, visually hidden, so the
@@ -617,7 +660,7 @@
 /* < 900 — off-canvas drawer. */
 @media (max-width: 899px) {
     .k-shell {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
             "toolbar"
             "main"
