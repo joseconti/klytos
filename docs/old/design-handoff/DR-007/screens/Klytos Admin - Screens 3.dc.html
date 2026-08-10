@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/colors.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/typography.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/effects.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/motion.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/platform.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/tokens/glass.css">
+<link rel="stylesheet" href="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+<script src="_ds/packdesk-design-system-9c54ce89-6ed3-479d-9eac-56b3ae4a97e1/_ds_bundle.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:#E7E7EA;color:#1D1D1F;font-family:"Geist",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#0E8074;text-decoration:none}
+  a:hover{color:#0a6b61;text-decoration:underline}
+  .material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 300,'GRAD' 0,'opsz' 24;user-select:none}
+  @keyframes klytos-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+  @keyframes klytos-pulse{0%,100%{opacity:.35;transform:scale(.7)}50%{opacity:1;transform:scale(1)}}
+</style>
+</helmet>
+
+<div style="padding:48px 48px 72px;display:flex;flex-direction:column;gap:18px;width:1536px">
+
+  <div>
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+      <span style="font:600 11px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:#6E6E73">Copilot dock · batch 3</span>
+      <h1 style="font:700 26px/32px var(--font-ui);letter-spacing:-0.02em;color:#1D1D1F">Setup, monetisation, content model and the machine room</h1>
+    </div>
+    <p style="font:400 13px/20px var(--font-ui);color:#6E6E73;max-width:880px;text-wrap:pretty">The screens a site owner meets once — the install wizard — and the ones only the owner ever sees: x402 pay-per-crawl revenue, custom post types and statuses, the translation matrix for en/es/ca, the block and template library, system health (logs, scheduled actions, integrity, updates) and the 2FA-gated terminal.</p>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ screenChips }}" as="s" hint-placeholder-count="7">
+      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ s.selected }}" on-click="{{ s.onClick }}" hint-size="auto,24px">{{ s.label }}</x-import>
+    </sc-for>
+    <span style="width:1px;height:20px;background:rgba(0,0,0,0.12);margin:0 6px"></span>
+    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" on-click="{{ toggleTheme }}" hint-size="auto,24px">{{ themeLabel }}</x-import>
+  </div>
+
+  <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ frameW }}" height="{{ frameH }}" url="{{ url }}" tabs="{{ tabs }}" hint-size="1440px,976px">
+    <div data-theme="{{ theme }}" data-screen-label="{{ label }}" style="width:100%;height:100%;display:flex;position:relative;background:var(--fondo-ventana);color:var(--texto-primario);font-family:var(--font-ui);overflow:hidden">
+
+      <sc-if value="{{ isWizard }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;display:flex;min-width:0">
+          <aside style="width:290px;flex-shrink:0;background:var(--glass-fallback-sidebar);border-right:1px solid var(--separador);display:flex;flex-direction:column;padding:26px 22px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px">
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.AppIcon" size="{{ midIcon }}" gradient="{{ yes }}" hint-size="30px,30px"></x-import>
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Logo" first="Kly" second="tos" size="{{ logoBig }}" hint-size="auto,22px"></x-import>
+              <span style="margin-left:auto;font:500 10px/14px var(--font-mono);color:var(--texto-terciario)">Step 5 / 7</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ wizardSteps }}" as="w" hint-placeholder-count="7">
+                <div style="display:flex;align-items:flex-start;gap:11px;padding:9px 10px;border-radius:8px;background:{{ w.bg }}">
+                  <span style="width:20px;height:20px;border-radius:999px;background:{{ w.dotBg }};color:{{ w.dotFg }};display:flex;align-items:center;justify-content:center;flex-shrink:0;font:600 10px/20px var(--font-mono);border:1px solid {{ w.dotBorder }}"><span class="material-symbols-outlined" style="font-size:13px;display:{{ w.checkDisplay }}">check</span>{{ w.num }}</span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font:{{ w.font }} 13px/18px var(--font-ui);color:{{ w.fg }}">{{ w.label }}</span>
+                    <span style="display:block;font:400 11px/16px var(--font-ui);color:var(--texto-terciario);text-wrap:pretty">{{ w.hint }}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top:auto;display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:8px;background:var(--tinte-offline)">
+              <span class="material-symbols-outlined" style="font-size:17px;color:var(--texto-secundario)">lock</span>
+              <span style="flex:1;font:400 11px/16px var(--font-ui);color:var(--texto-secundario)">Keys are encrypted at rest with the key you backed up in step 4.</span>
+            </div>
+          </aside>
+
+          <div style="flex:1;min-width:0;overflow-y:auto;padding:34px 40px 40px;background:var(--fondo-ventana)">
+            <div style="max-width:720px;display:flex;flex-direction:column;gap:20px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--color-acento)">Intelligence</span>
+                <h2 style="font:700 24px/30px var(--font-ui);letter-spacing:-0.01em;color:var(--texto-primario)">Connect your AI assistant</h2>
+                <p style="font:400 13px/20px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">Klytos writes, edits and builds through a model you own. Bring a key for one provider now — you can add the rest later, and nothing is sent anywhere until you ask for it.</p>
+              </div>
+
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+                <sc-for list="{{ providers }}" as="p" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;gap:7px;padding:13px;border:1px solid {{ p.border }};border-radius:10px;background:{{ p.bg }}">
+                    <span style="display:flex;align-items:center;gap:8px">
+                      <span style="width:24px;height:24px;border-radius:6px;background:{{ p.tint }};color:{{ p.color }};display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:15px">{{ p.icon }}</span></span>
+                      <span style="font:600 12px/16px var(--font-ui);color:var(--texto-primario)">{{ p.name }}</span>
+                    </span>
+                    <span style="font:400 11px/15px var(--font-ui);color:var(--texto-terciario);text-wrap:pretty">{{ p.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,220px">
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Anthropic API key</span>
+                    <div style="height:34px;padding:0 11px;border:1px solid var(--color-acento);border-radius:6px;background:var(--fondo-ventana);font:400 13px/34px var(--font-mono);color:var(--texto-primario);outline:2px solid var(--color-acento);outline-offset:2px;display:flex;align-items:center;gap:8px">
+                      <span style="flex:1">sk-ant-api03-••••••••••••••••••••••••7f4b</span>
+                      <span class="material-symbols-outlined" style="font-size:16px;color:var(--color-exito)">verified</span>
+                    </div>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Verified 2 seconds ago · 4 models available</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                      <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Default model</span>
+                      <div style="height:34px;padding:0 11px;border:1px solid var(--separador);border-radius:6px;background:var(--fondo-ventana);display:flex;align-items:center;gap:8px">
+                        <span style="flex:1;font:400 13px/34px var(--font-mono);color:var(--texto-primario)">claude-sonnet-4-5</span>
+                        <span class="material-symbols-outlined" style="font-size:16px;color:var(--texto-terciario)">unfold_more</span>
+                      </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px">
+                      <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Monthly spend cap</span>
+                      <div style="height:34px;padding:0 11px;border:1px solid var(--separador);border-radius:6px;background:var(--fondo-ventana);display:flex;align-items:center;gap:8px">
+                        <span style="flex:1;font:400 13px/34px var(--font-mono);color:var(--texto-primario)">$40.00</span>
+                        <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">then stop</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </x-import>
+
+              <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,230px">
+                <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--separador)">
+                  <span class="material-symbols-outlined" style="font-size:17px;color:var(--color-acento)">smart_toy</span>
+                  <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">MCP configuration</span>
+                  <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Paste into Claude Desktop, Claude Code or any MCP client</span>
+                  <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,26px">Copy</x-import></span>
+                </div>
+                <div style="padding:14px 16px;background:var(--fondo-ventana);border-radius:0 0 10px 10px">
+                  <sc-for list="{{ mcpConfig }}" as="l" hint-placeholder-count="8">
+                    <div style="font:400 12px/19px var(--font-mono);color:{{ l.color }};white-space:pre">{{ l.text }}</div>
+                  </sc-for>
+                </div>
+              </x-import>
+
+              <div style="display:flex;align-items:center;gap:10px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" hint-size="auto,34px">Back</x-import>
+                <span style="flex:1"></span>
+                <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">You can skip this and run Klytos without AI</span>
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" hint-size="auto,34px">Test and continue</x-import>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isShell }}" hint-placeholder-val="{{ true }}">
+        <aside style="width:232px;flex-shrink:0;background:var(--glass-fallback-sidebar);border-right:1px solid var(--separador);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:8px;padding:16px 14px 12px">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Logo" first="Kly" second="tos" icon="{{ yes }}" size="{{ logoSize }}" hint-size="auto,24px"></x-import>
+            <span style="margin-left:auto;font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">0.28.5</span>
+          </div>
+          <div style="padding:0 12px 10px;position:relative">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.SearchField" placeholder="Search or ask" hint-size="100%,32px"></x-import>
+            <span style="position:absolute;right:20px;top:50%;transform:translateY(-50%);font:500 10px/14px var(--font-mono);color:var(--texto-terciario);padding:1px 5px;border-radius:4px;background:var(--fila-hover)">⌘K</span>
+          </div>
+          <nav style="flex:1;overflow-y:auto;padding:0 8px 8px;display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ navGroups }}" as="group" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <div style="padding:6px 8px 4px;font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ group.label }}</div>
+                <sc-for list="{{ group.items }}" as="item" hint-placeholder-count="4">
+                  <a href="#b3" onClick="{{ item.onClick }}" style="display:flex;align-items:center;gap:9px;height:30px;padding:0 8px;border-radius:6px;background:{{ item.bg }};color:{{ item.fg }};text-decoration:none">
+                    <span class="material-symbols-outlined" style="font-size:18px;flex-shrink:0">{{ item.icon }}</span>
+                    <span style="flex:1;font:{{ item.font }} 13px/16px var(--font-ui)">{{ item.label }}</span>
+                    <span style="font:500 10px/14px var(--font-mono);color:{{ item.countFg }}">{{ item.count }}</span>
+                  </a>
+                </sc-for>
+              </div>
+            </sc-for>
+          </nav>
+          <div style="border-top:1px solid var(--separador);padding:10px 12px;display:flex;align-items:center;gap:9px">
+            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Avatar" initials="JC" size="{{ avatarSize }}" hint-size="24px,24px"></x-import>
+            <span style="flex:1;min-width:0;font:400 12px/15px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">José Conti · Owner</span>
+            <a href="logout.php" class="material-symbols-outlined" style="font-size:17px;color:var(--texto-terciario);text-decoration:none">logout</a>
+          </div>
+        </aside>
+
+        <main style="flex:1;min-width:0;display:flex;flex-direction:column;background:var(--fondo-ventana)">
+          <div style="height:50px;flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 20px;background:var(--glass-fallback-toolbar);border-bottom:1px solid var(--separador)">
+            <span style="font:400 12px/15px var(--font-ui);color:var(--texto-terciario)">klytos.io</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:var(--texto-terciario)">chevron_right</span>
+            <span style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">{{ title }}</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <sc-for list="{{ toolbarActions }}" as="a" hint-placeholder-count="2">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="{{ a.variant }}" size="sm" hint-size="auto,28px">{{ a.label }}</x-import>
+              </sc-for>
+            </span>
+          </div>
+
+          <div style="flex:1;overflow-y:auto;{{ padStyle }}">
+
+            <sc-if value="{{ isX402 }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;background:var(--tinte-acento)">
+                  <span class="material-symbols-outlined" style="font-size:18px;color:var(--color-acento)">toll</span>
+                  <span style="font:500 12px/17px var(--font-ui);color:var(--texto-primario)">Crawlers pay before they read. Humans and search engines are never charged.</span>
+                  <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-secundario)">Provider</span>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" hint-size="auto,24px">Stripe</x-import>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" hint-size="auto,24px">Coinbase CDP</x-import>
+                  </span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                  <sc-for list="{{ x402Stats }}" as="s" hint-placeholder-count="4">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.StatCard" value="{{ s.value }}" label="{{ s.label }}" delta="{{ s.delta }}" hint-size="100%,74px"></x-import>
+                  </sc-for>
+                </div>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,210px">
+                  <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Daily revenue</h2>
+                    <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">last 30 days · USDC settled daily</span>
+                    <span style="margin-left:auto;font:600 15px/20px var(--font-mono);color:var(--texto-primario)">$128.40</span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;gap:5px;height:104px">
+                    <sc-for list="{{ revenueBars }}" as="b" hint-placeholder-count="30">
+                      <span style="flex:1;height:{{ b.h }};border-radius:3px 3px 0 0;background:{{ b.bg }}"></span>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;margin-top:8px">
+                    <span style="font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">Jun 27</span>
+                    <span style="font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">Jul 26</span>
+                  </div>
+                </x-import>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <sc-for list="{{ x402Tables }}" as="tb" hint-placeholder-count="2">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,260px">
+                      <div style="display:flex;align-items:center;gap:10px;padding:13px 16px 9px">
+                        <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">{{ tb.title }}</h2>
+                        <span style="margin-left:auto;font:400 11px/16px var(--font-ui);color:var(--color-acento)">See all</span>
+                      </div>
+                      <div style="display:grid;grid-template-columns:1fr 70px 90px;gap:12px;padding:0 16px 6px;border-bottom:1px solid var(--separador)">
+                        <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario)">{{ tb.col1 }}</span>
+                        <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:right">Txns</span>
+                        <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:right">Amount</span>
+                      </div>
+                      <sc-for list="{{ tb.rows }}" as="r" hint-placeholder-count="5">
+                        <div style="display:grid;grid-template-columns:1fr 70px 90px;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--separador)">
+                          <span style="min-width:0;display:flex;align-items:center;gap:8px">
+                            <span class="material-symbols-outlined" style="font-size:15px;color:{{ r.color }};flex-shrink:0">{{ r.icon }}</span>
+                            <span style="font:400 12px/17px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.name }}</span>
+                          </span>
+                          <span style="font:400 12px/17px var(--font-mono);color:var(--texto-secundario);text-align:right">{{ r.txns }}</span>
+                          <span style="font:500 12px/17px var(--font-mono);color:var(--texto-primario);text-align:right">{{ r.amount }}</span>
+                        </div>
+                      </sc-for>
+                    </x-import>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isTypes }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px">
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,340px">
+                    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px">
+                      <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Post types</h2>
+                      <span style="font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">6</span>
+                      <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">New type</x-import></span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 130px 1fr 110px 90px;gap:14px;align-items:center;height:32px;padding:0 16px;border-bottom:1px solid var(--separador)">
+                      <sc-for list="{{ typeCols }}" as="c" hint-placeholder-count="5">
+                        <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:{{ c.align }}">{{ c.label }}</span>
+                      </sc-for>
+                    </div>
+                    <sc-for list="{{ postTypes }}" as="t" hint-placeholder-count="6">
+                      <div style="display:grid;grid-template-columns:1fr 130px 1fr 110px 90px;gap:14px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--separador);background:{{ t.rowBg }}">
+                        <span style="display:flex;align-items:center;gap:10px;min-width:0">
+                          <span style="width:26px;height:26px;border-radius:6px;background:{{ t.tint }};color:{{ t.color }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:15px">{{ t.icon }}</span></span>
+                          <span style="min-width:0">
+                            <span style="display:block;font:600 13px/17px var(--font-ui);color:var(--texto-primario)">{{ t.name }}</span>
+                            <span style="display:block;font:400 11px/15px var(--font-mono);color:var(--texto-terciario)">{{ t.count }}</span>
+                          </span>
+                        </span>
+                        <span style="font:400 12px/16px var(--font-mono);color:var(--texto-secundario)">{{ t.slug }}</span>
+                        <span style="display:flex;gap:5px;flex-wrap:wrap">
+                          <sc-for list="{{ t.taxonomies }}" as="x" hint-placeholder-count="2">
+                            <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" hint-size="auto,22px">{{ x.label }}</x-import>
+                          </sc-for>
+                        </span>
+                        <span style="font:400 12px/16px var(--font-ui);color:var(--texto-secundario)">{{ t.editor }}</span>
+                        <span style="text-align:right"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ t.originTone }}" hint-size="auto,20px">{{ t.origin }}</x-import></span>
+                      </div>
+                    </sc-for>
+                  </x-import>
+
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,220px">
+                    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 10px">
+                      <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Taxonomies</h2>
+                      <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">New taxonomy</x-import></span>
+                    </div>
+                    <sc-for list="{{ taxonomies }}" as="x" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--separador)">
+                        <span style="width:110px;flex-shrink:0;font:600 13px/17px var(--font-ui);color:var(--texto-primario)">{{ x.name }}</span>
+                        <span style="width:110px;flex-shrink:0;font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">{{ x.slug }}</span>
+                        <span style="flex:1;min-width:0;display:flex;gap:5px;flex-wrap:wrap">
+                          <sc-for list="{{ x.terms }}" as="tm" hint-placeholder-count="4">
+                            <span style="font:400 11px/20px var(--font-ui);color:var(--texto-secundario);padding:0 8px;border-radius:999px;background:var(--fila-hover)">{{ tm.label }}</span>
+                          </sc-for>
+                        </span>
+                        <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario);flex-shrink:0">{{ x.mode }}</span>
+                      </div>
+                    </sc-for>
+                  </x-import>
+                </div>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" style="{{ panelW }}" hint-size="360px,460px">
+                  <div style="padding:14px 16px 10px;border-bottom:1px solid var(--separador)">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span class="material-symbols-outlined" style="font-size:17px;color:var(--color-acento)">tune</span>
+                      <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Docs — custom statuses</h2>
+                    </div>
+                    <p style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario);margin-top:5px;text-wrap:pretty">Statuses drive the editorial workflow and what the MCP tools are allowed to publish.</p>
+                  </div>
+                  <div style="padding:12px 16px;display:flex;flex-direction:column;gap:7px">
+                    <sc-for list="{{ statuses }}" as="st" hint-placeholder-count="5">
+                      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--separador);border-radius:8px;background:var(--fondo-ventana)">
+                        <span class="material-symbols-outlined" style="font-size:15px;color:var(--texto-terciario);cursor:grab">drag_indicator</span>
+                        <span style="width:8px;height:8px;border-radius:999px;background:{{ st.dot }};flex-shrink:0"></span>
+                        <span style="flex:1;min-width:0">
+                          <span style="display:block;font:500 12px/16px var(--font-ui);color:var(--texto-primario)">{{ st.label }}</span>
+                          <span style="display:block;font:400 11px/15px var(--font-mono);color:var(--texto-terciario)">{{ st.id }}</span>
+                        </span>
+                        <span style="font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">{{ st.count }}</span>
+                        <span class="material-symbols-outlined" style="font-size:15px;color:{{ st.lockColor }}">{{ st.lockIcon }}</span>
+                      </div>
+                    </sc-for>
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ fullWidth }}" hint-size="100%,30px">Add status</x-import>
+                  </div>
+                  <div style="padding:12px 16px;border-top:1px solid var(--separador);display:flex;flex-direction:column;gap:11px">
+                    <sc-for list="{{ typeToggles }}" as="tg" hint-placeholder-count="4">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <span style="flex:1;min-width:0">
+                          <span style="display:block;font:500 12px/16px var(--font-ui);color:var(--texto-primario)">{{ tg.label }}</span>
+                          <span style="display:block;font:400 11px/15px var(--font-ui);color:var(--texto-terciario);text-wrap:pretty">{{ tg.hint }}</span>
+                        </span>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Switch" checked="{{ tg.on }}" hint-size="38px,22px"></x-import>
+                      </div>
+                    </sc-for>
+                  </div>
+                </x-import>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isI18n }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+                  <sc-for list="{{ locales }}" as="l" hint-placeholder-count="3">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ taskPad }}" hint-size="100%,90px">
+                      <div style="display:flex;flex-direction:column;gap:9px">
+                        <div style="display:flex;align-items:center;gap:9px">
+                          <span style="font:600 13px/17px var(--font-ui);color:var(--texto-primario)">{{ l.name }}</span>
+                          <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ l.code }}</span>
+                          <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ l.tone }}" hint-size="auto,20px">{{ l.state }}</x-import></span>
+                        </div>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Progress" value="{{ l.value }}" label="{{ l.label }}" hint-size="100%,28px"></x-import>
+                      </div>
+                    </x-import>
+                  </sc-for>
+                </div>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,420px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--separador)">
+                    <span style="display:flex;gap:2px;padding:3px;border-radius:8px;background:var(--fila-hover)">
+                      <sc-for list="{{ localeTabs }}" as="t" hint-placeholder-count="3">
+                        <span style="padding:0 12px;height:26px;border-radius:6px;background:{{ t.bg }};color:{{ t.fg }};font:{{ t.font }} 12px/26px var(--font-ui);box-shadow:{{ t.shadow }}">{{ t.label }}</span>
+                      </sc-for>
+                    </span>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Source: core + 3 plugins</span>
+                    <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ yes }}" hint-size="auto,24px">Missing only</x-import>
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" size="sm" hint-size="auto,28px">Translate 41 missing</x-import>
+                    </span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:270px 1fr 1fr 92px;gap:14px;align-items:center;height:32px;padding:0 16px;border-bottom:1px solid var(--separador)">
+                    <sc-for list="{{ i18nCols }}" as="c" hint-placeholder-count="4">
+                      <span style="font:600 10px/14px var(--font-mono);letter-spacing:0.06em;text-transform:uppercase;color:var(--texto-terciario);text-align:{{ c.align }}">{{ c.label }}</span>
+                    </sc-for>
+                  </div>
+                  <sc-for list="{{ strings }}" as="r" hint-placeholder-count="8">
+                    <div style="display:grid;grid-template-columns:270px 1fr 1fr 92px;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--separador);background:{{ r.rowBg }}">
+                      <span style="font:400 12px/17px var(--font-mono);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.key }}</span>
+                      <span style="font:400 13px/18px var(--font-ui);color:var(--texto-primario)">{{ r.en }}</span>
+                      <span style="min-width:0">
+                        <span style="display:block;padding:5px 9px;border:1px solid {{ r.border }};border-radius:6px;background:var(--fondo-ventana);font:400 13px/18px var(--font-ui);color:{{ r.fg }}">{{ r.target }}</span>
+                      </span>
+                      <span style="text-align:right"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Badge" tone="{{ r.tone }}" hint-size="auto,20px">{{ r.state }}</x-import></span>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isBlocks }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <sc-for list="{{ blockCats }}" as="c" hint-placeholder-count="6">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ c.on }}" hint-size="auto,24px">{{ c.label }}</x-import>
+                  </sc-for>
+                  <span style="margin-left:auto;font:400 11px/16px var(--font-ui);color:var(--texto-terciario)">Blocks are PHP templates — the AI composes pages from these, never from raw HTML</span>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                  <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="8">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,190px">
+                      <div style="height:96px;border-bottom:1px solid var(--separador);background:var(--fondo-ventana);border-radius:10px 10px 0 0;padding:14px;display:flex;flex-direction:column;gap:6px;justify-content:{{ b.justify }}">
+                        <sc-for list="{{ b.preview }}" as="p" hint-placeholder-count="3">
+                          <span style="height:{{ p.h }};width:{{ p.w }};border-radius:3px;background:{{ p.bg }};align-self:{{ p.align }}"></span>
+                        </sc-for>
+                      </div>
+                      <div style="padding:11px 13px;display:flex;flex-direction:column;gap:5px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                          <span style="font:600 12px/16px var(--font-ui);color:var(--texto-primario)">{{ b.name }}</span>
+                          <span style="margin-left:auto;font:400 10px/14px var(--font-mono);color:var(--texto-terciario)">{{ b.uses }}</span>
+                        </div>
+                        <span style="font:400 11px/15px var(--font-mono);color:var(--texto-terciario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.slug }}</span>
+                      </div>
+                    </x-import>
+                  </sc-for>
+                </div>
+
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,200px">
+                  <div style="display:flex;align-items:center;gap:10px;padding:13px 16px 10px">
+                    <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Page templates</h2>
+                    <span style="margin-left:auto"><x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Import theme package</x-import></span>
+                  </div>
+                  <sc-for list="{{ templates }}" as="t" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:14px;padding:11px 16px;border-top:1px solid var(--separador)">
+                      <span style="width:34px;height:26px;border-radius:5px;border:1px solid var(--separador);background:var(--fondo-ventana);display:flex;flex-direction:column;gap:2px;padding:3px;flex-shrink:0">
+                        <span style="height:4px;border-radius:1px;background:var(--color-acento);opacity:.5"></span>
+                        <span style="flex:1;border-radius:1px;background:var(--fila-hover)"></span>
+                      </span>
+                      <span style="width:170px;flex-shrink:0;font:600 13px/17px var(--font-ui);color:var(--texto-primario)">{{ t.name }}</span>
+                      <span style="width:150px;flex-shrink:0;font:400 12px/16px var(--font-mono);color:var(--texto-terciario)">{{ t.file }}</span>
+                      <span style="flex:1;min-width:0;font:400 12px/17px var(--font-ui);color:var(--texto-secundario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.desc }}</span>
+                      <span style="font:400 11px/16px var(--font-mono);color:var(--texto-terciario);flex-shrink:0">{{ t.uses }}</span>
+                    </div>
+                  </sc-for>
+                </x-import>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isHealth }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ taskPad }}" hint-size="100%,86px">
+                  <div style="display:flex;align-items:center;gap:14px">
+                    <span style="width:36px;height:36px;border-radius:999px;background:var(--tinte-acento);color:var(--color-acento);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:20px">system_update_alt</span></span>
+                    <span style="flex:1;min-width:0">
+                      <span style="display:block;font:600 14px/19px var(--font-ui);color:var(--texto-primario)">Klytos <span style="font-family:var(--font-mono)">0.29.0</span> is available</span>
+                      <span style="display:block;font:400 12px/17px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">Scheduled actions get a retry backoff, and the x402 provider interface is stable. A full backup is taken before the update runs.</span>
+                    </span>
+                    <span style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+                      <span style="display:flex;align-items:center;gap:8px">
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Switch" checked="{{ yes }}" hint-size="38px,22px"></x-import>
+                        <span style="font:400 12px/16px var(--font-ui);color:var(--texto-secundario)">Back up first</span>
+                      </span>
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" hint-size="auto,28px">Release notes</x-import>
+                      <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="primary" size="sm" hint-size="auto,28px">Update now</x-import>
+                    </span>
+                  </div>
+                </x-import>
+
+                <div style="display:grid;grid-template-columns:1.35fr 1fr;gap:12px;align-items:start">
+                  <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,400px">
+                    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px 10px;border-bottom:1px solid var(--separador)">
+                      <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Activity log</h2>
+                      <span style="display:flex;gap:6px;margin-left:auto">
+                        <sc-for list="{{ logLevels }}" as="l" hint-placeholder-count="4">
+                          <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Chip" selected="{{ l.on }}" hint-size="auto,22px">{{ l.label }}</x-import>
+                        </sc-for>
+                      </span>
+                    </div>
+                    <sc-for list="{{ logs }}" as="g" hint-placeholder-count="8">
+                      <div style="display:grid;grid-template-columns:74px 66px 1fr;gap:12px;align-items:baseline;padding:9px 16px;border-bottom:1px solid var(--separador)">
+                        <span style="font:400 11px/17px var(--font-mono);color:var(--texto-terciario)">{{ g.time }}</span>
+                        <span style="font:600 10px/17px var(--font-mono);letter-spacing:0.04em;color:{{ g.color }}">{{ g.level }}</span>
+                        <span style="min-width:0">
+                          <span style="display:block;font:400 12px/17px var(--font-ui);color:var(--texto-primario);text-wrap:pretty">{{ g.text }}</span>
+                          <span style="display:block;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">{{ g.ctx }}</span>
+                        </span>
+                      </div>
+                    </sc-for>
+                  </x-import>
+
+                  <div style="display:flex;flex-direction:column;gap:12px">
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ zero }}" hint-size="100%,230px">
+                      <div style="display:flex;align-items:center;gap:10px;padding:13px 16px 10px;border-bottom:1px solid var(--separador)">
+                        <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">Scheduled actions</h2>
+                        <span style="margin-left:auto;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">wp-cron-free · real cron</span>
+                      </div>
+                      <sc-for list="{{ cronJobs }}" as="c" hint-placeholder-count="5">
+                        <div style="display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid var(--separador)">
+                          <span style="width:7px;height:7px;border-radius:999px;background:{{ c.dot }};flex-shrink:0"></span>
+                          <span style="flex:1;min-width:0">
+                            <span style="display:block;font:400 12px/16px var(--font-mono);color:var(--texto-primario);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.hook }}</span>
+                            <span style="display:block;font:400 11px/15px var(--font-ui);color:var(--texto-terciario)">{{ c.interval }}</span>
+                          </span>
+                          <span style="font:400 11px/15px var(--font-mono);color:var(--texto-secundario);flex-shrink:0;text-align:right">{{ c.next }}</span>
+                        </div>
+                      </sc-for>
+                    </x-import>
+
+                    <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Card" padding="{{ cardPad }}" hint-size="100%,180px">
+                      <div style="display:flex;flex-direction:column;gap:12px">
+                        <div style="display:flex;align-items:center;gap:9px">
+                          <span class="material-symbols-outlined" style="font-size:18px;color:var(--color-exito)">verified_user</span>
+                          <h2 style="font:600 13px/16px var(--font-ui);color:var(--texto-primario)">File integrity</h2>
+                          <span style="margin-left:auto;font:400 11px/16px var(--font-mono);color:var(--texto-terciario)">checked 06:00</span>
+                        </div>
+                        <sc-for list="{{ integrity }}" as="i" hint-placeholder-count="3">
+                          <div style="display:flex;align-items:center;gap:10px">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:{{ i.color }};flex-shrink:0">{{ i.icon }}</span>
+                            <span style="flex:1;min-width:0;font:400 12px/17px var(--font-ui);color:var(--texto-secundario);text-wrap:pretty">{{ i.text }}</span>
+                            <span style="font:500 12px/17px var(--font-mono);color:var(--texto-primario);flex-shrink:0">{{ i.value }}</span>
+                          </div>
+                        </sc-for>
+                        <x-import component-from-global-scope="PackDeskDesignSystem_9c54ce.Button" variant="secondary" size="sm" style="{{ fullWidth }}" hint-size="100%,30px">Re-verify checksums</x-import>
+                      </div>
+                    </x-import>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ isTerminal }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;height:100%;min-height:0">
+                <div style="width:250px;flex-shrink:0;border-right:1px solid var(--separador);display:flex;flex-direction:column;background:var(--fondo-ventana)">
+                  <div style="padding:14px 16px 10px">
+                    <span style="display:block;font:600 12px/16px var(--font-ui);color:var(--texto-primario)">Allowed commands</span>
+                    <span style="display:block;font:400 11px/16px var(--font-ui);color:var(--texto-terciario);margin-top:3px;text-wrap:pretty">Everything else is refused. No shell, no file writes outside the site root.</span>
+                  </div>
+                  <div style="flex:1;overflow-y:auto;padding:0 10px 10px;display:flex;flex-direction:column;gap:1px">
+                    <sc-for list="{{ commands }}" as="c" hint-placeholder-count="8">
+                      <div style="display:flex;flex-direction:column;gap:1px;padding:7px 9px;border-radius:6px;background:{{ c.bg }}">
+                        <span style="font:500 12px/16px var(--font-mono);color:{{ c.fg }}">{{ c.cmd }}</span>
+                        <span style="font:400 11px/15px var(--font-ui);color:var(--texto-terciario)">{{ c.desc }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="border-top:1px solid var(--separador);padding:11px 16px;display:flex;align-items:center;gap:9px">
+                    <span style="width:7px;height:7px;border-radius:999px;background:var(--color-exito);animation:klytos-pulse 1200ms ease-in-out infinite"></span>
+                    <span style="font:400 11px/16px var(--font-ui);color:var(--texto-secundario)">Session verified · expires in <span style="font-family:var(--font-mono)">08:41</span></span>
+                  </div>
+                </div>
+
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#0B0F0E">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.08)">
+                    <span class="material-symbols-outlined" style="font-size:16px;color:#4ECBB4">terminal</span>
+                    <span style="font:500 12px/16px var(--font-mono);color:#E6E9E8">klytos@klytos.io</span>
+                    <span style="font:400 11px/16px var(--font-mono);color:rgba(230,233,232,0.42)">php 8.3.11 · cli.php</span>
+                    <span style="margin-left:auto;display:flex;align-items:center;gap:7px;padding:2px 8px;border-radius:999px;background:rgba(78,203,180,0.12)">
+                      <span class="material-symbols-outlined" style="font-size:13px;color:#4ECBB4">shield_lock</span>
+                      <span style="font:500 10px/16px var(--font-mono);color:#4ECBB4">2FA verified</span>
+                    </span>
+                  </div>
+                  <div style="flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:2px">
+                    <sc-for list="{{ terminalLines }}" as="t" hint-placeholder-count="14">
+                      <div style="font:400 12px/20px var(--font-mono);color:{{ t.color }};white-space:pre-wrap">{{ t.text }}</div>
+                    </sc-for>
+                    <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                      <span style="font:500 12px/20px var(--font-mono);color:#4ECBB4">$</span>
+                      <span style="font:400 12px/20px var(--font-mono);color:#E6E9E8">klytos build --all</span>
+                      <span style="width:7px;height:15px;background:#4ECBB4;animation:klytos-caret 1s step-end infinite"></span>
+                    </div>
+                  </div>
+                  <div style="padding:10px 18px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:14px">
+                    <span style="font:400 10px/14px var(--font-mono);color:rgba(230,233,232,0.42)">↑↓ history · tab completes · ctrl-c aborts</span>
+                    <span style="margin-left:auto;font:400 10px/14px var(--font-mono);color:rgba(230,233,232,0.42)">Every command is written to the activity log</span>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+          </div>
+
+          <div style="flex-shrink:0;display:flex;align-items:center;gap:14px;padding:9px 20px;border-top:1px solid var(--separador);background:var(--glass-fallback-toolbar)">
+            <span style="font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Klytos <span style="font-family:var(--font-mono)">0.28.5</span> · PHP <span style="font-family:var(--font-mono)">8.3.11</span></span>
+            <span style="margin-left:auto;font:400 11px/14px var(--font-ui);color:var(--texto-terciario)">Rendered in <span style="font-family:var(--font-mono)">{{ renderMs }}</span></span>
+          </div>
+        </main>
+      </sc-if>
+
+    </div>
+  </x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1536}}">
+class Component extends DCLogic {
+  state = { screen: 'wizard', theme: 'dark' };
+
+  go = (screen) => (e) => { if (e) e.preventDefault(); this.setState({ screen }); };
+
+  renderVals() {
+    const s = this.state.screen, theme = this.state.theme;
+    const A = 'var(--color-acento)', T1 = 'var(--texto-primario)', T2 = 'var(--texto-secundario)', T3 = 'var(--texto-terciario)';
+    const sel = 'var(--fila-seleccion)';
+
+    const SCREENS = {
+      wizard:   { title: 'Setup',        url: 'klytos.io/a7f3k9-admin/setup-wizard.php?step=5', ms: '18 ms', pad: 'padding:0' },
+      x402:     { title: 'x402',         url: 'klytos.io/a7f3k9-admin/x402-dashboard.php', ms: '44 ms', pad: 'padding:20px' },
+      types:    { title: 'Content model', url: 'klytos.io/a7f3k9-admin/post-types.php', ms: '23 ms', pad: 'padding:20px' },
+      i18n:     { title: 'Translations', url: 'klytos.io/a7f3k9-admin/translations.php?locale=es', ms: '37 ms', pad: 'padding:20px' },
+      blocks:   { title: 'Blocks',       url: 'klytos.io/a7f3k9-admin/blocks.php', ms: '31 ms', pad: 'padding:20px' },
+      health:   { title: 'Health',       url: 'klytos.io/a7f3k9-admin/logs.php', ms: '28 ms', pad: 'padding:20px' },
+      terminal: { title: 'Terminal',     url: 'klytos.io/a7f3k9-admin/terminal.php', ms: '15 ms', pad: 'padding:0' }
+    };
+    const cur = SCREENS[s];
+
+    const ACTIONS = {
+      x402:     [{ label: 'Pricing rules', variant: 'secondary' }, { label: 'Export CSV', variant: 'primary' }],
+      types:    [{ label: 'Export schema', variant: 'secondary' }, { label: 'New type', variant: 'primary' }],
+      i18n:     [{ label: 'Import .po', variant: 'secondary' }, { label: 'Add language', variant: 'primary' }],
+      blocks:   [{ label: 'Block docs', variant: 'secondary' }, { label: 'New block', variant: 'primary' }],
+      health:   [{ label: 'Download log', variant: 'secondary' }, { label: 'Run diagnostics', variant: 'primary' }],
+      terminal: [{ label: 'History', variant: 'secondary' }]
+    };
+
+    const nav = (label, icon, screen, count) => ({
+      label, icon, count: count || '',
+      bg: s === screen ? sel : 'transparent',
+      fg: s === screen ? A : T2,
+      font: s === screen ? 500 : 400,
+      countFg: s === screen ? A : T3,
+      onClick: this.go(screen || s)
+    });
+    const navGroups = [
+      { label: 'Site', items: [nav('Overview', 'space_dashboard'), nav('Analytics', 'monitoring')] },
+      { label: 'Content', items: [nav('Pages', 'description', null, '24'), nav('Post types', 'category', 'types', '6'), nav('Blocks', 'widgets', 'blocks', '18'), nav('Translations', 'translate', 'i18n', '3')] },
+      { label: 'Design', items: [nav('Theme', 'palette'), nav('Templates', 'dashboard_customize')] },
+      { label: 'Intelligence', items: [nav('AI chat', 'auto_awesome'), nav('Connections', 'smart_toy', null, '2')] },
+      { label: 'Monetisation', items: [nav('x402 dashboard', 'toll', 'x402'), nav('Transactions', 'receipt_long', null, '5.1k')] },
+      { label: 'System', items: [nav('Plugins', 'extension', null, '5'), nav('Health', 'monitor_heart', 'health', '2'), nav('Terminal', 'terminal', 'terminal'), nav('Settings', 'tune')] }
+    ];
+
+    const chip = (label, screen) => ({ label, selected: s === screen, onClick: this.go(screen) });
+    const screenChips = [chip('Setup wizard', 'wizard'), chip('x402', 'x402'), chip('Content model', 'types'), chip('Translations', 'i18n'), chip('Blocks', 'blocks'), chip('Health', 'health'), chip('Terminal', 'terminal')];
+
+    /* —— Wizard —— */
+    const WSTEPS = [
+      ['Site', 'Name, language, time zone', 'done'],
+      ['Admin account', 'Owner credentials', 'done'],
+      ['Two-factor', 'Authenticator + recovery codes', 'done'],
+      ['Encryption key', 'Backed up off-server', 'done'],
+      ['AI provider', 'Bring your own key', 'now'],
+      ['MCP client', 'Claude, Cursor or your own', 'next'],
+      ['Finish', 'Build the first page', 'next']
+    ];
+    const wizardSteps = WSTEPS.map(([label, hint, state], i) => ({
+      label, hint,
+      num: state === 'done' ? '' : String(i + 1),
+      checkDisplay: state === 'done' ? 'block' : 'none',
+      bg: state === 'now' ? sel : 'transparent',
+      fg: state === 'next' ? T3 : T1,
+      font: state === 'now' ? 600 : 400,
+      dotBg: state === 'done' ? A : (state === 'now' ? 'var(--tinte-acento)' : 'transparent'),
+      dotFg: state === 'done' ? 'var(--sobre-acento)' : (state === 'now' ? A : T3),
+      dotBorder: state === 'next' ? 'var(--separador)' : 'transparent'
+    }));
+    const providers = [
+      ['Anthropic', 'Claude Sonnet 4.5, Haiku 4.5', 'auto_awesome', 'var(--tinte-acento)', A, true],
+      ['OpenAI', 'GPT-5.1, o-series', 'blur_on', 'var(--tinte-sync)', 'var(--color-sync)', false],
+      ['Google', 'Gemini 3 Pro, Flash', 'stream', 'var(--tinte-conflicto)', 'var(--color-conflicto)', false],
+      ['OpenRouter', 'Anything with tool calls', 'hub', 'var(--tinte-offline)', T2, false]
+    ].map(([name, note, icon, tint, color, on]) => ({
+      name, note, icon, tint, color,
+      border: on ? A : 'var(--separador)',
+      bg: on ? 'var(--tinte-acento)' : 'var(--fondo-contenido)'
+    }));
+    const mcpConfig = [
+      ['{', T3],
+      ['  "mcpServers": {', T3],
+      ['    "klytos": {', T1],
+      ['      "command": "npx",', T2],
+      ['      "args": ["-y", "@klytos/mcp"],', T2],
+      ['      "env": {', T2],
+      ['        "KLYTOS_URL": "https://klytos.io",', A],
+      ['        "KLYTOS_TOKEN": "kly_live_••••••••4c1e"', A],
+      ['      }', T2],
+      ['    }', T1],
+      ['  }', T3],
+      ['}', T3]
+    ].map(([text, color]) => ({ text, color }));
+
+    /* —— x402 —— */
+    const x402Stats = [
+      { value: '$128.40', label: 'Revenue · 30 days', delta: '+18%' },
+      { value: '5,142', label: 'Paid requests', delta: '+9%' },
+      { value: '$0.025', label: 'Average price' },
+      { value: '312', label: 'Refused · no payment' }
+    ];
+    const heights = [22, 30, 18, 41, 36, 52, 44, 28, 61, 55, 47, 70, 64, 39, 58, 76, 68, 51, 83, 74, 62, 90, 81, 69, 95, 88, 77, 100, 92, 84];
+    const revenueBars = heights.map((h, i) => ({
+      h: Math.max(6, h) + '%',
+      bg: i >= 27 ? A : (theme === 'dark' ? 'rgba(14,128,116,0.42)' : 'rgba(14,128,116,0.28)')
+    }));
+    const x402Tables = [
+      { title: 'Top pages', col1: 'Page', rows: [
+        ['/docs/mcp-setup', '1,284', '$32.10', 'description', A],
+        ['/docs/x402', '946', '$23.65', 'description', A],
+        ['/blog/ai-first-cms', '812', '$20.30', 'article', 'var(--color-sync)'],
+        ['/pricing', '604', '$15.10', 'sell', 'var(--color-conflicto)'],
+        ['/docs/php-api', '571', '$14.28', 'description', A]
+      ] },
+      { title: 'Top bots', col1: 'Bot', rows: [
+        ['ClaudeBot/1.0', '1,912', '$47.80', 'smart_toy', A],
+        ['GPTBot/1.2', '1,344', '$33.60', 'smart_toy', 'var(--color-sync)'],
+        ['PerplexityBot', '803', '$20.08', 'smart_toy', 'var(--color-conflicto)'],
+        ['Google-Extended', '612', '$15.30', 'smart_toy', 'var(--color-aviso)'],
+        ['Bytespider', '471', '$11.62', 'smart_toy', T2]
+      ] }
+    ].map(t => ({ ...t, rows: t.rows.map(([name, txns, amount, icon, color]) => ({ name, txns, amount, icon, color })) }));
+
+    /* —— Content model —— */
+    const typeCols = [
+      { label: 'Type', align: 'left' }, { label: 'Slug', align: 'left' }, { label: 'Taxonomies', align: 'left' },
+      { label: 'Editor', align: 'left' }, { label: 'Origin', align: 'right' }
+    ];
+    const postTypes = [
+      ['Pages', 'page', '24 entries', ['—'], 'Blocks', 'Built-in', 'offline', 'description', 'var(--tinte-acento)', A, false],
+      ['Posts', 'post', '61 entries', ['Categories', 'Tags'], 'Blocks', 'Built-in', 'offline', 'article', 'var(--tinte-sync)', 'var(--color-sync)', false],
+      ['Docs', 'doc', '38 entries', ['Sections'], 'Markdown', 'Custom', 'info', 'menu_book', 'var(--tinte-conflicto)', 'var(--color-conflicto)', true],
+      ['Changelog', 'release', '52 entries', ['Versions'], 'Markdown', 'Custom', 'info', 'history', 'var(--tinte-aviso)', 'var(--color-aviso)', false],
+      ['Products', 'product', '12 entries', ['Ranges', 'Tags'], 'Blocks', 'Custom', 'info', 'sell', 'var(--tinte-exito)', 'var(--color-exito)', false],
+      ['Guides', 'guide', '16 entries', ['Topics'], 'Markdown', 'Custom', 'info', 'school', 'var(--tinte-offline)', T2, false]
+    ].map(([name, slug, count, taxonomies, editor, origin, originTone, icon, tint, color, active]) => ({
+      name, slug, count, editor, origin, originTone, icon, tint, color,
+      rowBg: active ? sel : 'transparent',
+      taxonomies: taxonomies.map(label => ({ label }))
+    }));
+    const taxonomies = [
+      ['Categories', 'category', ['Product', 'Engineering', 'Release notes'], 'hierarchical'],
+      ['Tags', 'tag', ['php', 'mcp', 'x402', 'i18n', '+18'], 'flat'],
+      ['Sections', 'doc-section', ['Getting started', 'API', 'Deploying'], 'hierarchical'],
+      ['Topics', 'guide-topic', ['Writing', 'SEO', 'Security'], 'flat']
+    ].map(([name, slug, terms, mode]) => ({ name, slug, mode, terms: terms.map(label => ({ label })) }));
+    const statuses = [
+      ['Draft', 'draft', '6', 'var(--color-offline, #8A8A8E)', 'lock', T3],
+      ['In review', 'review', '3', 'var(--color-aviso)', 'lock_open', T3],
+      ['Ready to publish', 'ready', '2', 'var(--color-sync)', 'lock_open', T3],
+      ['Published', 'publish', '27', 'var(--color-exito)', 'lock', T3],
+      ['Deprecated', 'deprecated', '0', 'var(--color-peligro)', 'lock_open', T3]
+    ].map(([label, id, count, dot, lockIcon, lockColor]) => ({ label, id, count, dot, lockIcon, lockColor }));
+    const typeToggles = [
+      { label: 'Public archive', hint: 'Reachable at /docs', on: true },
+      { label: 'Exposed to MCP', hint: 'AI tools may read and write this type', on: true },
+      { label: 'Charged under x402', hint: 'Bots pay $0.025 per doc', on: true },
+      { label: 'Comments', hint: 'Off for reference content', on: false }
+    ];
+
+    /* —— Translations —— */
+    const locales = [
+      { name: 'English', code: 'en', value: 100, label: '1,204 / 1,204 strings', state: 'Source', tone: 'info' },
+      { name: 'Español', code: 'es', value: 97, label: '1,163 / 1,204 strings', state: 'Editing', tone: 'aviso' },
+      { name: 'Català', code: 'ca', value: 71, label: '855 / 1,204 strings', state: 'Behind', tone: 'offline' }
+    ];
+    const tabf = (label, on) => ({ label, bg: on ? 'var(--fondo-contenido)' : 'transparent', fg: on ? T1 : T2, font: on ? 600 : 400, shadow: on ? '0 1px 3px rgba(0,0,0,0.18)' : 'none' });
+    const localeTabs = [tabf('English', false), tabf('Español', true), tabf('Català', false)];
+    const i18nCols = [
+      { label: 'Key', align: 'left' }, { label: 'English', align: 'left' }, { label: 'Español', align: 'left' }, { label: 'State', align: 'right' }
+    ];
+    const strings = [
+      ['pages.publish_confirm', 'Publish this page now?', '¿Publicar esta página ahora?', 'Human', 'exito', false],
+      ['x402.paywall_notice', 'This page is metered for automated clients.', 'Esta página está tarificada para clientes automatizados.', 'AI draft', 'aviso', true],
+      ['tasks.empty_state', 'Nothing needs your attention.', 'No hay nada pendiente.', 'Human', 'exito', false],
+      ['comments.mark_spam', 'Mark as spam', 'Marcar como spam', 'Human', 'exito', false],
+      ['mcp.token_revoked', 'The token was revoked — reconnect your client.', '', 'Missing', 'peligro', true],
+      ['security.session_expired', 'Your session expired after 30 minutes.', 'Tu sesión ha caducado tras 30 minutos.', 'Human', 'exito', false],
+      ['updates.backup_first', 'Take a full backup before updating', 'Hacer una copia completa antes de actualizar', 'AI draft', 'aviso', false],
+      ['terminal.blocked', 'That command is not allowed from the admin.', '', 'Missing', 'peligro', false]
+    ].map(([key, en, target, state, tone, active]) => ({
+      key, en, state, tone,
+      target: target || 'Sin traducir',
+      fg: target ? T1 : T3,
+      border: active ? A : 'var(--separador)',
+      rowBg: active ? sel : 'transparent'
+    }));
+
+    /* —— Blocks —— */
+    const blockCats = [
+      { label: 'All 18', on: true }, { label: 'Layout', on: false }, { label: 'Content', on: false },
+      { label: 'Commerce', on: false }, { label: 'Forms', on: false }, { label: 'From plugins', on: false }
+    ];
+    const bar = (w, h, tone, align) => ({ w, h: h + 'px', align: align || 'stretch', bg: tone === 'a' ? A : (tone === 'm' ? 'var(--fila-hover)' : 'var(--separador)') });
+    const blocks = [
+      ['Hero', 'klytos/hero', '14 pages', 'center', [bar('55%', 9, 'a'), bar('80%', 6, 'm'), bar('34%', 12, 'd')]],
+      ['Feature grid', 'klytos/feature-grid', '9 pages', 'center', [bar('100%', 7, 'm'), bar('100%', 18, 'd'), bar('60%', 6, 'm')]],
+      ['Pricing tier', 'klytos/pricing-tier', '3 pages', 'flex-start', [bar('40%', 8, 'a'), bar('100%', 22, 'd'), bar('70%', 6, 'm')]],
+      ['Rich text', 'klytos/rich-text', '31 pages', 'center', [bar('100%', 6, 'm'), bar('92%', 6, 'm'), bar('74%', 6, 'm')]],
+      ['Code sample', 'klytos/code', '22 pages', 'flex-start', [bar('64%', 6, 'a'), bar('86%', 6, 'd'), bar('48%', 6, 'd')]],
+      ['Comparison table', 'klytos/table', '5 pages', 'center', [bar('100%', 8, 'd'), bar('100%', 8, 'm'), bar('100%', 8, 'm')]],
+      ['Contact form', 'klytos-forms/form', '4 pages', 'center', [bar('100%', 10, 'd'), bar('100%', 10, 'd'), bar('42%', 10, 'a')]],
+      ['Call to action', 'klytos/cta', '11 pages', 'center', [bar('66%', 8, 'm'), bar('38%', 12, 'a', 'center')]]
+    ].map(([name, slug, uses, justify, preview]) => ({ name, slug, uses, justify, preview }));
+    const templates = [
+      ['Documentation', 'doc-single.php', 'Sidebar navigation, on-page anchors, previous/next', '38 pages'],
+      ['Landing', 'landing.php', 'Full-bleed hero, no sidebar, wide blocks', '6 pages'],
+      ['Blog post', 'post-single.php', 'Author, reading time, related posts, comments', '61 pages'],
+      ['Bare', 'bare.php', 'Head, footer and nothing else — for legal pages', '4 pages']
+    ].map(([name, file, desc, uses]) => ({ name, file, desc, uses }));
+
+    /* —— Health —— */
+    const logLevels = [
+      { label: 'All', on: true }, { label: 'Error', on: false }, { label: 'Warning', on: false }, { label: 'Info', on: false }
+    ];
+    const logs = [
+      ['09:41:02', 'ERROR', 'var(--color-peligro)', 'Anthropic returned 429 — the build retried in 8 s and succeeded.', 'ai.provider · request 4c1e91'],
+      ['09:40:55', 'WARN', 'var(--color-aviso)', 'Scheduled action klytos_sitemap_rebuild ran 6 minutes late.', 'cron · pid 21884'],
+      ['09:38:10', 'INFO', 'var(--color-sync)', 'Page /pricing published by José Conti. Site rebuilt in 1.2 s.', 'content · 24 pages'],
+      ['09:31:47', 'INFO', 'var(--color-sync)', 'MCP client Claude Desktop connected from 88.4.12.190.', 'mcp · token kly_live_4c1e'],
+      ['09:12:03', 'WARN', 'var(--color-aviso)', 'x402 payment verification took 2.4 s — Stripe latency is above normal.', 'x402 · stripe'],
+      ['08:59:18', 'INFO', 'var(--color-sync)', '3 comments marked as spam by the moderation rule.', 'comments · rule spam-links'],
+      ['06:00:04', 'INFO', 'var(--color-sync)', 'Nightly backup written to /backups/2026-07-26.zip (41 MB).', 'backup · retention 14 days'],
+      ['06:00:00', 'INFO', 'var(--color-sync)', 'File integrity check passed for 1,842 core files.', 'integrity · sha-256']
+    ].map(([time, level, color, text, ctx]) => ({ time, level, color, text, ctx }));
+    const cronJobs = [
+      ['klytos_sitemap_rebuild', 'every 15 minutes', 'in 4 min', 'var(--color-exito)'],
+      ['klytos_x402_settle', 'daily at 02:00', 'in 16 h', 'var(--color-exito)'],
+      ['klytos_backup_nightly', 'daily at 06:00', 'in 20 h', 'var(--color-exito)'],
+      ['klytos_integrity_scan', 'daily at 06:00', 'in 20 h', 'var(--color-exito)'],
+      ['klytos_ai_usage_report', 'weekly · Monday', 'failed twice', 'var(--color-peligro)']
+    ].map(([hook, interval, next, dot]) => ({ hook, interval, next, dot }));
+    const integrity = [
+      { icon: 'check_circle', color: 'var(--color-exito)', text: 'Core files matching their checksum', value: '1,842' },
+      { icon: 'edit_note', color: 'var(--color-aviso)', text: 'Modified on purpose (custom templates)', value: '7' },
+      { icon: 'help', color: 'var(--color-peligro)', text: 'Unknown files in /public', value: '1' }
+    ];
+
+    /* —— Terminal —— */
+    const commands = [
+      ['klytos build', 'Rebuild static output', true],
+      ['klytos page', 'Create, publish, trash', false],
+      ['klytos i18n', 'Extract and translate strings', false],
+      ['klytos backup', 'Snapshot database and files', false],
+      ['klytos user', 'Add, disable, reset 2FA', false],
+      ['klytos x402', 'Prices, settlements, refunds', false],
+      ['klytos plugin', 'Install, activate, remove', false],
+      ['klytos doctor', 'Diagnose the install', false]
+    ].map(([cmd, desc, on]) => ({ cmd, desc, on, bg: on ? sel : 'transparent', fg: on ? A : T1 }));
+    const G = '#4ECBB4', W = '#E6E9E8', D = 'rgba(230,233,232,0.52)', Y = '#E0A32E';
+    const terminalLines = [
+      ['$ klytos doctor', G],
+      ['Klytos 0.28.5 · PHP 8.3.11 · SQLite 3.45.1', D],
+      ['', D],
+      ['  ✓ Writable paths        /data /public /backups', W],
+      ['  ✓ Encryption key        present, backed up 2026-07-04', W],
+      ['  ✓ Cron                  real crontab, last tick 41 s ago', W],
+      ['  ✓ AI provider           anthropic · 4 models reachable', W],
+      ['  ! Scheduled action      klytos_ai_usage_report failed twice', Y],
+      ['  ✓ x402 provider         stripe · webhook verified', W],
+      ['', D],
+      ['2 notices, 0 errors. Run klytos doctor --fix to retry the failed action.', D]
+    ].map(([text, color]) => ({ text, color }));
+
+    return {
+      navGroups, screenChips,
+      theme, themeLabel: theme === 'dark' ? 'Dark' : 'Light',
+      toggleTheme: () => this.setState({ theme: theme === 'dark' ? 'light' : 'dark' }),
+      title: cur.title, url: cur.url, label: cur.title, renderMs: cur.ms, padStyle: cur.pad,
+      toolbarActions: ACTIONS[s] || [],
+      isWizard: s === 'wizard', isShell: s !== 'wizard',
+      isX402: s === 'x402', isTypes: s === 'types', isI18n: s === 'i18n',
+      isBlocks: s === 'blocks', isHealth: s === 'health', isTerminal: s === 'terminal',
+      wizardSteps, providers, mcpConfig,
+      x402Stats, revenueBars, x402Tables,
+      typeCols, postTypes, taxonomies, statuses, typeToggles,
+      locales, localeTabs, i18nCols, strings,
+      blockCats, blocks, templates,
+      logLevels, logs, cronJobs, integrity,
+      commands, terminalLines,
+      yes: true, zero: 0, cardPad: 20, taskPad: 14,
+      logoSize: 16, logoBig: 22, midIcon: 30, avatarSize: 26,
+      fullWidth: { width: '100%' }, panelW: { width: 360, flexShrink: 0 },
+      frameW: 1440, frameH: 976,
+      tabs: [{ title: cur.title + ' — Klytos Admin' }, { title: 'klytos.io' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

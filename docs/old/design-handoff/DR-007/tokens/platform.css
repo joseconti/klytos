@@ -1,0 +1,35 @@
+/* ============================================================
+   ORIGEN / ORIGIN — inherited, unmodified, from the PackDesk Design System
+   (José Conti), Paleta B "Mediterráneo". Source of truth:
+   PackDesk Design System › tokens/platform.css. Do not fork; upstream owns these values.
+
+   SCOPE FOR THIS DELIVERY — Klytos admin panel (PHP multi-page app at
+   /<random>-admin/), light and dark. Target surfaces: NOT used by the Klytos admin (native-platform densities and targets). Kept for system parity only.
+   What is Klytos's own contract vs. inherited furniture the admin never
+   uses: SPEC/design-tokens.md.
+   ============================================================ */
+
+/* ============================================================
+   PackDesk — Plataforma (interacción multiplataforma).
+   La capa de MARCA (color, tipo, icono) es constante; esta capa
+   recoge lo que cambia entre escritorio (puntero) y móvil (dedo),
+   y entre sistemas operativos. Ver la sección "Plataformas" del readme.
+   ============================================================ */
+
+:root {
+  /* Objetivos mínimos de interacción (accesibilidad) */
+  --target-pointer:       28px;  /* ratón / trackpad (escritorio) */
+  --target-touch-ios:     44px;  /* Apple HIG */
+  --target-touch-windows: 32px;  /* Fluent (toque ~40px) */
+  --target-touch-android: 48px;  /* Material (48dp) */
+
+  /* Densidad de fila por entrada */
+  --fila-movil: 56px;            /* lista táctil cómoda (iOS/Android)
+                                    escritorio: --fila-media/comoda/picking (motion.css) */
+
+  /* Safe areas (móvil web / PWA / WebView embebida) */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+}

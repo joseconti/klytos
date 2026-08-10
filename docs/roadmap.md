@@ -58,6 +58,42 @@ redesign is **not reportable as complete** while they stand.
 
 Review trigger, for all of them: **the close of the Phase 4 build**, exactly as §0b.
 
+## 0e. Entry 41 (Logs) — rework owed by DR-007's answer (D-093)
+
+Entry 41 was built, driven and shipped on 2026-08-09 (D-085) against the console-stream template as
+it then read. **DR-007's answer changed that template**, so the shipped screen is now behind its own
+spec in eight places. This is not a defect in what was built — it was faithful to the wording it was
+built against — and it is not optional either: the redesign is not reportable as complete while a
+built screen disagrees with the delivery.
+
+**Nothing here is guesswork; each row quotes the re-delivered file.**
+
+| # | What changes | Where the delivery says so |
+|---|---|---|
+| 1 | **The per-line copy button is WITHDRAWN.** A 19px row holds exactly one target: the line | `template-console-stream.md` §2 Hover; `accessibility.md` §7.1 condition 1 |
+| 2 | **Copy line** is added to the detail panel's header (`sm`, 28px, outside the stream) | `template-console-stream.md` §1, §2; `manifest.md` §41 |
+| 3 | **Copy all** is added to the control row, naming its content and honouring filters and truncation ("Copy all 412 lines") | same |
+| 4 | An unselected line's **values** move `--texto-secundario` → `--texto-primario`; structure takes `--texto-sutil` | §1, and `accessibility.md` §1.2 — secondary on `--fondo-ventana` is 4.46:1 light |
+| 5 | The **highlighted line** stops being bare `--color-acento` (4.23:1 light as text) and takes `--sobre-tinte-acento` on a `--tinte-acento` background (4.50 / 5.38) | §1 |
+| 6 | A **selected line paints ALL its text `--texto-primario`** — role colours suppressed for the duration — plus a **3px `--color-acento` left bar**, so selection is not carried by a 1.16:1 background alone | §2 Selected line; measured 12.72 / 9.52 |
+| 7 | **`↑`/`↓` between lines and `Enter`/`Space` to select are now a CONDITION** of the target-size exception, not a convenience — a build that drops them has produced a defect | `accessibility.md` §7.1 condition 3 |
+| 8 | **`.k-hit-24` is explicitly forbidden on a stream line** | §7.1, and the template's §4 |
+
+**And the tests must be un-pinned, which is the part easiest to forget.** `tests/E2E/logs.spec.js`
+currently excludes the two DR-007 findings by selector and pins their measured ratios as floors, on
+the standing rule that an open request must not become a licence to regress. **The request is
+closed**, the delivery now specifies passing values, and those exclusions and floors have to be
+REMOVED rather than left to sit — an exclusion outliving its Design Request is a permanent blind spot
+wearing the costume of a known issue.
+
+**Stage 6 inherits the corrected version for free**, which is the one piece of good news: Terminal
+(23), Health (22), Webhooks (24) and Block data (40) are not built yet, so they will be built right
+the first time. Only Logs carries rework.
+
+Review trigger: **before stage 6 starts**, since stage 6's four screens consume the same template and
+building them against the new wording while Logs still renders the old one would leave five surfaces
+disagreeing in two directions at once.
+
 ## 0d. Product ideas raised in conversation, parked rather than built
 
 Not design gaps and not deferrals of drawn cards: things the user asked for that are **new product**,

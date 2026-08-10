@@ -178,6 +178,43 @@ nav there was never anything there.
 
 ---
 
+## Resolved in DR-007 (the console-stream template)
+
+Both findings are the template's, so both answers are in `template-console-stream.md` and
+inherited by all five consumers — Terminal, Logs, Health's log panel, Webhooks' payload,
+Block data.
+
+### 26. A stream line is 19px, and §7 said no target may be under 24px
+**Decided in design: option (a) — a documented third exception, in words, with conditions.**
+`accessibility.md` **§7.1** now grants it under 2.5.8's *essential* clause: the target's size
+is set by the content it is made of, and a 24px line-height costs a quarter of the lines in
+the same 60vh. It is the same reasoning §3 already uses to make the stream the one permitted
+horizontal-scroll surface. The grant is conditional, and the conditions are testable: the line
+is the **only** target in its row, it spans the full stream width, `↑`/`↓` + `Enter` operate
+it from the keyboard, and it applies only to verbatim machine output. `.k-hit-24` is
+explicitly forbidden on a stream line — it cannot help and it moves the overlap.
+**Consequence:** §2's per-line copy affordance is **withdrawn**. Copy is now **Copy line** in
+the detail panel header and **Copy all** in the control row, both `sm` (28px), both outside
+the stream. That is the one interaction change in this answer.
+
+### 27. What does a selected stream line paint its text in?
+**Decided in design: `--texto-primario`, for every role in the line, plus a 3px accent left
+bar.** Measured on the selection tint over `--fondo-ventana`: **12.72:1 light / 9.52:1 dark**
+(the reported 3.83 / 3.61 and 3.37 are confirmed and withdrawn). Role colour is a scanning aid
+for the lines you read past; the selected line is being read in full, and it is the only line
+whose text sits on a tint. **No new token** — `--sobre-tinte-*` is for text on a *semantic*
+tint that must keep its hue, and the selection tint carries no hue meaning.
+**Two corrections the same measurement forced**, both in §1 and both inherited: an unselected
+line's values move from `--texto-secundario` to `--texto-primario`, because §1.2 already
+forbids secondary text on `--fondo-ventana` (4.46:1 light — this is DR-005 gap 2's third
+surface, and it is now closed here rather than re-raised); and "the one line that matters"
+stops being bare `--color-acento` (4.23:1 light as text) and takes the tint treatment `ERROR`
+and `WARN` already use, `--sobre-tinte-acento` on `--tinte-acento` (4.50 / 5.38).
+The composed pairs are now in the audit under **Composed pairs**, with the general rule they
+prove: a token that passes on a surface is not thereby passing on a tint over that surface.
+
+---
+
 ## Standing assumptions — not questions, but say so if any is wrong
 
 These were not asked because the brief already answers them. They are listed so a wrong

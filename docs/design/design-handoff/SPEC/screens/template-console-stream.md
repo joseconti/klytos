@@ -12,16 +12,25 @@ Text that a machine emitted, shown without dressing it up.
 ```
 main (padding 20)
 ├─ h1
-├─ control row       level chips · file/source picker · search · Follow toggle · Download
+├─ control row       level chips · file/source picker · search · Follow toggle · Copy all · Download
 ├─ stream            card, --fondo-ventana panel inside, mono --type-code (12px/19px)
 │                    white-space: pre; one line per record; max-height 60vh; scrolls
-└─ [Logs] detail     right panel 340px — context + stack for the selected line
+└─ [Logs] detail     right panel 340px — h2 + Copy line, then context + stack for the selected line
 ```
 
 Syntax colour is by **role, not by language**: keys and structure `--texto-sutil`, values
-`--texto-secundario`, the one line that matters `--color-acento`. Levels are a mono label at
-the start of the line (`ERROR`, `WARN`, `INFO`, `DEBUG`) in `--sobre-tinte-*`, with the tint
-as the line's background at 11 %/19 % for `ERROR` and `WARN` only.
+`--texto-primario`, the one line that matters `--sobre-tinte-acento` on a `--tinte-acento`
+line background. Levels are a mono label at the start of the line (`ERROR`, `WARN`, `INFO`,
+`DEBUG`) in `--sobre-tinte-*`, with the tint as the line's background at 11 %/19 % for `ERROR`
+and `WARN` only.
+
+**Why not `--texto-secundario`, and not bare `--color-acento`** (answer to DR-007 gap 2): the
+stream panel is `--fondo-ventana`, and `accessibility.md` §1.2 does not permit secondary text
+there — it measures 4.46:1 in light. Values are content, so they take `--texto-primario`
+(14.79:1 light / 15.29:1 dark) and structure takes `--texto-sutil` (4.53 / 5.44). Accent as
+text on that panel is 4.23:1 in light, so the highlighted line is drawn the way `ERROR` and
+`WARN` already are — tint plus its `--sobre-tinte-*` — which measures 4.50 / 5.38 and keeps a
+second channel besides hue. Measured pairs: `SPEC/color-contrast-audit.md`, Composed pairs.
 
 The terminal's prompt is a real form: `<label class="k-sr">Command</label>` + input +
 submit. It posts. Output is appended above the prompt.
@@ -32,8 +41,14 @@ submit. It posts. Output is appended above the prompt.
 
 **Default** — tail of the file, newest last, scrolled to the bottom.
 
-**Hover** — a line takes `--fila-hover` and reveals its copy affordance at the right. The
-affordance is in the DOM always.
+**Hover** — a line takes `--fila-hover` across the full width of the stream. **There is no
+per-line copy button**: a 19px row holds exactly one target, the line itself
+(`accessibility.md` §7.1, condition 1). Copy is two controls, both `sm` (28px) and both
+outside the stream — **Copy line** in the detail panel's header, which copies the selected
+line, and **Copy all** in the control row, which copies what the stream currently shows,
+filters and truncation included, and names it ("Copy all 412 lines"). On the consumers with
+no detail panel — Terminal, Health, Webhooks, Block data — only **Copy all** exists, named
+for its content ("Copy the whole payload").
 
 **Focus** — the stream container is `tabindex="0"` with `role="group"` and an
 `aria-label` ("Application log, 412 lines, scrollable"), so keyboard users can scroll it.
@@ -41,8 +56,15 @@ Individual lines are focusable **only** where selecting a line does something (L
 the detail panel); there they are `<button>`s spanning the line, with the line's text as
 their name.
 
-**Selected line** (Logs) — `--fila-seleccion`, `aria-pressed="true"`, detail panel populated
-with `<h2>` naming the event.
+**Selected line** (Logs) — `--fila-seleccion`, a 3px `--color-acento` bar down the left edge
+of the line, `aria-pressed="true"`, detail panel populated with `<h2>` naming the event.
+**All text in a selected line is `--texto-primario`** — the role colours (`--texto-sutil` keys,
+the accent line, the level tints) are suppressed for the duration of the selection. Role
+colour is a scanning aid for the stream you are reading past; the selected line is the one
+being read in full, and it is the line whose text sits on a tint. Measured on the selection
+tint over `--fondo-ventana`: **12.72:1 light / 9.52:1 dark** (`--texto-sutil` there would be
+3.89 / 3.39, which is what DR-007 gap 2 reported). The left bar means selection is not carried
+by a 1.16:1 background alone.
 
 **Following** — the "Follow" toggle is `role="switch" aria-checked` (it takes effect
 immediately). While following, new lines are appended and the view sticks to the bottom.
@@ -115,5 +137,11 @@ lines scroll horizontally.
 - Terminal: the prompt has a real label, `autocomplete="off"`, `spellcheck="false"`, and
   autocomplete suggestions are a `role="listbox"` with `aria-activedescendant`, exactly as
   the command palette (§5.11 of the accessibility spec).
-- Copy buttons name what they copy: "Copy this line", "Copy the whole payload".
+- Lines are operable from the keyboard: the stream group takes focus, `↑`/`↓` move between
+  lines, `Enter` / `Space` selects. This is a condition of the target-size exception the line
+  holds (`accessibility.md` §7.1), not a convenience.
+- A stream line is the admin's one target below 24px, and `.k-hit-24` is never applied to it.
+  Every other control on these screens — chips, picker, Follow, Download, Copy — is ≥ 24px.
+- Copy buttons name what they copy: "Copy line", "Copy all 412 lines", "Copy the whole
+  payload". None of them lives inside the stream.
 - Headings: `<h1>` the screen; the detail panel's `<h2>` names the selected event.

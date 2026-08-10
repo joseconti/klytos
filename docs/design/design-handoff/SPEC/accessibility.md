@@ -410,13 +410,44 @@ moving a pixel of the drawing.
 | Chip | ≥ 44 × 24 | passes | exactly 24 |
 | Status dot, badge | 6 / 20 tall | **exempt** | not interactive — 2.5.8 applies to pointer targets only |
 | Breadcrumb link | text | **24px tall** | the crumb row is 24px; spacing between crumbs ≥ 24px centre-to-centre |
-| Inline link inside a sentence | text | **exempt** | 2.5.8 "inline" exception, and only this exception |
+| Inline link inside a sentence | text | **exempt** | 2.5.8 "inline" exception |
+| Console-stream line (Logs) | line-width × 19 | **exempt** | the third exception below — `.k-hit-24` must **not** be applied to it |
 
-Two documented exceptions, both explicitly permitted by 2.5.8: **inline links in running
-text**, and **the drag handle** in reorderable lists — which is exempt as an equivalent
-alternative exists (§3.3) and is drawn at 24 × 24 anyway.
+Two of the three documented exceptions are explicitly permitted by 2.5.8: **inline links in
+running text**, and **the drag handle** in reorderable lists — which is exempt as an
+equivalent alternative exists (§3.3) and is drawn at 24 × 24 anyway.
 
-No other exception exists. If a build produces a smaller target, that is a defect.
+### 7.1 The third exception — a console-stream line
+
+Added in answer to **DR-007**. A line in `SPEC/screens/template-console-stream.md` is set in
+`--type-code` at 12px/19px and, on Logs, is a `<button>` spanning the line. 19px is under the
+rule and `.k-hit-24` cannot resolve it: stacked 19px rows leave no undisturbed 24px to centre
+a pseudo-element in, so enlarging one line's hit area only moves the overlap onto its
+neighbour. **Do not apply `.k-hit-24` to a stream line.**
+
+The exception rests on 2.5.8's *essential* clause — the target's size is set by the content it
+is made of, one emitted record per line, and any line-height that reached 24px would remove
+roughly a quarter of the lines visible in the same 60vh. It is the same reasoning by which §3
+of the console-stream template already holds the one permitted horizontal-scroll surface in
+the admin: this template shows machine output at the density the output has.
+
+It is granted only with all four of these, and a build that drops one has produced a defect:
+
+1. **The line is the only target in its row.** Nothing else in a 19px row is clickable — which
+   is why §2's per-line copy affordance is withdrawn (see the template's §2 for where copy
+   lives now). Two 19px targets in one row is not what this exception permits.
+2. **The unconstrained dimension is the full line.** The target spans the stream's whole
+   width, and hover and selected feedback paint that whole width, so the thing being aimed at
+   is visibly the whole row.
+3. **The stream is fully operable from the keyboard.** `↑`/`↓` move between lines inside the
+   focusable stream group, `Enter` or `Space` selects, and the detail panel is reachable with
+   no pointer precision at all. Selection is never a pointer-only path.
+4. **It applies only to verbatim machine output** — the five consumers named at the head of
+   the console-stream template. A list of records that merely looks like a stream is a table
+   and follows the table row sizes above.
+
+No other exception exists. If a build produces a smaller target outside these three, that is a
+defect.
 
 ---
 

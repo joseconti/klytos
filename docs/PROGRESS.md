@@ -824,7 +824,18 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **FIVE.**
+- Open Design Requests: **FOUR.**
+  **DR-007 is RESOLVED — 2026-08-10 (D-093).** The re-delivery arrived, was audited BEFORE
+  installation, installed as a wholesale swap (previous delivery **moved** to
+  `docs/old/design-handoff/DR-007/`, 124 files; new one 124) and re-gated. Evidence:
+  `docs/BUILD-SPEC.md` **§1f**. Exactly the five named files differ, 0 added, 0 removed;
+  `color-contrast-audit.md`'s diff removes no line, so §1c's 72/72 recomputation stands.
+  **The 9 new composed contrast pairs were recomputed independently — 18 of 18 agree**, the four
+  FAIL rows included. What the build gets: `accessibility.md` **§7.1**, a third target-size
+  exception for the 19px stream line with four testable conditions, and a selected line measured at
+  **12.72:1 light / 9.52:1 dark**. **It also creates rework on the already-shipped entry 41 (Logs)**
+  — eight items, enumerated in `roadmap.md` **§0e**, plus the un-pinning of `logs.spec.js`'s now
+  obsolete DR-007 exclusions and floors.
   **DR-008 — DRAFTED 2026-08-10 (D-092), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-008.md` and sending it is the user's call. The Consent
   prototype contradicts the delivery's own **strictest rule** twice: it draws the preview's

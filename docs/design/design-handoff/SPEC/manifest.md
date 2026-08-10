@@ -301,8 +301,10 @@ Every authenticated screen also uses **shell**. Not repeated per row.
 
 ### 41. Logs
 `logs.php` · **console-stream** · H1 **Logs**
-- Controls: level chips (links) · file `<select>` · search · Follow switch · Download
-- Detail panel: context and stack for the selected line
+- Controls: level chips (links) · file `<select>` · search · Follow switch · Copy all · Download
+- Detail panel: `<h2>` + **Copy line**, then context and stack for the selected line
+- Delta: a selected line paints all its text `--texto-primario` and takes a 3px accent left bar (DR-007 gap 2).
+- Delta: the line is the only target in its 19px row — no per-line copy button, and no `.k-hit-24` (accessibility §7.1).
 - Delta: the stream is **not** `aria-live`; counts are announced politely on a 10-second floor. Rationale in console-stream §Polling.
 - Delta: levels are mono text first (`ERROR`, `WARN`, `INFO`, `DEBUG`), tint second.
 

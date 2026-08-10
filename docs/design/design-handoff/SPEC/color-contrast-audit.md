@@ -235,6 +235,30 @@ Tint = base at 19 % over the surface.
 
 ---
 
+## Composed pairs — text on a tint over another surface (added for DR-007)
+
+The 72 pairs above measure text against a *surface*. These measure text against a **tint
+composited over a surface**, which is what the console-stream template actually paints. Both
+themes, threshold 4.5:1, tint composited before the ratio is taken.
+
+| Composition | Light | Dark | |
+|---|---|---|---|
+| `--texto-primario` on `--fila-seleccion` over `--fondo-ventana` | 12.72:1 | 9.52:1 | PASS — **the selected stream line** |
+| `--texto-primario` on `--fila-seleccion` over `--fondo-elevado` | 14.35:1 | 8.07:1 | PASS |
+| `--texto-sutil` on `--fila-seleccion` over `--fondo-ventana` | 3.89:1 | 3.39:1 | **FAIL — withdrawn**: a selected line paints all its text `--texto-primario` |
+| `--texto-secundario` on `--fila-seleccion` over `--fondo-ventana` | 3.83:1 | 3.61:1 | **FAIL — withdrawn** (DR-007 gap 2, as measured by the build) |
+| `--texto-secundario` on `--fondo-ventana` (unselected line, old spec) | 4.46:1 | 5.80:1 | **FAIL light — withdrawn**: §1.2's rule reaches the stream; values are `--texto-primario` |
+| `--texto-sutil` on `--fondo-ventana` (keys and structure) | 4.53:1 | 5.44:1 | PASS |
+| `--sobre-tinte-acento` on `--tinte-acento` over `--fondo-ventana` (the highlighted line) | 4.50:1 | 5.38:1 | PASS |
+| `--sobre-tinte-peligro` on `--tinte-peligro` over `--fondo-ventana` (ERROR line) | 4.53:1 | 5.35:1 | PASS |
+| `--color-acento` as text on `--fondo-ventana` | 4.23:1 | 7.64:1 | **FAIL light** — accent is a focus ring and a fill on this surface, never text |
+
+The rule these produce, and it is general: **a token that passes on a surface is not thereby
+passing on a tint over that surface.** Any new composition — a tint on a row state, a badge on
+a selected row — is measured before it is specified.
+
+---
+
 ## Summary
 
 | | Light | Dark |

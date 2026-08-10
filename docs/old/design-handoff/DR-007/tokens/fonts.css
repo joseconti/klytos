@@ -1,0 +1,54 @@
+/* ============================================================
+   ORIGEN / ORIGIN — inherited, unmodified, from the PackDesk Design System
+   (José Conti), Paleta B "Mediterráneo". Source of truth:
+   PackDesk Design System › tokens/fonts.css. Do not fork; upstream owns these values.
+
+   SCOPE FOR THIS DELIVERY — Klytos admin panel (PHP multi-page app at
+   /<random>-admin/), light and dark. Target surfaces: the admin shell, all 41 admin screens, and the auth pages.
+   What is Klytos's own contract vs. inherited furniture the admin never
+   uses: SPEC/design-tokens.md.
+   ============================================================ */
+
+/* ============================================================
+   PackDesk — Fuentes de marca (AUTO-HOSPEDADAS).
+   UI:    Geist        (Apple nativo: SF Pro)
+   Mono:  Geist Mono   (Apple nativo: SF Mono) — cifras, SKU, importes, versiones.
+
+   Binarios en assets/fonts/: woff2 VARIABLE (eje wght 100-900, un archivo por
+   familia, cubre los pesos que usa la escala: 400/500/600/700). Licencia SIL
+   Open Font License 1.1 en assets/fonts/OFL.txt, incluida en este paquete.
+   No se depende de Google Fonts: la marca queda disponible offline.
+
+   KLYTOS — RUTA FINAL EN EL PROYECTO. Las url() de abajo son relativas a la
+   carpeta de ESTE archivo. Disposición esperada en el proyecto:
+       admin/tokens/fonts.css        ← este archivo
+       admin/assets/fonts/*.woff2    ← los binarios
+       admin/assets/fonts/OFL.txt    ← la licencia
+   Con esa disposición ../assets/fonts/… resuelve sin tocar nada. Si fonts.css
+   se sirve desde otra carpeta, cambiar SOLO estas dos url().
+   Pesos y estilos usados por el admin: 400, 500, 600, 700, normal. No hay
+   itálicas en ninguna pantalla; no se entrega ninguna cara itálica.
+   ============================================================ */
+
+@font-face {
+  font-family: "Geist";
+  src: url("../assets/fonts/Geist-Variable.woff2") format("woff2-variations"),
+       url("../assets/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../assets/fonts/GeistMono-Variable.woff2") format("woff2-variations"),
+       url("../assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Las caras NATIVAS del SO (SF Pro en Apple, Segoe UI Variable en Windows 11,
+   Roboto en Android) NO se declaran aquí: no son webfonts, vienen con el
+   sistema operativo y no hay ningún archivo que subir. Se invocan con las
+   palabras clave -apple-system / system-ui en typography.css. */

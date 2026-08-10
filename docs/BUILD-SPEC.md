@@ -309,6 +309,68 @@ Step 3) and neither blocks:
 **Verdict: the gate PASSES on the re-delivery. DR-003 is RESOLVED. Zero open Design Requests, and
 stage 2 of the build is unblocked.**
 
+### 1f. The DR-007 re-delivery: install, diff, re-audit (2026-08-10, D-093)
+
+Installed as a **wholesale swap** (handoff contract rule 10): the previous delivery was **moved** to
+`docs/old/design-handoff/DR-007/` (124 files, never deleted) and the new one placed whole at
+`docs/design/design-handoff/` (124 files). The copy was verified against its source file-for-file —
+`diff -rq` **clean**.
+
+**Byte stability — exactly the five files DR-007 names, 0 added, 0 removed.** `diff -rq` against the
+archived delivery reports:
+
+| File | Why it changed |
+|---|---|
+| `SPEC/open-questions.md` | items **26** and **27** answered; header still reads `Status: zero unresolved items` |
+| `SPEC/accessibility.md` | new **§7.1**, the third target-size exception, with four testable conditions |
+| `SPEC/screens/template-console-stream.md` | the stream's text colours, the selected line, and where Copy lives |
+| `SPEC/manifest.md` | entry **41** only — controls gain **Copy all**, the detail panel gains `<h2>` + **Copy line**, two new deltas |
+| `SPEC/color-contrast-audit.md` | **purely additive** (`diff` shows 0 removed lines): a new **Composed pairs** table of 9 rows |
+
+Nothing under `tokens/**`, `assets/**`, `screens/**` or the other five SPEC files moved, so **§1c's
+72/72 contrast recomputation stands unrepeated** — verified rather than assumed, because the audit's
+diff removes no existing line.
+
+**Contrast recomputed, not trusted.** The 9 new composed pairs were recomputed independently in
+Python from the token hexes in `tokens/colors.css` and `tokens/klytos-admin.css`, compositing each
+tint over its surface before taking the ratio (`rgba(14,128,116,0.12)` etc. — the composition is the
+whole point of the new table). **18 of 18 values agree** with the declared ones within rounding
+(±0.05). That includes the three the build depends on — `--texto-primario` on `--fila-seleccion`
+over `--fondo-ventana` at **12.76 / 9.47** — and the four the table marks FAIL and withdraws, which
+were confirmed to fail rather than taken on the delivery's word.
+
+**The export root was accounted for BEFORE the staging tree was deleted**, which is the step D-083
+records as the one worth keeping — the previous audit's "verified byte-identical" covered only the
+`design_handoff_klytos_admin/` subtree. Of the 44 files outside it:
+
+- **9 prototypes differ from the delivery's `screens/` by exactly one line each** and one is
+  identical — the ⌘K hint's `top:calc(50% - 5px)` at the root versus `top:50%` in the delivery. The
+  identical difference D-083 recorded; the delivery's copy is canonical.
+- **9 of 13 brand SVGs are byte-identical** to the delivery's; the other 4 are the superseded
+  **live-text** wordmark and lockup, and each was proven byte-identical to the delivery's own
+  `*-text.svg` preservation — so nothing is lost by deleting the root.
+- The **`_ds` PackDesk bundle** (15 files) and the three support files (`browser-window.jsx`,
+  `image-slot.js`, `support.js`) are byte-identical to the delivery's `screens/_ds`.
+- **Root-only and deliberately NOT taken:** `css/klytos-components.css` — the file the BUILD writes,
+  so taking it is a principle-8 violation (D-083 recorded the same refusal) — plus
+  `css/klytos-tokens.css`, `.thumbnail` and the export's own agent `README.md`.
+
+124 + 43 + 1 = **168 files, all accounted for.** The staging tree was deleted only after this table
+existed.
+
+**Gate result: PASS for DR-007 alone.** `open-questions.md` is at zero, the delivery is internally
+consistent, and no foreign file exists under `docs/design/design-handoff/` (124 files, rule 10 holds).
+
+**What this re-delivery does NOT answer, stated because a partial re-delivery read as a complete one
+is exactly how a gate rots:** **DR-004** (the sidebar search form's JS-off destination — `template-shell.md`
+is byte-identical), **DR-005** (three colour pairs plus two addenda — the only movement is that gap 2's
+STREAM surface is closed inside §7.1's answer; the badge-in-selected-row, the danger-on-elevado and
+the sidebar nav item are untouched), **DR-006** (twelve list surfaces still carry no
+`grid-template-columns`; `manifest.md`'s diff is entry 41 only), and **DR-008** (the Consent
+prototype still draws `Aceptar` primary beside `Rechazar` secondary and still draws the
+"Reject is as prominent as accept" switch — `screens/**` is byte-identical, so it could not have
+changed). Four of the five open requests remain open.
+
 ## 2. What the handoff gets RIGHT
 
 Recorded first, because the gaps below are specific and this delivery is well above average:
