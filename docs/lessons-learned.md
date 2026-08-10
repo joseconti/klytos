@@ -1517,3 +1517,51 @@ size 1`, which is the defect itself. **A red you did not read is not a red first
 **How it was found, which was the only way it could be.** By driving. The screen was built,
 the fixture ran, and the number on the page disagreed with the files on disk. Every
 reading of that method's source says it works.
+
+## L-042 — Two of my tests failed for the right screen, the wrong reason, and passing them would have proved the browser works
+
+**What happened.** Entry 9's spec drove two server-side validations: an empty site name and a
+malformed sender address. Both failed with `element(s) not found` on the error summary. The obvious
+readings were both wrong — the summary WAS built, and the server-side checks WERE correct.
+
+What actually happened is that the screen obeys `SPEC/accessibility.md` §4: the name carries
+`required` and the address is `type="email"`. So Chromium refused to submit at all, showed its own
+native bubble, and **the POST never left the browser**. The code the tests were named after never
+ran, in either direction.
+
+**Why this is worth a lesson rather than a fix.** The tempting repairs are both bad and both look
+reasonable at 2am:
+
+- **Assert the native bubble instead.** That test passes forever and asserts that Chromium
+  implements constraint validation. It says nothing about Klytos, and it would stay green if the
+  server-side check were deleted outright.
+- **Drop `required` so the test can reach the server.** That trades a spec requirement for a
+  passing test — the exact direction "never edit a requirement test to make it pass" forbids, just
+  taken from the other end.
+
+Both lines are real and they are not the same line. The attribute is the FIRST line and it works.
+The server-rendered summary is the GUARANTEE, and it exists precisely for the clients that do not
+validate — an old browser, a scripted post, anything that is not this browser. A test that names the
+guarantee has to reach the guarantee, so the helper now clears `noValidate` and says in its docblock
+why that is not a weakening.
+
+**And the wrong red found a real gap.** Chasing why the submit was blocked meant reading §4 again,
+which says required is "the `required` attribute **plus the word Required in the hint**. Never an
+asterisk alone." The attribute was there; the word was not, in any of the 20 catalogues. The defect
+was invisible while the test was failing for the wrong reason, and it was invisible before the test
+existed. It would have stayed invisible if the failure had been "fixed" by either repair above.
+
+**The rule.** When a driven test fails, establish WHICH layer refused before changing anything —
+the browser, the server, or the assertion. `element(s) not found` on a server-rendered node means
+one of: it was not built, the request never arrived, or the branch was not taken. Those are three
+different defects and only one of them is in the code you just wrote. Then: **a test that cannot
+reach the code it names is not a passing test, whatever colour it goes.** This is L-041's "a red you
+did not read is not a red first" pointed at the browser tier — there, the wrong red named a missing
+App; here, it named a missing element while the element was on the page.
+
+**A second, cheaper lesson from the same session, and it is L-025's shape a third time.** A
+whole-tier run reported 3 failures in specs this slice never touched. All three pass in isolation
+and the full tier passes at **319/319**. The cause was two Playwright runs against ONE playground —
+I started a background run and then started another in the foreground. **One executing agent per
+environment**: the rule already in the skill for subagents applies just as hard to two of my own
+commands, and a shared playground fails in ways that read as product defects.

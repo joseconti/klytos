@@ -776,23 +776,55 @@
       (L-025's shape). The consent fixture now cleans up; `.htaccess` is never touched.
     - **§1's "the one line that matters" is deliberately NOT built** — Logs has no such concept, and
       building the rule would be a component with no consumer (L-039). Recorded as absent.
-  - **Entry 9 (Settings) — SURVEY DONE, BUILD NOT STARTED (D-095).** The per-screen survey disagreed
-    with the stage-wide one for the **fourth time in four**:
-    - The shipped screen has **eleven POST groups, not seven sections** (`general`, `social`,
-      `analytics`, `email`, `languages`, `appearance`, `developer`, `encryption_key_backup`, `ai`,
-      `maintenance`, `notices`), all cards on ONE page. §9 wants a seven-item nav where each section
-      is its own page load, so the work is a **re-partition**, not adding a nav. The mapping onto the
-      five buildable sections is written out in D-095 and is the build's own (D-088 answer 3).
-    - **`encryption_key_backup` may be a SECOND surface for entry 6's Recovery keys** (D-091).
-      Adjacent is not identical — **check before touching either**, do not assume.
-    - **THE DR-002 DELTA IS STILL UNBUILT and entry 9 owns it.** Indexing must move to
-      Settings → Advanced (checkbox + Save, gated `site.configure`); the user confirmed it in
-      **D-072 answer 1**. `index.php` still carries the toggle and `settings.php` has no indexing
-      control at all. It also touches entry 44 (Dashboard), which is not built either, so the two
-      halves should land together.
-    - **Nothing is unbacked** — the first stage-5 screen where the survey found no missing product.
-  - **NEXT ACTION — stage 5 batch B, screen 5 onward.** Still unblocked and backed, in the order
-    the survey suggests: **9 Settings** (`settings.php`, five sections per D-088 answer 3),
+  - **Stage 5 of 6 — BATCH B, screen 5: entry 9 (Settings) is BUILT, DRIVEN and COMPLETE —
+    2026-08-10 (D-096).** The manifest's largest form surface, and the survey (D-095) meant the hard
+    analysis was already done when the build started.
+    - **A RE-PARTITION, not a nav.** The shipped screen's **eleven POST groups** became **five
+      section page loads** exactly as D-095 mapped them, each carrying **one form and one Save**
+      (the template says one; there were eleven). §9's nav is REAL navigation — every item is a GET
+      and `aria-current="page"` is decided by the server, the first such nav in this build.
+    - **URLs and Media stay omitted** — two of §9's seven with no shipped setting behind either, so
+      a nav item would be a page that renders nothing. `roadmap.md` §0c, one line each to restore.
+    - **DR-002 IS BUILT, in BOTH halves**, discharging the half of **D-072 answer 1** that had been
+      recorded and unbuilt since it was confirmed: the indexing checkbox landed in Settings →
+      Advanced with its consequence stated beside it and gated at `site.configure`, and
+      `index.php`'s toggle is **gone** — the Dashboard now only warns and links here, and has no
+      POST handler at all.
+    - **D-095's open check, answered by READING rather than assuming.** `encryption_key_backup` IS
+      the same duty as entry 6's Recovery keys, but was not the same control: Security had the
+      confirmation, Settings had the only affordance that actually yields the key material. So the
+      material **moved to entry 6** (removing shipped capability is not a fidelity decision), and
+      the two flags are now written by one confirmation.
+    - **THE FINDING — L-041's shape a second time.** `SiteConfig::set()` had been **silently
+      dropping `encryption_key_backed_up` since the feature shipped**: the name was missing from a
+      hard-coded allow-list, and the method returns the merged array either way, so the caller saw
+      its own value come back. Two surfaces wrote it and `bootstrap.php` reads it as the condition
+      of an **undismissable system error notice** — so every install carried a permanent red "your
+      encryption key has not been backed up" banner that **no control in the product could clear**.
+      Fixed test-first; the red was observed and is quoted in `docs/05-test-points.md`.
+    - **Five more shipped defects closed in passing**, each with a driven test: a default-language
+      select hard-coded to es/en/ca/fr whatever the language list said · a half-filled language row
+      dropped without a word · `smtp_port` cast to `int`, so `abc` became port 0 · the seven devbar
+      toggles rendered only once developer mode was already on (§2 forbids hiding a disabled
+      control) · a notices card that vanished when empty.
+    - **One spec miss of my own, caught only by driving.** §4 wants the word *Required* in the hint
+      and it was absent — found because two tests failed for the WRONG reason: Chromium's own
+      constraint validation refused the submit, so the server path they name never ran. Repaired
+      rather than relaxed. **A test that cannot reach the code it names is not a passing test.**
+    - **One test MOVED rather than deleted.** `AdminGateHttpTest`'s two Dashboard rows guarded a
+      branch that no longer exists; the coverage moved into a test pinning **both** halves of a move
+      — gated where it landed, AND no copy left behind.
+    - Built: `settings.php` rewritten · `index.php`'s DR-002 half · `security.php` gains the key
+      material · `SiteConfig::set()` fixed · two new CSS classes · `tests/E2E/settings.spec.js`
+      (**35 tests**) · `tests/Unit/SiteConfigSetTest.php` (4) · **76 i18n keys × 20 catalogues** ·
+      1 new filter + 5 changed action signatures, INDEX 1011 → **1012** · BUILD-SPEC §5.9
+      adaptations **38–41**.
+    - Evidence: PHP **345 / 1651**, 0 skips (was 340 / 1643) · whole browser tier **319 passing**
+      (was 275), settings alone **35**, axe clean on **5 sections × 2 themes plus the error state** · `keel-verify` **21 checks: 16
+      pass, 5 warnings**, test-point rows 19 → **20** (row count confirmed to move, L-038) ·
+      `keel-doctor --check` green, 14 rows · lint on the touched files **0 errors**, core+admin
+      baseline **158/423 — DOWN from 191/488**, never up (D-025).
+  - **NEXT ACTION — stage 5 batch B, screen 6 onward.** Still unblocked and backed:
     **37 x402 settings** (`x402-settings.php`, wallet stays editable, minus pricing rules and the
     402 body), plus the form halves of **26 Privacy**, **27 Profile**, **28 Licence**,
     **32 Taxonomies** and **24 Webhooks** — whose TABLE halves stay DR-006-blocked. Then stage 6

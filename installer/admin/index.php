@@ -26,47 +26,38 @@ $lastBuild  = $siteConfig['last_build'] ?? null;
 
 $indexingEnabled = $siteConfig['indexing_enabled'] ?? false;
 
-// Handle indexing toggle action.
-if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
-    // The dashboard is gated at 'pages.view' so every role can see it, but
-    // this toggle decides whether the whole site is indexable by search
-    // engines and AI crawlers — a site-wide setting, not a dashboard one.
-    klytos_require_permission( 'site.configure' );
-
-    $action = $_POST['action'] ?? '';
-    if ( $action === 'disable_block' ) {
-        $app->getSiteConfig()->set( ['indexing_enabled' => true] );
-        $indexingEnabled = true;
-        $siteConfig['indexing_enabled'] = true;
-    } elseif ( $action === 'enable_block' ) {
-        $app->getSiteConfig()->set( ['indexing_enabled' => false] );
-        $indexingEnabled = false;
-        $siteConfig['indexing_enabled'] = false;
-    }
-}
+/*
+ * DR-002, confirmed by the user in D-072 answer 1 and built with manifest
+ * entry 9: search-engine and AI-crawler indexing is a SETTINGS control, not a
+ * Dashboard one — `settings.php?section=advanced`, a checkbox + Save gated at
+ * `site.configure`, with its consequence stated beside it.
+ *
+ * What used to be here was a bare button that flipped a site-wide setting with
+ * no statement of what it does, on a screen gated at `pages.view` — so the POST
+ * handler had to carry its own `site.configure` re-check to stop an editor
+ * un-blocking the whole site from the Dashboard. Both halves are gone: the
+ * Dashboard has no POST handler at all now.
+ *
+ * "The Dashboard only warns while the site is blocked and links here" — the
+ * warning is the `indexing-blocked` system notice registered in bootstrap.php
+ * (context `dashboard`, not dismissible), and the link below is the other half.
+ */
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 klytos_do_action( 'admin.dashboard.before' );
 
-// Indexing warning banner is now rendered automatically by the Notice API.
-// Only the toggle action form remains here.
+// The indexing warning banner itself is rendered by the Notice API. What
+// remains here is DR-002's other half: while the site is blocked, a LINK to
+// the control, and no control of its own. Nothing is shown while indexing is
+// allowed — there is no warning to act on, so a permanent link to a settings
+// page would be noise on the screen the manifest wants quietest.
 if ( ! $indexingEnabled ) : ?>
-<form method="post" class="mb-md flex-end">
-    <?php echo klytos_csrf_field(); ?>
-    <input type="hidden" name="action" value="disable_block">
-    <button type="submit" class="btn btn-primary btn-sm">
-        <?php echo __( 'indexing.disable_block' ); ?>
-    </button>
-</form>
-<?php else : ?>
-<form method="post" class="mb-md flex-end">
-    <?php echo klytos_csrf_field(); ?>
-    <input type="hidden" name="action" value="enable_block">
-    <button type="submit" class="btn btn-outline btn-sm">
-        <?php echo __( 'indexing.enable_block' ); ?>
-    </button>
-</form>
+<p class="mb-md" data-testid="dashboard.indexing_link">
+    <a href="<?php echo klytos_esc_url( $adminPath . 'settings.php?section=advanced' ); ?>">
+        <?php echo klytos_esc_html( __( 'indexing.go_to_setting' ) ); ?>
+    </a>
+</p>
 <?php endif; ?>
 
 <?php klytos_do_action('admin.dashboard.before_stats'); ?>
@@ -161,7 +152,7 @@ if ( !empty( $allWidgets ) ) : ?>
         if ( $widget['capability'] !== null && !klytos_has_permission( $widget['capability'] ) ) {
             continue;
         }
-    ?>
+        ?>
     <div class="card" data-widget-id="<?php echo klytos_esc_attr( $widget['id'] ); ?>">
         <div class="card-header">
             <h3><?php echo klytos_esc_html( $widget['title'] ); ?></h3>

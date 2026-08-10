@@ -10,12 +10,12 @@
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
 | Actions | 328 |
-| Filters | 139 |
+| Filters | 140 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1011** |
+| **Total** | **1012** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -368,13 +368,13 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.security.before_encryption | action | installer/admin/security.php | — | Emitted above the encryption settings panel; receives the current encryption level, echo extra HTML |
 | admin.security.before_passkeys | action | installer/admin/security.php | — | Emitted above the Passkeys card; receives the passkey rows and the user id, echo extra HTML |
 | admin.security.before_recovery_codes | action | installer/admin/security.php | — | Emitted above the Recovery codes card; receives the remaining code count and the user id, echo extra HTML |
-| admin.settings.after | action | installer/admin/settings.php | — | Emitted at the tail of the site settings screen; no payload, echo extra HTML |
+| admin.settings.after | action | installer/admin/settings.php | — | Emitted at the tail of the Settings screen; receives the current section slug |
 | admin.settings.after_save | action | installer/admin/settings.php | — | Emitted once a settings section has been persisted; receives the section slug and raw POST |
-| admin.settings.after_section | action | installer/admin/settings.php | — | Emitted below each settings section block; receives the section slug being rendered |
-| admin.settings.before | action | installer/admin/settings.php | — | Emitted at the top of the site settings screen; no payload, echo extra HTML |
+| admin.settings.after_section | action | installer/admin/settings.php | — | Emitted below the rendered section, inside its form; receives the section slug and the site config |
+| admin.settings.before | action | installer/admin/settings.php | — | Emitted at the top of the Settings screen; receives the current section slug |
 | admin.settings.before_save | action | installer/admin/settings.php | — | Emitted before a settings section is persisted; receives the section slug and raw POST |
-| admin.settings.before_section | action | installer/admin/settings.php | — | Emitted above each settings section block; receives the section slug being rendered |
-| admin.settings.render_custom_sections | action | installer/admin/settings.php | — | Emitted after all core sections so plugins can print their own; receives the site config |
+| admin.settings.before_section | action | installer/admin/settings.php | — | Emitted above the rendered section, inside its form; receives the section slug and the site config |
+| admin.settings.render_custom_sections | action | installer/admin/settings.php | — | Emitted after the rendered section so plugins can print their own; receives the site config and the section slug |
 | admin.sidebar.after | action | installer/admin/templates/sidebar.php | — | Emitted right after the sidebar aside element closes; no payload, echo extra HTML |
 | admin.sidebar.after_search | action | installer/admin/templates/sidebar.php | — | Emitted just below the sidebar search box; no payload, echo extra HTML |
 | admin.sidebar.after_section | action | installer/admin/templates/sidebar.php | — | Emitted below each sidebar menu section; receives that section's name |
@@ -647,6 +647,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.sidebar_items | filter | installer/admin/templates/sidebar.php | — | Filters the admin sidebar menu items so plugins can add, remove or modify entries |
 | admin.sidebar_section_label | filter | installer/admin/templates/sidebar.php | — | Filters the displayed label of an admin sidebar section |
 | admin.sidebar_section_order | filter | installer/admin/templates/sidebar.php | — | Filters the display order of admin sidebar sections |
+| admin.settings.sections | filter | installer/admin/settings.php | — | The Settings screen's section list (slug => label i18n key); adding a row adds a nav item and a page load |
 | admin.statusbar_degraded | filter | installer/admin/templates/footer.php | docs/reference/admin-navigation.md | One extra fact on the status bar's left side when a subsystem is unhealthy; never becomes a banner |
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |

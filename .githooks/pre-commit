@@ -35,7 +35,25 @@ done
 # with -i (that would make the AKIA/ghp_/sk- prefixes case-insensitive too,
 # which loosens them), and the pre-existing lowercase-only branch never matched
 # the very common camelCase `apiKey = "..."`.
-pat="-----BEGIN [A-Z ]*PRIVATE KEY-----|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9_\-]{16,}|Bearer [A-Za-z0-9._~+/=-]{20,}|AKIA[0-9A-Z]{16}|sk-(proj-)?[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{10,}"
+#
+# THE VALUE MUST ALSO CONTAIN A DIGIT, and that clause was added because the
+# rule above only half-worked (D-097). "Requires something value-shaped" was
+# meant to spare the catalogues, and it does — in ENGLISH, where the label is
+# "Gemini API key" and the spaces break the run. Dutch and Swedish compound the
+# same label into `Gemini-API-sleutel` and `Gemini-API-nyckel`: 16+ key-like
+# characters, no spaces, and the gate blocked two locale files carrying nothing
+# but a UI string. That is precisely the false positive the comment above says
+# trains people to pass --no-verify.
+#
+# A digit is the discriminator because generated credentials are base16/62/64
+# and effectively always carry one, while a 16+ run of letters and hyphens is a
+# phrase in some language. It is a real if small loosening — an all-letter key
+# would now pass this branch — and it is accepted knowingly: every well-known
+# credential format has its own branch below (AKIA, sk-, ghp_, xox, Bearer,
+# PEM), none of which this clause touches, so what is given up is the generic
+# catch-all for a shape no issuer actually mints. Proven by planting a
+# real-looking key and watching this hook refuse the commit.
+pat="-----BEGIN [A-Z ]*PRIVATE KEY-----|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy][\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9_\-]*[0-9][A-Za-z0-9_\-]*[A-Za-z0-9_\-]{15,}|Bearer [A-Za-z0-9._~+/=-]{20,}|AKIA[0-9A-Z]{16}|sk-(proj-)?[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{36,}|xox[baprs]-[A-Za-z0-9-]{10,}"
 for f in $files; do
   case "$f" in .githooks/*|.claude/skills/*|.agents/skills/*) continue ;; esac
   if git show ":$f" 2>/dev/null | LC_ALL=C grep -Eqa -e "$pat"; then

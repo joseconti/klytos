@@ -284,6 +284,24 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() && $userId ) 
             $mainConfig['recovery_keys_confirmed_at'] = date( 'c' );
             $app->getStorage()->writeTo( $app->getConfigPath(), 'config.json.enc', $mainConfig );
 
+            /*
+             * TWO FLAGS RECORDED ONE DUTY, and collapsing the two surfaces onto
+             * this card is what makes them one control.
+             *
+             * `recovery_keys_confirmed` (config.json.enc) drives the shell's
+             * red recovery banner; `encryption_key_backed_up` (SiteConfig)
+             * drives an UNDISMISSABLE system error notice on every admin page.
+             * Settings owned the second and Security the first, so confirming
+             * on either screen left the other's warning standing. Now the one
+             * confirmation clears both.
+             *
+             * The SiteConfig write only started working in this same slice:
+             * `set()` silently dropped this key on every install, so the notice
+             * had never been clearable by any control in the product
+             * (SiteConfigSetTest).
+             */
+            $app->getSiteConfig()->set( ['encryption_key_backed_up' => true] );
+
             $success = __( 'security.recovery_confirmed' );
         } elseif ( $action === 'generate_identity_keys' ) {
             /*
@@ -380,11 +398,32 @@ $encryptionLevel     = 'basic';
 $recoveryConfirmed   = false;
 $identityFingerprint = null;
 
+/**
+ * The master key's material, base64, for the affordance that moved here from
+ * Settings with entry 9. Empty string where the file is absent — which is a
+ * state the card reports rather than one it hides.
+ *
+ * Read behind `site.configure` exactly like everything else in this block: the
+ * screen itself is gated at `security.self`, which every role holds, and this
+ * is the key that decrypts the entire installation.
+ *
+ * @var string
+ */
+$encryptionKeyBase64 = '';
+
 if ( $canConfigureSite ) {
     $mainConfig          = $app->getStorage()->readFrom( $app->getConfigPath(), 'config.json.enc' );
     $encryptionLevel     = (string) ( $mainConfig['encryption_level'] ?? 'basic' );
     $recoveryConfirmed   = (bool) ( $mainConfig['recovery_keys_confirmed'] ?? false );
     $identityFingerprint = $mainConfig['identity_fingerprint'] ?? null;
+
+    $encryptionKeyPath = $app->getConfigPath() . '/.encryption_key';
+    if ( is_readable( $encryptionKeyPath ) ) {
+        $rawKey = file_get_contents( $encryptionKeyPath );
+        if ( $rawKey !== false ) {
+            $encryptionKeyBase64 = base64_encode( $rawKey );
+        }
+    }
 }
 
 /**
@@ -936,6 +975,81 @@ require_once __DIR__ . '/templates/sidebar.php';
                         <h3 class="k-label"><?php echo klytos_esc_html( __( 'security.enc_key_title' ) ); ?></h3>
                         <p class="k-hint"><?php echo klytos_esc_html( __( 'security.enc_key_location' ) ); ?></p>
                         <p><code class="k-code-key" data-testid="security.enc_key_path">config/.encryption_key</code></p>
+
+                        <?php /*
+                         * MOVED HERE FROM `settings.php` WITH ENTRY 9 (D-095's
+                         * open check, answered by reading both files against the
+                         * manager rather than assuming).
+                         *
+                         * Settings carried a second "Encryption Key" card that
+                         * showed this key's material with Copy / Download / Mark
+                         * as backed up. `manifest.md` §9 names no encryption
+                         * section and §6 names Recovery keys, so two surfaces
+                         * offered one duty — the duplication D-090 refused for
+                         * the Taxonomies card. It moved rather than being
+                         * deleted, because it holds the ONLY affordance in the
+                         * product that actually yields the key material, and
+                         * without it "back up your encryption key" is an
+                         * instruction with nothing behind it.
+                         *
+                         * §2 "Read-only vs disabled": a value the person may
+                         * copy but not change is `readonly`, mono, selectable,
+                         * with a copy button — not `disabled`.
+                         */ ?>
+                        <?php if ( $encryptionKeyBase64 !== '' ) : ?>
+                            <label class="k-label" for="security-field-enc_key">
+                                <?php echo klytos_esc_html( __( 'security.enc_key_material' ) ); ?>
+                            </label>
+                            <p class="k-hint" id="security-hint-enc_key">
+                                <?php echo klytos_esc_html( __( 'security.enc_key_material_hint' ) ); ?>
+                            </p>
+                            <textarea class="k-control k-control--mono"
+                                      id="security-field-enc_key"
+                                      readonly
+                                      rows="2"
+                                      spellcheck="false"
+                                      aria-describedby="security-hint-enc_key"
+                                      data-testid="security.enc_key_material"><?php
+                                        echo klytos_esc_textarea( $encryptionKeyBase64 );
+                                        ?></textarea>
+                            <div class="k-card-footer">
+                                <button type="button"
+                                        class="k-btn k-btn--secondary k-btn--sm"
+                                        id="security-copy-enc-key"
+                                        data-testid="security.copy_enc_key">
+                                    <?php echo klytos_esc_html( __( 'security.enc_key_copy' ) ); ?>
+                                </button>
+                                <?php /*
+                                 * A real link with `download`, not a Blob built
+                                 * in script: the key is already in the DOM as a
+                                 * data: URL's payload would be, and an <a> works
+                                 * with JavaScript off, which the previous
+                                 * button did not.
+                                 */ ?>
+                                <a class="k-btn k-btn--secondary k-btn--sm"
+                                   href="data:application/octet-stream;base64,<?php echo klytos_esc_attr( $encryptionKeyBase64 ); ?>"
+                                   download="klytos-encryption.key"
+                                   data-testid="security.download_enc_key">
+                                    <?php echo klytos_esc_html( __( 'security.enc_key_download' ) ); ?>
+                                </a>
+                            </div>
+                            <?php /*
+                             * The two outcomes are TRANSLATED STRINGS carried
+                             * on the element, not literals in the script. A
+                             * user-facing sentence inside a <script> block is a
+                             * string that no catalogue can ever reach.
+                             */ ?>
+                            <p class="k-hint"
+                               id="security-enc-key-copied"
+                               role="status"
+                               data-copied="<?php echo klytos_esc_attr( __( 'security.enc_key_copied' ) ); ?>"
+                               data-failed="<?php echo klytos_esc_attr( __( 'security.enc_key_copy_failed' ) ); ?>"
+                               data-testid="security.enc_key_copied"></p>
+                        <?php else : ?>
+                            <p class="k-status-line k-status-line--aviso" data-testid="security.enc_key_missing">
+                                <?php echo klytos_esc_html( __( 'security.enc_key_missing' ) ); ?>
+                            </p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="k-field">
@@ -1084,6 +1198,39 @@ require_once __DIR__ . '/templates/sidebar.php';
     });
     if (window.location.hash) {
         markCurrent(window.location.hash);
+    }
+
+    /*
+     * Copy the master key. A pure enhancement: the value is in a readonly
+     * textarea the person can select and copy by hand, and the Download beside
+     * it is a real <a download> that needs no script at all — so this button is
+     * the only part that disappears with JavaScript off, and nothing is lost
+     * with it.
+     *
+     * The result is announced through a role="status" line rather than by
+     * rewriting the button's own label. Swapping the label moves the accessible
+     * name of the control the person just activated, which a screen reader
+     * reports as a different button appearing under their finger.
+     */
+    var copyKeyButton = document.getElementById('security-copy-enc-key');
+    var copyKeyField = document.getElementById('security-field-enc_key');
+    var copyKeyStatus = document.getElementById('security-enc-key-copied');
+
+    if (copyKeyButton && copyKeyField && copyKeyStatus) {
+        copyKeyButton.addEventListener('click', function () {
+            var value = copyKeyField.value;
+
+            if (!navigator.clipboard) {
+                copyKeyStatus.textContent = copyKeyStatus.getAttribute('data-failed') || '';
+                return;
+            }
+
+            navigator.clipboard.writeText(value).then(function () {
+                copyKeyStatus.textContent = copyKeyStatus.getAttribute('data-copied') || '';
+            }, function () {
+                copyKeyStatus.textContent = copyKeyStatus.getAttribute('data-failed') || '';
+            });
+        });
     }
 
     /*

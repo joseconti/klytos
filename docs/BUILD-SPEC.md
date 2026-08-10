@@ -1012,7 +1012,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 6 | Security | ☑ | ◐ §6 — see note | ☑ | ☑ |
 | 7 | Analytics | ☐ | ☐ §7 | ☐ | ☐ |
 | 8 | MCP | ☐ | ☐ §8 | ☐ | ☐ |
-| 9 | Settings | ☐ | ☐ §9 | ☐ | ☐ |
+| 9 | Settings | ☑ | ◐ §9 — see note | ☑ | ☑ |
 | 10 | Log in | ☐ | ☐ §10 | ☐ | ☐ |
 | 11 | Verify | ☐ | ☐ §11 | ☐ | ☐ |
 | 12 | AI chat | ☐ | ☐ §12 | ☐ | ☐ |
@@ -1075,6 +1075,19 @@ read are a slice with an authorization review, not a card. Recorded in `docs/roa
 D-088's standing answer 1. Two further absences are adaptations rather than deferrals and are logged
 as §5.9 rows 23–24 (no Taxonomies card — entry 19 owns it; no *Delete this post type* card — entry
 19 already carries the delete, and the question is with the user).
+
+**Note on entry 9's `◐`.** Same shape, same reason as 19, 39 and 6. Its template rows,
+accessibility and driven evidence are complete (35 browser tests, both themes, whole-page axe over
+all five sections **and** the error state — D-096), and it is the FIRST screen in this build whose
+section nav is real navigation rather than an in-page one: §9 says "each section is its own page
+load", so every nav item is a GET and `aria-current="page"` is decided by the server. Its **manifest
+sections are partial by decision**: *URLs* and *Media* are two of §9's seven and neither has any
+shipped setting behind it, so a nav item for either would be a page that renders nothing. Deferred
+under D-088's standing answer 1, recorded in `docs/roadmap.md` §0c, and each is one line in
+`$sections` to restore. **DR-002's delta IS built here**, in both halves — the indexing checkbox
+landed in *Advanced* and the Dashboard's toggle is gone — discharging the half of D-072 answer 1
+that had been recorded and unbuilt since it was confirmed. Four adaptations are logged as §5.9 rows
+38–41 rather than left as silent choices.
 
 **A drift this table itself carries, recorded rather than quietly corrected.** Entries **1 (Pages)**
 and **3 (Design)** are built, driven and evidenced — 31 browser tests each, in `docs/05-test-points.md`
@@ -1357,6 +1370,10 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 35 | **The banner half of `installer/core/assets/consent-manager.js` is rewritten** — a file outside `installer/admin/` and outside the redesign's usual surface | §25's own two deltas bind "the banner preview **and the shipped banner**" to the same equal-prominence rule, and add `role="dialog" aria-modal="true"`, focus trapped and `Esc` = reject non-essential. The shipped banner met NONE of the five. Building only the preview would have advertised a banner the site does not ship | **The user's decision**, taken before the first line. Every one of the five is driven against the real library served into a real page; the prominence pair is proven to fail on the planted original class. Two shipped fields that did nothing were closed in the same change — `cookie_days` never reached the library, and the banner's words were hardcoded Spanish against D-006 |
 | 36 | **`Copy all` is labelled "Copy all lines ({count})", not the delivery's "Copy all 412 lines"** | §4 requires the control to name what it copies, count included. This i18n mechanism has NO plural forms (D-076), so the delivery's literal wording ships "Copy all 1 lines" on a single-line stream, in all 20 catalogues | Yes — the count is kept exactly as §4 asks and the sentence is correct at every value. The count is of what the stream is SHOWING, filters and truncation included, and a test copies with a level filter applied and asserts every copied line matches it |
 | 37 | **§1's "the one line that matters" is NOT built on entry 41** | The re-delivery moves it from bare `--color-acento` to `--sobre-tinte-acento` on a `--tinte-acento` background. Logs has no concept of a line that matters — nothing in this screen marks one — so implementing the rule would write a component with no consumer | Recorded as ABSENT rather than built ahead of a consumer, which is L-039's rule stated in the record so the next slice inherits a suspicion instead of a green line. Stage 6's four console-stream consumers may bring one |
+| 38 | **Entry 9's section headings are `<h2>` and its CARDS are `<h3>`**, although the template says "each card `<h2>`" | §9 answers the H1 question explicitly — "H1 stays *Settings* and the section is `<h2>`" — which inserts a heading level the template's generic rule does not have. Keeping cards at `<h2>` beside a section `<h2>` would put the section and the things inside it at the same level; the delta wins over the default | Yes — one `<h1>` per section page, the section `<h2>` asserted by tag name in a driven test, and axe clean on all five sections in both themes. `.k-section-heading` takes `--type-title-2`, a DELIVERED token that is not one of the two `typography.css` shadows (build rule 1) |
+| 39 | **The eleven shipped POST groups are re-partitioned onto FIVE sections**, and the mapping is the build's own | §9 names seven sections and gives no mapping from the shipped groups onto them. Two of the seven — URLs and Media — have no shipped setting behind them at all, so a nav item for either is a page that renders nothing | Under D-088 answer 3, written out in full in **D-095** before the first line and unchanged in the build. The omission is one line each in `$sections` to restore, and the re-partition's real risk — one section's save blanking another's value — is driven end to end rather than reasoned about, plus pinned in the unit tier as `SiteConfig::set()`'s partial-merge contract |
+| 40 | **`$pageTitle` carries the SECTION and the screen prints its own `<h1>`** | The shell derives BOTH the `<h1>` and the last breadcrumb crumb from `$pageTitle`, and §9 requires them to say different things: the H1 stays "Settings" while "the breadcrumb carries the section" | Yes — the alternative was changing the shell for one screen. "Settings" becomes a middle crumb linking back to the default section, so the trail reads Site › Settings › Locale and the last crumb is the section, `aria-current="page"`, not a link |
+| 41 | **The encryption-key affordance MOVES from entry 9 to entry 6** (Security → Recovery keys) | `manifest.md` §9 names no encryption section and §6 names Recovery keys, so the shipped Settings card was a second surface for one duty — the duplication D-090 refused. It is moved rather than deleted because it holds the only affordance in the product that actually yields the key material (D-075/D-079: removing shipped capability is not a fidelity decision) | Yes, and it also closed a defect: the card's "Mark as backed up" wrote a `SiteConfig` key `set()` silently dropped, so an undismissable error notice was unclearable on every install. The two flags are now written together by the one confirmation, and `SiteConfigSetTest` was seen failing before the fix |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

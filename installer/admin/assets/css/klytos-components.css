@@ -1820,6 +1820,33 @@ a.k-stat:hover {
     max-width: 880px;
 }
 
+/* manifest.md §9's delta: "H1 stays 'Settings' and the section is <h2>".
+   That puts a heading level between the page title and the card headings, and
+   the delivered scale already carries one — --type-title-2 (600 17px/22px)
+   sits exactly between --type-page-title (22px) and --type-card-heading (13px).
+   A delivered token, not an invented step: --type-title-2 is in the PackDesk
+   block and is NOT one of the two the Klytos block shadows (build rule 1). */
+.k-section-heading {
+    font: var(--type-title-2);
+    color: var(--texto-primario);
+    margin: 0;
+}
+
+/* A collection rendered as a list rather than a table — the Notices card's
+   active list. accessibility.md §2.2 names the surfaces that are NOT tables;
+   this one is a plain enumeration with no columns to align, so it is a real
+   <ul> and takes no table role. */
+.k-plain-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: var(--type-body);
+    color: var(--texto-primario);
+}
+
 .k-section-nav {
     position: sticky;
     /* Clears the sticky toolbar rather than sliding under it. */

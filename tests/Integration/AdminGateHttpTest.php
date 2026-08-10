@@ -299,10 +299,23 @@ final class AdminGateHttpTest extends AdminHttpTestCase
     {
         // path => [ field data, role that may VIEW but must not ACT ]
         $cases = [
-            // Dashboard is pages.view (all roles); the indexing toggle decides
-            // whether the whole site is indexable — site.configure.
-            [ 'installer/admin/index.php', [ 'action' => 'disable_block' ], 'viewer' ],
-            [ 'installer/admin/index.php', [ 'action' => 'disable_block' ], 'editor' ],
+            /*
+             * The Dashboard's two rows USED to be here, and they are gone
+             * because the branch they guarded is gone, not because they became
+             * inconvenient.
+             *
+             * DR-002 moved the indexing toggle to Settings → Advanced (built
+             * with manifest entry 9), so `index.php` no longer has a privileged
+             * POST branch at all — it has no POST handler of any kind. A case
+             * asserting 403 on a branch that does not exist would be asserting
+             * the gate map's own page tier, which the matrix above already
+             * covers, and it would go green for a reason unrelated to its name.
+             *
+             * The coverage did not evaporate with the rows: it moved to
+             * `testIndexingIsRefusedToEveryRoleBelowSiteConfigure()` below,
+             * which pins BOTH halves of the move — the control is gated where
+             * it landed, and the Dashboard did not keep a copy.
+             */
 
             // Page list is pages.view; trashing is pages.delete.
             [ 'installer/admin/pages.php', [ 'action' => 'delete', 'slug' => 'home' ], 'viewer' ],
@@ -329,6 +342,71 @@ final class AdminGateHttpTest extends AdminHttpTestCase
                 "{$role} must be refused the privileged POST branch of {$path}."
             );
         }
+    }
+
+    /**
+     * DR-002's move is gated where it landed, and left no copy behind.
+     *
+     * Search-engine and AI-crawler indexing decides whether the whole site is
+     * findable. It used to be a bare button on the Dashboard — a screen every
+     * role can see — which is why `index.php` needed an inline `site.configure`
+     * re-check on top of its `pages.view` page tier. Manifest entry 9 moved it
+     * to Settings → Advanced, where `site.configure` is the PAGE tier and the
+     * inline re-check is no longer the only thing standing between an editor
+     * and the setting.
+     *
+     * A move is two claims and this asserts both, because verifying only the
+     * first is how a control ends up existing in two places: the setting is
+     * refused below `site.configure` at its new home, AND the old home no
+     * longer accepts the post that used to change it. Without the second half,
+     * reinstating the Dashboard toggle would break nothing.
+     *
+     * @return void
+     */
+    public function testIndexingIsRefusedToEveryRoleBelowSiteConfigure(): void
+    {
+        foreach ( [ 'viewer', 'editor' ] as $role ) {
+            $response = $this->post(
+                'installer/admin/settings.php',
+                [ 'section' => 'advanced', 'indexing_enabled' => '1' ],
+                $role
+            );
+
+            self::assertSame(
+                403,
+                $response['status'],
+                "{$role} must be refused the indexing control at its new home."
+            );
+        }
+
+        /*
+         * The old home. An owner is used deliberately — the point is not that
+         * the ROLE is refused (it is not; an owner may still view the
+         * Dashboard) but that the BRANCH is gone, so the post is simply
+         * ignored and the value does not move. A 403 here would mean the
+         * toggle is still wired and merely gated; a 200 with the value
+         * unchanged is what "the control moved" actually looks like.
+         */
+        $before = $this->request( 'installer/admin/index.php', 'owner' )['status'];
+        self::assertSame( 200, $before, 'An owner must still be able to view the Dashboard.' );
+
+        $response = $this->post(
+            'installer/admin/index.php',
+            [ 'action' => 'disable_block' ],
+            'owner'
+        );
+
+        self::assertSame(
+            200,
+            $response['status'],
+            'The Dashboard has no POST branch to refuse or accept — it must simply render.'
+        );
+
+        self::assertStringNotContainsString(
+            'name="action" value="disable_block"',
+            $response['body'],
+            'The Dashboard must not carry the indexing toggle the manifest moved to Settings.'
+        );
     }
 
     /**

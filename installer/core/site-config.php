@@ -62,6 +62,16 @@ class SiteConfig
             'indexing_enabled', 'editor', 'admin_theme',
             'maintenance_mode', 'maintenance_message',
             'admin_bar_enabled',
+            /*
+             * `encryption_key_backed_up` was written by two shipped surfaces
+             * and read as the condition of an undismissable system error
+             * notice, and it was missing from this list — so every write was
+             * dropped, the method returned the caller's own value back to it,
+             * and the notice could never be cleared on any install. Pinned by
+             * SiteConfigSetTest, which was seen failing before this line
+             * existed.
+             */
+            'encryption_key_backed_up',
         ];
 
         foreach ($topLevel as $field) {
