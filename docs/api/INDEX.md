@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 365 |
-| Filters | 150 |
+| Actions | 373 |
+| Filters | 154 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1059** |
+| **Total** | **1071** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -403,7 +403,11 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.system_options.after | action | installer/admin/system-options.php | — | Emitted at the tail of the system options screen; no payload, echo extra HTML |
 | admin.system_options.before | action | installer/admin/system-options.php | — | Emitted at the top of the system options screen; no payload, echo extra HTML |
 | admin.tasks.after | action | installer/admin/tasks.php | — | Emitted at the tail of the tasks screen; no payload, echo extra HTML |
+| admin.tasks.after_action | action | installer/admin/tasks.php | docs/reference/tasks-screen.md | Fires after a task is completed, dismissed or deleted, receiving the action name and the task id |
+| admin.tasks.after_stats | action | installer/admin/tasks.php | docs/reference/tasks-screen.md | Emitted right after the Tasks stat row; no payload, echo extra HTML |
 | admin.tasks.before | action | installer/admin/tasks.php | — | Emitted at the top of the tasks screen; no payload, echo extra HTML |
+| admin.tasks.before_action | action | installer/admin/tasks.php | docs/reference/tasks-screen.md | Fires immediately before a task is completed, dismissed or deleted, receiving the action name and the task id |
+| admin.tasks.before_stats | action | installer/admin/tasks.php | docs/reference/tasks-screen.md | Emitted just above the Tasks stat row; no payload, echo extra HTML |
 | admin.taxonomy.after | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | After the card stack of the Taxonomy terms screen; receives the post type and taxonomy ids, echo extra HTML |
 | admin.taxonomy.after_cards | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Below the Terms card, inside the card stack; receives the post type and taxonomy ids |
 | admin.taxonomy.after_fields | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Below the last field of the add-term form, inside the form; receives the post type and taxonomy ids |
@@ -437,6 +441,10 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.webhooks.before_form | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Right above the add-endpoint form; no payload |
 | admin.webhooks.before_cards | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Above the first card, inside the card stack; no payload |
 | admin.webhooks.before_fields | action | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | Above the first field of the add-endpoint form, inside the form; no payload |
+| admin.x402_dashboard.after | action | installer/admin/x402-dashboard.php | docs/reference/agent-payments-screen.md | Emitted at the tail of the Agent payments screen; no payload, echo extra HTML |
+| admin.x402_dashboard.after_stats | action | installer/admin/x402-dashboard.php | docs/reference/agent-payments-screen.md | Emitted right after the Agent payments stat row; no payload, echo extra HTML |
+| admin.x402_dashboard.before | action | installer/admin/x402-dashboard.php | docs/reference/agent-payments-screen.md | Emitted at the top of the Agent payments screen; no payload, echo extra HTML |
+| admin.x402_dashboard.before_stats | action | installer/admin/x402-dashboard.php | docs/reference/agent-payments-screen.md | Emitted just above the Agent payments stat row; no payload, echo extra HTML |
 | admin.x402_settings.after | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings screen's card stack |
 | admin.x402_settings.after_provider | action | installer/admin/x402-settings.php | — | Fired after the agent payment settings screen's Payment provider card |
 | admin.x402_settings.before | action | installer/admin/x402-settings.php | — | Fired before the agent payment settings screen's card stack |
@@ -690,6 +698,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.sidebar_section_order | filter | installer/admin/templates/sidebar.php | — | Filters the display order of admin sidebar sections |
 | admin.statusbar_degraded | filter | installer/admin/templates/footer.php | docs/reference/admin-navigation.md | One extra fact on the status bar's left side when a subsystem is unhealthy; never becomes a banner |
 | admin.stylesheets | filter | installer/admin/templates/header.php | — | Filters the array of extra stylesheet URLs loaded in the admin header |
+| admin.tasks.list | filter | installer/admin/tasks.php | docs/reference/tasks-screen.md | Filters the task list the screen renders, after the status filter is applied, receiving the list and the active filter |
+| admin.tasks.stats | filter | installer/admin/tasks.php | docs/reference/tasks-screen.md | Filters the Tasks stat cards so a plugin can add, remove or reorder them |
 | admin.taxonomy.parent_options | filter | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | The Parent select's options on a hierarchical taxonomy; receives slug/name pairs plus the post type and taxonomy ids |
 | admin.webhooks.event_choices | filter | installer/admin/webhooks.php | docs/reference/webhooks-screen.md | The event checkboxes the add-endpoint form offers, as event name => description, in draw order |
 | admin.theme | filter | installer/admin/templates/header.php | — | Filters the active admin theme (light/dark) used to render the admin shell |
@@ -702,6 +712,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.topbar_right | filter | installer/admin/templates/sidebar.php | — | Filters extra HTML rendered in the right zone of the admin top bar |
 | admin.topbar_user_display | filter | installer/admin/templates/sidebar.php | — | Filters the current user's display label shown in the admin top bar |
 | admin.translations.row_actions | filter | installer/admin/translations.php | — | Filters extra row action HTML for a translation key on the Translations page |
+| admin.x402_dashboard.detail_cards | filter | installer/admin/x402-dashboard.php | docs/reference/agent-payments-screen.md | Filters the Agent payments detail cards (Top paid pages, Agents by spend) and their rows |
+| admin.x402_dashboard.stats | filter | installer/admin/x402-dashboard.php | docs/reference/agent-payments-screen.md | Filters the Agent payments stat cards so a plugin can add, remove or reorder them |
 | admin_bar.enabled | filter | installer/core/app.php | — | Filters whether the frontend admin bar is rendered for the current request |
 | admin_bar.items | filter | installer/core/app.php | — | Filters the admin bar item list before it is serialized to the frontend |
 | admin_bar.render | filter | installer/core/app.php | — | Filters the admin bar loader script markup before it is emitted |
