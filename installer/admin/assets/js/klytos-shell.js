@@ -17,6 +17,23 @@
 ( function () {
     'use strict';
 
+    /*
+     * The one thing this file exports.
+     *
+     * `trapFocus` below was private to this IIFE, and entry 23's revalidation
+     * dialog needed exactly it — a second copy would have been the third
+     * implementation of the same eight lines in this tree and a defect by the
+     * project's own reuse rule, not a shortcut. It is generalised in place
+     * rather than forked: the palette and the drawer keep calling it directly,
+     * and a screen with its own overlay calls it through here.
+     *
+     * Assigned BEFORE the `!shell` guard below and reachable because a
+     * function DECLARATION is hoisted — a page that somehow renders without
+     * the shell still gets the helper rather than a silent `undefined`.
+     */
+    window.KlytosShell             = window.KlytosShell || {};
+    window.KlytosShell.trapFocus   = trapFocus;
+
     var shell = document.getElementById( 'k-shell' );
     var data  = window.__KLYTOS_SHELL__ || { items: [], noResults: '' };
 

@@ -2197,3 +2197,147 @@ has outgrown the login throttle. Re-running exactly those three files together g
 **69 / 69 in 1.5 minutes**, which is what separates a harness-scale effect from a
 product defect. The fix is the harness's — a reused storage state, or a seed that
 lifts the limit — and it is owed before entries 23 and 12 make the tier larger still.
+
+## D-106 — The login-scale failure does not reproduce, and the harness fix it asked for is not owed
+
+**Date:** 2026-08-11 · **Phase 4, stage 6 of 6, before slice 2** · Supersedes
+nothing; it **corrects the diagnosis** recorded at the end of D-105.
+
+D-105 closed with a hand-off item: the whole-tier run was 472 / 477, all five
+failures were 30-second timeouts inside `login()`'s own `waitForURL` from test
+196 onward, the run took 12.2 minutes, and the conclusion drawn was that the
+tier "has outgrown the login throttle" and owed a harness fix — a reused
+Playwright storage state, or a playground seed lifting the limit — **before**
+entries 23 and 12 made it larger.
+
+That fix was about to be built. It was not, because the premise did not survive
+being measured.
+
+### What was measured, in the order it was measured
+
+1. **The login path does not degrade.** 200 sequential real form logins against
+   the playground, each timed: `login #1: 0.306s` → `login #200: 0.312s`, flat
+   throughout, with `login_lockouts.json` empty at the end. `Auth::login()`
+   calls `resetLoginAttempts()` on every success, so there is no throttle
+   accumulating to lift. **The named cause does not exist.**
+2. **A clean run is green.** Fresh `--reset` seed, fresh server on `KPORT=8181`
+   (bind confirmed, owning PID checked, no `Server:` header): **477 / 477 in
+   9.1 minutes.** None of the five failures reproduced.
+3. **A second consecutive run, dirty, is not.** Same server, no reseed, and
+   this session's own tool calls running against the machine throughout:
+   **476 / 477 in 17.5 minutes.** The single failure was
+   `content-model.spec.js` › *WCAG 1.4.10 — 320 CSS px does not scroll
+   sideways* — **not a login timeout.** It passes in isolation on that same
+   dirty state, and the whole file passes on it (16 / 16). It is a layout
+   measurement taken under load.
+
+### The conclusion, and what it costs to state honestly
+
+**No change was made to `tests/E2E/fixtures.js`.** Rewriting the login helper
+that all 477 tests depend on, to fix a phenomenon that does not reproduce and
+whose named mechanism is measurably absent, is risk with nothing behind it. The
+honest report is that the diagnosis was of a symptom.
+
+Two things ARE now on record and are worth more than the fix would have been:
+
+- **The 9.1 → 17.5 minute difference has a confound this session introduced**
+  and it is stated rather than pinned on the product: run 2 shared the machine
+  with continuous tool calls. A clean baseline is 9.1 minutes; the number to
+  compare against in future is that one, taken on an idle machine.
+- **`--reset` before a tier run is not hygiene, it is the difference between a
+  green tier and a red one.** `docs/playground.md` already prescribes it. What
+  was missing was the measurement that says why.
+
+The five original failures remain **unexplained rather than fixed**, and saying
+so is the point of this entry. If they return, the next session has a clean
+baseline (9.1 min, 477/477, reseeded, idle) to compare against and knows not to
+spend the time on the login path again.
+
+## D-107 — Stage 6, entry 23 (Terminal): the chrome to the letter, NEW-33 closed, and the interior kept on purpose
+
+**Date:** 2026-08-11 · **Phase 4, stage 6 of 6, slice 2 of 3** · Implements
+D-104's answer for entry 23.
+
+### The boundary was asked before it was assumed
+
+D-104 deferred "the stream" and gave its reasons, but the wording admitted two
+readings that are very different slices, so the question went to the user before
+a line was written rather than being resolved by whoever happened to be typing:
+
+- keep xterm.js and build only the chrome around it (entry 2's precedent), or
+- replace it with §1's `<pre>` stream and its "real form" prompt, both of which
+  ARE backed — `dispatch()` returns a string and a form can post — with only
+  streaming, elapsed seconds, the exit code and Stop genuinely unbacked.
+
+**The user chose the first.** Recorded because the second reading is defensible
+and someone will reach it again: it is not available without a new decision.
+
+### What was built
+
+`terminal.php` is rewritten to `template-console-stream.md` and `manifest.md`
+§23. The `<h1>` is the shell's; the control row carries **Copy all named for its
+content** (§2's rule for a consumer with no detail panel) and the command
+reference as a real `aria-expanded` disclosure; the console is a labelled,
+focusable `role="group"` carrying `aria-busy`; a polite `role="status"` region
+reports the running and finished states; and the no-second-factor refusal is the
+delivery's own `.k-empty--error` instead of a hand-built amber box with six
+literal hex values the redesign does not have.
+
+**Adaptations 60–64 are logged** in `BUILD-SPEC.md` §5.9.
+
+**The accessibility consequence of the deferral is a gain, not a waiver.** With
+no HTML line targets on this screen, `accessibility.md` §7.1's sub-24px
+exception is never claimed here and every control is ≥ 24px. §7.1's condition 3
+— the keyboard line model — is a condition of a grant this screen does not need.
+
+### Three defects the driving found, and one it refused to "fix"
+
+1. **`.k-error` declares `display: flex` and had no `[hidden]` rule** — the
+   **fourth** occurrence of that class of defect, and the second running that
+   `keel-verify`'s own check found instead of a person. It had never been
+   reachable before: every earlier consumer either renders the message or omits
+   the element, and this dialog is the first to ship one hidden.
+2. **A test of my own, not the product's**: the code field's label was asserted
+   visible before the dialog opened, where a label inside a hidden dialog is
+   correctly hidden. Moved, not relaxed.
+3. **The first command of every terminal session demands a fresh second
+   factor** — `checkRevalidation()` reads
+   `$_SESSION['klytos_terminal_last_command']`, unset on a fresh session, so
+   `time() - 0 > 600` is true seconds after a login that already required a
+   second factor. **Deliberately NOT fixed.** The session reaching this page may
+   be hours old, `terminal.access` is owner-only, and the commands behind it
+   delete backups and rewrite configuration. Seeding that timer at page load to
+   make one test shorter would weaken a real control for the tester's
+   convenience. The test goes through the whole path instead — which is also the
+   only thing that exercises the dialog's SUCCESS branch.
+
+### NEW-33 is closed
+
+`terminal.php` called `__()` **zero** times; `terminal-executor.php` had five
+calls in 1,141 lines and returned Spanish to all 20 locales; `api/terminal.php`
+served one more. **135 new keys** in the `terminal` root of **all 20
+catalogues** (5 → 140), spliced as TEXT and each file re-parsed to prove no
+other root moved. The Spanish is written **correctly accented** — the shipped
+literals were not ("autenticacion", "Sesion", "rapida"), and `es.json`'s
+unaccented surroundings are not the standard to match.
+
+**Command `usage` strings are the deliberate exception and are not translated.**
+`build:page <slug>` is syntax, like the command name itself; a localised flag
+would not run. The Spanish words inside them (`<nombre>`, `<clave>`, `<valor>`)
+are corrected to English.
+
+**One defect fell out of the i18n work rather than out of the design.** The
+executor's `help` carried six hardcoded category labels while the screen carried
+its own copy of nine — so `backup`, `update` and `config` fell through to
+`ucfirst()` and printed their raw slug. Both now read the same nine through the
+same `terminal.category_labels` filter, which is what that filter was for.
+
+### Reuse rather than a third copy
+
+`trapFocus` was private to `klytos-shell.js` and is now
+`window.KlytosShell.trapFocus` — generalised in place, not forked, because a
+third implementation of those eight lines is the duplication this project treats
+as a defect. New public surface, documented in
+`docs/reference/terminal-screen.md` with its `docs/api/INDEX.md` row, alongside
+`admin.terminal.before` / `admin.terminal.after` and real docs for the two
+`terminal.*` filters that had none.

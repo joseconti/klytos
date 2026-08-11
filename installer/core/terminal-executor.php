@@ -128,11 +128,11 @@ class TerminalExecutor
         // 1. Verify command exists.
         if ( ! isset( $this->commands[ $commandName ] ) ) {
             $suggestion = $this->suggestCommand( $commandName );
-            $output     = "Comando no reconocido: {$commandName}";
+            $output     = __( 'terminal.unknown_command', [ 'command' => $commandName ] );
             if ( $suggestion ) {
-                $output .= "\nQuizas quisiste decir: {$suggestion}";
+                $output .= "\n" . __( 'terminal.did_you_mean', [ 'suggestion' => $suggestion ] );
             }
-            $output .= "\nEscribe 'help' para ver los comandos disponibles.";
+            $output .= "\n" . __( 'terminal.type_help' );
 
             return [ 'success' => false, 'output' => $output ];
         }
@@ -156,7 +156,10 @@ class TerminalExecutor
             return [ 'success' => true, 'output' => $output ];
         } catch ( \Throwable $e ) {
             ob_end_clean();
-            return [ 'success' => false, 'output' => 'Error: ' . $e->getMessage() ];
+            return [
+                'success' => false,
+                'output'  => __( 'terminal.error', [ 'message' => $e->getMessage() ] ),
+            ];
         }
     }
 
@@ -204,7 +207,7 @@ class TerminalExecutor
         if ( ! $this->checkRateLimit( $userId ) ) {
             return [
                 'success'      => false,
-                'output'       => 'Demasiadas peticiones. Espera unos segundos.',
+                'output'       => __( 'terminal.rate_limited' ),
                 'command'      => $recorded,
                 'timestamp'    => $timestamp,
                 'requires_2fa' => false,
@@ -235,7 +238,7 @@ class TerminalExecutor
                 if ( ! klytos_has_permission( $cmdConfig['permission'] ) ) {
                     return [
                         'success'      => false,
-                        'output'       => 'No tienes permiso para ejecutar este comando.',
+                        'output'       => __( 'terminal.no_permission' ),
                         'command'      => $recorded,
                         'timestamp'    => $timestamp,
                         'requires_2fa' => false,
@@ -340,7 +343,7 @@ class TerminalExecutor
         // --- Category: Build ---
 
         $this->commands['build'] = [
-            'description' => 'Regenerar todo el sitio estatico',
+            'description' => __( 'terminal.cmd_build_desc' ),
             'usage'       => 'build',
             'category'    => 'build',
             'permission'  => 'build.run',
@@ -348,33 +351,33 @@ class TerminalExecutor
                 $engine = new BuildEngine( $this->app );
                 $result = $engine->buildAll();
                 $count  = $result['pages_built'] ?? 0;
-                return "Sitio regenerado correctamente. {$count} paginas construidas.";
+                return __( 'terminal.cmd_build_done', [ 'count' => (string) $count ] );
             },
         ];
 
         $this->commands['build:page'] = [
-            'description' => 'Regenerar una pagina especifica por su slug',
+            'description' => __( 'terminal.cmd_build_page_desc' ),
             'usage'       => 'build:page <slug>',
             'category'    => 'build',
             'permission'  => 'build.run',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 if ( empty( $args[0] ) ) {
-                    return "Uso: build:page <slug>\nEjemplo: build:page mi-pagina";
+                    return __( 'terminal.cmd_build_page_usage' );
                 }
                 $slug   = $args[0];
                 $engine = new BuildEngine( $this->app );
                 $result = $engine->buildPage( $slug );
                 if ( ! empty( $result['success'] ) ) {
-                    return "Pagina '{$slug}' regenerada correctamente.";
+                    return __( 'terminal.cmd_build_page_done', [ 'slug' => $slug ] );
                 }
-                return "Error: no se encontro la pagina '{$slug}'.";
+                return __( 'terminal.cmd_build_page_missing', [ 'slug' => $slug ] );
             },
         ];
 
         // --- Category: Content ---
 
         $this->commands['pages'] = [
-            'description' => 'Listar todas las paginas',
+            'description' => __( 'terminal.cmd_pages_desc' ),
             'usage'       => 'pages [--status=all|published|draft|archived]',
             'category'    => 'content',
             'permission'  => 'pages.view',
@@ -382,13 +385,13 @@ class TerminalExecutor
                 $status = $flags['status'] ?? 'all';
                 $pages  = $this->app->getPages()->list( $status );
                 if ( empty( $pages ) ) {
-                    return 'No hay paginas.';
+                    return __( 'terminal.cmd_pages_empty' );
                 }
-                $output = 'Paginas (' . count( $pages ) . "):\n\n";
+                $output = __( 'terminal.cmd_pages_heading', [ 'count' => (string) count( $pages ) ] ) . "\n\n";
                 foreach ( $pages as $page ) {
                     $st    = $page['status'] ?? 'draft';
-                    $slug  = $page['slug'] ?? '(sin slug)';
-                    $title = $page['title'] ?? '(sin titulo)';
+                    $slug  = $page['slug'] ?? __( 'terminal.value_no_slug' );
+                    $title = $page['title'] ?? __( 'terminal.value_no_title' );
                     $output .= "  [{$st}] /{$slug} -- {$title}\n";
                 }
                 return $output;
@@ -396,7 +399,7 @@ class TerminalExecutor
         ];
 
         $this->commands['pages:count'] = [
-            'description' => 'Mostrar numero total de paginas por estado',
+            'description' => __( 'terminal.cmd_pages_count_desc' ),
             'usage'       => 'pages:count',
             'category'    => 'content',
             'permission'  => 'pages.view',
@@ -404,12 +407,16 @@ class TerminalExecutor
                 $total     = $this->app->getPages()->count( 'all' );
                 $published = $this->app->getPages()->count( 'published' );
                 $drafts    = $this->app->getPages()->count( 'draft' );
-                return "Total: {$total} | Publicadas: {$published} | Borradores: {$drafts}";
+                return __( 'terminal.cmd_pages_count_output', [
+                    'total'     => (string) $total,
+                    'published' => (string) $published,
+                    'drafts'    => (string) $drafts,
+                ] );
             },
         ];
 
         $this->commands['tasks'] = [
-            'description' => 'Listar tareas pendientes',
+            'description' => __( 'terminal.cmd_tasks_desc' ),
             'usage'       => 'tasks [--status=all|pending|completed]',
             'category'    => 'content',
             'permission'  => 'tasks.manage',
@@ -417,12 +424,12 @@ class TerminalExecutor
                 $status = $flags['status'] ?? 'all';
                 $tasks  = $this->app->getTaskManager()->list( $status );
                 if ( empty( $tasks ) ) {
-                    return 'No hay tareas.';
+                    return __( 'terminal.cmd_tasks_empty' );
                 }
-                $output = 'Tareas (' . count( $tasks ) . "):\n\n";
+                $output = __( 'terminal.cmd_tasks_heading', [ 'count' => (string) count( $tasks ) ] ) . "\n\n";
                 foreach ( $tasks as $task ) {
                     $st    = $task['status'] ?? 'pending';
-                    $title = $task['title'] ?? '(sin titulo)';
+                    $title = $task['title'] ?? __( 'terminal.value_no_title' );
                     $output .= "  [{$st}] {$title}\n";
                 }
                 return $output;
@@ -430,7 +437,7 @@ class TerminalExecutor
         ];
 
         $this->commands['tasks:count'] = [
-            'description' => 'Mostrar numero total de tareas',
+            'description' => __( 'terminal.cmd_tasks_count_desc' ),
             'usage'       => 'tasks:count',
             'category'    => 'content',
             'permission'  => 'tasks.manage',
@@ -438,34 +445,38 @@ class TerminalExecutor
                 $all       = $this->app->getTaskManager()->list( 'all' );
                 $pending   = $this->app->getTaskManager()->list( 'pending' );
                 $completed = $this->app->getTaskManager()->list( 'completed' );
-                return 'Total: ' . count( $all ) . ' | Pendientes: ' . count( $pending ) . ' | Completadas: ' . count( $completed );
+                return __( 'terminal.cmd_tasks_count_output', [
+                    'total'     => (string) count( $all ),
+                    'pending'   => (string) count( $pending ),
+                    'completed' => (string) count( $completed ),
+                ] );
             },
         ];
 
         // --- Category: System ---
 
         $this->commands['status'] = [
-            'description' => 'Estado general del sistema',
+            'description' => __( 'terminal.cmd_status_desc' ),
             'usage'       => 'status',
             'category'    => 'system',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 $version  = klytos_version();
                 $config   = $this->app->getConfig();
-                $siteName = $config['site_name'] ?? 'Sin nombre';
+                $siteName = $config['site_name'] ?? __( 'terminal.value_unnamed_site' );
                 $pages    = $this->app->getPages()->count( 'all' );
 
                 $output  = "Klytos v{$version}\n";
-                $output .= "Sitio: {$siteName}\n";
-                $output .= "Paginas: {$pages}\n";
-                $output .= 'PHP: ' . PHP_VERSION . "\n";
-                $output .= 'Servidor: ' . PHP_SAPI . "\n";
+                $output .= __( 'terminal.status_site' ) . ": {$siteName}\n";
+                $output .= __( 'terminal.status_pages' ) . ": {$pages}\n";
+                $output .= __( 'terminal.status_php' ) . ': ' . PHP_VERSION . "\n";
+                $output .= __( 'terminal.status_server' ) . ': ' . PHP_SAPI . "\n";
                 return $output;
             },
         ];
 
         $this->commands['version'] = [
-            'description' => 'Mostrar version de Klytos',
+            'description' => __( 'terminal.cmd_version_desc' ),
             'usage'       => 'version',
             'category'    => 'system',
             'permission'  => null,
@@ -475,7 +486,7 @@ class TerminalExecutor
         ];
 
         $this->commands['cache:clear'] = [
-            'description' => 'Limpiar caches del sistema (rate limits, cron)',
+            'description' => __( 'terminal.cmd_cache_clear_desc' ),
             'usage'       => 'cache:clear',
             'category'    => 'system',
             'permission'  => 'site.configure',
@@ -488,12 +499,12 @@ class TerminalExecutor
                         $storage->delete( 'rate-limits', (string) $id );
                     }
                 }
-                return 'Caches limpiadas correctamente.';
+                return __( 'terminal.cmd_cache_clear_done' );
             },
         ];
 
         $this->commands['cron:run'] = [
-            'description' => 'Ejecutar tareas programadas pendientes',
+            'description' => __( 'terminal.cmd_cron_run_desc' ),
             'usage'       => 'cron:run',
             'category'    => 'system',
             'permission'  => 'site.configure',
@@ -501,9 +512,9 @@ class TerminalExecutor
                 $result   = $this->app->getActionScheduler()->processQueue();
                 $executed = $result['processed'] ?? 0;
                 $failed   = $result['failed'] ?? 0;
-                $output   = "Tareas ejecutadas: {$executed}";
+                $output   = __( 'terminal.cmd_cron_run_done', [ 'executed' => (string) $executed ] );
                 if ( $failed > 0 ) {
-                    $output .= " | Fallidas: {$failed}";
+                    $output .= ' | ' . __( 'terminal.cmd_cron_run_failed', [ 'failed' => (string) $failed ] );
                 }
                 return $output;
             },
@@ -512,18 +523,18 @@ class TerminalExecutor
         // --- Category: Users ---
 
         $this->commands['users'] = [
-            'description' => 'Listar usuarios del admin',
+            'description' => __( 'terminal.cmd_users_desc' ),
             'usage'       => 'users',
             'category'    => 'users',
             'permission'  => 'users.manage',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 $users = $this->app->getUserManager()->list();
                 if ( empty( $users ) ) {
-                    return 'No hay usuarios registrados.';
+                    return __( 'terminal.cmd_users_empty' );
                 }
-                $output = 'Usuarios (' . count( $users ) . "):\n\n";
+                $output = __( 'terminal.cmd_users_heading', [ 'count' => (string) count( $users ) ] ) . "\n\n";
                 foreach ( $users as $user ) {
-                    $name  = $user['display_name'] ?? $user['username'] ?? '(sin nombre)';
+                    $name  = $user['display_name'] ?? $user['username'] ?? __( 'terminal.value_no_name' );
                     $role  = $user['role'] ?? 'user';
                     $twofa = ! empty( $user['two_factor']['enabled'] ) ? '[2FA]' : '[---]';
                     $output .= "  {$twofa} {$name} ({$role})\n";
@@ -611,7 +622,7 @@ class TerminalExecutor
         // --- Category: Plugins ---
 
         $this->commands['plugins'] = [
-            'description' => 'Listar plugins instalados y su estado',
+            'description' => __( 'terminal.cmd_plugins_desc' ),
             'usage'       => 'plugins',
             'category'    => 'plugins',
             'permission'  => 'plugins.manage',
@@ -619,15 +630,17 @@ class TerminalExecutor
                 $loader     = $this->app->getPluginLoader();
                 $plugins    = $loader->discoverPlugins();
                 if ( empty( $plugins ) ) {
-                    return 'No hay plugins instalados.';
+                    return __( 'terminal.cmd_plugins_empty' );
                 }
                 $activeList = $loader->getActivePlugins();
                 $activeIds  = array_keys( $activeList );
-                $output     = 'Plugins instalados (' . count( $plugins ) . "):\n\n";
+                $output     = __( 'terminal.cmd_plugins_heading', [ 'count' => (string) count( $plugins ) ] ) . "\n\n";
                 foreach ( $plugins as $id => $manifest ) {
                     $name    = $manifest['name'] ?? $id;
                     $version = $manifest['version'] ?? '?';
-                    $active  = in_array( $id, $activeIds, true ) ? 'activo' : 'inactivo';
+                    $active  = in_array( $id, $activeIds, true )
+                        ? __( 'terminal.value_active' )
+                        : __( 'terminal.value_inactive' );
                     $output .= "  [{$active}] {$name} v{$version} ({$id})\n";
                 }
                 return $output;
@@ -635,45 +648,49 @@ class TerminalExecutor
         ];
 
         $this->commands['plugins:activate'] = [
-            'description' => 'Activar un plugin por su ID',
+            'description' => __( 'terminal.cmd_plugins_activate_desc' ),
             'usage'       => 'plugins:activate <plugin-id>',
             'category'    => 'plugins',
             'permission'  => 'plugins.manage',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 if ( empty( $args[0] ) ) {
-                    return "Uso: plugins:activate <plugin-id>\nEjemplo: plugins:activate klytos-ecommerce";
+                    return __( 'terminal.cmd_plugins_activate_usage' );
                 }
                 $loader = $this->app->getPluginLoader();
                 $result = $loader->activate( $args[0] );
                 if ( $result['success'] ?? false ) {
-                    return "Plugin '{$args[0]}' activado correctamente.";
+                    return __( 'terminal.cmd_plugins_activate_done', [ 'id' => $args[0] ] );
                 }
-                return 'Error al activar plugin: ' . ( $result['error'] ?? 'desconocido' );
+                return __( 'terminal.cmd_plugins_activate_failed', [
+                    'reason' => $result['error'] ?? __( 'terminal.value_unknown_reason' ),
+                ] );
             },
         ];
 
         $this->commands['plugins:deactivate'] = [
-            'description' => 'Desactivar un plugin por su ID',
+            'description' => __( 'terminal.cmd_plugins_deactivate_desc' ),
             'usage'       => 'plugins:deactivate <plugin-id>',
             'category'    => 'plugins',
             'permission'  => 'plugins.manage',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 if ( empty( $args[0] ) ) {
-                    return 'Uso: plugins:deactivate <plugin-id>';
+                    return __( 'terminal.cmd_plugins_deactivate_usage' );
                 }
                 $loader = $this->app->getPluginLoader();
                 $result = $loader->deactivate( $args[0] );
                 if ( $result['success'] ?? false ) {
-                    return "Plugin '{$args[0]}' desactivado correctamente.";
+                    return __( 'terminal.cmd_plugins_deactivate_done', [ 'id' => $args[0] ] );
                 }
-                return 'Error al desactivar plugin: ' . ( $result['error'] ?? 'desconocido' );
+                return __( 'terminal.cmd_plugins_deactivate_failed', [
+                    'reason' => $result['error'] ?? __( 'terminal.value_unknown_reason' ),
+                ] );
             },
         ];
 
         // --- Category: Analytics ---
 
         $this->commands['analytics'] = [
-            'description' => 'Mostrar resumen de analiticas',
+            'description' => __( 'terminal.cmd_analytics_desc' ),
             'usage'       => 'analytics [--period=7d|30d|90d]',
             'category'    => 'system',
             'permission'  => 'analytics.view',
@@ -691,9 +708,9 @@ class TerminalExecutor
                 $analytics = $this->app->getAnalyticsManager();
                 $data      = $analytics->getSummary( $dateFrom, $dateTo );
 
-                $output  = "Analiticas (periodo: {$period}):\n\n";
-                $output .= '  Visitas totales: ' . ( $data['total_views'] ?? 0 ) . "\n";
-                $output .= '  Visitantes unicos: ' . ( $data['unique_visitors'] ?? 0 ) . "\n";
+                $output  = __( 'terminal.cmd_analytics_heading', [ 'period' => $period ] ) . "\n\n";
+                $output .= '  ' . __( 'terminal.analytics_total_views' ) . ': ' . ( $data['total_views'] ?? 0 ) . "\n";
+                $output .= '  ' . __( 'terminal.analytics_unique_visitors' ) . ': ' . ( $data['unique_visitors'] ?? 0 ) . "\n";
                 return $output;
             },
         ];
@@ -701,8 +718,8 @@ class TerminalExecutor
         // --- Special command: help ---
 
         $this->commands['help'] = [
-            'description' => 'Mostrar esta ayuda',
-            'usage'       => 'help [comando]',
+            'description' => __( 'terminal.cmd_help_desc' ),
+            'usage'       => 'help [command]',
             'category'    => 'general',
             'permission'  => null,
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
@@ -712,10 +729,10 @@ class TerminalExecutor
                     if ( isset( $this->commands[ $cmdName ] ) ) {
                         $cmd     = $this->commands[ $cmdName ];
                         $output  = "{$cmdName} -- {$cmd['description']}\n\n";
-                        $output .= "Uso: {$cmd['usage']}\n";
+                        $output .= __( 'terminal.help_usage', [ 'usage' => $cmd['usage'] ] ) . "\n";
                         return $output;
                     }
-                    return "Comando no encontrado: {$cmdName}";
+                    return __( 'terminal.cmd_help_not_found', [ 'command' => $cmdName ] );
                 }
 
                 // List all commands grouped by category.
@@ -725,17 +742,27 @@ class TerminalExecutor
                     $categories[ $cat ][ $name ] = $config;
                 }
 
+                /*
+                 * The SAME filter and the SAME nine categories the reference
+                 * panel draws (`installer/admin/terminal.php`). It carried six
+                 * hardcoded Spanish labels, so `backup`, `update` and `config`
+                 * fell through to `ucfirst()` and printed their raw slug —
+                 * which is why the list below is nine rows and not six.
+                 */
                 $categoryLabels = klytos_apply_filters( 'terminal.category_labels', [
-                    'general' => 'General',
-                    'build'   => 'Build',
-                    'content' => 'Contenido',
-                    'system'  => 'Sistema',
-                    'users'   => 'Usuarios',
-                    'plugins' => 'Plugins',
+                    'general' => __( 'terminal.category_general' ),
+                    'build'   => __( 'terminal.category_build' ),
+                    'content' => __( 'terminal.category_content' ),
+                    'system'  => __( 'terminal.category_system' ),
+                    'users'   => __( 'terminal.category_users' ),
+                    'plugins' => __( 'terminal.category_plugins' ),
+                    'backup'  => __( 'terminal.category_backup' ),
+                    'update'  => __( 'terminal.category_update' ),
+                    'config'  => __( 'terminal.category_config' ),
                 ] );
 
                 $output = 'Klytos Terminal v' . klytos_version() . "\n";
-                $output .= "Comandos disponibles:\n\n";
+                $output .= __( 'terminal.help_heading' ) . "\n\n";
 
                 foreach ( $categories as $cat => $cmds ) {
                     $label  = $categoryLabels[ $cat ] ?? ucfirst( $cat );
@@ -748,8 +775,8 @@ class TerminalExecutor
                     $output .= "\n";
                 }
 
-                $output .= "Escribe 'help <comando>' para mas detalles sobre un comando.\n";
-                $output .= "Los plugins pueden anadir comandos adicionales.\n";
+                $output .= __( 'terminal.help_footer_detail' ) . "\n";
+                $output .= __( 'terminal.help_footer_plugins' ) . "\n";
                 return $output;
             },
         ];
@@ -757,7 +784,7 @@ class TerminalExecutor
         // --- Special command: clear ---
 
         $this->commands['clear'] = [
-            'description' => 'Limpiar la pantalla del terminal',
+            'description' => __( 'terminal.cmd_clear_desc' ),
             'usage'       => 'clear',
             'category'    => 'general',
             'permission'  => null,
@@ -770,31 +797,31 @@ class TerminalExecutor
         // --- Category: Backup ---
 
         $this->commands['backup:create'] = [
-            'description' => 'Crear un backup manual del sistema',
-            'usage'       => 'backup:create [--label=<nombre>]',
+            'description' => __( 'terminal.cmd_backup_create_desc' ),
+            'usage'       => 'backup:create [--label=<name>]',
             'category'    => 'backup',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 $label  = $flags['label'] ?? '';
                 $result = $this->app->getUpdater()->createManualBackup( $label );
                 if ( $result['success'] ) {
-                    return "Backup creado: {$result['backup']}";
+                    return __( 'terminal.cmd_backup_create_done', [ 'name' => $result['backup'] ] );
                 }
-                return 'Error al crear el backup.';
+                return __( 'terminal.cmd_backup_create_failed' );
             },
         ];
 
         $this->commands['backup:list'] = [
-            'description' => 'Listar backups disponibles',
+            'description' => __( 'terminal.cmd_backup_list_desc' ),
             'usage'       => 'backup:list',
             'category'    => 'backup',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 $backups = $this->app->getUpdater()->listBackups();
                 if ( empty( $backups ) ) {
-                    return 'No hay backups disponibles.';
+                    return __( 'terminal.cmd_backup_list_empty' );
                 }
-                $output = "Backups (" . count( $backups ) . "):\n\n";
+                $output = __( 'terminal.cmd_backup_list_heading', [ 'count' => (string) count( $backups ) ] ) . "\n\n";
                 foreach ( $backups as $b ) {
                     $date = klytos_gmdate( 'Y-m-d H:i', $b['date'] );
                     $type = $b['type'] === 'manual' ? '[MANUAL]' : '[UPDATE]';
@@ -805,26 +832,28 @@ class TerminalExecutor
         ];
 
         $this->commands['backup:restore'] = [
-            'description' => 'Restaurar un backup por su nombre',
-            'usage'       => 'backup:restore <nombre-del-backup>',
+            'description' => __( 'terminal.cmd_backup_restore_desc' ),
+            'usage'       => 'backup:restore <backup-name>',
             'category'    => 'backup',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 if ( empty( $args[0] ) ) {
-                    return "Uso: backup:restore <nombre-del-backup>\nEjecuta 'backup:list' para ver los disponibles.";
+                    return __( 'terminal.cmd_backup_restore_usage' );
                 }
                 $result = $this->app->getUpdater()->restoreFromBackup( $args[0] );
                 if ( $result['success'] ?? false ) {
-                    return "Backup restaurado correctamente desde '{$args[0]}'.";
+                    return __( 'terminal.cmd_backup_restore_done', [ 'name' => $args[0] ] );
                 }
-                return 'Error: ' . ( $result['error'] ?? 'No se pudo restaurar el backup.' );
+                return __( 'terminal.error', [
+                    'message' => $result['error'] ?? __( 'terminal.cmd_backup_restore_failed' ),
+                ] );
             },
         ];
 
         // --- Category: Update ---
 
         $this->commands['update:check'] = [
-            'description' => 'Comprobar si hay una nueva version de Klytos',
+            'description' => __( 'terminal.cmd_update_check_desc' ),
             'usage'       => 'update:check',
             'category'    => 'update',
             'permission'  => 'site.configure',
@@ -833,15 +862,18 @@ class TerminalExecutor
                 $current = $updater->getCurrentVersion();
                 $update  = $updater->checkForUpdate( true );
                 if ( $update === null ) {
-                    return "Klytos v{$current} -- Estas al dia, no hay actualizaciones.";
+                    return __( 'terminal.cmd_update_check_current', [ 'version' => $current ] );
                 }
                 $newVer = $update['version'] ?? '?';
-                return "Klytos v{$current} -- Actualizacion disponible: v{$newVer}\nEjecuta 'update:run' para actualizar.";
+                return __( 'terminal.cmd_update_check_available', [
+                    'version' => $current,
+                    'latest'  => $newVer,
+                ] );
             },
         ];
 
         $this->commands['update:run'] = [
-            'description' => 'Descargar e instalar la ultima actualizacion',
+            'description' => __( 'terminal.cmd_update_run_desc' ),
             'usage'       => 'update:run',
             'category'    => 'update',
             'permission'  => 'site.configure',
@@ -849,36 +881,38 @@ class TerminalExecutor
                 $updater = $this->app->getUpdater();
                 $update  = $updater->checkForUpdate( true );
                 if ( $update === null ) {
-                    return 'No hay actualizaciones disponibles.';
+                    return __( 'terminal.cmd_update_run_none' );
                 }
                 $downloadUrl = $update['download_url'] ?? '';
                 if ( $downloadUrl === '' ) {
-                    return 'Error: no se encontro URL de descarga.';
+                    return __( 'terminal.cmd_update_run_no_url' );
                 }
                 $result = $updater->install( $downloadUrl );
                 if ( $result['success'] ?? false ) {
                     $from = $result['from_version'] ?? '?';
                     $to   = $result['to_version'] ?? '?';
-                    return "Actualizado correctamente: v{$from} -> v{$to}";
+                    return __( 'terminal.cmd_update_run_done', [ 'from' => $from, 'to' => $to ] );
                 }
-                return 'Error: ' . ( $result['error'] ?? 'Fallo la actualizacion.' );
+                return __( 'terminal.error', [
+                    'message' => $result['error'] ?? __( 'terminal.cmd_update_run_failed' ),
+                ] );
             },
         ];
 
         // --- Category: Config ---
 
         $this->commands['config:get'] = [
-            'description' => 'Mostrar el valor de una opcion de configuracion',
-            'usage'       => 'config:get <clave>',
+            'description' => __( 'terminal.cmd_config_get_desc' ),
+            'usage'       => 'config:get <key>',
             'category'    => 'config',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 if ( empty( $args[0] ) ) {
-                    return "Uso: config:get <clave>\nEjemplo: config:get site_name";
+                    return __( 'terminal.cmd_config_get_usage' );
                 }
                 $value = $this->app->getOptionsManager()->get( $args[0] );
                 if ( $value === null ) {
-                    return "Opcion '{$args[0]}' no encontrada.";
+                    return __( 'terminal.cmd_config_get_missing', [ 'key' => $args[0] ] );
                 }
                 if ( is_array( $value ) || is_object( $value ) ) {
                     return $args[0] . ' = ' . json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
@@ -888,25 +922,25 @@ class TerminalExecutor
         ];
 
         $this->commands['config:set'] = [
-            'description' => 'Establecer el valor de una opcion de configuracion',
-            'usage'       => 'config:set <clave> <valor>',
+            'description' => __( 'terminal.cmd_config_set_desc' ),
+            'usage'       => 'config:set <key> <value>',
             'category'    => 'config',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 if ( count( $args ) < 2 ) {
-                    return "Uso: config:set <clave> <valor>\nEjemplo: config:set site_name \"Mi Sitio\"";
+                    return __( 'terminal.cmd_config_set_usage' );
                 }
                 $key   = $args[0];
                 $value = implode( ' ', array_slice( $args, 1 ) );
                 $this->app->getOptionsManager()->set( $key, $value );
-                return "Opcion '{$key}' actualizada a: {$value}";
+                return __( 'terminal.cmd_config_set_done', [ 'key' => $key, 'value' => $value ] );
             },
         ];
 
         // --- Category: Logs ---
 
         $this->commands['logs'] = [
-            'description' => 'Ver las entradas del log del sistema',
+            'description' => __( 'terminal.cmd_logs_desc' ),
             'usage'       => 'logs [--date=YYYY-MM-DD] [--lines=50]',
             'category'    => 'system',
             'permission'  => 'site.configure',
@@ -915,7 +949,7 @@ class TerminalExecutor
                 $logFiles = $logger->listLogFiles();
 
                 if ( empty( $logFiles ) ) {
-                    return 'No hay archivos de log.';
+                    return __( 'terminal.cmd_logs_no_files' );
                 }
 
                 // Pick log file by date or use the most recent.
@@ -929,7 +963,7 @@ class TerminalExecutor
                         }
                     }
                     if ( $filename === '' ) {
-                        return "No se encontro log para la fecha: {$date}";
+                        return __( 'terminal.cmd_logs_no_file_for_date', [ 'date' => $date ] );
                     }
                 } else {
                     $filename = $logFiles[0]['name'];
@@ -939,10 +973,13 @@ class TerminalExecutor
                 $entries = $logger->readLogFile( $filename, 0, $limit );
 
                 if ( empty( $entries ) ) {
-                    return "Log '{$filename}' vacio.";
+                    return __( 'terminal.cmd_logs_empty', [ 'file' => $filename ] );
                 }
 
-                $output = "Log: {$filename} (ultimas {$limit} lineas):\n\n";
+                $output = __( 'terminal.cmd_logs_heading', [
+                    'file'  => $filename,
+                    'limit' => (string) $limit,
+                ] ) . "\n\n";
                 foreach ( $entries as $entry ) {
                     $output .= $entry . "\n";
                 }
@@ -953,18 +990,20 @@ class TerminalExecutor
         // --- Category: Webhooks ---
 
         $this->commands['webhooks'] = [
-            'description' => 'Listar webhooks configurados',
+            'description' => __( 'terminal.cmd_webhooks_desc' ),
             'usage'       => 'webhooks',
             'category'    => 'system',
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 $webhooks = $this->app->getWebhookManager()->list();
                 if ( empty( $webhooks ) ) {
-                    return 'No hay webhooks configurados.';
+                    return __( 'terminal.cmd_webhooks_empty' );
                 }
-                $output = "Webhooks (" . count( $webhooks ) . "):\n\n";
+                $output = __( 'terminal.cmd_webhooks_heading', [ 'count' => (string) count( $webhooks ) ] ) . "\n\n";
                 foreach ( $webhooks as $wh ) {
-                    $status = ( $wh['active'] ?? false ) ? 'activo' : 'inactivo';
+                    $status = ( $wh['active'] ?? false )
+                        ? __( 'terminal.value_active' )
+                        : __( 'terminal.value_inactive' );
                     $event  = $wh['event'] ?? '?';
                     $url    = $wh['url'] ?? '?';
                     $output .= "  [{$status}] {$event} -> {$url}\n";
@@ -1036,7 +1075,7 @@ class TerminalExecutor
         foreach ( $required as $field ) {
             if ( empty( $config[ $field ] ) ) {
                 throw new \InvalidArgumentException(
-                    "El campo '{$field}' es requerido al registrar el comando '{$name}'"
+                    __( 'terminal.register_field_required', [ 'field' => $field, 'command' => $name ] )
                 );
             }
         }

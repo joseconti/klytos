@@ -82,8 +82,11 @@
    and paints the pre-redesign #5B8DEF. That is exactly how `.k-inspector`
    arrived on this list in stage 6 — measured out of the browser at
    #5B8DEF on --fondo-elevado, 4.31:1 in dark, the identical pair D-079
-   found on a card. Build rule 1's mechanism again, on a new container. */
-:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector)
+   found on a card. Build rule 1's mechanism again, on a new container.
+   `.k-modal-window` was added the moment the container was written, in stage 6
+   slice 2, rather than after a measurement caught it — which is the only way
+   an enumeration ever stops costing what it cost here twice. */
+:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector, .k-modal-window)
     :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
     color: var(--color-acento);
 }
@@ -1790,6 +1793,85 @@ a.k-stat:hover {
     }
 }
 
+/* ------------------------------------------------------------
+   The terminal's canvas (entry 23) — the DEFERRED engine interior.
+
+   xterm.js mounts here. It is deliberately NOT `.k-stream`: that class styles
+   the delivery's `<pre>` panel at `--type-code`, and painting a canvas with a
+   `<pre>`'s typography would be markup claiming to be something it is not.
+   What this rule owes is only the frame the stream would have had — the
+   `--fondo-ventana` panel inside the card, the radius, and the 60vh ceiling of
+   `template-console-stream.md` §1 — plus a height for a canvas to size itself
+   against, which `.k-stream`'s `max-height` alone does not give.
+
+   `min-height` and not `height`: build rule 1's lesson from stage 6 slice 1 is
+   that a track sized to content is the thing that bites, and a canvas inside a
+   grid cell with a fixed height cannot shrink at 320px.
+   ------------------------------------------------------------ */
+.k-terminal-canvas {
+    background: var(--fondo-ventana);
+    border-radius: var(--radio-control);
+    padding: var(--esp-12);
+    min-height: 320px;
+    height: 60vh;
+    max-height: 60vh;
+    overflow: hidden;
+}
+
+/* ------------------------------------------------------------
+   Modal overlay.
+
+   A generic overlay did not exist in this layer: the only one in the tree is
+   `.k-palette` in `klytos-shell.css`, named and scoped for the command
+   palette. Entry 23's revalidation step is a modal by nature — it is a
+   re-authentication, and `accessibility.md` §3.2 governs it — so rather than
+   scoping a second palette-shaped thing to one screen, the geometry is
+   generalised here under a name that says what it is.
+
+   Every value is a token already in the sheet, and the window mirrors
+   `.k-palette-window` exactly so the two overlays in this admin are one visual
+   idea rather than two.
+   ------------------------------------------------------------ */
+.k-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    padding: var(--esp-16);
+    background: rgb(0 0 0 / 45%);
+}
+
+/* `.k-modal` sets `display: grid`, so it owes this: the UA's
+   `[hidden] { display: none }` is (0,1,0) and loses to a class rule at the
+   same specificity on origin order. Third occurrence of that defect in this
+   sheet (`.k-btn`, `.k-bulkbar`, `.k-field`, then `.k-editor-alert`), and the
+   first written at the same moment as the component rather than after a
+   check caught it. */
+.k-modal[hidden] {
+    display: none;
+}
+
+.k-modal-window {
+    width: min(420px, 100%);
+    padding: var(--esp-24);
+    background: var(--fondo-elevado);
+    border: 1px solid var(--separador);
+    border-radius: var(--radio-popover);
+    box-shadow: var(--sombra-ventana);
+}
+
+.k-modal-window h2 {
+    font: var(--type-card);
+    margin: 0 0 var(--esp-8);
+}
+
+.k-modal-window p {
+    margin: 0 0 var(--esp-16);
+    color: var(--texto-secundario);
+}
+
 /* ============================================================
    RECORD FORM — template-record-form.md §1 and §3
    The layout the form screens share: an optional sticky section nav at the
@@ -2359,6 +2441,17 @@ a.k-stat:hover {
 .k-editor-alert[hidden],
 .k-inspector-panel[hidden],
 .k-inspector-trigger[hidden] {
+    display: none;
+}
+
+/* `.k-error` is the FOURTH, found by that same check in stage 6 slice 2 rather
+   than by a person, on the first screen that ever ships one hidden: entry 23's
+   revalidation dialog starts with an empty `role="alert"` and un-hides it only
+   when a code is refused. Every earlier consumer rendered the message or did
+   not render the element at all, so the missing rule had never been reachable
+   — which is exactly why an enumeration of these needs a check and not a
+   habit. */
+.k-error[hidden] {
     display: none;
 }
 

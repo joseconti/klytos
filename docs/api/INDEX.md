@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 359 |
+| Actions | 361 |
 | Filters | 148 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1051** |
+| **Total** | **1053** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -406,6 +406,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.taxonomy.before | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | At the top of the Taxonomy terms screen, above the status line; receives the post type and taxonomy ids |
 | admin.taxonomy.before_cards | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Above the add-term card, inside the card stack; receives the post type and taxonomy ids |
 | admin.taxonomy.before_fields | action | installer/admin/taxonomy.php | docs/reference/taxonomy-screen.md | Above the first field of the add-term form, inside the form; receives the post type and taxonomy ids |
+| admin.terminal.after | action | installer/admin/terminal.php | docs/reference/terminal-screen.md | At the tail of the Terminal screen, after the console and the command reference; also fires on the no-second-factor refusal |
+| admin.terminal.before | action | installer/admin/terminal.php | docs/reference/terminal-screen.md | At the top of the Terminal screen, above the control row; no payload, echo extra HTML |
 | admin.templates.after | action | installer/admin/templates.php | — | Emitted at the tail of the templates screen; no payload, echo extra HTML |
 | admin.templates.before | action | installer/admin/templates.php | — | Emitted at the top of the templates screen; no payload, echo extra HTML |
 | admin.theme.after | action | installer/admin/theme.php | — | Emitted at the tail of the theme customization screen; no payload, echo extra HTML |
@@ -778,9 +780,9 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | shortcode.pre_process | filter | installer/core/shortcode-manager.php | — | Filters content before shortcodes are parsed and executed |
 | site_health.checks | filter | installer/core/site-health-manager.php | — | Filters the site health check list so plugins can add their own checks |
 | template_part. | filter | installer/core/part-manager.php | — | Per-part dynamic filter letting a plugin supply the HTML for a template part |
-| terminal.category_labels | filter | installer/core/terminal-executor.php | — | Filters the terminal command category labels shown in the help output |
+| terminal.category_labels | filter | installer/core/terminal-executor.php | docs/reference/terminal-screen.md | Filters the nine terminal command category labels, shared by `help` and the screen's command reference |
 | terminal.command_output | filter | installer/core/terminal-executor.php | — | Filters a terminal command's output before it is returned to the client |
-| terminal.commands | filter | installer/core/terminal-executor.php | — | Filters the registered terminal commands so plugins can add their own |
+| terminal.commands | filter | installer/core/terminal-executor.php | docs/reference/terminal-screen.md | Filters the registered terminal commands so plugins can add their own; its values are UNTRUSTED at the render boundary |
 | theme.contrast_pairs | filter | installer/core/theme-manager.php | docs/reference/design-tokens.md | Filters the measured text/background contrast pairs the Design screen shows and gates on (accessibility §10.7) |
 | theme.data | filter | installer/core/theme-manager.php | — | Filters the active theme data (colors, fonts, layout) when it is read |
 | time.now | filter | installer/core/helpers-time.php | — | Filters the current Unix timestamp returned by the time helper |

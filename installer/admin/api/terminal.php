@@ -52,7 +52,10 @@ if ( ! klytos_has_permission( 'terminal.access' ) ) {
 // 5. Verify 2FA is active.
 $currentUser = klytos_current_user();
 if ( empty( $currentUser['two_factor']['enabled'] ) ) {
-    Helpers::jsonResponse( [ 'error' => 'Terminal requiere autenticacion de dos factores activa.' ], 403 );
+    // NEW-33: this refusal reaches the browser and is printed into the stream,
+    // so it is a user-facing string like any other. It was an unaccented
+    // Spanish literal served to all 20 locales.
+    Helpers::jsonResponse( [ 'error' => __( 'terminal.second_factor_required_api' ) ], 403 );
 }
 
 // 6. Read command from JSON body.

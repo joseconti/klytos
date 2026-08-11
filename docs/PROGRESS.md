@@ -1251,6 +1251,48 @@
     `css/klytos-components.css` (the file the BUILD writes — taking it would be a principle-8
     violation) and the prototypes' Font Awesome CDN link (scaffolding; the delivered sprite is the
     icon source).
+  - **Stage 6 of 6 — SLICE 2: entry 23 (Terminal), 2026-08-11 (D-107). NEW-33 CLOSED.**
+    Built as **chrome to spec with the xterm.js canvas kept as the deferred interior** —
+    and the boundary was **asked of the user before a line was written**, because D-104's
+    wording admitted a second reading (replace xterm with §1's `<pre>` stream and its real
+    form prompt, both of which the product actually backs) that is a much larger slice. The
+    user chose entry 2's precedent; the other reading needs a new decision, not a
+    re-reading of this one.
+    - **What landed:** the shell's `<h1>` · a control row with **Copy all named for its
+      content** (§2's rule for a consumer with no detail panel) and the command reference
+      as a real `aria-expanded` disclosure that returns focus on close · the console as a
+      labelled focusable `role="group"` carrying `aria-busy` · a polite `role="status"`
+      region · the no-second-factor refusal as the delivery's own `.k-empty--error` instead
+      of a hand-built amber box with six hex values the redesign does not have · and the
+      revalidation overlay as a **real dialog** (`role`, `aria-modal`, labelled heading,
+      focus in, `Esc` and a Cancel out, focus returned) where it previously had none of
+      those and the only way out was succeeding.
+    - **The accessibility consequence of the deferral is a GAIN, not a waiver:** with no
+      HTML line targets, `accessibility.md` §7.1's sub-24px exception is never claimed on
+      this screen and every control on it is ≥ 24px.
+    - **NEW-33 closed: 135 new keys × 20 catalogues** (the `terminal` root, 5 → 140),
+      spliced as TEXT with every file re-parsed to prove no other root moved. Spanish
+      written **correctly accented** — the shipped literals were not. **Command `usage`
+      strings are deliberately NOT translated** (syntax, like the command name); their
+      Spanish words are corrected to English.
+    - **A defect fell out of the i18n rather than the design:** the executor's `help` had
+      six hardcoded category labels while the screen had its own copy of nine, so `backup`,
+      `update` and `config` printed their raw slug. Both now read the same nine through the
+      same `terminal.category_labels` filter.
+    - **`keel-verify`'s hidden-component check FAILED first, again** — `.k-error` declares
+      `display: flex` and had no `[hidden]` rule. **Fourth occurrence of that class, second
+      running that the check found it instead of a person.** It had never been reachable:
+      this dialog is the first consumer to ship one hidden.
+    - **One finding recorded and deliberately NOT fixed:** the first command of every
+      terminal session demands a fresh second factor, because `checkRevalidation()` reads a
+      session key that is unset (`time() - 0 > 600`). Seeding it at page load would weaken
+      an owner-only control to make a test shorter. The test drives the whole path instead,
+      which is also the only thing that exercises the dialog's success branch.
+    - **New files:** `installer/admin/assets/js/klytos-terminal.js` (the chrome's behaviour,
+      out of a 500-line inline block) and `docs/reference/terminal-screen.md`.
+      **`trapFocus` is now `window.KlytosShell.trapFocus`** — exported from
+      `klytos-shell.js`, generalised rather than forked into a third copy.
+    - **Adaptations 60–64 are logged** in `BUILD-SPEC.md` §5.9.
   - **Stage 6 of 6 — THE SPECIALISED SCREENS — SLICE 1: entry 2 (Page editor), 2026-08-10
     (D-105).** Built as **chrome to spec with the canvas interior deferred**, which is
     what D-104 decided before a line was written. The engine (Gutenberg or TinyMCE) is
