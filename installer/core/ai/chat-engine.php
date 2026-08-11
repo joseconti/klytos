@@ -244,6 +244,79 @@ class ChatEngine
         return $this->keys;
     }
 
+    /**
+     * Test an API key against the provider it belongs to.
+     *
+     * This exists because the endpoint that claimed to do it did not: it read
+     * `strlen($apiKey) > 10` and reported valid, so a revoked or mistyped key
+     * was confirmed as working. The test is a real, minimal round trip through
+     * the SAME client factory the chat itself uses — a key that works here
+     * works there by construction, which a separately-written HTTP probe could
+     * not promise.
+     *
+     * THREE OUTCOMES, NOT TWO. "I could not reach the provider" is not "your
+     * key is wrong", and answering a network failure with `invalid` sends a
+     * person to regenerate a key that was fine. The status is what carries
+     * that; `valid` stays a boolean so the shipped response shape still holds
+     * for any client reading it.
+     *
+     * The key is NEVER stored, logged or echoed by this path: it is passed to
+     * the client and discarded with it.
+     *
+     * @param  string $providerId One of AiKeyManager::PROVIDERS.
+     * @param  string $apiKey     The key to test. Never persisted here.
+     * @return array{valid:bool,status:string,message:string}
+     *         status is `valid`, `invalid` or `unreachable`.
+     *
+     * @throws \InvalidArgumentException When the provider is unknown.
+     *
+     * Example:
+     *   $verdict = $app->getChatEngine()->validateKey( 'anthropic', $key );
+     *   if ( $verdict['status'] === 'unreachable' ) { // ask them to retry }
+     */
+    public function validateKey(string $providerId, string $apiKey): array
+    {
+        if ($apiKey === '') {
+            return ['valid' => false, 'status' => 'invalid', 'message' => 'Empty key.'];
+        }
+
+        try {
+            $client = $this->createClient($providerId, $apiKey);
+
+            // The smallest request the provider will price: one token out, no
+            // tools, no system prompt, temperature 0.
+            $request = new LLMRequest(
+                model: new LocalModel($this->keys->getDefaultModelForProvider($providerId)),
+                conversation: new LLMConversation([
+                    LLMMessage::createFromUser(new LLMMessageContents([new LLMMessageText('ping')])),
+                ]),
+                temperature: 0.0,
+                maxTokens: 1,
+            );
+
+            (new LLMAgentClient())->run($client, $request);
+
+            return ['valid' => true, 'status' => 'valid', 'message' => ''];
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            // A 4xx is the provider answering — it reached us, so the verdict
+            // is about the key. 401/403 is the key; anything else 4xx still
+            // means this key cannot be used as-is.
+            return [
+                'valid'   => false,
+                'status'  => 'invalid',
+                'message' => 'Provider rejected the key (HTTP ' . $e->getResponse()->getStatusCode() . ').',
+            ];
+        } catch (\Throwable $e) {
+            // Connection refused, DNS failure, TLS, timeout, a 5xx, or an SDK
+            // error. None of them says anything about the key.
+            return [
+                'valid'   => false,
+                'status'  => 'unreachable',
+                'message' => 'Could not reach the provider to test the key.',
+            ];
+        }
+    }
+
     // ─── Private ─────────────────────────────────────────────────
 
     /**

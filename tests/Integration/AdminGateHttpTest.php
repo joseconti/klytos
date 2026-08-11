@@ -119,6 +119,16 @@ final class AdminGateHttpTest extends AdminHttpTestCase
      * on the wire per role, in BOTH directions, because a check that refused
      * everyone would pass a refusal-only test (L-008).
      *
+     * **UPDATED BY D-108 (Phase 4, stage 6, entry 12), and the claim is now
+     * proven one layer STRONGER rather than relaxed.** The panels no longer
+     * exist: `?panel=` renders nothing at all and 302s to the real screen,
+     * which gates itself through the same central map. So the assertion is no
+     * longer "the inline capability check refuses" — it is "no privileged
+     * markup is served from this door in the first place, and the destination
+     * still refuses the role that must not have it." The test was NOT loosened
+     * to accept the redirect: it follows the redirect and asserts the refusal
+     * where it now lives, plus the fact that the panel body is gone.
+     *
      * @return void
      */
     public function testAiChatPanelsRequireTheirOwnTierNotJustAiUse(): void
@@ -130,29 +140,55 @@ final class AdminGateHttpTest extends AdminHttpTestCase
             'An editor must reach the AI chat — that is what D-051 widened.'
         );
 
-        // The privileged panels behind it: NOT held by editor.
-        foreach ( [ 'users' => 'users.manage', 'settings' => 'site.configure' ] as $panel => $capability ) {
+        $targets = [
+            'users'     => [ 'users.manage', 'installer/admin/users.php' ],
+            'settings'  => [ 'site.configure', 'installer/admin/settings.php' ],
+            'dashboard' => [ 'pages.view', 'installer/admin/index.php' ],
+            'profile'   => [ 'profile.edit', 'installer/admin/profile.php' ],
+        ];
+
+        foreach ( $targets as $panel => [ $capability, $destination ] ) {
+            $response = $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'editor' );
+
+            // Nothing privileged is SERVED here any more, at any role: the
+            // door answers with a redirect and an empty body.
             self::assertSame(
-                403,
-                $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'editor' )['status'],
-                "An editor holds ai.use but not {$capability}, so ?panel={$panel} must refuse — "
-                . 'reaching it would be a privilege escalation through the chat door.'
+                302,
+                $response['status'],
+                "?panel={$panel} must no longer render a panel — it redirects to the real screen."
             );
 
-            self::assertSame(
-                200,
-                $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'owner' )['status'],
-                "The owner holds {$capability} and must still reach ?panel={$panel}."
+            self::assertStringContainsString(
+                basename( $destination ),
+                $response['location'] ?? '',
+                "?panel={$panel} redirected somewhere other than {$destination}."
             );
         }
 
-        // The unprivileged panels stay reachable: the fix must not turn the
-        // whole feature off for the role it was just opened to.
-        foreach ( [ 'dashboard', 'profile' ] as $panel ) {
+        // And the destination still refuses the role that must not hold it —
+        // which is the claim this test has always been about. Following the
+        // redirect is what proves the escalation is closed, not merely moved.
+        foreach ( [ 'users' => 'installer/admin/users.php', 'settings' => 'installer/admin/settings.php' ] as $capabilityPanel => $destination ) {
+            self::assertSame(
+                403,
+                $this->request( $destination, 'editor' )['status'],
+                "An editor reached {$destination} through the chat door (?panel={$capabilityPanel})."
+            );
+
             self::assertSame(
                 200,
-                $this->request( 'installer/admin/ai-chat.php?panel=' . $panel, 'editor' )['status'],
-                "?panel={$panel} sits at a tier an editor holds and must remain reachable."
+                $this->request( $destination, 'owner' )['status'],
+                "The owner must still reach {$destination}."
+            );
+        }
+
+        // The unprivileged destinations stay reachable: the change must not
+        // turn the whole feature off for the role it was opened to.
+        foreach ( [ 'installer/admin/index.php', 'installer/admin/profile.php' ] as $destination ) {
+            self::assertSame(
+                200,
+                $this->request( $destination, 'editor' )['status'],
+                "{$destination} sits at a tier an editor holds and must remain reachable."
             );
         }
     }

@@ -304,9 +304,23 @@ try {
                 Helpers::jsonResponse(['error' => 'Unknown provider'], 400);
             }
 
-            // Basic validation: key is non-empty and looks plausible.
-            $valid = !empty($apiKey) && strlen($apiKey) > 10;
-            Helpers::jsonResponse(['success' => true, 'valid' => $valid]);
+            // The key is TESTED against the provider, not measured. What stood
+            // here was `strlen($apiKey) > 10`, under this file's own docblock
+            // promising a provider test — so any eleven characters reported
+            // valid and a revoked key was confirmed as working. The engine owns
+            // the round trip because it owns the client factory the chat itself
+            // uses: a key that passes here works there by construction.
+            //
+            // `unreachable` is deliberately not folded into `valid: false`'s
+            // meaning — see ChatEngine::validateKey().
+            $verdict = $app->getChatEngine()->validateKey($providerId, (string) $apiKey);
+
+            Helpers::jsonResponse([
+                'success' => true,
+                'valid'   => $verdict['valid'],
+                'status'  => $verdict['status'],
+                'message' => $verdict['message'],
+            ]);
 
         } elseif ($action === 'set_active') {
             if (!klytos_has_permission('site.configure')) {

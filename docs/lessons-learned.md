@@ -1790,3 +1790,55 @@ allow-list. Every one of those makes a broken check quieter, and quiet is what t
 paid for four times: L-030 (the gate proved the file was intact and never asked what it contained),
 L-043 (the parity check proved the directories it knew about), L-020 (a drift guard built against an
 artifact it had never produced), and this.
+
+## L-048 — Twenty-one assertions passed, and four defects were sitting in the screenshot
+
+**When:** 2026-08-11, Phase 4 stage 6 slice 3 (entry 12, AI chat) — D-108.
+
+**What happened.** The screen was built, and its browser spec was written at the
+same time: 21 tests over the landmarks, the roles, the states, the keyboard, the
+reflow at 320 CSS px and whole-page axe in both themes. All 21 passed on the
+first run, which in this project is itself unusual — every earlier slice had
+found real defects by driving.
+
+Then the screen was **captured and looked at**, because Phase 4 Step 7 says
+fidelity is verified from rendered output. Four defects were plainly visible:
+
+- a one-line message bubble **196px tall**, because an `<svg>` with no width or
+  height renders at the SVG default of 300 × 150;
+- the round send button sitting **under** the composer instead of beside it,
+  because `.k-field` sets `flex-direction: column` and `display: flex` says
+  nothing about direction;
+- the composer opening at **88px** where §1 specifies 34, because
+  `textarea.k-control` is (0,1,1) and `.k-conv-input` is (0,1,0);
+- a **tinted status strip painted across a screen where nothing had happened**,
+  because `.k-status-line` sets `display: flex` plus a tint plus padding and
+  every consumer of it ships it empty. Logs and Terminal had it too.
+
+**Why every assertion missed them.** Not one of the 21 was wrong. They asserted
+*semantics* — role, name, state, focus order, contrast, no horizontal scroll —
+and all of that was correct while the screen looked broken. axe does not fail a
+bubble for being tall, a button for being below rather than beside, or a field
+for opening at the wrong height. Those are **geometry**, and geometry is only
+checked where somebody thought to measure it.
+
+**The rule.** *A screen is not verified until it has been looked at.* The
+automated pass and the capture are not two ways of doing one job; they cover
+disjoint failure modes, and the capture's half is the half nobody writes
+assertions for in advance. Concretely, in this project:
+
+1. Capture every new screen at the reference width **and** at 320, in both
+   themes, and READ the image — this is Step 7's own duty, not an extra.
+2. Anything that looks wrong, measure it out of the browser
+   (`getBoundingClientRect()` / `getComputedStyle()`), never out of the
+   stylesheet (L-032).
+3. Turn each one into an assertion **with a number in it**, so the next session
+   inherits the measurement rather than the need to look again.
+
+**The corollary that cost the most here:** three of the four were a rule this
+build already knew — a component setting `display` and losing to, or beating,
+something it never considered. The second one is build rule 1's **eighth**
+mechanism and the first where the losing rule was one I never wrote: I set
+`display` and `align-items` and simply did not think about `flex-direction`,
+which another class had already set. **Reading your own rule tells you nothing
+about which rule wins.**

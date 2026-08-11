@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 361 |
+| Actions | 363 |
 | Filters | 148 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1053** |
+| **Total** | **1055** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -183,7 +183,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 |---------|------|-----------|-----|--------------------|
 | `Klytos\Core\ActionScheduler` | class | installer/core/action-scheduler.php | — | Schedules, queues, retries and prunes single and recurring background actions |
 | `Klytos\Core\Ai\AiKeyManager` | class | installer/core/ai/ai-key-manager.php | — | Stores and selects per-provider AI API keys and their default models |
-| `Klytos\Core\Ai\ChatEngine` | class | installer/core/ai/chat-engine.php | — | Runs AI chat loops via the php-llm SDK, executing MCP tools between turns |
+| `Klytos\Core\Ai\ChatEngine` | class | installer/core/ai/chat-engine.php | docs/reference/ai-chat-screen.md | Runs AI chat loops via the php-llm SDK, executing MCP tools between turns; validateKey() tests a key against its provider |
 | `Klytos\Core\Ai\ChatManager` | class | installer/core/ai/chat-manager.php | — | Persists chat conversations, their messages, token usage and search |
 | `Klytos\Core\Ai\ChatResult` | class | installer/core/ai/chat-engine.php | — | Value object holding the outcome of a chat across AI and tool iterations |
 | `Klytos\Core\Ai\UnsupportedRuntimeException` | class | installer/core/ai/unsupported-runtime-exception.php | docs/reference/ai-runtime.md | Thrown by App::getChatEngine() when this PHP is older than the vendored AI stack requires, instead of fataling inside vendor-ai (NEW-06, D-053) |
@@ -295,6 +295,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.assets.before | action | installer/admin/assets.php | — | Emitted at the top of the media library screen; no payload, echo extra HTML |
 | admin.assets.before_toolbar | action | installer/admin/assets.php | — | Emitted just above the media library toolbar so plugins can inject controls; no payload |
 | admin.assets.detail_panel_extra | action | installer/admin/assets.php | — | Emitted inside the asset detail panel after the technical info block; no payload |
+| admin.ai_chat.after | action | installer/admin/ai-chat.php | docs/reference/ai-chat-screen.md | At the tail of the AI chat screen, after the composer; also fires on the not-configured state |
+| admin.ai_chat.before | action | installer/admin/ai-chat.php | docs/reference/ai-chat-screen.md | At the top of the AI chat screen, above the conversation; no payload, echo extra HTML |
 | admin.banner.recovery_warning | action | installer/admin/templates/sidebar.php | — | Emitted at the top of the admin main area to render the unconfirmed recovery keys banner |
 | admin.block_data.after | action | installer/admin/block-data.php | — | Emitted at the tail of the global block data screen; no payload, echo extra HTML |
 | admin.block_data.before | action | installer/admin/block-data.php | — | Emitted right after header and sidebar on the global block data screen; no payload |

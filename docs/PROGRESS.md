@@ -1350,8 +1350,71 @@
       reused storage state, or a playground seed that lifts the limit — not to any
       screen. **First time the tier has had this shape**, and it will get worse with
       entries 23 and 12.
-    - **Still owed for stage 6: entry 23 (Terminal, with NEW-33) and entry 12 (AI
-      chat, with its two shipped defects and the two-`<h1>` finding).**
+    - **Still owed for stage 6 at the time of that entry: entries 23 and 12. BOTH ARE
+      NOW BUILT — see below.**
+  - **Stage 6, slice 2 of 3 — entry 23 (Terminal) — DONE 2026-08-11 (D-107), commit
+    `dfa891a`.** Chrome to the letter, the xterm.js canvas kept as the deferred
+    interior on the user's decision; NEW-33 closed with **135 keys × 20 catalogues**.
+    Adaptations 60–64; test-point row 27. New: `assets/js/klytos-terminal.js`,
+    `docs/reference/terminal-screen.md`, and `trapFocus` exported as
+    `window.KlytosShell.trapFocus`.
+  - **Stage 6, slice 3 of 3 — entry 12 (AI chat) — DONE 2026-08-11 (D-108). THE LAST
+    SCREEN OF THE PHASE 4 BUILD.**
+    - **Two boundaries were ASKED before a line was written**, entry 23's precedent:
+      the `?panel=` alternate admin **redirects** (302 to `index.php` / `settings.php`
+      / `users.php` / `profile.php`; the four partials are deleted), and the shipped
+      conversation history is **rebuilt as an `aria-expanded` disclosure** in the
+      header the template does define. Both are the user's calls, because removing
+      shipped behaviour is not a fidelity decision (D-076, fifth occurrence).
+    - **A third answer was not an answer to the question asked** — the user wants to
+      be able to enter Klytos and see ONLY a chat. Four artifacts of the delivery
+      agree this screen carries the shell, so it is registered as **DR-011, drafted
+      and NOT sent**, and entry 12 is built as specified.
+    - **THREE shipped defects closed:** the two `<h1>`s (and ZERO on a `?panel=` URL,
+      with `$pageEmitsOwnH1` set unconditionally) · the no-provider composer PHP hid
+      and JavaScript un-hid and focused, now structurally absent · and `validate_key`,
+      which read `strlen($apiKey) > 10`. The fix is `ChatEngine::validateKey()`, a
+      real round trip through the chat's own client factory, with **three outcomes,
+      not two** — `valid` / `invalid` / `unreachable` — proven in the PHP tier on
+      entry 24's precedent (`red observed: … Failed asserting that true is false.`).
+    - **FOUR REAL DEFECTS, and the finding is HOW they were found (L-048): 21
+      assertions passed, and then the screen was LOOKED at.** An unsized `<svg>`
+      rendering at 300 × 150 (a one-line bubble 196px tall) · `.k-field`'s
+      `flex-direction: column` putting the send button under the composer — **build
+      rule 1's EIGHTH mechanism, and the first where the losing rule was one I never
+      set** · `textarea.k-control { min-height: 88px }` beating `.k-conv-input`, so
+      the 34 → 120px growth opened at 88 · and `.k-status-line` painting a tinted
+      strip when EMPTY, on this screen and on Logs and Terminal, fixed in the SHARED
+      layer. Each proven by planting it back. **A fifth, mine:** the success
+      announcement was a double announcement beside a polite log; the region is
+      cleared instead and `ai_chat.sent` was removed from all 20 catalogues.
+    - **An existing test was CORRECTED, not relaxed.** `AdminGateHttpTest`'s NEW-31
+      assertion now asserts the redirect, FOLLOWS it, and asserts the refusal at the
+      destination — the escalation proven closed rather than moved.
+    - **L-038's third occurrence, and it had swallowed FOUR rows.** A blank line at
+      `docs/05-test-points.md:3522` orphaned the tail of the Phase 4 table since a
+      previous session: the security fix, entry 2, entry 23 and entry 12 were all
+      invisible to the `Red first` checks. Removing it took the count 27 → **31**,
+      re-proven with a planted value.
+    - **i18n: 34 new keys × 20 catalogues** (`ai_chat` 25 → 59), spliced as TEXT,
+      every file re-parsed and compared root by root. `ai_chat.title` → **"Klytos
+      AI"** (the manifest's H1; the nav label stays "AI chat", which
+      `navigation.md:13` allows). The splice script REFUSED twice before writing
+      anything, and both refusals were right.
+    - **New files:** `docs/reference/ai-chat-screen.md`,
+      `tests/E2E/ai-chat.spec.js` (25 tests), `tests/E2E/fixtures/reset-ai-provider.php`,
+      `tests/Integration/AiChatValidateKeyHttpTest.php`. **Deleted:** the four
+      `partials/ai-panel-*.php` and `assets/css/ai-chat.css` (1,240 lines whose only
+      consumers were those partials and the old screen).
+    - **Adaptations 65–71** in `BUILD-SPEC.md` §5.9; **§5.4's ledger now ticks 12 and
+      23 and marks 42 DEFERRED WHOLE** rather than merely unticked; test-point row 28.
+    - **Tree state:** PHP **362 / 1692**, 0 skips (was 360/1679) · browser tier **513
+      passing in 9.3 minutes, 0 failures** (was 488), `KPORT=8183`, bind + owning PID
+      93286 + no `Server:` header confirmed, `--reset` seeded — **and that clean run
+      re-confirms D-106: the five failures of two sessions ago do not reproduce** ·
+      `keel-verify` **23 checks: 17 pass, 6 warnings** (unchanged) · `docs/api/INDEX.md`
+      **1055** (two new actions; the `ChatEngine` row now names `validateKey()`) ·
+      lint on every touched PHP file **identical to HEAD**.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
@@ -1364,7 +1427,16 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **SIX.**
+- Open Design Requests: **SEVEN.**
+  **DR-011 — DRAFTED 2026-08-11 (D-108), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-011.md`. It is the first request in this build raised by a
+  PRODUCT INTENT rather than by a gap: the user wants to be able to enter Klytos and see **only a
+  chat**. Four artifacts of the delivery agree entry 12 carries the shell (`navigation.md` lists it
+  as an ordinary sidebar item; `template-conversation.md` §4 describes the rail and drawer *on this
+  screen*; §5 puts the transcript inside `<main>`; `accessibility.md` §4.1 reserves "`main` only" to
+  the auth pages), so the mode is not something the build may invent. It asks for the shape (mode
+  toggle / separate entry point / landing screen), the landmark set, the way back, the `<h1>` and
+  whether the copilot dock coexists. **Blocks nothing** — entry 12 is built, driven and shipped.
   **DR-010 — DRAFTED 2026-08-10 (D-102), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-010.md`. §32 plus `SPEC/navigation.md` describe ONE global
   Taxonomies screen; the product stores taxonomies inside post types, so the screen cannot render

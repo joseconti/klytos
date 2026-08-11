@@ -2341,3 +2341,131 @@ as a defect. New public surface, documented in
 `docs/reference/terminal-screen.md` with its `docs/api/INDEX.md` row, alongside
 `admin.terminal.before` / `admin.terminal.after` and real docs for the two
 `terminal.*` filters that had none.
+
+## D-108 — Stage 6, entry 12 (AI chat): the chrome to the letter, three shipped defects closed, and four more the LOOKING found
+
+**Date:** 2026-08-11 · **Phase 4, stage 6 of 6, slice 3 of 3 — the LAST screen of the
+redesign build** · Implements D-104's answer for entry 12. Supersedes nothing;
+corrects one assertion in `AdminGateHttpTest` (below).
+
+### Two boundaries were asked, not assumed — and one answer was not the question
+
+Entry 23's precedent held: the ambiguous parts went to the user before a line
+was written.
+
+1. **The `?panel=` alternate admin → REDIRECT.** `ai-chat.php` hid the shell
+   with five `display: none !important` rules and carried a router that
+   rendered Dashboard, Settings, Users and Profile *inside itself* from four
+   partials. With the shell back those four are one nav click away, and a
+   second copy of a privileged screen behind a lower gate is audit NEW-31's
+   exact shape. The four URLs now **302** to `index.php`, `settings.php`,
+   `users.php` and `profile.php`; the partials are deleted. Retiring shipped
+   behaviour is the user's call (D-076), which is why it was asked.
+2. **The conversation history → the header control row.** The template's
+   anatomy is header · transcript · context chips · composer and draws no
+   conversation list at all, while the screen ships a sidebar with a list, a
+   search field and a separate browser view. D-076's rule for the fifth time:
+   it is rebuilt as an `aria-expanded` disclosure — entry 23's command-reference
+   precedent — with every capability intact.
+
+**And one answer was not an answer to the question asked.** Offered the panel
+choice, the user replied that they want to be able to *enter Klytos and see only
+a chat*. That is a product intent the delivery does not describe — four of its
+artifacts agree the screen carries the shell — so it is **registered as DR-011,
+drafted and not sent**, and entry 12 is built as specified. Recorded because the
+previous shell-less chat existed for exactly that reason and nobody had ever
+written the reason down.
+
+### Three shipped defects close here
+
+1. **Two `<h1>`s — and ZERO on a `?panel=` URL.** The file printed one at the
+   chats browser and another as the greeting, while `$pageEmitsOwnH1 = true` was
+   set unconditionally, so the panel views shipped with no `<h1>` at all and the
+   shell had been told not to add one. Entry 2's answer applies: the flag is
+   gone and the shell owns the heading.
+2. **The no-provider state was defeated at runtime.** PHP hid the welcome panel,
+   `showWelcome()` un-hid it unconditionally and focused a textarea that carried
+   no `disabled`. The composer is now REPLACED by the delivery's own line and
+   action — there is no composer in the document for a script to find.
+3. **`validate_key` validated nothing** (`strlen($apiKey) > 10`). Fixed on
+   entry 24's precedent, with the claim proven in the **PHP tier**:
+   `ChatEngine::validateKey()` makes the smallest real request the provider will
+   price through the same client factory the chat uses. **Three outcomes, not
+   two** — `valid`, `invalid`, `unreachable` — because "I could not reach the
+   provider" is not "your key is wrong", and answering a network failure with
+   `invalid` sends a person to regenerate a key that was fine.
+
+### FOUR REAL DEFECTS, and the finding is HOW they were found
+
+Twenty-one browser assertions passed. Then the screen was **looked at**, and
+four defects were sitting in the screenshot that no assertion had said a word
+about:
+
+1. **An `<svg>` with no width or height renders at the SVG default of 300 × 150**
+   — so a one-line user bubble measured **196px tall**. Fixed on the base glyph
+   class, which covers every glyph the screen adds later.
+2. **`.k-field` sets `flex-direction: column`**, and the composer field carries
+   that class: setting `display: flex` said nothing about direction, so the 28px
+   round send button landed UNDER the composer. **Build rule 1's EIGHTH distinct
+   mechanism, and the first where the rule I lost to is one I never set.**
+3. **`textarea.k-control { min-height: 88px }` at (0,1,1)** beat `.k-conv-input`,
+   so §1's "auto-grows 34 → 120px" opened at 88 with nowhere to grow. Rewritten
+   as (0,2,1) so it wins by structure, not by source order (L-032).
+4. **`.k-status-line` painted a tinted strip when EMPTY** — `display: flex` plus
+   a tint plus 8px of padding, on a screen where nothing had happened yet. Fixed
+   in the SHARED layer with `:empty`, because Logs and Terminal render the same
+   region and had the same strip.
+
+Each was proven by planting the defect back and watching its own test go red,
+then restoring byte-identically.
+
+**A fifth, of my own making, caught the same way:** the success announcement was
+a DOUBLE announcement. The transcript is already `role="log" aria-live="polite"`
+and reads the finished turn out in full; a second region saying "Answer
+received." announces the same event twice, against §5's "the copilot does not
+interrupt". The region is cleared on success instead, and `ai_chat.sent` was
+removed from all 20 catalogues rather than left behind as an orphan key — the
+`media_edit` / `post_lock` shape this project already carries four of.
+
+### An existing test was CORRECTED, never relaxed
+
+`AdminGateHttpTest::testAiChatPanelsRequireTheirOwnTierNotJustAiUse` asserted
+`403` on `?panel=users` for an editor. The panel now answers `302`. The test was
+**not** loosened to accept the redirect: it asserts the redirect, follows it, and
+asserts the refusal at the destination — which proves the escalation **closed**
+rather than merely moved, and additionally proves no privileged markup is served
+from that door at any role.
+
+### L-038's third occurrence, and it had swallowed FOUR rows
+
+Adding the test-point row did not change the count `keel-verify` reports. A
+blank line at `docs/05-test-points.md:3522` had been orphaning the tail of the
+Phase 4 table since a previous session: **the security fix, entry 2, entry 23
+and entry 12 were all invisible to the `Red first` checks**, which passed
+because they never saw the rows. Removing one blank line took the count from
+27 to **31**, and a planted `garbage` value is now caught with its line number.
+
+### What is deferred, and it is the interior
+
+Streaming, Stop, a running tool call, the inline permission confirm, the
+*Stopped* state, "Load earlier messages", the starters' derivation from the last
+screen visited, the context chips themselves and the whole copilot dock — all
+recorded in `roadmap.md` §0c by D-104. Every one is a state of a partial turn,
+or a store this product does not have. Adaptations **65–71** in `BUILD-SPEC.md`
+§5.9; §5.4's ledger now ticks 12 and 23 and marks **42 deferred whole** rather
+than merely unticked.
+
+### i18n
+
+**34 new keys × 20 catalogues** in the `ai_chat` root (25 → 59), spliced as TEXT
+with every file re-parsed and compared root-by-root. Two existing values changed:
+`title` → **"Klytos AI"** (the manifest's H1; the nav label stays "AI chat",
+which `navigation.md:13` explicitly allows) and `delete_confirm` → the armed
+label of a two-step confirm, which replaced a `window.confirm()` that blocks the
+page for everyone and is unreachable to a driven test.
+
+**The splice script REFUSED twice before it wrote anything**, and both refusals
+were right: `provider_changed` already existed, and the first value-replacement
+pass would have rewritten `title` in a dozen other roots at the same indent. All
+twenty files are verified before any one of them is written — a half-spliced set
+is worse than none.

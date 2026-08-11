@@ -86,7 +86,7 @@
    `.k-modal-window` was added the moment the container was written, in stage 6
    slice 2, rather than after a measurement caught it — which is the only way
    an enumeration ever stops costing what it cost here twice. */
-:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector, .k-modal-window)
+:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector, .k-modal-window, .k-conv)
     :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
     color: var(--color-acento);
 }
@@ -1235,6 +1235,19 @@ a.k-stat:hover {
     background: var(--tinte-exito);
     color: var(--sobre-tinte-exito);
     font: var(--type-body);
+}
+
+/* A status line with nothing to say must not draw a box. `.k-status-line` sets
+   `display: flex` plus a tint and 8px of padding, so a region that ships empty
+   — which every consumer of it does, because it is filled at runtime — painted
+   a coloured strip across the screen before anything had happened. Found by
+   LOOKING at the rendered screen; no assertion on this file would have said a
+   word about it, and it is on Logs and Terminal too.
+
+   `:empty` is exact here: the region is filled with textContent, so it is
+   genuinely empty until it has a message. */
+.k-status-line:empty {
+    display: none;
 }
 
 .k-status-line--aviso {
@@ -2512,5 +2525,354 @@ a.k-stat:hover {
 
     .k-inspector[role="dialog"] {
         width: 100%;
+    }
+}
+
+/* ============================================================
+   CONVERSATION — SPEC/screens/template-conversation.md
+   Manifest entry 12 (AI chat, full screen). The same markup serves the copilot
+   dock in the delivery; the dock itself is an empty landmark in this product
+   (D-104, roadmap.md §0c) so only the full-screen consumer exists here.
+
+   EVERY BASE RULE IS WRITTEN BEFORE ITS MEDIA QUERY, deliberately — D-088's
+   rule, and build rule 1's seventh mechanism is the reason it is spelled out
+   rather than assumed.
+   ============================================================ */
+
+.k-conv {
+    display: flex;
+    flex-direction: column;
+    /* $shellFullBleed gives this screen the viewport; the conversation is the
+       whole of it, exactly as §1's anatomy draws it. */
+    height: 100%;
+    min-height: 0;
+    /* min-width:0 is LOAD-BEARING: `1fr` is `minmax(auto, 1fr)`, so without it
+       the shell's own track sizes to this column's min-content and the PAGE
+       scrolls sideways at 320 CSS px — D-105's fifth defect, on a new screen. */
+    min-width: 0;
+}
+
+/* §1: header 50px — title, model chip, controls. */
+.k-conv-header {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-12);
+    min-height: 50px;
+    padding: 0 var(--esp-16);
+    border-bottom: 1px solid var(--separador);
+    flex-wrap: wrap;
+}
+
+.k-conv-model {
+    margin: 0;
+}
+
+.k-conv-model-select {
+    /* §5: "The model chip is text, not a coloured dot." */
+    max-width: 260px;
+}
+
+.k-conv-controls {
+    display: flex;
+    gap: var(--esp-8);
+    margin-left: auto;
+}
+
+.k-conv-history {
+    margin: var(--esp-12) var(--esp-16) 0;
+}
+
+/* .k-card sets `display`, and this panel ships with the `hidden` attribute —
+   the SIXTH component in this file to need the pair. The attribute selector on
+   the class is (0,2,0) and beats the UA rule by structure, not by position. */
+.k-conv-history[hidden] {
+    display: none;
+}
+
+.k-conv-history-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--esp-12);
+}
+
+.k-conv-history-list {
+    margin-top: var(--esp-12);
+}
+
+.k-conv-history-item {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    min-height: 32px;
+}
+
+.k-conv-history-open {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: none;
+    border: 0;
+    padding: var(--esp-4) 0;
+    /* 2.5.8: the row is the target and it is ≥ 24px tall. */
+    min-height: 24px;
+    color: var(--texto-primario);
+    font: var(--type-body);
+    cursor: pointer;
+}
+
+/* §1: transcript flex 1, scrolls, padding 16–20, gap 14.
+   §12's delta: the transcript is centred at max 760px. */
+.k-conv-transcript {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    /* §1 says "padding 16–20"; --esp-20 does not exist in the delivered scale
+       and inventing one is exactly what rule 2 forbids, so the scale's own
+       --esp-16 is used at both axes. */
+    padding: var(--esp-16);
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.k-conv-starters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-8);
+}
+
+/* Toggled with `hidden` the moment the first turn arrives — same pair again. */
+.k-conv-starters[hidden] {
+    display: none;
+}
+
+.k-conv-starters-intro {
+    margin: 0;
+    color: var(--texto-secundario);
+}
+
+.k-conv-starter {
+    text-align: left;
+}
+
+/* §1: a turn's actions are in the DOM at all times and focusable; they are
+   REVEALED on hover and on focus-within. `visibility` rather than `display`
+   keeps them focusable in the accessibility tree only when shown, and
+   :focus-within is what makes them reachable by keyboard alone — a hover-only
+   reveal would put them out of reach of exactly the user §2 built them for. */
+.k-turn {
+    position: relative;
+    max-width: 100%;
+}
+
+.k-turn-actions {
+    display: flex;
+    gap: var(--esp-4);
+    margin-top: var(--esp-4);
+    opacity: 0;
+}
+
+.k-turn:hover .k-turn-actions,
+.k-turn:focus-within .k-turn-actions {
+    opacity: 1;
+}
+
+/* §1: user turn — right-aligned bubble, --fila-seleccion, radius 10. */
+.k-turn--user {
+    align-self: flex-end;
+    max-width: 85%;
+    background: var(--fila-seleccion);
+    border-radius: 10px;
+    padding: var(--esp-8) var(--esp-12);
+}
+
+.k-turn--user .k-turn-actions {
+    justify-content: flex-end;
+}
+
+/* §1: agent turn — plain text on the surface, no bubble, --type-body.
+   "The agent's turns have no bubble on purpose: they are the page's content." */
+.k-turn--agent {
+    font: var(--type-body);
+    color: var(--texto-primario);
+}
+
+.k-turn-body > :first-child {
+    margin-top: 0;
+}
+
+.k-turn-body > :last-child {
+    margin-bottom: 0;
+}
+
+/* §1: tool call — --fondo-ventana panel, radius 8, mono. */
+.k-toolcalls {
+    list-style: none;
+    margin: 0 0 var(--esp-8);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-4);
+}
+
+.k-toolcall {
+    background: var(--fondo-ventana);
+    border-radius: 8px;
+    padding: var(--esp-8) var(--esp-12);
+    font: var(--type-body-mono);
+}
+
+.k-toolcall summary {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    /* 2.5.8: the summary is the disclosure's pointer target. */
+    min-height: 24px;
+    cursor: pointer;
+}
+
+.k-toolcall-glyph {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
+/* §2 done / failed. Colour is never the only channel (§1.3): the status TEXT
+   beside the glyph names the state in words, which is also §5.10's rule. */
+.k-toolcall--done .k-toolcall-glyph {
+    color: var(--color-exito);
+}
+
+.k-toolcall--failed .k-toolcall-glyph {
+    color: var(--sobre-tinte-peligro);
+}
+
+.k-toolcall-body {
+    margin-top: var(--esp-8);
+}
+
+.k-conv-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-8);
+}
+
+/* §1: context chips — the row above the composer. */
+.k-conv-chips {
+    margin: 0;
+    padding: 0 var(--esp-16);
+    width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
+    color: var(--texto-secundario);
+    font: var(--type-caption);
+}
+
+/* §1: composer — textarea (auto-grows 34 → 120px) + 28px round send button. */
+.k-conv-composer {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--esp-12) var(--esp-16) var(--esp-16);
+}
+
+.k-conv-composer-field {
+    display: flex;
+    /* `flex-direction` is written EXPLICITLY because `.k-field` — which this
+       element also carries — sets `column`, and setting `display:flex` here
+       said nothing about direction. Driving it put the 28px send button UNDER
+       the composer instead of beside it. Build rule 1's eighth distinct
+       mechanism in this build, and the first where the rule I lost to was one
+       I never thought to set. */
+    flex-direction: row;
+    align-items: flex-end;
+    gap: var(--esp-8);
+}
+
+/* `textarea.k-control` is (0,1,1) and sets `min-height: 88px`, so §1's
+   "auto-grows 34 → 120px" never started at 34: the field opened at 88 and the
+   growth had nowhere to go. Written as (0,2,1) so it wins by STRUCTURE and not
+   by source order — L-032's rule, after three occurrences that each had a
+   different mechanism. */
+textarea.k-control.k-conv-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 34px;
+    max-height: 120px;
+    resize: none;
+}
+
+.k-conv-send {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radio-pildora);
+    border: 0;
+    background: var(--color-acento);
+    color: var(--sobre-acento);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* An <svg> with no intrinsic size renders at the SVG default of 300 × 150,
+   which is what the copy affordance inside a turn did: the turn's action row
+   measured 152px tall and the user's bubble grew to 196px for one line of text.
+   Sizing the base class covers every glyph this screen draws, including any
+   added later — which is the shape that stops it happening twice. */
+.k-conv-glyph,
+.k-conv-send-glyph {
+    width: 16px;
+    height: 16px;
+    flex: none;
+}
+
+.k-conv-send[aria-busy="true"] {
+    opacity: 0.7;
+}
+
+.k-conv-unconfigured {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: var(--esp-12) var(--esp-16) var(--esp-16);
+}
+
+.k-conv-jump {
+    align-self: center;
+    margin-bottom: var(--esp-8);
+}
+
+/* The polite region belongs to the conversation column, not to the page: at
+   full width it painted as a banner across the whole content area, which reads
+   as a page-level announcement rather than as this transcript's status. */
+.k-conv .k-status-line {
+    width: 100%;
+    max-width: 760px;
+    margin-inline: auto;
+}
+
+@media (max-width: 899px) {
+    .k-conv-header {
+        /* The control row wraps under the model chip rather than pushing the
+           header past the viewport at 320 CSS px (1.4.10). */
+        padding: var(--esp-8) var(--esp-12);
+    }
+
+    .k-conv-transcript,
+    .k-conv-composer,
+    .k-conv-chips,
+    .k-conv-unconfigured {
+        padding-inline: var(--esp-12);
+    }
+
+    .k-turn--user {
+        max-width: 100%;
     }
 }

@@ -1,8 +1,58 @@
 <?php
 
 /**
- * Klytos Admin — AI Chat
- * Integrated AI chat for controlling the CMS from the admin panel.
+ * Klytos Admin — AI chat
+ *
+ * Manifest entry 12 · template `conversation` (full screen) · H1 "Klytos AI".
+ *
+ * Built in Phase 4 Step 4, stage 6 (slice 3 of 3) against
+ * `SPEC/screens/template-conversation.md`, `SPEC/accessibility.md` and
+ * `SPEC/manifest.md` §12.
+ *
+ * WHAT IS BUILT AND WHAT IS DEFERRED — read this before changing anything here.
+ *
+ * **The streaming turn is the deferred engine interior (D-104, `roadmap.md`
+ * §0c).** `admin/api/ai-chat.php` responds ONCE with the whole result and
+ * `core/ai/chat-engine.php` has no streaming path of any kind, so a partial
+ * turn cannot exist — and Stop, a tool call in its *running* state, the inline
+ * *needs permission* confirm and the *Stopped* state are all states OF a
+ * partial turn. Consent today is a sentence in the system prompt
+ * (`chat-engine.php:401`), not a UI round trip. `getChat()` reads every message
+ * with no limit/offset (`chat-manager.php:108-116`), so "Load earlier messages"
+ * has no query to make and no earlier message to fetch. Nothing in the tree
+ * records a last screen visited, so starters cannot be drawn from one. The
+ * copilot dock is an empty landmark and nothing else (`templates/footer.php`).
+ *
+ * Everything the product DOES back is built to the letter: the shell, the
+ * transcript as `role="log"`, the per-turn `<article>` with its name and its
+ * always-present actions, the finished tool-call rows (done and failed), the
+ * context chip row, the composer with its real label and its hint, the three
+ * starters, the provider-unreachable alert and the not-configured state.
+ *
+ * THREE SHIPPED DEFECTS CLOSE HERE (D-104's four, minus the terminal's XSS
+ * which closed with entry 23):
+ *
+ *   1. **Two `<h1>`s, and with `?panel=` set, ZERO.** This file printed an
+ *      `<h1>` at the chats browser AND another as the greeting, while
+ *      `$pageEmitsOwnH1 = true` was set unconditionally — so the panel views
+ *      shipped with no `<h1>` at all and the shell had been told not to add
+ *      one. Entry 2's answer applies: `$pageEmitsOwnH1` is gone and the shell
+ *      owns the heading, exactly once, in `main`.
+ *   2. **The no-provider state was defeated at runtime.** PHP hid the welcome
+ *      panel and `showWelcome()` un-hid it unconditionally, then focused a
+ *      textarea that — unlike the chat view's composer — carried no `disabled`.
+ *      The composer is now REPLACED by the delivery's own single line and
+ *      action, which cannot be un-hidden because it is not rendered.
+ *   3. **`validate_key` validated nothing** — fixed in `api/ai-chat.php`, on
+ *      entry 24's precedent, with its claim proven in the PHP tier.
+ *
+ * `?panel=` NO LONGER RENDERS AN ALTERNATE ADMIN (user decision, taken before
+ * the first line of this rewrite). The four partials existed because this
+ * screen hid the shell, so Dashboard, Settings, Users and Profile were
+ * unreachable from it. The shell is back, the real navigation reaches all four,
+ * and a second copy of a privileged screen behind a lower gate is the exact
+ * shape audit NEW-31 reported. The four URLs now 302 to the real screens, which
+ * gate themselves — so no privileged partial is included from here at all.
  *
  * @package Klytos
  * @since   0.9.0
@@ -21,288 +71,329 @@ require_once __DIR__ . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
 
-$pageTitle = __('ai_chat.title');
-$customCsp = null;
 $basePath  = Helpers::getBasePath();
+$adminPath = $basePath . 'admin/';
 
-// Load AI key manager safely.
-$active       = ['provider' => null, 'model' => null];
+/*
+ * The four legacy panel URLs. They are answered with a redirect rather than a
+ * partial: every target gates itself through the central gate map
+ * (core/admin-gate.php), so an editor following ?panel=users lands on the same
+ * 403 users.php would give them — and this file, which is gated only at
+ * ai.use, never includes a privileged surface again.
+ *
+ * Absent from the map = not a panel, exactly as before, so a URL invented later
+ * falls through to the chat instead of reaching anything.
+ */
+$panelRedirects = [
+    'dashboard' => 'index.php',
+    'settings'  => 'settings.php',
+    'users'     => 'users.php',
+    'profile'   => 'profile.php',
+];
+
+$panel = $_GET['panel'] ?? null;
+if ( is_string( $panel ) && isset( $panelRedirects[ $panel ] ) ) {
+    Helpers::redirect( $adminPath . $panelRedirects[ $panel ] );
+}
+
+$pageTitle = __( 'ai_chat.title' );
+
+/*
+ * §4 of the template: the full-screen chat owns the viewport and centres its
+ * transcript at max 760px. That is stage 2's $shellFullBleed, which entry 2
+ * used for the same reason — and which this screen used to fake with five
+ * `display: none !important` rules that deleted the navigation, the toolbar and
+ * the status bar from the screen a person may spend the longest on.
+ */
+$shellFullBleed = true;
+
+// Provider state. A failure here is not fatal: the screen has a specified state
+// for "not configured" and it is the honest one to show.
+$active       = [ 'provider' => null, 'model' => null ];
 $allProviders = [];
 $hasProvider  = false;
 
 try {
-    $keys         = new \Klytos\Core\Ai\AiKeyManager($app->getStorage(), $app->getConfigPath());
+    $keys         = new \Klytos\Core\Ai\AiKeyManager( $app->getStorage(), $app->getConfigPath() );
     $active       = $keys->getActive();
     $allProviders = $keys->listProviders();
-    $hasProvider  = !empty($active['provider']) && $keys->hasKey($active['provider']);
-} catch (\Throwable $e) {
-    // Fail gracefully — show the chat page without provider.
+    $hasProvider  = ! empty( $active['provider'] ) && $keys->hasKey( $active['provider'] );
+} catch ( \Throwable $e ) {
+    klytos_log( 'AI chat: provider state unavailable — ' . $e->getMessage(), 'warning' );
 }
 
-$currentUser  = klytos_current_user();
-$username     = (!empty($currentUser['display_name']) && ($currentUser['display_name'] ?? '') !== ($currentUser['username'] ?? ''))
-    ? $currentUser['display_name']
-    : $app->getAuth()->getUsername();
-$userInitial  = mb_strtoupper(mb_substr($username, 0, 1));
+$csrfToken = $app->getAuth()->getCsrfToken();
+$spriteUrl = $adminPath . 'assets/icons/klytos-ui-icons.svg';
 
-// Panel routing (dashboard, settings, users, profile).
-//
-// Each panel requires the capability its STANDALONE twin requires in the gate
-// map — users.php => users.manage, settings.php => site.configure,
-// index.php => pages.view, profile.php => profile.edit — because the partials
-// they include are the same privileged surfaces reached through a different
-// door. The file-level gate gets this page as far as ai.use and no further,
-// and ai.use is a lower bar than two of these four (audit NEW-31): without
-// this map, holding ai.use meant reaching user management, including changing
-// any account's password. This is the "page mixes tiers → require the
-// capability inline on the privileged branch" step of the admin checklist in
-// docs/reference/authorization.md.
-//
-// Absent from the map = denied, the same inversion as the gate map itself
-// (D-032), so a fifth panel added later is refused until it is mapped here.
-// The check runs BEFORE templates/header.php so a refusal is a clean 403
-// document rather than a denial appended to half-rendered HTML.
-$panelCapabilities = [
-    'dashboard' => 'pages.view',
-    'settings'  => 'site.configure',
-    'users'     => 'users.manage',
-    'profile'   => 'profile.edit',
+/**
+ * Render one sprite glyph.
+ *
+ * Icons here are decoration beside text that already carries the state
+ * (accessibility.md §1.3: colour and glyph are never the only channel), so
+ * every one of them is aria-hidden.
+ */
+$glyph = static function ( string $id, string $class = 'k-conv-glyph' ) use ( $spriteUrl ): string {
+    return sprintf(
+        '<svg class="%s" aria-hidden="true" focusable="false"><use href="%s#%s"></use></svg>',
+        klytos_esc_attr( $class ),
+        klytos_esc_url( $spriteUrl ),
+        klytos_esc_attr( $id )
+    );
+};
+
+/*
+ * The three starters. The template quotes them literally and the delta asks for
+ * them to be "drawn from the last screen visited" — nothing in this product
+ * records a last screen visited (D-104), so the literal three are built and the
+ * derivation is the deferred half. They are BUTTONS, not links: a link needs a
+ * destination and these have none (the send path is a fetch), which is DR-004's
+ * finding on a different control.
+ */
+$starters = [
+    __( 'ai_chat.starter_meta' ),
+    __( 'ai_chat.starter_errors' ),
+    __( 'ai_chat.starter_pricing' ),
 ];
-
-$panel = $_GET['panel'] ?? null;
-if ($panel !== null && !array_key_exists($panel, $panelCapabilities)) {
-    $panel = null;
-}
-if ($panel !== null) {
-    klytos_require_permission($panelCapabilities[$panel], 'ai-chat.php?panel=' . $panel);
-}
-
-// This screen prints its own heading, so the shell must not add a second one
-// (accessibility.md 4.2: exactly one <h1> per screen, in main). It currently
-// prints TWO — a pre-existing defect this stage does not silently fix; the
-// conversation template owns it in stage 6.
-$pageEmitsOwnH1 = true;
 
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
 ?>
 
-<link rel="stylesheet" href="<?php echo klytos_esc_url($basePath . 'admin/assets/css/ai-chat.css'); ?>">
+<?php klytos_do_action( 'admin.ai_chat.before' ); ?>
 
-<?php
-    $providerLogos = [
-        'anthropic'  => [ 'color' => 'claude-color.webp' ],
-        'openai'     => [ 'light' => 'openai-black.webp', 'dark' => 'openai-white.webp' ],
-        'gemini'     => [ 'color' => 'gemini-color.webp' ],
-        'openrouter' => [ 'light' => 'openrouter-black.webp', 'dark' => 'openrouter-white.webp' ],
-        'ollama'     => [ 'light' => 'ollama-black.webp', 'dark' => 'ollama-white.webp' ],
-    ];
-    $imgBase = $basePath . 'admin/assets/images/';
-    ?>
+<div class="k-conv" data-testid="ai_chat.screen">
 
-<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
-    /* Stage 2 (the shell) renamed these nodes; the intent is unchanged and
-       whether this screen keeps the shell chrome at all is decided in stage 6
-       against its own template, not here. */
-    .k-sidebar   { display: none !important; }
-    .k-toolbar   { display: none !important; }
-    .k-statusbar { display: none !important; }
-    .k-main      { padding: 0 !important; }
-    .k-shell     { display: block !important; }
-</style>
-
-<?php
-// Build the provider <option> list once, used in two selects.
-ob_start();
-foreach ($allProviders as $p):
-    $provConfigured = !empty($p['configured']);
-    $provId         = $p['id'] ?? '';
-    $provName       = $p['name'] ?? '';
-    $provModels     = $p['models'] ?? [];
-    ?>
-    <optgroup label="<?php echo klytos_esc_attr($provName); ?>">
-        <?php if ($provConfigured && !empty($provModels)): ?>
-            <?php foreach ($provModels as $model): ?>
-                <option value="<?php echo klytos_esc_attr($provId . '|' . ($model['id'] ?? '')); ?>"
-                    <?php echo ($active['provider'] === $provId && $active['model'] === ($model['id'] ?? '')) ? 'selected' : ''; ?>>
-                    <?php echo klytos_esc_html($model['name'] ?? $model['id'] ?? ''); ?>
-                </option>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <option disabled>-- <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></option>
+    <?php // ─── Header (§1: 50px — title, model chip, controls) ─────────── ?>
+    <div class="k-conv-header" data-testid="ai_chat.header">
+        <?php if ( $hasProvider ) : ?>
+            <?php
+            /*
+             * §5: "The model chip is text, not a coloured dot." It is a real
+             * <select> because switching provider mid-conversation is shipped
+             * behaviour (D-076's rule), and a select carries its own name from
+             * a real <label> rather than from a title attribute.
+             */
+            ?>
+            <p class="k-conv-model">
+                <label class="k-sr" for="ai-chat-model"><?php echo klytos_esc_html( __( 'ai_chat.model_label' ) ); ?></label>
+                <select id="ai-chat-model" class="k-control k-conv-model-select" data-testid="ai_chat.model">
+                    <?php foreach ( $allProviders as $p ) : ?>
+                        <?php
+                        $provId     = (string) ( $p['id'] ?? '' );
+                        $provName   = (string) ( $p['name'] ?? '' );
+                        $provModels = $p['models'] ?? [];
+                        if ( empty( $p['configured'] ) || empty( $provModels ) ) {
+                            continue;
+                        }
+                        ?>
+                        <optgroup label="<?php echo klytos_esc_attr( $provName ); ?>">
+                            <?php foreach ( $provModels as $model ) : ?>
+                                <?php $modelId = (string) ( $model['id'] ?? '' ); ?>
+                                <option value="<?php echo klytos_esc_attr( $provId . '|' . $modelId ); ?>"
+                                    <?php echo ( $active['provider'] === $provId && $active['model'] === $modelId ) ? 'selected' : ''; ?>>
+                                    <?php echo klytos_esc_html( $model['name'] ?? $modelId ); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endforeach; ?>
+                </select>
+            </p>
         <?php endif; ?>
-    </optgroup>
+
+        <?php
+        /*
+         * The conversation history. The template draws no such surface — it is
+         * SHIPPED behaviour (a whole sidebar with a list, a search field and a
+         * separate browser view), and D-076's rule holds for the fifth time:
+         * removing shipped behaviour is not a fidelity decision. It is rebuilt
+         * as the delivery's own disclosure semantics inside the one region §1
+         * does define, on entry 23's command-reference precedent — the user's
+         * decision, taken before this rewrite began.
+         */
+        ?>
+        <div class="k-conv-controls">
+            <button type="button" class="k-btn k-btn--secondary k-btn--sm" id="ai-chat-new"
+                    data-testid="ai_chat.new">
+                <?php echo klytos_esc_html( __( 'ai_chat.new_conversation' ) ); ?>
+            </button>
+            <button type="button" class="k-btn k-btn--secondary k-btn--sm" id="ai-chat-history-toggle"
+                    aria-expanded="false" aria-controls="ai-chat-history"
+                    data-testid="ai_chat.history_toggle">
+                <?php echo klytos_esc_html( __( 'ai_chat.history_toggle' ) ); ?>
+            </button>
+        </div>
+    </div>
+
+    <aside class="k-card k-card--padded k-conv-history" id="ai-chat-history" hidden
+           aria-labelledby="ai-chat-history-title" data-testid="ai_chat.history">
+        <div class="k-conv-history-head">
+            <h2 id="ai-chat-history-title"><?php echo klytos_esc_html( __( 'ai_chat.history_title' ) ); ?></h2>
+            <button type="button" class="k-btn k-btn--secondary k-btn--sm" id="ai-chat-history-close"
+                    data-testid="ai_chat.history_close">
+                <?php echo klytos_esc_html( __( 'ai_chat.history_close' ) ); ?>
+            </button>
+        </div>
+        <div class="k-field">
+            <label class="k-label" for="ai-chat-history-search">
+                <?php echo klytos_esc_html( __( 'ai_chat.history_search_label' ) ); ?>
+            </label>
+            <input type="search" class="k-control" id="ai-chat-history-search"
+                   autocomplete="off" data-testid="ai_chat.history_search">
+        </div>
+        <ul class="k-plain-list k-conv-history-list" id="ai-chat-history-list"></ul>
+        <p class="k-empty-text" id="ai-chat-history-empty" hidden data-testid="ai_chat.history_empty">
+            <?php echo klytos_esc_html( __( 'ai_chat.no_conversations' ) ); ?>
+        </p>
+    </aside>
+
     <?php
-endforeach;
-$providerOptions = ob_get_clean();
-?>
+    /*
+     * The polite status region. §5 forbids `aria-live="assertive"` anywhere in
+     * the conversation — "the copilot does not interrupt" — and the transcript
+     * carries its own polite live region below, so this one reports what the
+     * transcript is not: sending, copy results, history results.
+     */
+    ?>
+    <p class="k-status-line" role="status" id="ai-chat-status" data-testid="ai_chat.status"></p>
 
-<div id="ai-chat-app"
-     class="ai-chat-page-wrap"
-     data-csrf="<?php echo klytos_esc_attr($_SESSION['klytos_csrf'] ?? ''); ?>"
-     data-api-url="<?php echo klytos_esc_url($basePath . 'admin/api/ai-chat.php'); ?>"
-     data-username="<?php echo klytos_esc_attr($username); ?>"
-     data-no-results="<?php echo klytos_esc_attr(__('ai_chat.no_results')); ?>"
-     data-img-base="<?php echo klytos_esc_url($imgBase); ?>"
-     data-provider-logos="<?php echo klytos_esc_attr(json_encode($providerLogos)); ?>">
+    <?php
+    /*
+     * §5: "Transcript: role="log" aria-live="polite" aria-relevant="additions"."
+     * With no streaming path the whole finished turn is appended in one
+     * operation, which is precisely the outcome §2 asks streaming to simulate:
+     * only the finished turn is announced, never each token.
+     */
+    ?>
+    <div class="k-conv-transcript"
+         id="ai-chat-transcript"
+         role="log"
+         aria-live="polite"
+         aria-relevant="additions"
+         aria-label="<?php echo klytos_esc_attr( __( 'ai_chat.transcript_label' ) ); ?>"
+         data-testid="ai_chat.transcript">
 
-        <!-- ─── Sidebar ──────────────────────────────────────────── -->
-        <div class="ai-chat-sidebar">
-            <div class="ai-chat-sidebar-header">
-                <button class="ai-chat-new-btn">
-                    <i class="fa-solid fa-plus"></i>
-                    <?php echo klytos_esc_html(__('ai_chat.new_conversation')); ?>
+        <?php // §2 "Empty — new conversation": not a blank panel. ?>
+        <div class="k-conv-starters" id="ai-chat-starters" data-testid="ai_chat.starters">
+            <p class="k-conv-starters-intro"><?php echo klytos_esc_html( __( 'ai_chat.empty_intro' ) ); ?></p>
+            <ul class="k-plain-list">
+                <?php foreach ( $starters as $i => $starter ) : ?>
+                    <li>
+                        <button type="button" class="k-btn k-btn--secondary k-btn--sm k-conv-starter"
+                                data-testid="ai_chat.starter.<?php echo (int) $i; ?>">
+                            <?php echo klytos_esc_html( $starter ); ?>
+                        </button>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+
+    <?php
+    /*
+     * §1's context chip row, in the state §2 calls "Empty — no context
+     * available": "the context chip row says so rather than disappearing".
+     * That is this product's PERMANENT state — nothing anywhere records a page
+     * in context (D-104) — so the row is rendered with the sentence the
+     * delivery writes for it, and the chips themselves arrive with the context
+     * mechanism, not before it.
+     */
+    ?>
+    <p class="k-conv-chips" data-testid="ai_chat.context">
+        <?php echo klytos_esc_html( __( 'ai_chat.context_none' ) ); ?>
+    </p>
+
+    <?php if ( $hasProvider ) : ?>
+        <form class="k-conv-composer" id="ai-chat-composer" data-testid="ai_chat.composer">
+            <div class="k-field k-conv-composer-field">
+                <label class="k-sr" for="ai-chat-input">
+                    <?php echo klytos_esc_html( __( 'ai_chat.composer_label' ) ); ?>
+                </label>
+                <textarea id="ai-chat-input"
+                          class="k-control k-conv-input"
+                          rows="1"
+                          aria-describedby="ai-chat-hint"
+                          data-testid="ai_chat.input"></textarea>
+                <button type="submit" class="k-conv-send" aria-busy="false"
+                        data-testid="ai_chat.send">
+                    <?php echo $glyph( 'ks-arrow_upward', 'k-conv-send-glyph' ); ?>
+                    <span class="k-sr"><?php echo klytos_esc_html( __( 'ai_chat.send' ) ); ?></span>
                 </button>
             </div>
+            <p class="k-hint" id="ai-chat-hint"><?php echo klytos_esc_html( __( 'ai_chat.composer_hint' ) ); ?></p>
+        </form>
+    <?php else : ?>
+        <?php
+        /*
+         * §2 "Error — no API key": "the composer is replaced by a single line
+         * and an action; a disabled composer with no explanation is not
+         * acceptable". Replaced, not disabled and not hidden — which is also
+         * what makes the shipped defect unrepeatable: there is no composer in
+         * the document for a script to un-hide and focus.
+         */
+        ?>
+        <p class="k-conv-unconfigured" role="status" data-testid="ai_chat.not_configured">
+            <?php echo klytos_esc_html( __( 'ai_chat.not_configured' ) ); ?>
+            <a href="<?php echo klytos_esc_url( $adminPath . 'mcp.php?tab=api-ia' ); ?>"
+               data-testid="ai_chat.open_settings">
+                <?php echo klytos_esc_html( __( 'ai_chat.open_settings' ) ); ?>
+            </a>
+        </p>
+    <?php endif; ?>
 
-            <div class="ai-chat-sidebar-section">
-                <div class="ai-chat-sidebar-nav">
-                    <button class="ai-chat-nav-item" id="ai-chat-search-toggle">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <?php echo klytos_esc_html(__('ai_chat.search')); ?>
-                    </button>
-                    <button class="ai-chat-nav-item active" id="ai-chat-chats-toggle">
-                        <i class="fa-regular fa-message"></i>
-                        <?php echo klytos_esc_html(__('ai_chat.chats')); ?>
-                    </button>
-                </div>
+</div>
 
-                <div class="ai-chat-search-box hidden" id="ai-chat-search-box">
-                    <input type="text" class="ai-chat-search-input" id="ai-chat-search-input"
-                           placeholder="<?php echo klytos_esc_attr(__('ai_chat.search_placeholder')); ?>"
-                           autocomplete="off">
-                </div>
+<?php klytos_do_action( 'admin.ai_chat.after' ); ?>
 
-                <div class="ai-chat-sidebar-label" id="ai-chat-sidebar-label"><?php echo klytos_esc_html(__('ai_chat.recent')); ?></div>
-                <div class="ai-chat-list"></div>
-            </div>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/vendor/marked/marked.min.js' ); ?>"></script>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/vendor/highlight/highlight.min.js' ); ?>"></script>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>" src="<?php echo klytos_esc_url( $adminPath . 'assets/vendor/purify/purify.min.js' ); ?>"></script>
 
-            <div class="ai-chat-sidebar-footer" id="ai-chat-footer-toggle">
-                <div class="ai-chat-popup-menu" id="ai-chat-popup-menu">
-                    <a href="<?php echo klytos_esc_url($basePath . 'admin/ai-chat.php?panel=dashboard'); ?>" class="ai-chat-popup-menu-item">
-                        <i class="fa-solid fa-chart-line"></i> <?php echo klytos_esc_html(__('ai_chat.dashboard')); ?>
-                    </a>
-                    <a href="<?php echo klytos_esc_url($basePath . 'admin/ai-chat.php?panel=settings'); ?>" class="ai-chat-popup-menu-item">
-                        <i class="fa-solid fa-gear"></i> <?php echo klytos_esc_html(__('ai_chat.settings')); ?>
-                    </a>
-                    <a href="<?php echo klytos_esc_url($basePath . 'admin/ai-chat.php?panel=users'); ?>" class="ai-chat-popup-menu-item">
-                        <i class="fa-solid fa-users"></i> <?php echo klytos_esc_html(__('ai_chat.users')); ?>
-                    </a>
-                    <a href="<?php echo klytos_esc_url($basePath . 'admin/ai-chat.php?panel=profile'); ?>" class="ai-chat-popup-menu-item">
-                        <i class="fa-solid fa-user-pen"></i> My Profile
-                    </a>
-                    <div class="ai-chat-popup-sep"></div>
-                    <a href="<?php echo klytos_esc_url($adminPath . 'index.php'); ?>" class="ai-chat-popup-menu-item">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i> <?php echo klytos_esc_html(__('ai_chat.classic_mode')); ?>
-                    </a>
-                </div>
-                <div class="ai-chat-user-avatar"><?php echo klytos_esc_html($userInitial); ?></div>
-                <span class="ai-chat-user-name"><?php echo klytos_esc_html($username); ?></span>
-                <i class="fa-solid fa-chevron-up text-xs" style="color:var(--chat-text-dim);margin-left:auto;"></i>
-            </div>
-        </div>
+<?php
+/*
+ * Strings and configuration as DATA, never interpolated into a script body —
+ * terminal.php's shape for terminal.php's reason: escaping a translated
+ * sentence into JavaScript breaks on the first catalogue containing a quote,
+ * and this screen adds keys to twenty of them.
+ */
+?>
+<script type="application/json" id="ai-chat-config" nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>"><?php
+echo json_encode(
+    [
+        'csrf'          => $csrfToken,
+        'apiUrl'        => $adminPath . 'api/ai-chat.php',
+        'sprite'        => $spriteUrl,
+        'hasProvider'   => $hasProvider,
+        'settingsUrl'   => $adminPath . 'mcp.php?tab=api-ia',
+        'strings'       => [
+            'you'             => __( 'ai_chat.turn_you' ),
+            'assistant'       => __( 'ai_chat.turn_assistant' ),
+            'copy'            => __( 'ai_chat.copy_turn' ),
+            'copied'          => __( 'ai_chat.copied' ),
+            'copyFailed'      => __( 'ai_chat.copy_failed' ),
+            'retry'           => __( 'ai_chat.retry' ),
+            'sending'         => __( 'ai_chat.sending' ),
+            'toolRan'         => __( 'ai_chat.tool_ran' ),
+            'toolFailed'      => __( 'ai_chat.tool_failed' ),
+            'toolCalls'       => __( 'ai_chat.tool_calls' ),
+            'toolInput'       => __( 'ai_chat.tool_input' ),
+            'toolOutput'      => __( 'ai_chat.tool_output' ),
+            'unreachable'     => __( 'ai_chat.unreachable' ),
+            'openSettings'    => __( 'ai_chat.open_settings' ),
+            'networkError'    => __( 'ai_chat.network_error' ),
+            'jumpToLatest'    => __( 'ai_chat.jump_to_latest' ),
+            'untitled'        => __( 'ai_chat.untitled' ),
+            'deleteConversation' => __( 'ai_chat.delete_conversation' ),
+            'deleteConfirm'   => __( 'ai_chat.delete_confirm' ),
+            'noConversations' => __( 'ai_chat.no_conversations' ),
+            'historyCount'    => __( 'ai_chat.history_count' ),
+            'providerChanged' => __( 'ai_chat.provider_changed' ),
+        ],
+    ],
+    JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
+?></script>
 
-        <!-- ─── Main Area ────────────────────────────────────────── -->
-        <div class="ai-chat-main">
-
-            <?php if ($panel): ?>
-                <!-- Panel View -->
-                <?php require_once __DIR__ . '/partials/ai-panel-' . $panel . '.php'; ?>
-            <?php else: ?>
-                <!-- Chats Browser (hidden by default) -->
-                <div class="ai-chat-browser hidden" id="ai-chat-browser">
-                    <div class="ai-chat-browser-header">
-                        <h1><?php echo klytos_esc_html(__('ai_chat.chats')); ?></h1>
-                        <button class="ai-chat-browser-new-btn" id="ai-chat-browser-new">
-                            <i class="fa-solid fa-plus"></i>
-                        </button>
-                    </div>
-                    <div class="ai-chat-browser-search">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <input type="text" id="ai-chat-browser-search-input"
-                               placeholder="<?php echo klytos_esc_attr(__('ai_chat.search_in_chats')); ?>"
-                               autocomplete="off">
-                    </div>
-                    <div class="ai-chat-browser-label">
-                        <?php echo klytos_esc_html(__('ai_chat.your_conversations')); ?>
-                    </div>
-                    <div class="ai-chat-browser-list" id="ai-chat-browser-list"></div>
-                </div>
-
-                <!-- Welcome Screen -->
-                <div class="ai-chat-welcome" id="ai-chat-welcome"<?php echo (!$hasProvider) ? ' style="display:none;"' : ''; ?>>
-                    <div class="ai-chat-welcome-inner">
-                        <h1 class="ai-chat-greeting" id="ai-chat-greeting"></h1>
-                        <div class="ai-chat-welcome-input-wrap">
-                            <textarea id="ai-chat-welcome-textarea"
-                                      rows="1"
-                                      placeholder="<?php echo klytos_esc_attr(__('ai_chat.welcome_placeholder')); ?>"></textarea>
-                            <div class="ai-chat-welcome-actions">
-                                <div class="ai-chat-model-select">
-                                    <img class="ai-chat-provider-logo hidden" id="ai-chat-provider-logo-welcome" src="" alt="" style="height: 20px; width: auto;">
-                                    <select id="ai-provider-select-welcome">
-                                        <?php echo $providerOptions; ?>
-                                    </select>
-                                </div>
-                                <button class="ai-chat-send-btn" id="ai-chat-welcome-send">
-                                    <i class="fa-solid fa-arrow-up"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- No Provider State -->
-                <?php if (!$hasProvider): ?>
-                    <div class="ai-chat-no-provider" id="ai-chat-no-provider">
-                        <h3><i class="fa-solid fa-robot" style="margin-right: 0.5rem; opacity: 0.5;"></i> <?php echo klytos_esc_html(__('ai_chat.no_provider')); ?></h3>
-                        <p style="margin-top:0.75rem;">
-                            <?php echo klytos_esc_html(__('ai_chat.configure_key')); ?>
-                            <a href="<?php echo klytos_esc_url($basePath . 'admin/mcp.php?tab=api-ia'); ?>">
-                                <?php echo klytos_esc_html(__('ai_keys.title')); ?>
-                            </a>
-                        </p>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Chat View (hidden by default) -->
-                <div class="ai-chat-view hidden" id="ai-chat-view">
-                    <div class="ai-chat-view-topbar">
-                        <div class="ai-chat-model-select">
-                            <img class="ai-chat-provider-logo hidden" id="ai-chat-provider-logo" src="" alt="" style="height: 20px; width: auto;">
-                            <select id="ai-provider-select">
-                                <?php echo $providerOptions; ?>
-                            </select>
-                        </div>
-                        <span class="ai-chat-usage"></span>
-                    </div>
-
-                    <div class="ai-chat-messages"></div>
-
-                    <div class="ai-chat-input">
-                        <div class="ai-chat-input-wrap">
-                            <textarea rows="1"
-                                      placeholder="<?php echo klytos_esc_attr(__('ai_chat.placeholder')); ?>"
-                                      <?php echo (!$hasProvider) ? 'disabled' : ''; ?>></textarea>
-                            <button class="ai-chat-send-btn"
-                                    <?php echo (!$hasProvider) ? 'disabled' : ''; ?>>
-                                <i class="fa-solid fa-arrow-up"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            <?php endif; ?>
-
-        </div><!-- /.ai-chat-main -->
-    </div><!-- /#ai-chat-app -->
-
-<!-- Vendor JS (bundled) -->
-<script nonce="<?php echo $cspNonce; ?>" src="<?php echo klytos_esc_url($basePath . 'admin/assets/vendor/marked/marked.min.js'); ?>"></script>
-<script nonce="<?php echo $cspNonce; ?>" src="<?php echo klytos_esc_url($basePath . 'admin/assets/vendor/highlight/highlight.min.js'); ?>"></script>
-<script nonce="<?php echo $cspNonce; ?>" src="<?php echo klytos_esc_url($basePath . 'admin/assets/vendor/purify/purify.min.js'); ?>"></script>
-
-<!-- Chat JS -->
-<script nonce="<?php echo $cspNonce; ?>" src="<?php echo klytos_esc_url($basePath . 'admin/assets/js/klytos-ai-chat.js'); ?>"></script>
+<script nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>"
+        src="<?php echo klytos_esc_url( $adminPath . 'assets/js/klytos-ai-chat.js' ); ?>"></script>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
