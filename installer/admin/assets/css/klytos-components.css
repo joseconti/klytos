@@ -86,7 +86,8 @@
    `.k-modal-window` was added the moment the container was written, in stage 6
    slice 2, rather than after a measurement caught it — which is the only way
    an enumeration ever stops costing what it cost here twice. */
-:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector, .k-modal-window, .k-conv)
+:is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector, .k-modal-window, .k-conv,
+    .k-banner)
     :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
     color: var(--color-acento);
 }
@@ -2874,5 +2875,127 @@ textarea.k-control.k-conv-input {
 
     .k-turn--user {
         max-width: 100%;
+    }
+}
+
+/* ============================================================
+   BANNER — SPEC/manifest.md §44
+   One tinted strip inside <main>, AFTER the <h1> so the heading is still the
+   first thing in the document. It is `role="status"` in the markup, never
+   `role="alert"`: it is true on arrival, it did not just happen. It carries no
+   dismiss control and no toggle — it disappears when its condition does.
+
+   The link layer's enumeration above names `.k-banner` (see the comment there):
+   a container written without its line paints the pre-redesign blue. It was
+   added with the component, not after a measurement caught it.
+   ============================================================ */
+
+.k-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-8);
+    margin: 0 0 var(--esp-16);
+    padding: var(--esp-12) var(--esp-16);
+    border-radius: var(--radio-card);
+    font: var(--type-body);
+}
+
+/* The tint carries the text colour with it — a semantic colour on its own tint
+   is what the badge rule already forbids, and the reason is the same here. */
+.k-banner--aviso {
+    background: var(--tinte-aviso);
+    color: var(--sobre-tinte-aviso);
+}
+
+.k-banner-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+}
+
+/* ============================================================
+   WIDGET GRID — SPEC/manifest.md §44
+   "A frame with a contract": two columns, gap 14, ORDINARY cards — radius 10,
+   no coloured border, nothing sticky, no second-level card inside. Each widget
+   is a <section> with an <h2> bound by aria-labelledby.
+
+   Below 900 the template's own rule applies: detail cards go 1 across.
+   ============================================================ */
+
+.k-widget-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+@media (max-width: 1199px) {
+    .k-widget-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================
+   SETUP STEPS — SPEC/manifest.md §44
+   An <ol>, not a list of divs: the steps are ordered and the order is
+   information. State is TEXT first — the glyph is decoration beside a word, so
+   colour never carries the state on its own (accessibility.md §1.4).
+   ============================================================ */
+
+.k-steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-12);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.k-step {
+    display: grid;
+    /* state · body · action. `minmax(0, 1fr)` and not `1fr`, which is
+       `minmax(auto, 1fr)` and sizes to min-content — build rule 1's seventh
+       mechanism, paid for once on the editor at 320px (D-105). */
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--esp-12);
+    padding: var(--esp-12) 0;
+    border-top: 1px solid var(--separador);
+}
+
+.k-step:first-child { border-top: 0; padding-top: 0; }
+
+.k-step-state {
+    display: flex;
+    align-items: center;
+    gap: var(--esp-6);
+    margin: 0;
+    font: var(--type-caption);
+    color: var(--texto-secundario);
+}
+
+.k-step--done .k-step-state  { color: var(--color-exito); }
+.k-step--later .k-step-state { color: var(--texto-sutil); }
+
+.k-step-glyph {
+    flex: none;
+    width: 16px;
+    height: 16px;
+}
+
+.k-step-body { min-width: 0; }
+
+.k-step-title {
+    margin: 0;
+    font: var(--type-body);
+    font-weight: var(--peso-medium);
+    color: var(--texto-primario);
+}
+
+.k-step-action { display: flex; }
+
+/* < 900: the action moves below the sentence and the row becomes two rows
+   (SPEC/manifest.md §44, Responsive). */
+@media (max-width: 899px) {
+    .k-step {
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--esp-8);
     }
 }

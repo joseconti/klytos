@@ -364,6 +364,49 @@ class Updater
     }
 
     /**
+     * Report the update situation from the CACHE ALONE — never over the network.
+     *
+     * {@see checkForUpdate()} is the right call for a screen whose job is to
+     * check; it queries GitHub whenever the six-hour cache is cold or stale. A
+     * screen that merely *displays* the answer — the Dashboard's *Pending
+     * updates* stat card (`SPEC/manifest.md` §44) — must never block on a third
+     * party, so it asks this instead.
+     *
+     * It returns THREE states, because two would force a lie. `getCachedRelease()`
+     * answers `null` both when the cache is empty and when the install is up to
+     * date, and on a stat card those are opposite facts: "up to date" is the
+     * number `0`, a thing that was measured, while "nobody has checked" is `—`,
+     * which §44 requires rather than a zero nobody established.
+     *
+     * ```php
+     * $state = klytos_app()->getUpdater()->getCachedUpdateState();
+     *
+     * match ( $state['state'] ) {
+     *     'pending' => printf( '1 update: %s', $state['update']['new_version'] ),
+     *     'current' => print( '0 pending updates' ),
+     *     'unknown' => print( '— not checked recently' ),
+     * };
+     * ```
+     *
+     * @return array{state: string, update: array|null} `state` is one of
+     *         `pending` (a newer release is cached), `current` (the cache is
+     *         fresh and names nothing newer) or `unknown` (no usable cache).
+     *         `update` carries the release only when `state` is `pending`.
+     */
+    public function getCachedUpdateState(): array
+    {
+        if ( $this->readFreshCache() === null ) {
+            return ['state' => 'unknown', 'update' => null];
+        }
+
+        $update = $this->getCachedRelease();
+
+        return $update !== null
+            ? ['state' => 'pending', 'update' => $update]
+            : ['state' => 'current', 'update' => null];
+    }
+
+    /**
      * Download and install an update.
      *
      * Flow:
@@ -755,11 +798,16 @@ class Updater
     // ─── Cache ───────────────────────────────────────────────────────
 
     /**
-     * Get cached release check result.
+     * Read the update cache, but only while it is still fresh.
      *
-     * @return array|null Cached update info or null if expired/missing.
+     * Extracted so that {@see getCachedRelease()} and
+     * {@see getCachedUpdateState()} share one definition of "fresh" — the two
+     * differ in what they DO with a miss, never in what a miss is.
+     *
+     * @return array|null The stored row, or null if absent, unreadable or older
+     *                    than {@see CACHE_TTL}.
      */
-    private function getCachedRelease(): ?array
+    private function readFreshCache(): ?array
     {
         try {
             $cache = $this->storage->readFrom( $this->configPath, 'update_cache.json.enc' );
@@ -770,6 +818,21 @@ class Updater
         $cachedAt = $cache['cached_at'] ?? 0;
         if ( ( time() - $cachedAt ) > self::CACHE_TTL ) {
             return null; // Expired.
+        }
+
+        return $cache;
+    }
+
+    /**
+     * Get cached release check result.
+     *
+     * @return array|null Cached update info or null if expired/missing.
+     */
+    private function getCachedRelease(): ?array
+    {
+        $cache = $this->readFreshCache();
+        if ( $cache === null ) {
+            return null;
         }
 
         $currentVersion = $this->getCurrentVersion();
