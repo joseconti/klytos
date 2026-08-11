@@ -255,6 +255,15 @@
    --sobre-tinte-*, never the raw semantic colour on its own tint — that is
    the pair the contrast audit found failing, and the whole reason
    klytos-admin.css exists. */
+/* A badge may carry a leading glyph: the state is a WORD plus a glyph, never a
+   colour alone (SPEC/manifest.md §13). Sized explicitly for the same reason as
+   the stat tile above — the badge is a 20px pill and an unsized <svg> is 300px. */
+.k-badge-icon {
+    flex: none;
+    width: 12px;
+    height: 12px;
+}
+
 .k-badge--acento     { background: var(--tinte-acento);     color: var(--sobre-tinte-acento); }
 .k-badge--info       { background: var(--tinte-info);       color: var(--sobre-tinte-info); }
 .k-badge--exito      { background: var(--tinte-exito);      color: var(--sobre-tinte-exito); }
@@ -1049,6 +1058,17 @@ a.k-stat:hover {
     border-radius: 8px;
     background: var(--tinte-acento);
     color: var(--sobre-tinte-acento);
+}
+
+/* L-048, NINTH MECHANISM, and it shipped once before it was caught: an <svg>
+   with no width/height renders at the SVG DEFAULT of 300 x 150. `klytos_admin_icon()`
+   writes neither, so a glyph in an unsized class blows its container apart —
+   entry 44's five stat tiles did exactly that for one commit, invisible to the
+   integration tier, which asserts markup and never geometry. The rule lives on
+   the CONTAINER so that no future consumer has to remember a class name. */
+.k-stat-tile > svg {
+    width: 18px;
+    height: 18px;
 }
 
 .k-stat-tile--info       { background: var(--tinte-info);       color: var(--sobre-tinte-info); }
