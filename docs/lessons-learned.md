@@ -1842,3 +1842,46 @@ mechanism and the first where the losing rule was one I never wrote: I set
 `display` and `align-items` and simply did not think about `flex-direction`,
 which another class had already set. **Reading your own rule tells you nothing
 about which rule wins.**
+
+## L-049 — A ledger nobody ticks is a ledger nobody counts, and twenty-one screens hid behind three honest stage closes
+
+**Date:** 2026-08-11 · Phase 4, Step 7 · Recorded with **D-109**.
+
+**What happened.** `docs/PROGRESS.md` and the session hand-off both said the
+Phase 4 build's screen work was finished — "the last screen of the Phase 4
+build", "all 40 in-scope manifest entries are through". Step 7's own bookkeeping
+walked `BUILD-SPEC.md` §5.4 against the tree and found **17 built of 39 in
+scope**, with **21 entries still on the pre-redesign layer** and five of the
+eleven template tables never once consumed.
+
+**Why it survived.** Every individual record was true. Stage 4 recorded, in its
+own decision entry, that it stopped at **one screen of thirteen**. Stage 5 closed
+screen by screen, each with its evidence. Stage 6 closed its three slices and
+said so. Nothing was hidden and nothing was overstated **locally**. What was
+never done was the addition — and the artifact that performs the addition is
+§5.4, whose rows ARE the count. Its rows were never ticked as the work landed, so
+the count was never available to read, and the narrative in `PROGRESS.md` filled
+the gap with the shape of the last thing that closed: a stage ended, so the phase
+must have.
+
+**The near miss.** The previous session found two unticked rows for finished
+screens, wrote an honest note about them, and called the remainder bookkeeping.
+Walking those two rows is what surfaced the other nineteen. A drift that looks
+like two rows is worth walking to the end of the table **before** deciding how
+big it is.
+
+**The rule.** A checklist artifact is only a control while it is ticked at the
+moment the work lands — Phase 4 Step 4 says exactly that, and it is the rule that
+was not followed. Two mechanical consequences, adopted here:
+
+1. **Never report a phase, stage or sprint as complete from a narrative.** The
+   completion claim is read out of the ledger by counting its rows, and if the
+   rows are not current the honest answer is "the ledger is stale", never "it is
+   done".
+2. **A count stated anywhere — a hand-off, a progress card, a report to the
+   user — names the artifact it was counted from.** "All 40 entries are through"
+   with no source is how this one travelled three sessions.
+
+**And the smaller shape inside it:** ticking a row means walking that row. Where
+the walk is genuinely owed, the honest ledger value is `◐` with a note naming
+what is missing — which is what all five re-walked rows now carry.

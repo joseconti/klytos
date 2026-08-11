@@ -2469,3 +2469,86 @@ were right: `provider_changed` already existed, and the first value-replacement
 pass would have rewritten `title` in a dozen other roots at the same indent. All
 twenty files are verified before any one of them is written — a half-spliced set
 is worse than none.
+
+## D-109 — Phase 4 Step 7's bookkeeping is done, and it found that the Phase 4 build is 18 of 39 entries, not 39
+
+**Date:** 2026-08-11 · **Phase 4, Step 7 (verify against the faithfulness checklist)** · Supersedes
+nothing; **corrects a claim carried by `docs/PROGRESS.md` and by the previous session's hand-off.**
+
+### What was owed, and is now done
+
+Step 7 is executed by walking `docs/BUILD-SPEC.md` and ticking its boxes **in the file at the moment
+each item is verified**. Three pieces of that were outstanding and all three are closed:
+
+1. **The §5.4 delta walk.** Five ledger rows were entirely unticked for screens that are built,
+   driven and evidenced — **1 (Pages)**, **3 (Design)**, **24 (Webhooks)**, **25 (Consent)** and
+   **32 (Taxonomies)**. Each had its manifest deltas read one by one against the built screen and
+   its §5.3 template rows against the recorded driven evidence. All five are now `◐` with a note
+   naming exactly what is built, what is deferred and why.
+2. **§5.9's missing adaptation rows.** Eight were written — **72–79**. Entry 24 had none at all
+   (rows 76–79); entry 1 had two divergences never logged (74–75); and two rows are new findings of
+   the walk itself (72–73, below).
+3. **§5.10's faithfulness checklist.** Sixteen boxes walked against the files. **Eleven tick, five
+   do not.**
+
+### THE FINDING — "the last screen of the Phase 4 build" was the last screen of stage 6
+
+`docs/PROGRESS.md` and the hand-off both stated that the Phase 4 build's screen work was complete
+and that "all 40 in-scope manifest entries are through". **They are not.** Walking §5.4 against the
+tree — grepping each entry point for a `.k-*` class and a `data-testid` rather than trusting the
+ledger — gives:
+
+- **Built: 17 product screens** (1, 2, 3, 6, 9, 12, 19, 23, 24, 25, 26, 27, 28, 32, 37, 39, 41) plus
+  entry 16's specimen sheet.
+- **Deferred with reasons:** 11, 14, 17, 22 (D-072) and 42 (D-104).
+- **Not built: 21**, still rendering the pre-redesign layer — no `data-testid`, no `.k-*`, Font
+  Awesome still drawn on some.
+
+Five of the eleven §5.3 template tables have never had a consumer at all: **overview-stats**,
+**gallery-grid**, **auth-centered**, **wizard** and **preview-matrix**.
+
+**Seven of the twenty-one are blocked on DR-006** — the list surfaces whose `grid-template-columns`
+the delivery never recorded (D-079, and DR-006 is sent and unanswered). **Fourteen are blocked by
+nothing:** 7 Analytics, 13 Tasks, 18 x402 dashboard, 44 Dashboard (overview-stats) · 4 Assets,
+21 Blocks, 31 Templates (gallery-grid) · 20 Translations, 29 AI images, 40 Block data (editor-split)
+· 10 Log in, 43 Reset password (auth-centered) · 8 MCP, 38 Plugin page (record-form).
+
+**How the claim survived so long.** Each stage closed honestly on its own terms — stage 4 recorded
+that it stopped at one screen of thirteen (D-079), stage 5 closed screen by screen, stage 6 closed
+its three slices. What nobody did was add the stages up against §5.4, and §5.4 was the artifact that
+would have shown it: **its rows are the count, and the rows were never ticked, so the count was never
+read.** The drift note the previous session left in §5.4 named two unticked rows and treated them as
+bookkeeping; walking them found the other nineteen. That is the general lesson — a ledger nobody
+ticks is a ledger nobody counts (**L-049**).
+
+### Two template states nothing has built, found by the same walk (adaptations 72–73)
+
+- **`template-record-form.md` §2's *Dirty* and *Saving*.** Both describe a client-side edit session:
+  `beforeunload` plus an inline nav confirm, and `aria-busy` with the controls left enabled. This
+  admin has no such session — every save is a full page POST, which is the stack and is also what
+  makes twelve screens work with JavaScript disabled. Registered as **owed work, not a closed
+  decision**: if Design's intent is that an unsaved edit must be defended, the mechanism is a Design
+  Request, not a build-side guess.
+- **`template-list-table.md` §2's *Loading*.** Same mechanism, same absence: the bulk post is a plain
+  form submit, so the page that would paint the busy state is already gone.
+
+**Consequence for the ledger: no screen of those two templates may carry a bare `☑`** in §5.4's
+Template column. Every one of them is `◐` until those states exist. Entry 41's `☑` stands — it is
+console-stream, whose table is complete.
+
+### Alternatives rejected
+
+- **Tick the five rows from the recorded evidence and report Phase 4 done.** That is the exact
+  failure the ledger exists to prevent, and it is what the previous session refused for two rows;
+  refusing it for two and accepting it for nineteen would have been worse than either.
+- **Treat the twenty-one as "Phase 5 work" and close Phase 4.** No decision ever moved them. D-072
+  deferred four entries and D-104 a fifth, by name and with reasons; the rest were never deferred,
+  they were never reached.
+- **Build something now to shrink the gap.** Step 7 is bookkeeping and the finding is the deliverable;
+  starting a screen inside it would bury the one thing the user needs to see.
+
+### Bounds
+
+`docs/BUILD-SPEC.md` §5.3 (list-table and record-form tables), §5.4 (five rows plus five notes and
+the replaced drift paragraph), §5.9 (rows 72–79), §5.10 (the whole checklist plus the count table);
+`docs/PROGRESS.md`; `docs/lessons-learned.md` (**L-049**). **No code was touched.**

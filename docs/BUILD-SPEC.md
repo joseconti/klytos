@@ -829,38 +829,38 @@ file at the moment the state is built**, never retroactively.
 #### list-table — `SPEC/screens/template-list-table.md`
 | State | Spec | Built |
 |---|---|---|
-| Default (no zebra; 1px `--separador` between rows) | §2 | ☐ |
-| Row hover (`--fila-hover`, 120ms; decoration only) | §2 | ☐ |
-| Row focus (the **link** takes the ring; the row is not focusable) | §2 | ☐ |
-| Row selected (`--fila-seleccion`, `aria-selected`, bulk bar + 48px bottom padding) | §2 | ☐ |
-| Sort active (`aria-sort`, chevron, sorting is a page load) | §2 | ☐ |
-| Filter active (`aria-current="true"`, "Clear filters" link) | §2 | ☐ |
-| Loading = **bulk-action post only** (`aria-busy`, progressive label, no overlay) | §2 | ☐ |
-| Empty — no records (header kept, 120px row, icon + sentence + primary action) | §2 | ☐ |
-| Empty — filtered to nothing (different sentence, never "create") | §2 | ☐ |
-| Error — list could not be loaded (error row + retry + Open Health) | §2 | ☐ |
-| Error — bulk action partly failed (`role="alert"` summary, per record) | §2 | ☐ |
-| Success (`role="status"` line above the table, not a toast, no timer) | §2 | ☐ |
-| Disabled row action (`aria-disabled` + reason in the accessible name, never hidden) | §2 | ☐ |
-| Responsive: sticky row-header + scroll container 900–1199; **stacked cards** <900 | §3 | ☐ |
-| ARIA table markup exactly as `accessibility.md` §2.1 | §4 | ☐ |
+| Default (no zebra; 1px `--separador` between rows) | §2 | ☑ entry 1 (D-079) · `components.spec.js` |
+| Row hover (`--fila-hover`, 120ms; decoration only) | §2 | ◐ built, **not driven** — `klytos-components.css:194` paints it; no test asserts a hover state, and §2 calls it decoration only |
+| Row focus (the **link** takes the ring; the row is not focusable) | §2 | ☑ `components.spec.js` — "the selected row is tinted and the row itself is never focusable" |
+| Row selected (`--fila-seleccion`, `aria-selected`, bulk bar + 48px bottom padding) | §2 | ☑ entry 1 (D-079) — the missing 48px was one of that slice's five defects |
+| Sort active (`aria-sort`, chevron, sorting is a page load) | §2 | ☑ entry 1 (D-079) |
+| Filter active (`aria-current="true"`, "Clear filters" link) | §2 | ☑ entry 1 (D-079) |
+| Loading = **bulk-action post only** (`aria-busy`, progressive label, no overlay) | §2 | ☐ **NOT BUILT** — `pages.php` carries no `aria-busy` anywhere; the bulk post is a plain form submit. Owed by the next list-table slice |
+| Empty — no records (header kept, 120px row, icon + sentence + primary action) | §2 | ☑ entry 1 (D-079) |
+| Empty — filtered to nothing (different sentence, never "create") | §2 | ☑ entry 1 (D-079) |
+| Error — list could not be loaded (error row + retry + Open Health) | §2 | ◐ built, **not driven** — `pages.php:631` renders the error row and the retry link; "Open Health" is deliberately absent (adaptation 14's reason, entry 22 deferred). No test reaches the state |
+| Error — bulk action partly failed (`role="alert"` summary, per record) | §2 | ◐ built, **not driven** — `pages.php:164-171` collects `$bulkFail` and `:404` renders the `role="alert"` line. No test forces a partial failure |
+| Success (`role="status"` line above the table, not a toast, no timer) | §2 | ☑ entry 1 (D-079) — "bulk unpublish and bulk publish both reload the list with a role=status line" |
+| Disabled row action (`aria-disabled` + reason in the accessible name, never hidden) | §2 | ☑ entry 1 (D-079) — the site home's delete |
+| Responsive: sticky row-header + scroll container 900–1199; **stacked cards** <900 | §3 | ☑ entry 1 (D-079) — three tiers, 320px asserted by TRYING to scroll |
+| ARIA table markup exactly as `accessibility.md` §2.1 | §4 | ☑ entry 1 (D-079) + `components.spec.js` — the accessibility tree Chromium actually builds |
 
 #### record-form — `SPEC/screens/template-record-form.md`
 | State | Spec | Built |
 |---|---|---|
-| Default — never validate on load | §2 | ☐ |
-| Hover / focus (ring **and** accent border) / active (colour only) | §2 | ☐ |
-| Disabled (reason next to the label, never tooltip-only, never hidden) | §2 | ☐ |
-| Read-only vs disabled (`readonly`, mono, selectable, copy button) | §2 | ☐ |
-| Dirty (toolbar Save primary; `beforeunload` **and** inline nav confirm) | §2 | ☐ |
-| Saving (`aria-busy`, controls stay enabled) | §2 | ☐ |
-| Success (`role="status"` under the H1, no highlight animation) | §2 | ☐ |
-| Error — field level (`aria-invalid`, icon, message via `aria-describedby`) | §2 | ☐ |
-| Error — form level (`role="alert"` summary, focus moved, each field a link) | §2 | ☐ |
-| Error — server-side save failure (names cause and action, never a bare code) | §2 | ☐ |
-| Empty collection inside a form (sentence + add action, card heading kept) | §2 | ☐ |
-| Destructive section (last card, inline two-step confirm, never `confirm()`) | §2 | ☐ |
-| Responsive: section nav → chip row at 900–1199; single column; Save stays in toolbar | §3 | ☐ |
+| Default — never validate on load | §2 | ☑ entries 3, 9, 27 — "nothing is validated on load" (D-088, D-096, D-100) |
+| Hover / focus (ring **and** accent border) / active (colour only) | §2 | ☑ `components.spec.js` — "focusing a field adds the accent border AND keeps the delivered ring" |
+| Disabled (reason next to the label, never tooltip-only, never hidden) | §2 | ☑ entry 39 (locked system statuses, reason as text — D-090) + `components.spec.js` |
+| Read-only vs disabled (`readonly`, mono, selectable, copy button) | §2 | ☑ entries 39, 27, 37, 28, 24 (D-090, D-100, D-098, D-101, D-103) + `components.spec.js` |
+| Dirty (toolbar Save primary; `beforeunload` **and** inline nav confirm) | §2 | ☐ **NOT BUILT on any record-form screen** — no `beforeunload` outside the legacy `klytos-editor.js` / `post-lock.js`. Logged as adaptation **72** |
+| Saving (`aria-busy`, controls stay enabled) | §2 | ☐ **NOT BUILT as a form state** — every save is a full page POST, so there is no in-flight render. `security.php`'s only `aria-busy` is the passkey ceremony. Logged as adaptation **72** |
+| Success (`role="status"` under the H1, no highlight animation) | §2 | ☑ entries 3, 26, 27, 24 (D-088, D-099, D-100, D-103) |
+| Error — field level (`aria-invalid`, icon, message via `aria-describedby`) | §2 | ☑ entries 3, 39, 6, 9, 37, 27, 32, 24 — hint-then-error order asserted on each |
+| Error — form level (`role="alert"` summary, focus moved, each field a link) | §2 | ☑ entries 3, 39, 6, 9, 37, 27, 28, 19 |
+| Error — server-side save failure (names cause and action, never a bare code) | §2 | ☑ entries 24 ("never with a raw exception"), 27, 28, 32 — the refused-CSRF report is the same row |
+| Empty collection inside a form (sentence + add action, card heading kept) | §2 | ☑ entries 39, 6, 37, 32, 24, 19 — "KEEPS its heading" asserted, not assumed |
+| Destructive section (last card, inline two-step confirm, never `confirm()`) | §2 | ☑ entries 6 (asserted LAST), 19, 39, 32, 24, 25, 26 — driven with JavaScript disabled on 39 and 19 |
+| Responsive: section nav → chip row at 900–1199; single column; Save stays in toolbar | §3 | ☑ entries 39 (chip row read out of `getComputedStyle`), 9, 3 (single column below 1200) |
 
 #### overview-stats — `SPEC/screens/template-overview-stats.md`
 | State | Spec | Built |
@@ -1010,9 +1010,9 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 
 | # | Screen | Template rows | Manifest deltas | Accessibility (§5.5) | Driven (§5.9) |
 |---|---|---|---|---|---|
-| 1 | Pages | ☐ | ☐ §1 | ☐ | ☐ |
+| 1 | Pages | ◐ — see the list-table note | ◐ §1 — see note | ☑ | ☑ 31 browser tests, 5 states × both themes (D-079) |
 | 2 | Page editor | ☑ chrome | ☑ §2 | ☑ | ☑ (D-105; interior deferred, §0c) |
-| 3 | Design (theme) | ☐ | ☐ §3 | ☐ | ☐ |
+| 3 | Design (theme) | ◐ — see the record-form note | ◐ §3 — see note | ☑ | ☑ 31 browser tests, 3 states × both themes (D-088) |
 | 4 | Assets | ☐ | ☐ §4 | ☐ | ☐ |
 | 5 | Users | ☐ | ☐ §5 | ☐ | ☐ |
 | 6 | Security | ☑ | ◐ §6 — see note | ☑ | ☑ |
@@ -1032,15 +1032,15 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 21 | Blocks | ☐ | ☐ §21 | ☐ | ☐ |
 | 22 | Health | ☐ | ☐ §22 | ☐ | ☐ |
 | 23 | Terminal | ☑ chrome | ☑ §23 | ☑ | ☑ (D-107; interior deferred, §0c) |
-| 24 | Webhooks | ☐ | ☐ §24 | ☐ | ☐ |
-| 25 | Consent | ☐ | ☐ §25 | ☐ | ☐ |
+| 24 | Webhooks | ◐ — see the record-form note | ◐ §24 — see note | ☑ | ☑ 15 browser tests + 7 unit tests over `sendTestEvent()` (D-103) |
+| 25 | Consent | ◐ — see the record-form note | ◐ §25 — see note | ☑ | ☑ 22 browser tests, banner open and closed, both themes (D-092) |
 | 26 | Privacy | ☑ | ◐ §26 — see note | ☑ | ☑ 23 browser tests, 4 states × both themes |
 | 27 | Profile | ☑ | ◐ §27 — see note | ☑ | ☑ 26 browser tests, 3 states × both themes, plus a JavaScript-disabled pass |
 | 28 | Licence | ☑ | ◐ §28 — see note | ☑ | ☑ 22 browser tests, 4 states × both themes plus the error state, and a JavaScript-disabled pass |
 | 29 | AI images | ☐ | ☐ §29 | ☐ | ☐ |
 | 30 | Options | ☐ | ☐ §30 | ☐ | ☐ |
 | 31 | Templates | ☐ | ☐ §31 | ☐ | ☐ |
-| 32 | Taxonomies | ☐ | ☐ §32 | ☐ | ☐ |
+| 32 | Taxonomies | ◐ — see the record-form note | ◐ §32 — see note | ☑ | ☑ 12 browser tests, every state × both themes, plus a JavaScript-disabled pass (D-102) |
 | 33 | Scheduled actions | ☐ | ☐ §33 | ☐ | ☐ |
 | 34 | System integrity | ☐ | ☐ §34 | ☐ | ☐ |
 | 35 | Updates | ☐ | ☐ §35 | ☐ | ☐ |
@@ -1141,15 +1141,73 @@ landed in *Advanced* and the Dashboard's toggle is gone — discharging the half
 that had been recorded and unbuilt since it was confirmed. Four adaptations are logged as §5.9 rows
 38–41 rather than left as silent choices.
 
-**A drift this table itself carries, recorded rather than quietly corrected.** Entries **1 (Pages)**
-and **3 (Design)** are built, driven and evidenced — 31 browser tests each, in `docs/05-test-points.md`
-under D-079 and D-088 — and their rows above are still entirely unticked, while entry 41's were
-ticked at the time. Phase 4 Step 4 makes THIS FILE the record ("mark each state's §4 row at the
-moment it is built — the file is the record, not conversation memory"), so an unticked row for
-finished work is exactly the drift the rule exists to prevent. They are left unticked here rather
-than ticked from someone else's evidence: ticking a row means the deltas were walked one by one
-against the built screen, and this session walked entry 19's, not theirs. **Owed: a per-entry delta
-walk for 1 and 3, then their ticks.**
+**The drift this table carried is CLOSED — Step 7's delta walk, 2026-08-11 (D-109).** Five rows were
+entirely unticked for screens that are built, driven and evidenced: **1 (Pages)**, **3 (Design)**,
+**24 (Webhooks)**, **25 (Consent)** and **32 (Taxonomies)**. Phase 4 Step 4 makes THIS FILE the record
+("mark each state's §4 row at the moment it is built"), so an unticked row for finished work is
+exactly the drift the rule exists to prevent — and the fix was never a tick from someone else's
+evidence, it was the walk itself. Each of the five had its manifest deltas read one by one against
+the built screen and its §5.3 template rows against the recorded driven evidence; the results are the
+five notes below. **Two of them changed the answer**, which is the whole reason the walk is not a
+formality: the record-form template has two states nothing has built (adaptation 72) and the
+list-table has three (adaptation 73), so **no row in this table may carry a bare `☑` in its Template
+column** — every screen of those two templates is `◐` until those states exist.
+
+**Note on entry 1's `◐`.** Its accessibility and driven evidence are complete (31 browser tests, five
+states × both themes, whole-page axe — D-079). **Template rows:** `◐` — three list-table rows above
+are not green (Loading is NOT BUILT; the load error and the partial-bulk error are built and never
+driven). **Manifest deltas, walked one by one:** the seven-track `grid-template-columns` is read out
+of the browser and agrees with §1 verbatim ✓ · the six data columns and their order ✓ · the four
+status badge tones — Published `exito`, Scheduled `sync`, Draft and Private `offline`, in
+`pages.php:339-345` ✓ · the site home's delete `aria-disabled` with the reason in its accessible name
+✓ · the bulk set publish / unpublish / delete / change template ✓ · the empty sentence and its primary
+action ✓ · the filter chips as links carrying `aria-current` ✓. **One delta is deliberately not
+built: the Private chip** — Klytos has exactly four system statuses and none is private, so the chip
+would be a filter that can never return a row (D-079, registered as DR-006 item 4). Two further
+divergences on the same row are additions, not omissions, and are now logged as adaptations **74**
+and **75**.
+
+**Note on entry 3's `◐`.** Its accessibility and driven evidence are complete (31 browser tests,
+three states × both themes, whole-page axe — D-088). **Template rows:** `◐` — the Dirty and Saving
+rows are not built on any record-form screen (adaptation 72). **Manifest deltas, walked one by one:**
+the colour inputs are `<input type="color">` **plus** a mono hex field with a visible label, and the
+hex field is the value while the picker is its mirror ✓ (`theme.php:298-329`, driven in both
+directions with the picker asserted to carry no accessible name) · the below-4.5:1 refusal with a
+recorded override ✓, computed by the same method as `SPEC/color-contrast-audit.md` and proven by a
+save that wrote nothing · the measured ratio shown beside each pair ✓, asserted against the
+arithmetic rather than a rounded guess. **Three of §3's four cards are built** — Palette, Type scale,
+Radii and spacing. **The Preview card is DEFERRED as unbacked product** (`docs/roadmap.md` §0c, D-088):
+the manifest names it and no delivered file says what it previews or in what form, so specifying it
+is Design's and building it is product. Adaptations 18 and 19 were logged at build time.
+
+**Note on entry 24's `◐`.** Its accessibility and driven evidence are complete (15 browser tests plus
+7 unit tests over the manager — D-103). **Template rows:** `◐`, same two rows as entry 3. **Manifest
+deltas:** **two of §24's four cards are built** — Endpoints (the form) and Event subscriptions (a
+checkbox set in a `<fieldset>`), posting as ONE record. **The HMAC secret card and the Delivery log
+list-table are DEFERRED** as unbacked product (`docs/roadmap.md` §0c, D-103): the product has no
+rotate of any kind and stores one secret PER webhook rather than one site-wide, and `logDelivery()`
+writes five fields of which three of §24's six columns — Event, Code, Duration — have no source at
+all. §24's two deltas belong to those two cards and are deferred with them. Adaptations **76–79** are
+logged for what the built half does differently.
+
+**Note on entry 25's `◐`.** Its accessibility and driven evidence are complete (22 browser tests,
+banner open and closed, both themes, whole-page axe — D-092). **Template rows:** `◐`, same two rows.
+**Manifest deltas:** both are built and both are the delivery's strictest — Reject all is asserted to
+be the same component, size and weight as Accept all, and the configuration screen offers no control
+that could weaken it (the equal-prominence rule is rendered as a STATEMENT); the banner is
+`role="dialog" aria-modal="true"` with focus trapped in both directions and `Esc` rejecting
+non-essential rather than merely dismissing. **The Acceptance stats card is DEFERRED** as unbacked
+product (`docs/roadmap.md` §0c, D-092) — Klytos publishes a static site and stores no acceptance data
+of any kind. Adaptations 32–35 were logged at build time.
+
+**Note on entry 32's `◐`.** Its accessibility and driven evidence are complete (12 browser tests,
+every state × both themes, whole-page axe, plus a JavaScript-disabled pass — D-102). **Template
+rows:** `◐`, same two rows. **Manifest deltas:** the add-term form half is built entire — a
+hierarchical taxonomy offers a Parent field listing its terms, a flat one has none at all, and the
+choice round-trips through a fresh GET. **The terms list-table is DEFERRED**, and specifically its
+`Count` column, for a reason no column width unblocks: no record anywhere in the product is ever
+associated with a term (`docs/roadmap.md` §0c, D-102). Adaptations 52–55 were logged at build time,
+including the H1 that stays composite because two recorded artifacts disagree (DR-010, drafted).
 
 Entry 16 (*States*) is a specimen sheet, not a screen: normative only where it agrees with the
 per-template `States` sections, and where it differs **the template file wins**.
@@ -1456,6 +1514,14 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 69 | **"Insert into page" is not built among a turn's actions, and a failed tool call offers Retry but not "Open the page"** | Both name a record only the tool's own output could identify, and this product has no page-in-context concept at all — the same absence that makes §2's context chips a permanent "no context" row. Inventing the link target is inventing product behaviour (rule 2) | Yes. Copy and Retry ARE backed and are built, always present in the DOM and revealed on `:hover` **and** `:focus-within`, so the keyboard user §2 built them for can actually reach them |
 | 70 | **`.k-status-line:empty` is added to the shared component layer** | The polite region every console-style screen renders is filled at runtime, and `.k-status-line` sets `display: flex` plus a tint and 8px of padding — so an empty region painted a coloured strip across a screen where nothing had happened yet. Found by LOOKING at the rendered page; no assertion in this build said a word about it | Yes, and it is deliberately fixed in the SHARED layer rather than scoped to this screen: Logs and Terminal render the same empty region and had the same strip |
 | 71 | **The delivery's sentence "Add a provider key in Settings → Intelligence" is kept verbatim while its link points at `mcp.php?tab=api-ia`** | The copy is the delivery's and is not reinterpreted (rule 3); the destination is where this product actually stores provider keys. "Intelligence" is a real nav GROUP in `SPEC/navigation.md` §7, so the sentence is not describing something that does not exist — it is describing the group rather than the file | Yes. The words are Design's, the URL is the build's, and neither was invented |
+| 72 | **`template-record-form.md` §2's *Dirty* and *Saving* states are NOT built on any record-form screen** | Both describe a client-side edit session: `beforeunload` plus an inline nav confirm for the first, `aria-busy` with the controls left enabled for the second. **This admin has no such session.** Every save on every record-form screen is a full page POST — that is the stack (§5.9's opening: server-rendered multi-page app, no bundler), and it is also what makes twelve screens work with JavaScript disabled, which the drives assert one by one. A dirty flag would need a script watching every control on every screen, and a saving state would need a render that never happens because the browser is already navigating. Registered as **owed work, not as a closed decision**: if Design's intent is that an unsaved edit must be defended, the mechanism is a Design Request, not a build-side guess | Yes — and this row is the reason **no record-form screen carries a bare `☑`** in §5.4's Template column |
+| 73 | **`template-list-table.md` §2's *Loading* state is NOT built on entry 1** | §2 scopes it to the bulk-action post alone — `aria-busy`, a progressive label, no overlay. Same mechanism as row 72 and the same absence: the bulk post is a plain form submit, so the page that would paint the busy state is already gone. The two error rows it sits beside — the load failure and the partly-failed bulk — ARE built and are simply not yet driven, which is a test gap rather than a build gap and is recorded as such in §5.3 | Yes — the same owed work as 72, on the other template |
+| 74 | **Entry 1 renders a *Trash* chip and one chip per custom post-type status, where §1's filter row names exactly five** | Klytos ships a working trash and ships per-post-type custom statuses; a filter row that cannot reach either would remove shipped behaviour, which D-076 settles is never a fidelity decision. The four designed chips that map to a real status are rendered exactly as specified, in the specified order, ahead of the additions | Yes. The design's five are untouched; the extras sit after them |
+| 75 | **Entry 1's sort and search are implemented in the SCREEN, not in `PageManager::list()`** | `list()` is a released public signature with MCP callers. §1 asks for sortable columns and a search field, not for a manager change, and widening a released API inside a fidelity stage is exactly the deviation rule 5 forbids in the other direction | Yes — a placement choice with no visible consequence |
+| 76 | **Entry 24's two built cards post as ONE record, associated by `form="k-webhook-add"` rather than by wrapping** | §24 names Endpoints and Event subscriptions as two cards and `template-record-form.md` §2 makes each card its own section. One `<form>` cannot wrap two sibling cards without breaking the card stack's own layout, and `form=` is the only mechanism that keeps them posting together **with no JavaScript** — the same association the toolbar's Save already uses across the shell boundary on every other form screen | Yes. Two cards, one record, exactly as drawn |
+| 77 | **The endpoints the form creates are drawn as a `k-collection` list §24's card list does not name** | §24 names four cards and the shipped screen has always listed the webhooks it holds. Dropping the list would leave a screen that creates endpoints nobody can see, and the Delivery log — the card that would have shown them — is deferred. Same call as rows 29 and 43: shipped product with no other surface is built and logged, never silently added | Yes. An addition, recorded rather than hidden |
+| 78 | **The signing secret is handed over ONCE, on the request that creates its webhook, as a `readonly` mono field** | §24 puts the secret in an HMAC secret card with a rotate action, and that card is deferred because the product has no rotate and stores one secret per webhook rather than one site-wide. The secret still has to reach the person who just created the endpoint, and `template-record-form.md` §2's read-only rule — `readonly`, mono, selectable, copy button — governs how it is drawn. **Redisplaying it on every page load would be worse than the design**, not more faithful: a value with no rotate behind it should be readable once | Yes. The card is deferred; the value it would have carried is not lost |
+| 79 | **`test.ping` is NOT added to the subscribable event list; `sendTestEvent()` delivers directly to the chosen webhook** | Not a design deviation — **the code meeting its own published contract.** `dispatch( 'test.ping', … )` resolved through `getWebhooksForEvent()`, which keeps only webhooks whose stored `events` contains that event, and nothing could contain it, so both the screen's Test control and the MCP tool `klytos_test_webhook` reported success while reaching nobody. Adding `test.ping` to the list was the rejected alternative: it would put a synthetic event in every install's subscription checklist and a test would still only reach endpoints that had opted in. The direct send differs from a real delivery in three asserted ways — one attempt, `failure_count`/`status` untouched, `last_triggered` untouched | Yes. The design never specified the mechanism, only that a test exists |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16
@@ -1494,26 +1560,76 @@ per template) is delegated, under the `ASSISTIVE-TECH` tag.
 Ticked in **this file** at the moment each item is verified — never retroactively, never from
 conversation memory. An unticked box blocks Phase 4's definition of done.
 
+**Walked item by item on 2026-08-11 (D-109), against the files rather than from memory.** Eleven of the sixteen boxes
+tick; five cannot, four of them because **the build is 18 of the 39 in-scope entries,
+not 39** — see the count below the list, which is the finding this walk produced.
+
 - ☐ Every screen visually matches its artifact + SPEC (tokens, layout, spacing) at 1440 × 976.
-- ☐ Every documented state in §5.3 implemented and **reached by driving it**.
-- ☐ Every screen's manifest deltas built (§5.4).
-- ☐ No invented values: every value traces to §5.2 or a SPEC reference.
-- ☐ No interpreted behaviour: every behaviour traces to §5.6.
-- ☐ Reuse preserved — 11 templates, 42 screens, no template flattened into duplicated pages.
-- ☐ The existing design system (PackDesk) is matched exactly; every divergence went to Design as a
-  Design Request, never a build-side choice.
-- ☐ Every logo and icon present in both SVG and PNG; every asset used directly, with no build-side
-  conversion, resize, recolor or re-export.
-- ☐ No placeholder copy shipped.
-- ☐ No external-setup steps existed (§5.8) — re-confirmed at Step 7, not assumed.
-- ☐ No externally generated assets existed (§5.8) — re-confirmed at Step 7.
-- ☐ Every code-side adaptation logged in §5.9 with design intent confirmed intact.
-- ☐ Accessibility built to §5.5 / `SPEC/accessibility.md` and verified: axe-core clean at AA both
-  themes, keyboard-only pass, zoom 200 %/400 %, forced-colors, reduced-motion — plus the real
-  assistive-technology pass per template.
-- ☐ Every interactive element carries its `data-testid`; `keel-verify` passes.
-- ☐ Every new string exists in all 20 locale catalogues; the parity check passes.
-- ☐ Zero unresolved Design Requests.
+  **17 product screens plus entry 16's specimen sheet are built** — 18 of 39 (§5.4); the other 21 still render the pre-redesign layer — no
+  `data-testid`, no `.k-*` class, Font Awesome still drawn on some. Verified by grepping each
+  entry point, not assumed.
+- ☐ Every documented state in §5.3 implemented and **reached by driving it**. Five of the eleven
+  template tables are entirely unbuilt (overview-stats, gallery-grid, auth-centered, wizard,
+  preview-matrix); list-table has one state NOT BUILT and two built-but-undriven; record-form has
+  two NOT BUILT (adaptations 72–73).
+- ☐ Every screen's manifest deltas built (§5.4). 17 rows carry `☑`/`◐` with a note; 21 are `☐`.
+- ☑ No invented values: every value traces to §5.2 or a SPEC reference. Held on every built screen —
+  the standing "grep the components sheet FIRST" rule caught four invented classes on entry 24
+  alone (D-103) and `--opacidad-desactivado` on entry 1 (D-079), each before it shipped.
+- ☑ No interpreted behaviour: every behaviour traces to §5.6, to a manifest delta, or to a logged
+  §5.9 adaptation. Every ambiguity met so far became a Design Request (DR-003…DR-011) or a user
+  decision, never a build-side reading.
+- ☑ Reuse preserved — no template flattened into duplicated pages. The six templates that have
+  consumers are each one source: `partials/` plus the component CSS, with the shell built once.
+- ☑ The existing design system is matched exactly; every divergence went to Design as a Design
+  Request, never a build-side choice. The four contrast divergences found by driving are registered
+  (DR-005 with three addenda, DR-007 resolved, DR-009) and pinned as measured floors, never relaxed.
+- ☑ Every logo and icon present in both SVG and PNG; every asset used directly, with no build-side
+  conversion, resize, recolor or re-export. Verified at the gate (§1c) and re-verified byte-for-byte
+  when the sprite grew to 87 symbols (§1e).
+- ☑ No placeholder copy shipped. Every built screen's strings are catalogue keys, and three screens
+  assert that **no `root.key`-shaped string reaches the rendered page** (entries 28, 32, 12).
+- ☑ No external-setup steps existed (§5.8) — re-confirmed at Step 7 by re-reading
+  `SPEC/external-setup.md`, which states `none`, against the built tree: nothing in the 17 screens
+  requires a value configured outside the project.
+- ☑ No externally generated assets existed (§5.8) — re-confirmed at Step 7 the same way against
+  `SPEC/external-assets.md`.
+- ☑ Every code-side adaptation logged in §5.9 with design intent confirmed intact — **79 rows**, each
+  with its "intent intact?" answer. Rows 72–79 were written by this walk for what the earlier stages
+  had left unlogged.
+- ☐ Accessibility built to §5.5 / `SPEC/accessibility.md` and verified. **Scoped, not met:** axe at
+  WCAG 2.2 AA over the whole page in both themes and per state is done for all 17 built screens, and
+  the keyboard/focus-order passes with them; **zoom 200 %/400 %** is covered by the 320 CSS px reflow
+  assertion on each screen but has never been driven as a zoom; **forced-colors has never been
+  driven at all**; reduced-motion is asserted once, in `components.spec.js`. The **real
+  assistive-technology pass** is the guided user loop and has not been run — it is `⚠ unverified`
+  and belongs to the user (`ASSISTIVE-TECH`).
+- ☑ Every interactive element carries its `data-testid` on every built screen; `keel-verify` runs 23
+  checks — 17 pass, 6 warnings, each owned elsewhere (version touchpoints and the guide
+  export-ignore → Phase 7; the README link backlog → D-017; the conformance gap → Phases 6/7/8; the
+  four orphan catalogue roots → the user's call).
+- ☑ Every new string exists in all 20 locale catalogues; the parity check passes over **140 files
+  across 7 roots** and was proven to fail on a planted gap before it was trusted.
+- ☐ Zero unresolved Design Requests. **SEVEN are open** — DR-004, DR-005, DR-006 (sent) and DR-008,
+  DR-009, DR-010, DR-011 (drafted, not sent). DR-006 is the one that blocks build work: twelve list
+  surfaces cannot be built without their `grid-template-columns` (D-079).
+
+**The count this walk produced, and it contradicts what `docs/PROGRESS.md` said before it.** Stage 6
+closed the *specialised* stage, not the build. Built: entries **1, 2, 3, 6, 9, 12, 19, 23, 24, 25,
+26, 27, 28, 32, 37, 39, 41** — seventeen, plus entry **16**'s specimen sheet (stage 3, D-078). Deferred with reasons: **11, 14, 17, 22** (D-072) and **42**
+(D-104). **Not built, twenty-one:**
+
+| Template | Entries | Blocked? |
+|---|---|---|
+| list-table | 5 Users · 15 Plugins · 30 Options · 33 Scheduled actions · 34 System integrity · 35 Updates · 36 Transactions | **YES — DR-006** (sent, unanswered): no `grid-template-columns` recorded, and three of them record no column list at all (D-079) |
+| overview-stats | 7 Analytics · 13 Tasks · 18 x402 dashboard · 44 Dashboard | No |
+| gallery-grid | 4 Assets · 21 Blocks · 31 Templates | No |
+| editor-split | 20 Translations · 29 AI images · 40 Block data | No |
+| auth-centered | 10 Log in · 43 Reset password | No |
+| record-form | 8 MCP · 38 Plugin page (pattern) | No |
+
+**Fourteen of the twenty-one are blocked by nothing.** That is the real next work of Phase 4 Step 4,
+and it is why this checklist cannot be reported as passed.
 
 ### 5.11 What this consolidation FOUND — open items, none of them invented answers
 

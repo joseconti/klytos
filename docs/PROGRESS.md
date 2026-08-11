@@ -40,7 +40,7 @@
 | 1 Discovery | **adopted (as-built)** | docs/00-competitive-landscape.md, docs/01-discovery.md |
 | 2 Functional spec | **adopted (as-built)** | docs/02-functional-spec.md, docs/03-technical-plan.md, docs/api/INDEX.md |
 | 3 Design handoff | **LIVE since 2026-07-27 (D-065)** — a real handoff arrived for the admin (41 screens, tokens, logo set) | Claude Design `Klytos CMS Redesign`; `docs/BUILD-SPEC.md` |
-| 4 Faithful build | **IN PROGRESS — gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070).** Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
+| 4 Faithful build | **IN PROGRESS — Step 7's bookkeeping DONE 2026-08-11 (D-109) and it found the BUILD is 18 of 39 entries, not 39: 21 screens are unbuilt, 14 of them blocked by nothing. Step 4 resumes; the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
 | 5 Development | **in progress** — Sprint 1 CLOSED (all 10 slices); Sprint 2 CLOSED (MCP tool authorization, all 4 slices — audit NEW-02 closed); Sprint 3 CLOSED (vendor-ai CVE remediation + the AI stack fails safe — both slices; audit NEW-05 and NEW-06 CLOSED); Sprint 4 CLOSED (the hook mutation contract + owner recovery — both slices; audit NEW-03, NEW-36 and NEW-08 CLOSED); Sprint 5 CLOSED (authentication, both slices — NEW-11 + NEW-37 + NEW-39 + NEW-09; D-056…D-058; **user verdict PASS 2026-07-26**); **Sprint 6 IN PROGRESS** (hardening — **slice 1 CLOSED 2026-07-26**: NEW-40 + NEW-20 + NEW-44; **slice 2 CLOSED 2026-07-26**: NEW-41; **slice 4 CLOSED 2026-07-27**: NEW-47 + NEW-26 + NEW-50 + NEW-51 + NEW-52, pulled forward by D-061; **slice 3 CLOSED 2026-07-27**: NEW-42, so ALL FOUR SLICES ARE CLOSED and only the sprint close itself remains; D-059, D-060, D-061, D-063) — plus **`docs/roadmap.md`**, the ordered route to v1 (D-062) | docs/sprints/sprint-1.md … sprint-6.md, docs/05-test-points.md, docs/estimate.md, docs/flows/ |
 | 6 Documentation | pending — progressive backfill of per-surface docs is in force | docs/architecture.md, docs/api/, docs/usage/, docs/reference/ |
 | 7 Release | pending — the next release runs the FULL Phase 7 | docs/07-release.md |
@@ -1359,7 +1359,8 @@
     `docs/reference/terminal-screen.md`, and `trapFocus` exported as
     `window.KlytosShell.trapFocus`.
   - **Stage 6, slice 3 of 3 — entry 12 (AI chat) — DONE 2026-08-11 (D-108). THE LAST
-    SCREEN OF THE PHASE 4 BUILD.**
+    SCREEN OF STAGE 6** — *this line read "of the Phase 4 build" until Step 7 counted
+    the ledger and found it was not (D-109, below).*
     - **Two boundaries were ASKED before a line was written**, entry 23's precedent:
       the `?panel=` alternate admin **redirects** (302 to `index.php` / `settings.php`
       / `users.php` / `profile.php`; the four partials are deleted), and the shipped
@@ -1415,6 +1416,36 @@
       `keel-verify` **23 checks: 17 pass, 6 warnings** (unchanged) · `docs/api/INDEX.md`
       **1055** (two new actions; the `ChatEngine` row now names `validateKey()`) ·
       lint on every touched PHP file **identical to HEAD**.
+
+- **Phase 4 Step 7 — the bookkeeping is DONE, and it found the build is 18 of 39 entries,
+  not 39 — 2026-08-11 (D-109, L-049).** No code was touched.
+  - **What is closed.** The §5.4 delta walk for the five ledger rows that were unticked for
+    built screens — **1 (Pages), 3 (Design), 24 (Webhooks), 25 (Consent), 32 (Taxonomies)** —
+    each walked delta by delta against the built screen and now `◐` with a note. **§5.9 rows
+    72–79**, including entry 24's, which had none at all. **§5.10's sixteen boxes: eleven tick,
+    five do not.**
+  - **THE FINDING. "The last screen of the Phase 4 build" was the last screen of stage 6.**
+    Built: **17 product screens** (1, 2, 3, 6, 9, 12, 19, 23, 24, 25, 26, 27, 28, 32, 37, 39, 41)
+    plus entry 16's specimen sheet. Deferred with reasons: 11, 14, 17, 22 (D-072) and 42 (D-104).
+    **NOT BUILT: 21**, still on the pre-redesign layer — verified by grepping each entry point
+    for a `.k-*` class and a `data-testid`, not read off the ledger. Five of the eleven §5.3
+    template tables have never had a consumer: **overview-stats, gallery-grid, auth-centered,
+    wizard, preview-matrix**.
+  - **Seven of the 21 are blocked on DR-006** (the list surfaces with no recorded
+    `grid-template-columns` — D-079; DR-006 is sent and unanswered). **FOURTEEN ARE BLOCKED BY
+    NOTHING:** 7 Analytics · 13 Tasks · 18 x402 dashboard · 44 Dashboard (overview-stats) ·
+    4 Assets · 21 Blocks · 31 Templates (gallery-grid) · 20 Translations · 29 AI images ·
+    40 Block data (editor-split) · 10 Log in · 43 Reset password (auth-centered) · 8 MCP ·
+    38 Plugin page (record-form).
+  - **Two template states nothing has built**, found by the same walk and logged as adaptations
+    **72–73**: record-form's *Dirty* and *Saving*, and list-table's *Loading*. All three describe a
+    client-side edit session this server-rendered admin does not have — which is also what makes
+    twelve screens work with JavaScript disabled. Registered as owed work, not as a closed
+    decision: if Design's intent is that an unsaved edit must be defended, that is a Design
+    Request. **Consequence: no record-form or list-table screen may carry a bare `☑`** in §5.4.
+  - **NEXT ACTION — Phase 4 Step 4 resumes** on the fourteen unblocked entries, in template
+    order (a template's first consumer carries its whole §5.3 table, as entries 3, 39 and 41 each
+    did). Phase 4's definition of done is **NOT met** and Phase 5 does not resume until it is.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
