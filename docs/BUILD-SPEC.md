@@ -866,16 +866,16 @@ file at the moment the state is built**, never retroactively.
 | State | Spec | Built |
 |---|---|---|
 | Default (stat row 3–5, primary panel, detail cards) | §2 | ◐ entry 44 (D-110) — rendered and asserted server-side; not yet driven |
-| Hover (stat `--fila-hover`; **chart readout in a fixed position**, not a floating tooltip) | §2 | ◐ the stat half is in the component layer (`a.k-stat:hover`); **entry 44 has no chart** (§44's own delta), so the readout awaits Analytics |
+| Hover (stat `--fila-hover`; **chart readout in a fixed position**, not a floating tooltip) | §2 | ◐ the stat half is in the component layer (`a.k-stat:hover`); entry 18 draws the first chart but **renders no hover readout** — its bars are `<rect>`s with no pointer behaviour, and §4 makes the `<details>` table the reachable path. Owed by Analytics, where a readout is worth its script |
 | Focus (linked stat card = one `<a>`, ring around the whole card) | §2 | ◐ entry 44 renders one `<a>` per linked card and it is asserted; the RING is not yet measured in a browser |
 | Loading = **on-demand check only** (indeterminate progressbar + text, page stays live) | §2 | ☐ **n/a on entry 44** — it runs no on-demand check. Owed by Health (22) and System integrity (34) |
-| Empty — no data (`—`, never `0`) + sentence + action | §2 | ☑ entry 44 (D-110) — Last build and Pending updates both render `—`, and the three-state update read exists so that they can |
+| Empty — no data (`—`, never `0`) + sentence + action | §2 | ☑ entries 44 and 18 (D-110, D-112) — Last build, Pending updates and *Avg. price* all render `—`; entry 18 adds §18's own sentence and its **Review pricing** action, and draws no chart at all rather than an empty one |
 | Empty — nothing is wrong (good-news state, reads like an answer) | §2 | ☑ entry 44 (D-110) — zero failing checks reads "All {n} checks passed" with `ks-task_alt` in `--color-exito` |
-| Error — a source is unavailable (that card degrades, the page does not) | §2 | ☐ **NOT BUILT** — no source on entry 44 can fail partially: every one is a local read or the update cache, whose miss is the `unknown` state above. Owed by the first screen with a fallible source |
+| Error — a source is unavailable (that card degrades, the page does not) | §2 | ◐ entry 18 states an absent PROVIDER in a `role="status"` banner with its action, and the page stays a page. A source that fails *mid-read* still has no consumer: entry 44's are local reads and entry 18's is one log |
 | Error — the subject is unhealthy (content, not an error state; failures grouped first) | §2 | ◐ entry 44 turns the Failing checks tile `--tinte-peligro` with the failure count; the ROWS belong to Health (22) |
 | Success after a run (`role="status"`, table repopulates) | §2 | ◐ entry 44's build reports through a `role="status"` line; no table repopulates because it draws none |
 | Disabled run trigger (reason in the name) | §2 | ☑ entry 44 (D-110) — a `Later` step's action is `disabled` + `aria-disabled` with the reason in its `aria-label` |
-| Chart + its `<details>` data table (mandatory); **table replaces chart below 900** | §3, §4 | ☐ **n/a on entry 44** — §44's own delta: the Dashboard carries no chart. Owed by Analytics (7) |
+| Chart + its `<details>` data table (mandatory); **table replaces chart below 900** | §3, §4 | ☑ entry 18 (D-112) — `role="img"` + headline, a real `<table>` with the SAME 30 numbers after it in the DOM, and the chart removed below 900px. **n/a on entry 44**, whose own delta says the Dashboard carries no chart |
 
 #### editor-split — `SPEC/screens/template-editor-split.md`
 
@@ -1026,7 +1026,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 14 | Comments | ☐ | ☐ §14 | ☐ | ☐ |
 | 15 | Plugins | ☐ | ☐ §15 | ☐ | ☐ |
 | 17 | Setup wizard | ☐ | ☐ §17 | ☐ | ☐ |
-| 18 | x402 dashboard | ☐ | ☐ §18 | ☐ | ☐ |
+| 18 | x402 dashboard | ◐ — see the overview-stats note | ◐ §18 — see note | ◐ built, browser tier owed | ☐ **server-rendered half only** — 11 integration tests, 132 assertions, 0 skips (D-112); no axe, no geometry, no both-themes pass |
 | 19 | Content model | ☑ | ◐ §19 — see note | ☑ | ☑ |
 | 20 | Translations | ☐ | ☐ §20 | ☐ | ☐ |
 | 21 | Blocks | ☐ | ☐ §21 | ☐ | ☐ |
@@ -1215,6 +1215,24 @@ are **DR-013**, drafted. What IS built: three stat cards, each a measured fact, 
 inside `template-overview-stats.md` §1's floor of three (adaptation 87); the grouped list on
 **status**; the badges as a word plus a glyph; the shipped filters as the design's chips; and §13's
 good-news empty state.
+
+**Note on entry 18's `◐`.** Its server-rendered contract is evidenced (11 integration tests, 132
+assertions, **0 skips**, over a **deterministic** 30-day series the fixture seeds — a random one
+would make the chart's headline unassertable, and the headline IS the accessible answer); **its
+browser tier is owed and is not claimed**. **Manifest deltas are partial because the PRODUCT cannot
+supply one of them**, the third slice running: §18's **Settlement lag** needs a settlement instant,
+and a transaction carries exactly ONE timestamp — `created_at` — with `facilitator_ok` a bare bool
+beside it and `tx_hash` a frequently-empty string. A lag between one point and nothing is not a
+number. **DR-014**, drafted; `roadmap.md` §0c. The other four stats are built and every one is
+measured, including *Avg. price*, which renders `—` and not `0` over zero requests. §18's money
+delta is honoured throughout.
+
+**This is also the row that closes the overview-stats template's chart contract.** Entry 18 is the
+first consumer of `template-overview-stats.md` §4's chart pattern, which is the only accessible
+chart pattern this admin has: `role="img"` plus a headline naming the total and the peak, a real
+`<table>` with the same numbers immediately after it in the DOM, and the chart replaced by that
+table below 900px rather than shrunk. Entry 7 (Analytics) consumes the same one — **a second
+pattern is a defect, not a choice.**
 
 **Note on entry 32's `◐`.** Its accessibility and driven evidence are complete (12 browser tests,
 every state × both themes, whole-page axe, plus a JavaScript-disabled pass — D-102). **Template
@@ -1549,6 +1567,10 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 88 | **Entry 13's list is grouped by STATUS**, where §13 says "grouped" and names no axis | The product offers status and priority. The delta itself says "task **state** is a word plus a glyph", and the filter chips already select on status — so grouping on the same axis gives one heading per group instead of a heading repeating the chip the reader just clicked. It is a reading, so it is **asked** (DR-013) rather than kept quietly | Yes — a reading, registered as one |
 | 89 | **Entry 13 renders no source line** ("raised by System integrity") | `created_by` is a **user id**; nothing in the product records a subsystem as the origin of a task. The row shows the page the task is on and when it was raised, both real. **DR-013** | Yes. A line with no fact behind it is not fidelity |
 | 90 | **`.k-stat-tile > svg` and `.k-badge-icon` are added to the component layer** | Not a design deviation — **a defect the build shipped and the build fixed.** `klytos_admin_icon()` writes no `width`/`height`, so an `<svg>` in an unsized class renders at the SVG default of **300 × 150** (L-048). Entry 44's five stat glyphs did exactly that for one commit; the integration tier could not see it, because it asserts markup and never geometry. The rule is on the CONTAINER so no future consumer has to remember a class name | Yes. The tile is still 32px and the badge still a 20px pill — they now contain what they draw |
+| 91 | **Entry 18 renders no *Settlement lag* stat** | **The product records one instant per transaction.** `TransactionLog::log()` writes `created_at` and nothing else time-shaped: `facilitator_ok` is a bool and `tx_hash` a frequently-empty string. A lag is a distance between two instants and there is one. Measuring it means a second write from the payment gate, a migration for records already in the field, and a defined meaning for a payment that never settles — a capability, not a card. **DR-014**, and `docs/roadmap.md` §0c. The remaining four are inside `template-overview-stats.md` §1's 3–5 | Yes — the gap is the product's and it is asked rather than computed from an assumption |
+| 92 | **Entry 18's chart `<details>` ships `open` at EVERY width**, where §4 opens it below 900px | **The server has no viewport** — adaptation 12's reasoning, on a second control. Both alternatives are worse than the deviation: a script that opens it makes the ACCESSIBLE path depend on JavaScript, which is precisely what §4 exists to prevent, and overriding the user agent's own closed-`<details>` rule from a stylesheet is a behaviour no page should be asked to guarantee. Open is also the safe direction — the numbers are present for everyone and a reader who wants them away can close it | Yes. The table is exactly where §4 puts it and says what §4 says; only its initial state differs, in the more accessible direction |
+| 93 | **The chart `<svg>` carries `width` and `height` ATTRIBUTES as well as its CSS size** | Not a design deviation — **belt and braces against L-048.** An `<svg>` with neither renders at the SVG default of 300 × 150, and that shipped one slice ago on entry 44's stat tiles. The stylesheet sizes the chart; the attributes are what survive a stylesheet that does not load, and a 300 × 150 chart is not a smaller chart, it is a broken page | Yes |
+| 94 | **The active provider is drawn as a card §18's list does not name** | Shipped product with no other surface on this screen, and it answers "who is taking the money" beside the figures that money produced. Same call as rows 29, 43, 77 and 87: built and logged, never silently added | Yes |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

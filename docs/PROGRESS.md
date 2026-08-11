@@ -40,7 +40,7 @@
 | 1 Discovery | **adopted (as-built)** | docs/00-competitive-landscape.md, docs/01-discovery.md |
 | 2 Functional spec | **adopted (as-built)** | docs/02-functional-spec.md, docs/03-technical-plan.md, docs/api/INDEX.md |
 | 3 Design handoff | **LIVE since 2026-07-27 (D-065)** — a real handoff arrived for the admin (41 screens, tokens, logo set) | Claude Design `Klytos CMS Redesign`; `docs/BUILD-SPEC.md` |
-| 4 Faithful build | **IN PROGRESS — Step 4 RESUMED as stage 7 (the unblocked screens). Slices 1–2 DONE 2026-08-11 (D-110, D-111): entries 44 (Dashboard) and 13 (Tasks). **20 of 39 built; 19 unbuilt, 12 of them blocked by nothing.** Step 7's bookkeeping DONE 2026-08-11 (D-109); the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
+| 4 Faithful build | **IN PROGRESS — Step 4 RESUMED as stage 7 (the unblocked screens). Slices 1–3 DONE 2026-08-11 (D-110, D-111, D-112): entries 44 (Dashboard), 13 (Tasks) and 18 (Agent payments). **21 of 39 built; 18 unbuilt, 11 of them blocked by nothing.** Step 7's bookkeeping DONE 2026-08-11 (D-109); the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
 | 5 Development | **in progress** — Sprint 1 CLOSED (all 10 slices); Sprint 2 CLOSED (MCP tool authorization, all 4 slices — audit NEW-02 closed); Sprint 3 CLOSED (vendor-ai CVE remediation + the AI stack fails safe — both slices; audit NEW-05 and NEW-06 CLOSED); Sprint 4 CLOSED (the hook mutation contract + owner recovery — both slices; audit NEW-03, NEW-36 and NEW-08 CLOSED); Sprint 5 CLOSED (authentication, both slices — NEW-11 + NEW-37 + NEW-39 + NEW-09; D-056…D-058; **user verdict PASS 2026-07-26**); **Sprint 6 IN PROGRESS** (hardening — **slice 1 CLOSED 2026-07-26**: NEW-40 + NEW-20 + NEW-44; **slice 2 CLOSED 2026-07-26**: NEW-41; **slice 4 CLOSED 2026-07-27**: NEW-47 + NEW-26 + NEW-50 + NEW-51 + NEW-52, pulled forward by D-061; **slice 3 CLOSED 2026-07-27**: NEW-42, so ALL FOUR SLICES ARE CLOSED and only the sprint close itself remains; D-059, D-060, D-061, D-063) — plus **`docs/roadmap.md`**, the ordered route to v1 (D-062) | docs/sprints/sprint-1.md … sprint-6.md, docs/05-test-points.md, docs/estimate.md, docs/flows/ |
 | 6 Documentation | pending — progressive backfill of per-surface docs is in force | docs/architecture.md, docs/api/, docs/usage/, docs/reference/ |
 | 7 Release | pending — the next release runs the FULL Phase 7 | docs/07-release.md |
@@ -1521,6 +1521,36 @@
   - **Tree state:** PHP **390 / 1804**, 0 skips (was 379/1744) · `keel-verify` **23 checks:
     17 pass, 6 warnings** · lint on `tasks.php` identical to HEAD.
 
+- **Stage 7 slice 3 of 14: entry 18 (Agent payments) — DONE 2026-08-11 (D-112), commit
+  `d71a704`.** The last of the four `overview-stats` screens, and the one that mattered
+  beyond itself.
+  - **IT BUILT THE ADMIN'S ONLY CHART PATTERN, once.** `template-overview-stats.md` §4:
+    the `<svg>` is `role="img"` with an `aria-label` carrying the **headline** — total and
+    peak — so a screen reader gets the answer without walking thirty bars; a real
+    `<table>` with the **same numbers** follows it **in the DOM**; and below 900px the
+    chart is **replaced** by that table, not shrunk. **Entry 7 (Analytics) consumes the
+    same one — a second pattern is a defect, not a choice.**
+  - **THE SURVEY FINDING, the product's for the THIRD slice running:** §18's *Settlement
+    lag* cannot be computed. A transaction records exactly ONE instant, `created_at`;
+    `facilitator_ok` is a bool and `tx_hash` a frequently-empty string. A lag is a
+    distance between two instants and there is one. **DR-014.** The other four stats are
+    measured, including *Avg. price*, which renders **`—` and not `0`** over zero requests.
+  - **Adaptation 92 — the `<details>` ships `open` at every width**, and that is the
+    ACCESSIBLE direction: the server has no viewport (adaptation 12's reasoning again),
+    and a script that opens it would make the accessible path depend on JavaScript, which
+    is precisely what §4 exists to prevent.
+  - **Two defects of my own, both caught by the tier and neither visible in source:** the
+    fixture used `x402_transactions` where the constant is `x402-transactions`, so the
+    screen was reading an empty log; and the provider card called `getName()` on an
+    interface that declares `getLabel()`.
+  - **`X402DashboardHttpTest` — 11 tests, 132 assertions, ZERO skips** — over a
+    **deterministic** 30-day series, because a random one makes the headline unassertable.
+    Counts **read back off the page** (L-035); the table asserted to follow the chart **by
+    DOM position** with all thirty rows; the empty state **REACHED**. Adaptations **91–94**.
+  - **OWED AND NOT CLAIMED: the browser tier, for entries 44, 13 AND 18.**
+  - **Tree state:** PHP **401 / 1936**, 0 skips (was 390/1804) · `keel-verify` **23 checks:
+    17 pass, 6 warnings**, test-point rows **34** · lint on the touched file clean.
+
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
   NEW-46 and NEW-49 cannot be reasoned about honestly until the client address is trustworthy —
@@ -1532,7 +1562,12 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **NINE.**
+- Open Design Requests: **TEN.**
+  **DR-014 — DRAFTED 2026-08-11 (D-112), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-014.md`. §18's fifth stat, *Settlement lag*, **has no clock
+  behind it**: a transaction records exactly ONE instant, `created_at`, with `facilitator_ok` a bool
+  and `tx_hash` a frequently-empty string. A lag is a distance between two instants and the product
+  holds one. **Blocks nothing** — the other four stats are measured and built.
   **DR-013 — DRAFTED 2026-08-11 (D-111), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-013.md`. Three gaps on entry 13, and the first of them is the
   PRODUCT's rather than the delivery's: **a Klytos task has no due date anywhere**, so §13's *Due

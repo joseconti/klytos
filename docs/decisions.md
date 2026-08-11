@@ -2720,3 +2720,82 @@ slice: a shared-surface fix inside a screen slice is how a fidelity stage turns 
 `tests/E2E/fixtures/reset-tasks.php`, `docs/design/design-requests/DR-013.md`,
 `docs/BUILD-SPEC.md` §5.4 (row 13 + its note) and §5.9 (adaptations **86–90**).
 PHP **390 / 1804**, 0 skips (was 379/1744). Commit `1bfa568`.
+
+## D-112 — Stage 7, slice 3: entry 18 (Agent payments), and the admin's only chart pattern is now built once
+
+**Date:** 2026-08-11 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, slice 3** · Supersedes nothing.
+
+**The per-screen survey ran before the first line — the SEVENTEENTH in seventeen — and for the third
+slice running the disagreement was with the PRODUCT rather than with the delivery.**
+
+### What is built, and why this screen mattered beyond itself
+
+Manifest entry 18 on `overview-stats`: four stat cards, the revenue chart with its data table, and
+the two detail cards (*Top paid pages*, *Agents by spend*). H1 **Agent payments** — one of the five
+nav labels `SPEC/navigation.md` allows to differ from its label; the entry point stays
+`x402-dashboard.php`, because a filename is a URL on a released product (adaptation 2).
+
+**It is the first consumer of `template-overview-stats.md` §4's chart pattern**, and that pattern is
+the only accessible chart this admin has. Three rules, each pinned by a test:
+
+1. the `<svg>` is `role="img"` with an `aria-label` carrying the **headline** — the total and the
+   peak with its date — so a screen reader gets the answer without walking thirty bars;
+2. a real `<table>` with the **same numbers** follows it **in the DOM**, inside a `<details>`;
+3. below 900px the chart is **replaced** by that table, not shrunk.
+
+**Entry 7 (Analytics) consumes the same pattern. A second one is a defect, not a choice.**
+
+### THE SURVEY FINDING — *Settlement lag* has no clock behind it
+
+§18's fifth stat cannot be computed. `TransactionLog::log()` writes exactly one instant per
+transaction — `created_at` — and nothing else time-shaped: `facilitator_ok` is a **boolean** and
+`tx_hash` a frequently-empty string. A lag is the distance between two instants and the product
+holds one. Measuring it means the payment gate recording a settlement timestamp, a migration for
+records already stored on released installs, and a defined meaning for a payment that never settles.
+That is a capability, not a card. **DR-014**, drafted; `docs/roadmap.md` §0c.
+
+**The other four are measured, not assumed.** Revenue (30d) and Paid requests from
+`Stats::getSummary()['month']`; *Unique agents* counted off `getTopBots()` so the grouping rule is
+the one the *Agents by spend* card already uses rather than a second, subtly different traversal
+(L-004's shape); and *Avg. price* as a mean of measured values, rendering **`—` and not `0`** over
+zero requests, because §2 is explicit that those are different claims.
+
+### Adaptation 92 — the `<details>` ships open at every width, and that is the accessible direction
+
+§4 opens it below 900px. **The server has no viewport** — adaptation 12's reasoning, arriving on a
+second control. Both alternatives are worse than the deviation: a script that opens it makes the
+**accessible path depend on JavaScript**, which is precisely what §4 exists to prevent, and
+overriding the user agent's own closed-`<details>` rule from a stylesheet is a behaviour no page
+should be asked to guarantee. Open is also the safe direction — the numbers are there for everyone,
+and a reader who wants them out of the way can close it.
+
+### Two defects of my own, both caught by the tier rather than by reading
+
+1. **The fixture used the wrong collection name** — `x402_transactions` where the constant is
+   `x402-transactions` — so the screen was reading an empty log and seven assertions failed at once.
+   The failure was loud and immediate, which is what a fixture that seeds through real names buys.
+2. **The provider card called `getName()`** on an interface that declares `getLabel()`.
+
+Neither was visible in the source; both were visible the moment the screen was exercised.
+
+### The evidence, and what it deliberately does not claim
+
+`tests/Integration/X402DashboardHttpTest.php` — **11 tests, 132 assertions, ZERO skips** — with
+`tests/E2E/fixtures/reset-x402.php` seeding a **deterministic** 30-day series. Deterministic on
+purpose: a random series makes the headline unassertable, and the headline is the whole accessible
+answer §4 asks for. The counts are **read back off the page** rather than re-derived from the
+fixture (L-035), the chart's `<svg>` is asserted to carry its own `width`/`height` attributes
+(L-048's ninth occurrence shipped one slice ago), the table is asserted to FOLLOW the chart in the
+DOM with thirty rows, and the empty state is **REACHED** by removing the population and putting it
+back.
+
+**The browser tier is OWED for entries 44, 13 and 18, and is claimed nowhere.**
+
+### Bounds
+
+`installer/admin/x402-dashboard.php`, `installer/admin/assets/css/klytos-components.css` (the chart
+component), all 20 `installer/lang/x402/*.json` (13 keys),
+`tests/Integration/X402DashboardHttpTest.php`, `tests/E2E/fixtures/reset-x402.php`,
+`docs/design/design-requests/DR-014.md`, `docs/BUILD-SPEC.md` §5.3 (overview-stats — the chart row
+now ticks), §5.4 (row 18 + its note) and §5.9 (adaptations **91–94**).
+PHP **401 / 1936**, 0 skips (was 390/1804). Commit `d71a704`.
