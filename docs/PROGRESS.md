@@ -1551,6 +1551,20 @@
   - **Tree state:** PHP **401 / 1936**, 0 skips (was 390/1804) · `keel-verify` **23 checks:
     17 pass, 6 warnings**, test-point rows **34** · lint on the touched file clean.
 
+- **The browser tier for entries 44, 13 and 18 is WRITTEN and NOT RUN — 2026-08-11,
+  commit `2a8bf6b`.** `tests/E2E/overview-stats.spec.js` exists and covers all three
+  screens in one file, because what it tests is mostly the TEMPLATE. **It has never
+  executed.** The playground was started on `KPORT=8191` (bind, owning PID 84654 and
+  the absence of a `Server:` header all confirmed), both fixtures were seeded and then
+  cleared, and the session ended before the run. **No §5.4 `Driven` box moved and no
+  test-point row was written** — a spec that has never run is a claim, and this project
+  does not write claims into its records.
+  - **The assertion the file exists for:** the stat tile's glyph measures **18 × 18**
+    and not **300 × 150**. That is L-048, and it is the defect entry 44 shipped for a
+    whole commit.
+  - **Owed, in order:** start the playground, run the spec, READ the twelve captures,
+    then write the test-point row and move the three `Driven` boxes.
+
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
   NEW-46 and NEW-49 cannot be reasoned about honestly until the client address is trustworthy —
