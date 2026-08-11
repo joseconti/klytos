@@ -3019,3 +3019,54 @@ textarea.k-control.k-conv-input {
         gap: var(--esp-8);
     }
 }
+
+/* ============================================================
+   CHART — template-overview-stats.md §1 and §4
+   The ONLY graphics in the admin, and the only accessible chart pattern it
+   has: bars, gridlines in --separador, axis labels in --texto-sutil. No
+   gradient fills, no drop shadows, no 3D, no donut.
+
+   §4 is the part that matters and it is not optional: the <svg> is role="img"
+   with an aria-label giving the HEADLINE, a real <table> with the same numbers
+   follows it in the DOM inside a <details>, and below 900px the <details> is
+   open and the chart is HIDDEN — a 320px-wide chart is decoration, a table is
+   information.
+   ============================================================ */
+
+.k-chart {
+    /* The container owns the size. The <svg> also carries width/height
+       attributes, because an <svg> with neither renders at the SVG default of
+       300 x 150 — L-048, whose ninth occurrence shipped one slice ago. Two
+       belts on purpose: the attributes survive a missing stylesheet. */
+    width: 100%;
+    margin: var(--esp-12) 0;
+}
+
+.k-chart-svg {
+    display: block;
+    width: 100%;
+    height: 240px;
+}
+
+.k-chart-bar   { fill: var(--color-acento); }
+.k-chart-grid  { stroke: var(--separador); stroke-width: 1; }
+.k-chart-axis  { stroke: var(--borde-control); stroke-width: 1; }
+
+/* The table equivalent. Its summary is a real control: it takes the focus ring
+   the rest of the admin uses, and it is never removed from the tab order. */
+.k-chart-details > summary {
+    cursor: pointer;
+    padding: var(--esp-6) 0;
+    font: var(--type-caption);
+    color: var(--texto-secundario);
+}
+
+.k-chart-details[open] > summary { margin-bottom: var(--esp-8); }
+
+@media (max-width: 899px) {
+    /* §3: the chart is REPLACED by its data table, not shrunk.
+       The <details> is already OPEN at every width (adaptation 92) — the server
+       has no viewport, and making the accessible path depend on a script is the
+       one thing §4 exists to prevent. So this rule only removes the chart. */
+    .k-chart { display: none; }
+}
