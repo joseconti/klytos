@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 363 |
-| Filters | 148 |
+| Actions | 365 |
+| Filters | 150 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1055** |
+| **Total** | **1059** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -257,7 +257,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\ThemeManager` | class | installer/core/theme-manager.php | — | Stores theme colors, fonts and layout, generates the CSS variables, and measures the theme's text/background contrast pairs (`contrastPairs()`, `CONTRAST_THRESHOLD`) for the Design screen's §10.7 guard |
 | `Klytos\Core\TranslationManager` | class | installer/core/translation-manager.php | — | Manages translation sources, reference keys and saved per-language strings |
 | `Klytos\Core\TwoFactor` | class | installer/core/two-factor.php | docs/reference/authentication.md | TOTP, magic-link, passkey and recovery-code second-factor authentication; `verifyPasskeyAssertion()` is what the login dispatcher calls and `sendPasskeyEnrolledEmail()` notifies the account holder on enrolment |
-| `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups |
+| `Klytos\Core\Updater` | class | installer/core/updater.php | — | Checks for, installs and rolls back CMS updates, managing backups; `getCachedUpdateState()` reports pending/current/unknown from the cache ALONE, never over the network |
 | `Klytos\Core\UserManager` | class | installer/core/user-manager.php | docs/reference/authentication.md | User CRUD, authentication (`authenticate()` is the sole login authority — D-056), password resets, the ONE capability matrix (`hasPermission()` — see docs/reference/authorization.md) and ownership transfer; the owner can be neither deleted nor suspended. `MIN_PASSWORD_LENGTH` is public: it is the single definition of the password floor that `create()`, `changePassword()` and every screen's `minlength` and hint all read |
 | `Klytos\Core\VersionManager` | class | installer/core/version-manager.php | — | Saves, lists, diffs, prunes and restores page revisions |
 | `Klytos\Core\WebhookManager` | class | installer/core/webhook-manager.php | docs/reference/webhooks-screen.md | Manages webhook subscriptions, dispatches events to their endpoints, and sends a per-endpoint test delivery with sendTestEvent() |
@@ -314,9 +314,11 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.content_model.before_post_types | action | installer/admin/post-types.php | — | Emitted before the Post types card on the Content model screen; no payload, echo extra HTML |
 | admin.content_model.before_taxonomies | action | installer/admin/post-types.php | — | Emitted between the Post types and Taxonomies cards on the Content model screen; no payload |
 | admin.dashboard.after | action | installer/admin/index.php | — | Emitted at the tail of the dashboard screen; no payload, echo extra HTML |
+| admin.dashboard.after_build | action | installer/admin/index.php | docs/reference/dashboard-screen.md | Emitted after the Dashboard's Build now finishes, carrying the BuildEngine result array |
 | admin.dashboard.after_stats | action | installer/admin/index.php | — | Emitted right after the dashboard stat tiles row; no payload, echo extra HTML |
 | admin.dashboard.after_widgets | action | installer/admin/index.php | — | Emitted right after the dashboard widget grid is rendered; no payload |
 | admin.dashboard.before | action | installer/admin/index.php | — | Emitted at the top of the dashboard screen; no payload, echo extra HTML |
+| admin.dashboard.before_build | action | installer/admin/index.php | docs/reference/dashboard-screen.md | Emitted immediately before the Dashboard's Build now runs a full site build; no payload |
 | admin.dashboard.before_stats | action | installer/admin/index.php | — | Emitted just above the dashboard stat tiles row; no payload, echo extra HTML |
 | admin.dashboard.before_widgets | action | installer/admin/index.php | — | Emitted just above the dashboard widget grid; no payload, echo extra HTML |
 | admin.dashboard.init | action | installer/admin/index.php | — | Emitted before the dashboard renders so plugins can register their widgets; no payload |
@@ -659,6 +661,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | admin.consent.declarations | filter | installer/admin/consent.php | — | Filters the plugin consent declarations the audit card lists and offers a Remove for |
 | admin.content_model.post_types | filter | installer/admin/post-types.php | — | Filters the post types the Content model screen lists, after the manager returns them |
 | admin.content_model.taxonomies | filter | installer/admin/post-types.php | — | Filters the flattened taxonomy rows the Content model screen lists, each carrying its post type |
+| admin.dashboard.quick_actions | filter | installer/admin/index.php | docs/reference/dashboard-screen.md | Filters the Quick actions widget's links, each row carrying href, label and the capability that gates it |
+| admin.dashboard.stats | filter | installer/admin/index.php | docs/reference/dashboard-screen.md | Filters the Dashboard's stat cards so a plugin can add, remove or reorder them |
 | admin.dashboard.widgets | filter | installer/core/helpers-global.php | — | Filters the admin dashboard widget list so plugins can add, remove or reorder widgets |
 | admin.design_tokens | filter | installer/admin/templates/header.php | docs/reference/design-tokens.md | Filters the ordered list of design-handoff token stylesheets loaded before the component layer |
 | admin.gate_map | filter | installer/core/admin-gate.php | docs/reference/authorization.md | Filters the admin gate map so plugins can gate their own admin files |

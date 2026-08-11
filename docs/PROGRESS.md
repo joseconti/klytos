@@ -40,7 +40,7 @@
 | 1 Discovery | **adopted (as-built)** | docs/00-competitive-landscape.md, docs/01-discovery.md |
 | 2 Functional spec | **adopted (as-built)** | docs/02-functional-spec.md, docs/03-technical-plan.md, docs/api/INDEX.md |
 | 3 Design handoff | **LIVE since 2026-07-27 (D-065)** — a real handoff arrived for the admin (41 screens, tokens, logo set) | Claude Design `Klytos CMS Redesign`; `docs/BUILD-SPEC.md` |
-| 4 Faithful build | **IN PROGRESS — Step 7's bookkeeping DONE 2026-08-11 (D-109) and it found the BUILD is 18 of 39 entries, not 39: 21 screens are unbuilt, 14 of them blocked by nothing. Step 4 resumes; the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
+| 4 Faithful build | **IN PROGRESS — Step 4 RESUMED as stage 7 (the unblocked screens). Slice 1 DONE 2026-08-11 (D-110): entry 44 (Dashboard), the first overview-stats screen. 19 of 39 built; 20 unbuilt, 13 of them blocked by nothing. Step 7's bookkeeping DONE 2026-08-11 (D-109); the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
 | 5 Development | **in progress** — Sprint 1 CLOSED (all 10 slices); Sprint 2 CLOSED (MCP tool authorization, all 4 slices — audit NEW-02 closed); Sprint 3 CLOSED (vendor-ai CVE remediation + the AI stack fails safe — both slices; audit NEW-05 and NEW-06 CLOSED); Sprint 4 CLOSED (the hook mutation contract + owner recovery — both slices; audit NEW-03, NEW-36 and NEW-08 CLOSED); Sprint 5 CLOSED (authentication, both slices — NEW-11 + NEW-37 + NEW-39 + NEW-09; D-056…D-058; **user verdict PASS 2026-07-26**); **Sprint 6 IN PROGRESS** (hardening — **slice 1 CLOSED 2026-07-26**: NEW-40 + NEW-20 + NEW-44; **slice 2 CLOSED 2026-07-26**: NEW-41; **slice 4 CLOSED 2026-07-27**: NEW-47 + NEW-26 + NEW-50 + NEW-51 + NEW-52, pulled forward by D-061; **slice 3 CLOSED 2026-07-27**: NEW-42, so ALL FOUR SLICES ARE CLOSED and only the sprint close itself remains; D-059, D-060, D-061, D-063) — plus **`docs/roadmap.md`**, the ordered route to v1 (D-062) | docs/sprints/sprint-1.md … sprint-6.md, docs/05-test-points.md, docs/estimate.md, docs/flows/ |
 | 6 Documentation | pending — progressive backfill of per-surface docs is in force | docs/architecture.md, docs/api/, docs/usage/, docs/reference/ |
 | 7 Release | pending — the next release runs the FULL Phase 7 | docs/07-release.md |
@@ -1447,6 +1447,48 @@
     order (a template's first consumer carries its whole §5.3 table, as entries 3, 39 and 41 each
     did). Phase 4's definition of done is **NOT met** and Phase 5 does not resume until it is.
 
+- **Stage 7 of 7 — THE UNBLOCKED SCREENS — slice 1 of 14: entry 44 (Dashboard) — DONE
+  2026-08-11 (D-110), commit `e26ac2f`.** The first consumer of the `overview-stats`
+  template, and the admin's landing screen.
+  - **Built to §44:** five stat cards and only five (the Klytos and PHP versions are
+    NOT cards — §44 calls them facts, not figures — and their **absence is asserted**
+    so the old screen's two cannot return) · the `role="status"` indexing banner with
+    no toggle · the *Set up the site* panel as a real `<ol>` whose steps name their
+    state in WORDS · the widget grid that replaces it once all three steps are done.
+  - **THE SURVEY FINDING, before a line was written:** *Pending updates* had exactly
+    ONE source, `checkForUpdate()`, which **blocks on a GitHub request** whenever the
+    six-hour cache is cold — on the screen a person lands on after every login.
+    `Updater::getCachedUpdateState()` is the fix, **test-first** (`red observed: Call
+    to undefined method`), and it returns **three** states rather than two, because
+    `getCachedRelease()` answers `null` both for *up to date* and for *nobody has
+    checked* — opposite facts on a stat card, one a measured `0` and the other a `—`.
+  - **ONE REAL DEFECT, and no reading of the file would have found it.** The stat
+    renderer was a closure defined ABOVE `templates/sidebar.php`, so
+    `use ( $spriteUrl )` captured `null` — **a closure binds at DEFINITION time** —
+    and every card fataled on `klytos_admin_icon()`'s `string` parameter under
+    `strict_types`. The whole page was a 500. Caught by
+    `SecurityHeadersHttpTest`'s CSP-nonce test, written three sprints earlier for
+    another purpose, which asserts the admin emits a nonced script and got none.
+  - **Three deferrals, each recorded:** §44's *Next steps* panel is specified
+    NOWHERE — **DR-012, drafted, not sent** · the *Choose widgets* link leads to
+    entry 27's deferred *Preferences* card and nothing in the product can hide a
+    widget today · the *Failing checks* card is a `<div>` because entry 22 (Health)
+    is deferred and an anchor with no `href` is worse than either.
+  - **New:** `tests/Unit/UpdaterCachedStateTest.php` (7), `tests/Integration/
+    DashboardHttpTest.php` (10), `docs/reference/dashboard-screen.md`,
+    `docs/design/design-requests/DR-012.md`. Components layer gains `.k-banner`,
+    `.k-widget-grid`, `.k-steps` — and `.k-banner` went into the link layer's
+    ENUMERATION in the same edit as the component. 36 i18n keys × 20 catalogues.
+    Adaptations **80–85**; test-point row **32**.
+  - **OWED AND NOT CLAIMED: the browser tier.** No axe run, no geometry, no
+    both-themes pass, no 320 px reflow assertion, no capture-and-look (L-048).
+    §5.4's `Driven` box for entry 44 is `☐` and says so in words.
+  - **Tree state:** PHP **379 / 1744**, 0 skips (was 362/1692) · browser tier
+    **513 passing**, unchanged and not re-run (no browser-tier file changed) ·
+    `keel-verify` **23 checks: 17 pass, 6 warnings**, test-point rows 31 → **32**
+    (count confirmed to move, L-038) · `docs/api/INDEX.md` 1055 → **1059** ·
+    lint on both touched PHP files identical to HEAD.
+
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
   NEW-46 and NEW-49 cannot be reasoned about honestly until the client address is trustworthy —
@@ -1458,7 +1500,13 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **SEVEN.**
+- Open Design Requests: **EIGHT.**
+  **DR-012 — DRAFTED 2026-08-11 (D-110), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-012.md`. §44 names the Dashboard's primary panel as "*Next
+  steps* (working site) or *Set up the site* (new site)" and then specifies only the second, in any
+  state — not in §44, not in `template-overview-stats.md`, not in `interactions.md`, not in any
+  prototype. **Blocks nothing:** the working-site body is the widget grid, which §44 does specify in
+  full, so nothing had to be invented.
   **DR-011 — DRAFTED 2026-08-11 (D-108), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-011.md`. It is the first request in this build raised by a
   PRODUCT INTENT rather than by a gap: the user wants to be able to enter Klytos and see **only a

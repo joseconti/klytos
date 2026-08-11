@@ -865,17 +865,17 @@ file at the moment the state is built**, never retroactively.
 #### overview-stats — `SPEC/screens/template-overview-stats.md`
 | State | Spec | Built |
 |---|---|---|
-| Default (stat row 3–5, primary panel, detail cards) | §2 | ☐ |
-| Hover (stat `--fila-hover`; **chart readout in a fixed position**, not a floating tooltip) | §2 | ☐ |
-| Focus (linked stat card = one `<a>`, ring around the whole card) | §2 | ☐ |
-| Loading = **on-demand check only** (indeterminate progressbar + text, page stays live) | §2 | ☐ |
-| Empty — no data (`—`, never `0`) + sentence + action | §2 | ☐ |
-| Empty — nothing is wrong (good-news state, reads like an answer) | §2 | ☐ |
-| Error — a source is unavailable (that card degrades, the page does not) | §2 | ☐ |
-| Error — the subject is unhealthy (content, not an error state; failures grouped first) | §2 | ☐ |
-| Success after a run (`role="status"`, table repopulates) | §2 | ☐ |
-| Disabled run trigger (reason in the name) | §2 | ☐ |
-| Chart + its `<details>` data table (mandatory); **table replaces chart below 900** | §3, §4 | ☐ |
+| Default (stat row 3–5, primary panel, detail cards) | §2 | ◐ entry 44 (D-110) — rendered and asserted server-side; not yet driven |
+| Hover (stat `--fila-hover`; **chart readout in a fixed position**, not a floating tooltip) | §2 | ◐ the stat half is in the component layer (`a.k-stat:hover`); **entry 44 has no chart** (§44's own delta), so the readout awaits Analytics |
+| Focus (linked stat card = one `<a>`, ring around the whole card) | §2 | ◐ entry 44 renders one `<a>` per linked card and it is asserted; the RING is not yet measured in a browser |
+| Loading = **on-demand check only** (indeterminate progressbar + text, page stays live) | §2 | ☐ **n/a on entry 44** — it runs no on-demand check. Owed by Health (22) and System integrity (34) |
+| Empty — no data (`—`, never `0`) + sentence + action | §2 | ☑ entry 44 (D-110) — Last build and Pending updates both render `—`, and the three-state update read exists so that they can |
+| Empty — nothing is wrong (good-news state, reads like an answer) | §2 | ☑ entry 44 (D-110) — zero failing checks reads "All {n} checks passed" with `ks-task_alt` in `--color-exito` |
+| Error — a source is unavailable (that card degrades, the page does not) | §2 | ☐ **NOT BUILT** — no source on entry 44 can fail partially: every one is a local read or the update cache, whose miss is the `unknown` state above. Owed by the first screen with a fallible source |
+| Error — the subject is unhealthy (content, not an error state; failures grouped first) | §2 | ◐ entry 44 turns the Failing checks tile `--tinte-peligro` with the failure count; the ROWS belong to Health (22) |
+| Success after a run (`role="status"`, table repopulates) | §2 | ◐ entry 44's build reports through a `role="status"` line; no table repopulates because it draws none |
+| Disabled run trigger (reason in the name) | §2 | ☑ entry 44 (D-110) — a `Later` step's action is `disabled` + `aria-disabled` with the reason in its `aria-label` |
+| Chart + its `<details>` data table (mandatory); **table replaces chart below 900** | §3, §4 | ☐ **n/a on entry 44** — §44's own delta: the Dashboard carries no chart. Owed by Analytics (7) |
 
 #### editor-split — `SPEC/screens/template-editor-split.md`
 
@@ -1052,7 +1052,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 41 | Logs | ☑ | ☑ §41 | ☑ (DR-007 open, excluded by selector) | ☑ 30 browser tests, both themes |
 | 42 | Template preview | — | — §42 | — | — **DEFERRED WHOLE** to `roadmap.md` §0b (D-104): no preview endpoint, no DOM check runner, no default-template store, and no link to the screen anywhere in the admin. Not unticked — not this phase's to build |
 | 43 | Reset password | ☐ | ☐ §43 | ☐ | ☐ |
-| 44 | **Dashboard** | ☐ | ☐ §44 | ☐ | ☐ |
+| 44 | **Dashboard** | ◐ — see the overview-stats note | ◐ §44 — see note | ◐ built, browser tier owed | ☐ **server-rendered half only** — 10 integration tests (D-110); no axe, no geometry, no both-themes pass |
 
 **Note on entry 26's `◐`.** Its template rows, accessibility and driven evidence are complete (23
 browser tests, four states × both themes, whole-page axe — D-099). Its **manifest deltas are partial
@@ -1522,6 +1522,12 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 77 | **The endpoints the form creates are drawn as a `k-collection` list §24's card list does not name** | §24 names four cards and the shipped screen has always listed the webhooks it holds. Dropping the list would leave a screen that creates endpoints nobody can see, and the Delivery log — the card that would have shown them — is deferred. Same call as rows 29 and 43: shipped product with no other surface is built and logged, never silently added | Yes. An addition, recorded rather than hidden |
 | 78 | **The signing secret is handed over ONCE, on the request that creates its webhook, as a `readonly` mono field** | §24 puts the secret in an HMAC secret card with a rotate action, and that card is deferred because the product has no rotate and stores one secret per webhook rather than one site-wide. The secret still has to reach the person who just created the endpoint, and `template-record-form.md` §2's read-only rule — `readonly`, mono, selectable, copy button — governs how it is drawn. **Redisplaying it on every page load would be worse than the design**, not more faithful: a value with no rotate behind it should be readable once | Yes. The card is deferred; the value it would have carried is not lost |
 | 79 | **`test.ping` is NOT added to the subscribable event list; `sendTestEvent()` delivers directly to the chosen webhook** | Not a design deviation — **the code meeting its own published contract.** `dispatch( 'test.ping', … )` resolved through `getWebhooksForEvent()`, which keeps only webhooks whose stored `events` contains that event, and nothing could contain it, so both the screen's Test control and the MCP tool `klytos_test_webhook` reported success while reaching nobody. Adding `test.ping` to the list was the rejected alternative: it would put a synthetic event in every install's subscription checklist and a test would still only reach endpoints that had opted in. The direct send differs from a real delivery in three asserted ways — one attempt, `failure_count`/`status` untouched, `last_triggered` untouched | Yes. The design never specified the mechanism, only that a test exists |
+| 80 | **Entry 44's *Failing checks* card is a `<div>`, not a link**, where §44 makes every stat card one `<a>` | Entry 22 (Health) is deferred (D-072) and `health.php` does not exist, so the link would 404 the landing screen's most alarming figure. An anchor with no `href` is the worse option, not the compromise: it is not a link, it is not focusable, and assistive technology announces it as neither. Same call D-075 made in the sidebar and adaptation 14 made on Logs | Yes. The card is restored to a link by deleting one empty string, the moment entry 22 exists |
+| 81 | **The *Choose widgets* link is not rendered**, although §44 gives the widget grid a heading row carrying exactly that one link | Its destination is `profile.php#preferences`, and entry 27's *Preferences* card is deferred to four of its five (D-100, `roadmap.md` §0c). Nothing in the product can hide a widget today, so the link would lead to a control that does not exist — and §44's own reason for putting it there is that "a hidden widget must be recoverable from somewhere findable". With nothing hideable, there is nothing to recover | Yes. The grid's heading row has no other content, so it is the link that is deferred, not a region |
+| 82 | **§44's *Next steps* panel is not built on a working site** | §44 names the primary panel as "*Next steps* (working site) or *Set up the site* (new site)" and then specifies only the second. No delivered file says what *Next steps* contains, in any state. Registered as **DR-012** rather than invented (Phase 4 rule 2), and the working-site body is the widget grid, which §44 specifies in full | Yes — the gap is Design's and is asked, not filled |
+| 83 | **The relative "3 hours ago" line uses ABBREVIATED units — "3 h ago"** | D-076: this i18n mechanism has no plural forms, so every count-bearing string is number-neutral. "1 hours ago" is wrong in English and worse in the nineteen other catalogues. The abbreviation is number-neutral in all twenty and fits the `--type-caption` line §44 puts it on | Yes. The fact and its position are the delivery's; only the unit's spelling is the build's |
+| 84 | **The `indexing-blocked` system notice is retired and its warning rebuilt as §44's banner** | The notice drew the same warning in the same place in undesigned markup, scoped to `context => 'dashboard'`, so this is a substitution on one screen and not a removal from any other. **Its condition filter `notice.condition.indexing_blocked` is KEPT and is what gates the banner**, so a plugin listening on it still decides whether the warning shows — D-076's "the design wins, the hooks are preserved", for the sixth time | Yes. Same condition, same link, designed markup, one announcement instead of two |
+| 85 | **The *Build now* handler carries its own `site.configure` check**, although `core/admin-gate.php` maps `index.php` to `pages.view` | A build publishes the whole site, and the page is deliberately readable at a lower tier. Inheriting the page's tier would let an editor publish from the landing screen — which is EXACTLY the defect the indexing toggle had on this file before DR-002 removed it, and it is not being reintroduced in another shape | Not a design deviation — a project convention (`03-technical-plan.md` §3) applied where the design is silent |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

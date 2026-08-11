@@ -2552,3 +2552,85 @@ console-stream, whose table is complete.
 `docs/BUILD-SPEC.md` §5.3 (list-table and record-form tables), §5.4 (five rows plus five notes and
 the replaced drift paragraph), §5.9 (rows 72–79), §5.10 (the whole checklist plus the count table);
 `docs/PROGRESS.md`; `docs/lessons-learned.md` (**L-049**). **No code was touched.**
+
+## D-110 — Stage 7, slice 1: entry 44 (Dashboard) is built as the first overview-stats screen, and the figure it needed most had only a blocking source
+
+**Date:** 2026-08-11 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, slice 1** · Supersedes nothing.
+
+**The per-screen survey ran before the first line — the FIFTEENTH in fifteen — and this time
+what it disagreed with was not the delivery but the product.**
+
+### What is built
+
+`SPEC/manifest.md` §44 entire, minus what is deferred below: five stat cards (Last build · Pages ·
+MCP · Failing checks · Pending updates), the `role="status"` indexing banner, the *Set up the site*
+panel as a real `<ol>` of three ordered steps, and the widget grid that replaces it once all three
+are done. `installer/admin/index.php` is rewritten; the components layer gains `.k-banner`,
+`.k-widget-grid` and `.k-steps`, and **`.k-banner` was written into the link layer's enumeration in
+the same edit as the component**, not after a measurement found it painting the pre-redesign blue.
+
+### THE SURVEY FINDING — the landing screen's only source for one figure was a blocking GitHub call
+
+*Pending updates* had exactly one source in the tree: `Updater::checkForUpdate()`, which consults a
+six-hour cache and, whenever that cache is cold or stale, **makes a blocking HTTPS request to
+GitHub**. On the screen a person lands on after every login, that is the admin waiting on a third
+party that may be slow, rate-limiting or down.
+
+`Updater::getCachedUpdateState()` is the fix, and it is **test-first** — `red observed: Call to
+undefined method Klytos\Core\Updater::getCachedUpdateState()`, seven errors and zero assertions,
+seen before the method existed. It never fetches, and **it returns three states rather than two**:
+`getCachedRelease()` answers `null` both for "you are up to date" and for "nobody has checked
+recently", and on a stat card those are opposite facts — one is the number `0`, which was measured,
+and the other is `—`, which §44 requires precisely because a fabricated zero is a claim nobody made.
+The shared definition of "fresh" was extracted into `readFreshCache()` so the two callers cannot
+drift on what a stale cache is; nothing was forked.
+
+### THE DEFECT — a closure captured a variable that did not exist yet, and the screen 500'd
+
+The stat renderer was a closure defined above `require templates/sidebar.php`, with
+`use ( $spriteUrl )`. **A closure binds its `use` variables at DEFINITION time**, and `$spriteUrl`
+is created by `sidebar.php` — so it captured `null`, and every card fataled on
+`klytos_admin_icon()`'s `string` parameter under `strict_types`. The whole page was a 500.
+
+Nothing in the file looked wrong, and reading it again would not have found it. What found it was
+`SecurityHeadersHttpTest::testTheCspNonceMatchesTheNonceInTheMarkup()`, which asserts the admin
+emits a nonced script and got a page with no scripts at all — a test written for an entirely
+different purpose, three sprints earlier. The renderer now lives below the shell, with the reason
+written beside it.
+
+### What is NOT built, and why
+
+- **The *Next steps* panel on a working site — DR-012, drafted, NOT sent.** §44 names the primary
+  panel as "*Next steps* (working site) or *Set up the site* (new site)" and then specifies only the
+  second, in any state. The working-site body is the widget grid, which §44 does specify in full.
+- **The *Choose widgets* link.** Its destination is entry 27's *Preferences* card, deferred to four
+  of five (D-100). Nothing in the product can hide a widget today, and §44's own reason for the link
+  is that a hidden widget must be recoverable — with nothing hideable there is nothing to recover.
+- **The *Failing checks* destination.** Entry 22 (Health) is deferred (D-072), so the card is a
+  `<div>`: an anchor with no `href` is not a link and is not focusable, which is worse than either.
+
+### Two decisions taken rather than asked, on the user's standing instruction to keep going
+
+1. **The `indexing-blocked` system notice is retired and its warning rebuilt as §44's banner.** It
+   was scoped to `context => 'dashboard'`, so this is a substitution on one screen, not a removal
+   from any other — and **its condition filter `notice.condition.indexing_blocked` is kept and is
+   what gates the banner**, so a plugin listening on it still decides whether the warning shows.
+   D-076's rule for the sixth time.
+2. **The relative time uses abbreviated units** — "3 h ago", not "3 hours ago". D-076: this
+   mechanism has no plural forms and every count-bearing string is number-neutral.
+
+### What is OWED and is not claimed
+
+**The browser tier.** There is no axe run, no geometry measurement, no both-themes pass, no 320 CSS
+px reflow assertion and no capture-and-look (L-048). §5.4's `Driven` box for entry 44 is `☐` and
+says so in words. The server-rendered contract IS evidenced — `DashboardHttpTest`, 10 tests — and
+that is all this entry claims.
+
+### Bounds
+
+`installer/admin/index.php`, `installer/core/updater.php`,
+`installer/admin/assets/css/klytos-components.css`, all 20 `installer/core/lang/*.json`
+(36 keys), `tests/Unit/UpdaterCachedStateTest.php` (7), `tests/Integration/DashboardHttpTest.php`
+(10), `docs/reference/dashboard-screen.md`, `docs/api/INDEX.md` (1055 → **1059**),
+`docs/BUILD-SPEC.md` §5.3 (overview-stats), §5.4 (row 44) and §5.9 (adaptations **80–85**).
+PHP **379 / 1744**, 0 skips (was 362/1692). Commit `e26ac2f`.
