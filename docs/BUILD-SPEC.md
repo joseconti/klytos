@@ -1022,7 +1022,7 @@ when its template's §5.3 rows **and** every delta in its manifest entry are bui
 | 10 | Log in | ☐ | ☐ §10 | ☐ | ☐ |
 | 11 | Verify | ☐ | ☐ §11 | ☐ | ☐ |
 | 12 | AI chat | ☑ chrome | ☑ §12 | ☑ | ☑ (D-108; interior deferred, §0c) |
-| 13 | Tasks | ☐ | ☐ §13 | ☐ | ☐ |
+| 13 | Tasks | ◐ — see the overview-stats note | ◐ §13 — see note | ◐ built, browser tier owed | ☐ **server-rendered half only** — 11 integration tests, 0 skips (D-111); no axe, no geometry, no both-themes pass |
 | 14 | Comments | ☐ | ☐ §14 | ☐ | ☐ |
 | 15 | Plugins | ☐ | ☐ §15 | ☐ | ☐ |
 | 17 | Setup wizard | ☐ | ☐ §17 | ☐ | ☐ |
@@ -1199,6 +1199,22 @@ that could weaken it (the equal-prominence rule is rendered as a STATEMENT); the
 non-essential rather than merely dismissing. **The Acceptance stats card is DEFERRED** as unbacked
 product (`docs/roadmap.md` §0c, D-092) — Klytos publishes a static site and stores no acceptance data
 of any kind. Adaptations 32–35 were logged at build time.
+
+**Note on entry 13's `◐`.** Its server-rendered contract is evidenced (11 integration tests, **0
+skips** — the fixture builds its own population through the real `TaskManager` and the good-news
+empty state is REACHED by emptying the queue, not skipped past); **its browser tier is owed and is
+not claimed**. **Template rows:** `◐` — the overview-stats table's *Loading*, *Error — a source is
+unavailable* and the chart rows are not this screen's to build. **Manifest deltas are partial
+because the PRODUCT cannot supply them, which is a new reason on this list:** §13's *Due this week*
+and *Overdue* need a due date that **exists nowhere in the tree** — not in `TaskManager::create()`,
+not in `update()`'s allow-list, not in storage, not in the MCP tools, not in the review widget — so
+the "Overdue is never red alone" delta protects a state that cannot occur. §13's *source* line
+("raised by System integrity") has no field behind it either: `created_by` is a user id and no
+subsystem is ever recorded. And §13 says the list is *grouped* without naming the axis. All three
+are **DR-013**, drafted. What IS built: three stat cards, each a measured fact, which keeps the row
+inside `template-overview-stats.md` §1's floor of three (adaptation 87); the grouped list on
+**status**; the badges as a word plus a glyph; the shipped filters as the design's chips; and §13's
+good-news empty state.
 
 **Note on entry 32's `◐`.** Its accessibility and driven evidence are complete (12 browser tests,
 every state × both themes, whole-page axe, plus a JavaScript-disabled pass — D-102). **Template
@@ -1528,6 +1544,11 @@ and §3 — the change map's "New admin page or API endpoint" row):
 | 83 | **The relative "3 hours ago" line uses ABBREVIATED units — "3 h ago"** | D-076: this i18n mechanism has no plural forms, so every count-bearing string is number-neutral. "1 hours ago" is wrong in English and worse in the nineteen other catalogues. The abbreviation is number-neutral in all twenty and fits the `--type-caption` line §44 puts it on | Yes. The fact and its position are the delivery's; only the unit's spelling is the build's |
 | 84 | **The `indexing-blocked` system notice is retired and its warning rebuilt as §44's banner** | The notice drew the same warning in the same place in undesigned markup, scoped to `context => 'dashboard'`, so this is a substitution on one screen and not a removal from any other. **Its condition filter `notice.condition.indexing_blocked` is KEPT and is what gates the banner**, so a plugin listening on it still decides whether the warning shows — D-076's "the design wins, the hooks are preserved", for the sixth time | Yes. Same condition, same link, designed markup, one announcement instead of two |
 | 85 | **The *Build now* handler carries its own `site.configure` check**, although `core/admin-gate.php` maps `index.php` to `pages.view` | A build publishes the whole site, and the page is deliberately readable at a lower tier. Inheriting the page's tier would let an editor publish from the landing screen — which is EXACTLY the defect the indexing toggle had on this file before DR-002 removed it, and it is not being reintroduced in another shape | Not a design deviation — a project convention (`03-technical-plan.md` §3) applied where the design is silent |
+| 86 | **Entry 13 renders no *Due this week* and no *Overdue* stat**, and the "Overdue is never red alone" delta is moot | **The product has no due date.** `TaskManager::create()` writes ten fields and none is a due date; `update()`'s allow-list adds none; storage holds none; the MCP tools and the front-end review widget that create tasks send none. Two of §13's four cards would be numbers nobody measured, which is the one thing `template-overview-stats.md` §2 rules out by name. **DR-013**, and `docs/roadmap.md` §0c | Yes — the gap is the product's, and it is asked rather than filled |
+| 87 | **Entry 13's third stat is *In progress*, which §13's list does not name** | Dropping the two unbacked cards leaves two, and `template-overview-stats.md` §1's stat row is **3–5 columns**. *In progress* is a real, shipped status this screen has always drawn, so building it states a measured fact AND keeps the row inside the template's own floor. Same call as rows 29, 43 and 77: shipped product with no other surface is built and logged, never silently added | Yes. The row keeps its specified shape; only one label is the build's |
+| 88 | **Entry 13's list is grouped by STATUS**, where §13 says "grouped" and names no axis | The product offers status and priority. The delta itself says "task **state** is a word plus a glyph", and the filter chips already select on status — so grouping on the same axis gives one heading per group instead of a heading repeating the chip the reader just clicked. It is a reading, so it is **asked** (DR-013) rather than kept quietly | Yes — a reading, registered as one |
+| 89 | **Entry 13 renders no source line** ("raised by System integrity") | `created_by` is a **user id**; nothing in the product records a subsystem as the origin of a task. The row shows the page the task is on and when it was raised, both real. **DR-013** | Yes. A line with no fact behind it is not fidelity |
+| 90 | **`.k-stat-tile > svg` and `.k-badge-icon` are added to the component layer** | Not a design deviation — **a defect the build shipped and the build fixed.** `klytos_admin_icon()` writes no `width`/`height`, so an `<svg>` in an unsized class renders at the SVG default of **300 × 150** (L-048). Entry 44's five stat glyphs did exactly that for one commit; the integration tier could not see it, because it asserts markup and never geometry. The rule is on the CONTAINER so no future consumer has to remember a class name | Yes. The tile is still 32px and the badge still a 20px pill — they now contain what they draw |
 
 
 **Counts: what is wired, and what is honestly not.** `navigation.md` §2 gives 16

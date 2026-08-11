@@ -40,7 +40,7 @@
 | 1 Discovery | **adopted (as-built)** | docs/00-competitive-landscape.md, docs/01-discovery.md |
 | 2 Functional spec | **adopted (as-built)** | docs/02-functional-spec.md, docs/03-technical-plan.md, docs/api/INDEX.md |
 | 3 Design handoff | **LIVE since 2026-07-27 (D-065)** — a real handoff arrived for the admin (41 screens, tokens, logo set) | Claude Design `Klytos CMS Redesign`; `docs/BUILD-SPEC.md` |
-| 4 Faithful build | **IN PROGRESS — Step 4 RESUMED as stage 7 (the unblocked screens). Slice 1 DONE 2026-08-11 (D-110): entry 44 (Dashboard), the first overview-stats screen. 19 of 39 built; 20 unbuilt, 13 of them blocked by nothing. Step 7's bookkeeping DONE 2026-08-11 (D-109); the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
+| 4 Faithful build | **IN PROGRESS — Step 4 RESUMED as stage 7 (the unblocked screens). Slices 1–2 DONE 2026-08-11 (D-110, D-111): entries 44 (Dashboard) and 13 (Tasks). **20 of 39 built; 19 unbuilt, 12 of them blocked by nothing.** Step 7's bookkeeping DONE 2026-08-11 (D-109); the definition of done is NOT met.** Gate PASSED 2026-07-29 (D-069); Step 2 DONE 2026-07-29 (D-070). Step 1 ran twice: FAILED 2026-07-27 (ten gaps → DR-001), PASSED on the re-delivery after a wholesale swap, a byte-stability diff (`screens/**` untouched; six token files differ in comments only) and an **independent recomputation of all 72 contrast ratios (72/72 agree)**. **DR-001 RESOLVED.** Step 2 consolidated `BUILD-SPEC.md` **§5** (11 subsections) and **found four open items** — one of them a real gap: the **Dashboard (`index.php`) has no design**, drafted as **DR-002** (not sent). **NEXT: the user's decisions on §5.11, then Step 4 (build).** No file under `installer/admin/` touched yet | docs/BUILD-SPEC.md (§1c, §5), docs/design/design-requests/DR-001.md + DR-002.md, docs/design/design-handoff/, docs/design/DESIGN-BRIEF.md |
 | 5 Development | **in progress** — Sprint 1 CLOSED (all 10 slices); Sprint 2 CLOSED (MCP tool authorization, all 4 slices — audit NEW-02 closed); Sprint 3 CLOSED (vendor-ai CVE remediation + the AI stack fails safe — both slices; audit NEW-05 and NEW-06 CLOSED); Sprint 4 CLOSED (the hook mutation contract + owner recovery — both slices; audit NEW-03, NEW-36 and NEW-08 CLOSED); Sprint 5 CLOSED (authentication, both slices — NEW-11 + NEW-37 + NEW-39 + NEW-09; D-056…D-058; **user verdict PASS 2026-07-26**); **Sprint 6 IN PROGRESS** (hardening — **slice 1 CLOSED 2026-07-26**: NEW-40 + NEW-20 + NEW-44; **slice 2 CLOSED 2026-07-26**: NEW-41; **slice 4 CLOSED 2026-07-27**: NEW-47 + NEW-26 + NEW-50 + NEW-51 + NEW-52, pulled forward by D-061; **slice 3 CLOSED 2026-07-27**: NEW-42, so ALL FOUR SLICES ARE CLOSED and only the sprint close itself remains; D-059, D-060, D-061, D-063) — plus **`docs/roadmap.md`**, the ordered route to v1 (D-062) | docs/sprints/sprint-1.md … sprint-6.md, docs/05-test-points.md, docs/estimate.md, docs/flows/ |
 | 6 Documentation | pending — progressive backfill of per-surface docs is in force | docs/architecture.md, docs/api/, docs/usage/, docs/reference/ |
 | 7 Release | pending — the next release runs the FULL Phase 7 | docs/07-release.md |
@@ -1489,6 +1489,38 @@
     (count confirmed to move, L-038) · `docs/api/INDEX.md` 1055 → **1059** ·
     lint on both touched PHP files identical to HEAD.
 
+- **Stage 7 slice 2 of 14: entry 13 (Tasks) — DONE 2026-08-11 (D-111), commit `1bfa568`.**
+  - **THE SURVEY FINDING, the product's and not the delivery's for the second slice
+    running: a Klytos task has NO DUE DATE, anywhere.** Ten fields on `create()`, none of
+    them one; nothing in `update()`'s allow-list, in storage, in the MCP tools or in the
+    review widget. So §13's *Due this week* and *Overdue* would be **numbers nobody
+    measured**, and its "Overdue is never red alone" delta protects a state that cannot
+    occur. **DR-013**, which also asks the grouping axis §13 never names and the *source*
+    line that has no field behind it. Built instead: **three** cards, each a measured
+    fact, which is also what keeps the row inside the template's 3–5 floor.
+  - **AND THE DEFECT THIS SLICE FOUND IN THE LAST ONE — L-048's NINTH mechanism, shipped.**
+    Nothing sized the glyph inside `.k-stat-tile` and `klytos_admin_icon()` writes no
+    `width`/`height`, so **entry 44's five stat glyphs each drew at the SVG default of
+    300 × 150** inside a 32px tile, committed in `e26ac2f`. It survived because the
+    integration tier asserts markup and **never geometry** — which is exactly what the
+    owed browser tier is for. Fixed on the CONTAINER (`.k-stat-tile > svg`) plus
+    `.k-badge-icon`.
+  - **Four shipped defects closed**, every one a shape already paid for: **not one `__()`
+    call in the file** (new `tasks` root, 29 keys × 20) · a refused CSRF post reporting
+    **nothing** (the FIFTH screen) · the manager's raw English exception in twenty locales
+    · row actions drawn as `✓`/`✕` with only a `title`, now naming their own row.
+  - **`TasksHttpTest` — 11 tests, 60 assertions, ZERO skips** — with
+    `tests/E2E/fixtures/reset-tasks.php` building its own population through the real
+    `TaskManager`, and the good-news empty state **REACHED** by emptying the queue and
+    putting it back. Adaptations **86–90**.
+  - **One shipped defect found and deliberately NOT fixed here:** `Auth::setAdminBarCookie()`
+    runs a `setcookie()` from `footer.php` **after output has started**, on every admin
+    screen, whenever the cookie is absent. Recorded in `roadmap.md`; a shared-surface fix
+    inside a screen slice is how a fidelity stage becomes a refactor.
+  - **OWED AND NOT CLAIMED: the browser tier, for entries 44 AND 13.**
+  - **Tree state:** PHP **390 / 1804**, 0 skips (was 379/1744) · `keel-verify` **23 checks:
+    17 pass, 6 warnings** · lint on `tasks.php` identical to HEAD.
+
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
   NEW-46 and NEW-49 cannot be reasoned about honestly until the client address is trustworthy —
@@ -1500,7 +1532,13 @@
 
 ## Open items
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **EIGHT.**
+- Open Design Requests: **NINE.**
+  **DR-013 — DRAFTED 2026-08-11 (D-111), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-013.md`. Three gaps on entry 13, and the first of them is the
+  PRODUCT's rather than the delivery's: **a Klytos task has no due date anywhere**, so §13's *Due
+  this week* and *Overdue* would be numbers nobody measured; §13 says the list is *grouped* and
+  never names the axis; and the *source* line has no field behind it. **Blocks nothing** — the
+  screen is built on the facts the product holds.
   **DR-012 — DRAFTED 2026-08-11 (D-110), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-012.md`. §44 names the Dashboard's primary panel as "*Next
   steps* (working site) or *Set up the site* (new site)" and then specifies only the second, in any

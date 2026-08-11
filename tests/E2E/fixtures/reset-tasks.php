@@ -57,7 +57,11 @@ $seed = [
     [
         'page_slug'    => 'home',
         'css_selector' => 'h1',
-        'description'  => FIXTURE_MARK . ' The hero heading still says "Lorem ipsum"',
+        // Deliberately NOT the obvious "the heading still says <placeholder>":
+        // `keel-verify`'s placeholder check reads every distributable file and
+        // cannot tell a task ABOUT filler copy from filler copy, and it is right
+        // not to try. The check caught this line before it was committed.
+        'description'  => FIXTURE_MARK . ' The hero heading is still the draft one',
         'priority'     => 'urgent',
     ],
     [

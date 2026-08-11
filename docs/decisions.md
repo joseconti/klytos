@@ -2634,3 +2634,89 @@ that is all this entry claims.
 (10), `docs/reference/dashboard-screen.md`, `docs/api/INDEX.md` (1055 → **1059**),
 `docs/BUILD-SPEC.md` §5.3 (overview-stats), §5.4 (row 44) and §5.9 (adaptations **80–85**).
 PHP **379 / 1744**, 0 skips (was 362/1692). Commit `e26ac2f`.
+
+## D-111 — Stage 7, slice 2: entry 13 (Tasks) is built on the facts the product holds, and the last slice's own defect was found
+
+**Date:** 2026-08-11 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, slice 2** · Supersedes nothing.
+
+**The per-screen survey ran before the first line — the SIXTEENTH in sixteen — and for the second
+time running, what it disagreed with was the PRODUCT rather than the delivery.**
+
+### THE SURVEY FINDING — a Klytos task has no due date, anywhere
+
+§13's stat row is *Open · Due this week · Overdue · Done (30d)*, and its one delta is "task state is
+a word plus a glyph; **Overdue** is never red alone".
+
+`TaskManager::create()` writes ten fields — `id`, `page_slug`, `css_selector`, `description`,
+`priority`, `status`, `created_by`, `assigned_to`, `created_at`, `updated_at`, `completed_at` — and
+**none of them is a due date**. `update()`'s allow-list adds none. Storage holds none. Neither the
+MCP tools nor the front-end review widget, the two ways a task is actually created, send one.
+
+So **two of the four cards would be numbers nobody measured** — the single thing
+`template-overview-stats.md` §2 rules out by name — and the delta protects a state that cannot
+occur. Adding due dates is a product capability with its own field, writer, validator, MCP surface,
+sort order and timezone question. Deferred to `docs/roadmap.md` §0c and asked as **DR-013**.
+
+Two more gaps went into the same request: §13 says the list is **grouped** and never names the axis
+(the build took **status**, because the delta itself says "task *state*" and the chips already
+select on status — a reading, so it is asked), and the row's *source* line ("raised by System
+integrity") has no field behind it at all, since `created_by` is a user id and no subsystem is ever
+recorded as an origin.
+
+**What is built: three stat cards, each a measured fact** — Open · In progress · Done (30 days).
+*In progress* is a shipped status this screen has always drawn, and building it is also what keeps
+the row inside §1's floor of **3–5 columns** (adaptations 86–89).
+
+### THE DEFECT THIS SLICE FOUND IN THE LAST ONE — L-048's NINTH mechanism, shipped
+
+Nothing sized the glyph inside `.k-stat-tile`, and `klytos_admin_icon()` writes no `width` or
+`height`. **An `<svg>` with neither renders at the SVG default of 300 × 150.** So entry 44's five
+stat glyphs, committed yesterday in `e26ac2f`, each drew a 300 × 150 image inside a 32 × 32 tile.
+
+It survived a commit for exactly the reason the browser tier is owed: the integration tier asserts
+**markup**, and geometry is only checked where somebody thought to measure it. The fix is on the
+CONTAINER — `.k-stat-tile > svg` — so no future consumer has to remember a class name, plus
+`.k-badge-icon` for the same reason on the 20px pill (adaptation 90).
+
+### FOUR shipped defects closed, every one a shape this build has already paid for
+
+1. **Not one `__()` call in the entire file** — every string hardcoded English, in twenty locales.
+   A new `tasks` catalogue root, **29 keys × 20**.
+2. **A refused CSRF post reported NOTHING** — `if ( … && klytos_verify_csrf() )` with no `else`.
+   **The FIFTH screen** with the identical defect, after entries 27, 28, 32 and 24.
+3. **The manager's raw English exception reached the person** in all twenty locales; it now goes to
+   the log and the reader gets a sentence a catalogue can reach.
+4. **The row actions were "✓" and "✕" with only a `title`** — announced by no screen reader
+   reliably, unreachable by touch. Each control now names its own row (D-098's correction).
+
+### The evidence, and what it deliberately does not claim
+
+`tests/Integration/TasksHttpTest.php` — **11 tests, 60 assertions, ZERO skips** — plus
+`tests/E2E/fixtures/reset-tasks.php`, which builds its own population **through the real
+`TaskManager`**: a check over a zero population is not evidence (D-079), and the good-news empty
+state is **REACHED** by emptying the queue and putting it back, never skipped past.
+
+The catalogue-key check is built from the catalogue's own **key list** rather than from a
+`tasks\.[a-z_]+` pattern, because two strings of that shape are on the page legitimately and neither
+is copy — the dev bar prints `tasks.php`, and `tasks.manage` is a capability name. A pattern would
+need teaching about both and would go stale on the third; the key list cannot.
+
+**The browser tier is OWED, for entries 44 and 13 both, and is not claimed anywhere.**
+
+### One shipped defect FOUND and deliberately NOT fixed here
+
+The harness surfaced `Cannot modify header information` from `Auth::setAdminBarCookie()`, reached
+via `klytos_current_user()` at `templates/footer.php:220` — a `setcookie()` after output has
+started. It fires whenever `$_COOKIE['klytos_admin_bar']` is absent, which never happens in a
+browser that logged in normally and always happens to a client that discarded the cookie. It
+affects **every admin screen**, not this one, and the real fix is that the footer should not be
+where that decision is made. Recorded in `docs/roadmap.md` rather than widened into entry 13's
+slice: a shared-surface fix inside a screen slice is how a fidelity stage turns into a refactor.
+
+### Bounds
+
+`installer/admin/tasks.php`, `installer/admin/assets/css/klytos-components.css`, all 20
+`installer/core/lang/*.json` (new `tasks` root, 29 keys), `tests/Integration/TasksHttpTest.php`,
+`tests/E2E/fixtures/reset-tasks.php`, `docs/design/design-requests/DR-013.md`,
+`docs/BUILD-SPEC.md` §5.4 (row 13 + its note) and §5.9 (adaptations **86–90**).
+PHP **390 / 1804**, 0 skips (was 379/1744). Commit `1bfa568`.
