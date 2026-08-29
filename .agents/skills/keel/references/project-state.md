@@ -46,6 +46,9 @@ Keep it to roughly one page. Detail lives in the linked files, never accumulated
 - Design system: [existing — source/location / founding — canonical, will live at X / one-off / n/a no UI]
 - Keel portability: [lock only / lock + embedded vX.Y.Z]
 - Assistant config: [none / rules / rules+agents / full] (tools: [claude, codex, copilot, cursor, gemini, windsurf, ...]) — per references/assistant-config.md
+- E2E: [the command that runs this project's end-to-end suite, invoked from the repo root, e.g. `npm run test:e2e` / absent] — ABSENT IS THE DEFAULT and means the feature does not exist for this project: no gate, no file, no output, no question. Never invented, never guessed from a config file, never rewritten by Keel. The line carries the COMMAND ONLY and never the result; the result lives in `docs/.keel/e2e-status.json` and nowhere else. Per "The end-to-end verification contract" below
+- E2E env: [a label for the target the suite runs against, e.g. `local-docker` / absent] — optional, only where the same suite runs against more than one target; it is written into the status file's `environment.label`
+- CI runs on: [main (default) — push to main, version tags, and PRs targeting main / main+develop / all-branches / n/a — no forge CI or config package declined] — asked once at Phase 1 step 0a in the same batch as the assistant-config package, never inferred from the repo or from `Autonomy:`. The default keeps the forge out of the assistant's commit loop: Keel drives the full suite locally at every test point and runs `scripts/keel-verify` before every commit, so CI on every develop push re-runs seconds later what already passed, and a stream of green checks nobody reads stops being evidence. What the default costs is real and recorded: a break only CI's environment surfaces is found at the merge rather than at the commit. Version tags fire on EVERY value — the tag is what publishes the release. Per references/assistant-config.md ("The CI workflow")
 - Models: [orchestrator=<model> / reviewer=<model> / mechanical=<model>, per accepted tool — role→model map, per references/assistant-config.md; n/a if no agents]
 - Keel baseline: [vX.Y.Z — last Keel version this project was reconciled to]
 - Website intent: [yes — own domain|subdomain / no]
@@ -57,9 +60,9 @@ Keep it to roughly one page. Detail lives in the linked files, never accumulated
 - Autonomy: [automatic — Keel does not ask, and does every merge to develop and every push itself | not automatic — Keel asks every time and pushes only what was explicitly requested] / issues: [after-sprint|on-request|n/a no forge] / Issue sweep interval: [Xh — default 24h; n/a unless after-sprint] / Issue capture: [on — a problem the user reports becomes a forge issue before the work starts | off | n/a no forge] — the session-start setup batch (SKILL.md), asked once and applied silently thereafter. Everything hangs off the first value; it is never inferred per action. `Issue sweep interval:` gates the kickoff-side check in `references/phase-5-development.md` ("Sprint kickoff") against `docs/issues.md`'s `Last inbound sweep:` line. The MODE lives in a per-machine file (`.claude/settings.local.json` is gitignored, so a fresh checkout has none) while this line is the recorded DECISION, so a new machine gets the file written without re-asking
 - Branches: [integration branch (default `develop`) / current work branch / anything on develop awaiting the user's merge to main] — per SKILL.md "Git flow": Keel merges work branches to develop and pushes; the merge to main, the tag and the release are the user's act, always
 - Notify: [channel — recipient / none — nothing delivering in this environment / declined] — the out-of-band channel per references/notifications.md; re-probed every session, because a channel that answered yesterday is not a fact about today
-- Chaining: [off / prefill / start — default follows `Autonomy:`: automatic → the maximum tier the gates allow, otherwise off. What a CLEAN close-out does beyond writing docs/continuation-prompt.md and showing the prompt, which happen on every value including off; prefill opens the next chat pre-filled (user presses Enter), start launches and submits. Asked at Phase 1 step 0a with the warning attached, never filled in silently. start is GATED on the single-lane lock and is verified on macOS only; without both, prefill is the maximum offered. Falls back to printing]
-- Chaining model: [the model every chained chat launches with, e.g. `opus` — passed as `claude --model <value>`. Asked once at Phase 1 step 0a in the same breath as `Chaining:`, never inferred. `n/a` when `Chaining: off`. A new `claude` process inherits NOTHING from the one that launched it, so without this the chain resolves the model from settings and silently runs on whatever the account default happens to be]
-- Chain verified: [YYYY-MM-DD, tier <prefill|start>, Keel <version>, keel-continue <checksum> — written ONLY by `scripts/keel-chain-check --smoke` after it observed the launch actually run, never by hand and never from a reading of the script. Absent, or a checksum that no longer matches `scripts/keel-continue`, means the launcher is unproven and `keel-chain-check` reports NOT READY until `--smoke` is run again. `n/a` when `Chaining: off`]
+- Chaining: [off / supervised — <what supervises it> / prefill / start — default follows `Autonomy:`: automatic → the maximum tier the gates allow, otherwise off. What a CLEAN close-out does beyond writing docs/continuation-prompt.md and showing the prompt, which happen on every value including off and supervised; prefill opens the next chat pre-filled (user presses Enter), start launches and submits. `supervised` means continuation is handled by something OUTSIDE this project — an external supervisor, a scheduler, a CI runner, a person — so Keel opens nothing and `scripts/keel-continue` is never fired; the line names WHAT supervises it, in the same line. Asked at Phase 1 step 0a with the warning attached, never filled in silently. start is GATED on the single-lane lock and is verified on macOS only; without both, prefill is the maximum offered. Falls back to printing]
+- Chaining model: [the model every chained chat launches with, e.g. `opus` — passed via the DETECTED tool's own model flag (`claude --model <value>`; `codex --model <value>`). Asked once at Phase 1 step 0a in the same breath as `Chaining:`, never inferred. `n/a` when `Chaining: off` or `Chaining: supervised` (nothing here launches anything). A new process of the SAME tool inherits NOTHING from the one that launched it, so without this the chain resolves the model from settings and silently runs on whatever the account default happens to be]
+- Chain verified: [YYYY-MM-DD, tier <prefill|start>, Keel <version>, keel-continue <checksum> — written ONLY by `scripts/keel-chain-check --smoke` after it observed the launch actually run, never by hand and never from a reading of the script. Absent, or a checksum that no longer matches `scripts/keel-continue`, means the launcher is unproven and `keel-chain-check` reports NOT READY until `--smoke` is run again. `n/a` when `Chaining: off` or `Chaining: supervised`]
 
 ## Phase status
 | Phase | Status | Key artifacts |
@@ -108,8 +111,11 @@ Append-only; never edit or delete past entries (if a decision is reversed, appen
 - Decision: ...
 - Why: ...
 - Alternatives rejected (and why): ...
+- Not checked: [REQUIRED whenever the entry asserts an impossibility — at least one avenue that was NOT examined]
 - Supersedes: [D-0XX or none]
 ```
+
+**`Not checked:` is what keeps a negative finding a measurement.** An entry saying *"there is no way to X"*, *"the platform does not support Y"*, *"this is impossible from here"* is a claim about the world derived from an enquiry with a scope, and the scope is the part that evaporates: two interfaces were opened, one help output was read, and what gets recorded is a sentence about the product. So an entry asserting an impossibility names at least one avenue it did not examine — the interfaces not opened, the documentation not read, the version not tried, the person not asked — and `scripts/keel-verify` fails one that does not (`references/anti-patterns.md`, entry 12s). **And the append-only rule above has exactly one counterpart here: when the USER contradicts a recorded negative, that is the trigger to RE-MEASURE, not to cite the entry back at them.** The no-re-litigation rule protects decisions — things that were CHOSEN — from a session that dislikes them; a negative finding was not chosen, and the user's contradiction is fresh evidence about the world while the record is evidence about one past enquiry. Re-run it along the avenue the entry never covered and append the result either way.
 
 Record here: project type, stack choice, license, i18n and accessibility levels, scope cuts, architecture choices, anything where a future session could plausibly "re-decide" differently. Phase 6's `architecture.md` consolidates from this log instead of reconstructing memory. When an entry must reference a secret-shaped string (a token format, a key pattern), describe it or split it apart — never paste it verbatim: the confidential-data gate scans decision notes like any other file (SKILL.md "Confidential data never reaches Git", point 5).
 
@@ -224,15 +230,177 @@ Updated in the same slice that adds, changes, or removes a surface — an INDEX 
 
 ## Sprint files (Phase 5) — template
 
+**The frontmatter is DATA and the body is PROSE, and the split is the point.** Everything a machine
+reads lives in the frontmatter under a closed schema; everything a person needs to understand the
+sprint lives in the body. A reader parses the first and never the second.
+
 ```
-# Sprint [N] — [short goal]
-- Scope: [slices/tasks in this sprint]
+---
+schema: keel.sprint/1
+sprint: 3
+goal: OAuth + PKCE end to end
+status: in-progress            # not-started | in-progress | done | dropped
+slices:
+  - id: S-014
+    title: Authorization code exchange
+    status: done                # same enum
+    hours: 1.5                  # AI working time + supervision (SKILL.md's unit rule)
+    depends_on: [S-011]         # ids, never titles
+    criteria: [AC-07, AC-08]    # the AC-nn this slice satisfies
+---
+
+# Sprint 3 — OAuth + PKCE end to end
+
 - Acceptance: [what "done" means for this sprint]
-- Status: [planned / in progress / closed]
-- Slices:
-  | Slice | Status | Test point result | Notes |
+- Notes: [whatever a person needs; test-point results stay in docs/05-test-points.md]
 - Close-out: [filled at close: what shipped, what moved to next sprint]
 ```
+
+## The sprint plan — one plan, three layers, one job each
+
+A project's sprints are a decision the user approved once, and "what is left and in what order" has to
+be answerable at a glance — by a person and, where a project has one, by an external reader that
+parses files with no model in the loop. That needs three layers, and the discipline is that **each
+fact has exactly one author.**
+
+1. **Authority, human-editable:** `docs/sprints/sprint-<N>.md`, above — the frontmatter is where a
+   slice's state, hours and dependencies actually live, and the only place they are edited.
+2. **Backlog, human-editable:** `docs/sprints/deferred.md` — ONE file for everything wanted and not
+   in this version, same item schema plus `target:` (the version proposed, or `null`) and `reason:`.
+   Its ids share ONE namespace with the sprint slices, so promoting an item is a MOVE that keeps its
+   id, never a retype that invents one (`references/anti-patterns.md`, 12i).
+3. **Derived, regenerated and never hand-edited:** `docs/.keel/plan.json` — the whole plan in one
+   file, with the totals and every percentage already computed. This is what an external reader
+   consumes; asking it to open N markdown files and sum them is asking it to reimplement Keel, and
+   two implementations of one rule eventually disagree. The human index table is generated in the
+   same pass.
+
+**Percentages are NEVER stored — they are computed from hours.** The plan is explicitly not a closed
+contract: items are added, removed and moved. A hand-written `%` is therefore wrong the first time
+anything changes, and wrong in silence. Hours are the single stored unit; every percentage is a
+division done at generation time.
+
+**And the hours are Keel's existing unit, not a second currency.** `references/estimation-budget.md`
+already itemizes Phase 5 at 0.5–2 h per slice, and SKILL.md's unbreakable rule says every duration is
+AI working time plus the vibe coder's supervision, named every time it is given. So the plan's
+per-slice hours ARE the Phase 5 partida: `docs/estimate.md`'s Phase 5 line is the SUM of them, and
+`scripts/keel-verify` fails when the two disagree — otherwise the budget the client approved and the
+plan the team reads are two different projects. **The contingency (+N%) is excluded from the
+percentage**, or the plan can never reach 100%. `plan.json` carries the unit as a field, and any
+reader that renders a duration renders that label with it: a bare "12 h" is read as human-team time,
+which is the exact failure the unit rule exists to prevent, and the gap there is orders of magnitude.
+
+**What `scripts/keel-verify` enforces**, because a plan that can lie is worse than no plan — every
+one of these is mechanical:
+
+| Check | Why it exists |
+|---|---|
+| Every `status` is one of the closed enum values | A script can only count what it can recognise; free text turns the glance into a guess |
+| No id appears twice across all sprint files and `deferred.md` | One namespace is what makes promoting an item a move |
+| Every `depends_on` resolves, and resolves to the SAME sprint or an EARLIER one | This is the rule "nothing depends on something not yet built", made executable instead of hoped for |
+| No `depends_on` points at an item still in `deferred.md` | Same rule, the case that actually happens |
+| `docs/.keel/plan.json` matches its sources | A derived file that drifted shows a confident lie to every reader; drift fails the run |
+| Phase 5 hours in `docs/estimate.md` equal the sum of the plan's slice hours | One set of hours, not two |
+| A slice that left a sprint is in `deferred.md` or carries `status: dropped` with its D-entry | Removable without a trace means the plan shrinks itself and "what is left" looks excellent |
+
+## The end-to-end verification contract
+
+**What is optional here is the PUBLICATION, never the verification.** Phase 7 already re-runs the
+entire automated suite on the exact distributable and records the command and result, and
+`scripts/keel-doctor --check` already makes it provable that the suite ran rather than silently
+degrading. That gate is unconditional on every Keel project and this section does not touch it.
+What a project MAY additionally declare is an end-to-end command whose result is published in a
+standard machine-readable file, so a reader outside the repository can see the last result without
+a model, a server or a database.
+
+**Optional by construction, silent when absent, never an error, and never a prompt to install
+anything.** No `E2E:` line → no gate, no file, no mention. Keel installs no browser, no runtime and
+no test framework, ever: the suite lives in the PROJECT's repository and Keel only knows how to
+invoke what the card declares. **Updating the skill never changes an existing project's behaviour** —
+enabling this is always a per-project act by its owner, and removing the card line returns the
+project to exactly its previous state with no residue.
+
+**One switch, not two.** The presence of `E2E:` IS the enablement: declaring a command that never
+gates would create a check nobody reads, which this skill already treats as a check that has stopped
+being evidence (12l). The cost is stated rather than hidden: there is no "declare it now, gate on it
+later" trial period, and a project not ready to gate simply does not write the line yet.
+
+**The status file:** `docs/.keel/e2e-status.json`, one file, always the newest run, overwritten each
+time — gitignored by default, exactly like `docs/continuation-prompt.md`, because it is local run
+state that would otherwise turn every test run into a diff. A project that wants the result to travel
+commits it deliberately, on the record.
+
+```json
+{
+  "schema": "keel.e2e-status/1",
+  "run_id": "2026-08-15T09-12-33Z-3f9a1c",
+  "started_at": "2026-08-15T09:12:33Z",
+  "finished_at": "2026-08-15T09:19:02Z",
+  "commit": "9f3c1ab4e2d7c015aa93b1f6e8c4d2079b5a3e11",
+  "branch": "develop",
+  "command": "npm run test:e2e",
+  "result": "pass",
+  "totals": { "passed": 184, "failed": 0, "skipped": 11, "flaky": 1 },
+  "failures": [],
+  "report": "playwright-report/index.html",
+  "environment": { "label": "local-docker" }
+}
+```
+
+- **`result` is one of `pass`, `fail`, `error`, `cancelled`.** `error` means the suite could not RUN,
+  which is not the same as failing, and a reader that conflates them lies to its user.
+- **`commit` is mandatory, and a status file whose `commit` is not the current `HEAD` is not a
+  result — it is history.** Nothing may present it as the current state, and the gate treats it as
+  missing. This is the same discipline as `Chain verified:`: earned, never declared.
+- **Written atomically** — a temporary file in the same directory, renamed over the target. A
+  half-written file must never be readable as a result.
+- **Nobody hand-edits it.** It is written by the suite or by the wrapper Keel invokes, and by nothing
+  else. `failures` may be empty or omitted; each entry carries at least a stable `id` and a human
+  `title`. `report` is a repo-relative hint and every reader works without it.
+
+**The history, optional:** `docs/.keel/e2e-history.jsonl`, one JSON object per line, appended and
+never rewritten, so "it has been red for three days" is answerable with no server — the same spirit
+as `docs/decisions.md`. A project may have the status file and no history, and every reader copes
+with its absence.
+
+**The release gate**, where the card carries an `E2E:` line: it passes only on `result: "pass"` with
+`commit` equal to `HEAD`. **A missing file, a stale file, an `error` and a `fail` all block, and each
+says which of the four it was** — "stale" and "failed" are different facts and a message that blurs
+them sends the reader to debug the wrong thing. A waiver is a `docs/decisions.md` entry written
+BEFORE the release proceeds, naming what was waived and why; there is no flag that skips the gate
+without leaving a record. The hotfix path may reduce the scope to the flows the fix touches, and the
+reduction is named in that entry, so "we ran a subset" is on the record rather than assumed.
+
+**`scripts/keel-doctor` verifies the declared command is runnable**, not merely that the line exists,
+and reports nothing at all when the line is absent. The precedent is this skill's own: `--smoke`
+exists because present and registered is not firing, and `keel-doctor --check` exists so a green
+suite provably ran. A declared command nobody ever invoked is that same class, and discovering it is
+wrong at release time is discovering it at the worst moment.
+
+**Keel depends on no reader.** Whatever consumes these files is one optional consumer of a public
+contract Keel owns; Keel never mentions it, never requires it, and behaves identically whether or not
+it exists.
+
+## Machine-readable artifacts — one convention (UNBREAKABLE)
+
+Everything in this skill that a program parses without a model follows ONE convention, so a reader
+writes one parser and one version check rather than one per artifact:
+
+- **Location:** `docs/.keel/<name>.json` (or `.jsonl`). `docs/` holds documents for people;
+  `docs/.keel/` holds the machine's copy. `docs/.keel/slices/<n>.json` was already here.
+- **`schema` is mandatory and self-identifying:** `keel.<name>/<n>` — `keel.plan/1`,
+  `keel.e2e-status/1`, `keel.sprint/1`. A bare integer does not say what it is the schema OF, which
+  is worthless the moment a reader handles two artifacts.
+- **Readers tolerate unknown fields and never fail on them**, so the schema can grow without breaking
+  a reader built against version 1. A reader that does not recognise the schema REFUSES rather than
+  guessing.
+- **Closed enums everywhere a program branches on a value.** Free text is not a value, it is a
+  guess someone else has to make.
+- **Derived files are regenerated, never hand-edited**, and drift from their sources fails
+  `scripts/keel-verify`.
+
+A new machine-readable artifact that does not follow this belongs to the class 12m describes: a
+convention nobody wrote down is a convention each author invents differently.
 
 ## Continuation prompt (ANY phase, not just sprint closes)
 
@@ -259,7 +427,7 @@ The file is ephemeral session state, not project history: it is listed in `.giti
 
 **Three moments write it, and the third is the one that gets skipped.** A session ending, a session running out of context — those are obvious, because the session is stopping. The third is **every sprint close, whether or not the session stops there** (`references/phase-5-development.md` §5, step 11): a sprint close is where the person actually walks away, and the guarantee they need is that closing the laptop at that moment costs nothing — a new chat, opened days later by hand, needs one instruction and no memory of anything. It holds in automatic mode exactly as in manual, and on `Chaining: off` exactly as on `start`: chaining decides whether a next chat is OPENED, never whether the hand-off EXISTS.
 
-**A hand-off that is not current is worse than no hand-off (UNBREAKABLE).** The courier checks compare `Commit` and `Tree` against the repository, so once the session works past the moment the file describes, the file stops being insurance and becomes a `VERDICT: STOP` waiting to happen — and it looks exactly like protection until the day it is used. So a session that keeps working after writing one **regenerates it as the work advances** — at every commit point, which in Phase 5 means every test point that commits — and unconditionally before the session ends. Overwriting is cheap and the file is small; a stale one costs the user the reconstruction the mechanism was built to eliminate.
+**A hand-off that is not current is worse than no hand-off (UNBREAKABLE).** The courier checks compare `Commit` and `Tree` against the repository, so once the session works past the moment the file describes, the file stops being insurance and becomes a `VERDICT: STOP` waiting to happen — and it looks exactly like protection until the day it is used. That is why the rule is no longer "remember to regenerate it" — a rule of exactly that shape was written here, marked UNBREAKABLE, and skipped anyway, at a cost of nine idle hours (see "The post-commit hook" below). **Committing DELETES the hand-off**, so a hand-off that exists is newer than the last commit by construction and the stale case cannot occur. `scripts/keel-close` writes a fresh one after the last commit of the close, which is the only moment it is worth having.
 
 It opens with a freshness header, then the prompt verbatim:
 
@@ -342,10 +510,19 @@ The card records what a CLEAN close-out does beyond writing the file:
 | `Chaining:` | What happens | Human gesture left |
 |---|---|---|
 | `off` | The file is written and the prompt shown. Nothing opens. | Open a chat, paste |
+| `supervised` | The file is written and the prompt shown. Nothing opens — continuation is somebody else's job, and the card says whose. | None here: the external supervisor continues the work |
 | `prefill` | The tool's recorded action opens a session with the prompt already typed | Press Enter |
 | `start` | The tool's recorded action launches AND submits | None — unless the lane is busy, in which case the new window prints the prompt |
 
 The values name the BEHAVIOUR, not the mechanism, on purpose: the same tool family does both — Claude Code's URI handler pre-fills and never submits, while its CLI, started with a prompt argument, submits immediately. A single value meaning different things on different tools is precisely the ambiguity this skill refuses everywhere else.
+
+**`supervised` exists because `off` was carrying two different states, and only one of them was a decision.** "We chose not to chain" and "something outside this project continues the work" produce the same close-out and mean opposite things, and a card that cannot tell them apart loses the second one entirely — which is the written-omission-versus-silent-omission distinction this skill applies everywhere else, applied to its own card. `supervised` says: continuation is handled OUTSIDE this project, so Keel's close-out must not open anything. **Keel never learns what the supervisor is** — an external supervisor process, a scheduler, a CI runner, a person with a calendar reminder are all valid answers, and the card records which one in the same line (`Chaining: supervised — <what supervises it>`), because a value naming no supervisor is the silent omission again in a new place.
+
+**Why it must not be `off` with a note.** Where an external mechanism is continuing the work, Keel's own chaining actively FIGHTS it: the chat `start` opens is a sibling process the supervisor cannot see, address or stop, so the work carries on in a window nothing is watching while the supervisor waits on a session that has already handed off. The only honest workaround before this value existed was to set `off` and lose the record of why — and a card that says `off` for a project under external supervision is indistinguishable from one where the user simply declined, including to the session that later "helpfully" offers to turn chaining on.
+
+**What `supervised` changes, exactly — and it is a short list.** `scripts/keel-continue` is NOT fired. `Chaining model:` and `Chain verified:` are `n/a`, exactly as under `off`. **Everything about the hand-off is unchanged:** `docs/continuation-prompt.md` is still written at every session end and every sprint close, and the prompt is still shown in the conversation — chaining decides whether a next chat is OPENED, never whether the hand-off EXISTS, and that rule holds at every value without exception. An external supervisor needs the hand-off MORE than a chained chat does, not less: it is the only thing it has to hand its next session.
+
+**`supervised` counts as `off` at every gate in this skill (UNBREAKABLE).** Wherever any Keel reference gates a chaining mechanism on the card being "not `Chaining: off`" — generating `scripts/keel-continue` and `scripts/keel-chain-check` at the Phase 5 scaffold, running `keel-chain-check` at session start and before the close-out fire, the allow-list entries that go with them, the notification trigger for a chain that did not fire, `keel-chain-check`'s own `VERDICT: N/A (Chaining: off)` — read that condition as "not `off` **and not `supervised`**". This is stated once, here, rather than in each of those places, because the alternative is the same fact pinned in five files (`references/anti-patterns.md`, entry 3) and one of them being missed on the next change. `scripts/keel-handoff-verify` and `scripts/keel-close` are NOT affected: they are generated on every project whatever the card says, because every project writes and verifies a hand-off.
 
 **`start` is opt-in per project and is GATED on the single-lane lock below.** It is the RECOMMENDED value on a card that says `Autonomy: automatic` (see the question below) and is not recommended anywhere else, but it is never selected silently on any card. The protections that matter survive without a human keystroke: a blocked hand-off never chains, and a stale, foreign or misplaced one is refused on reading — all machine checks. What a keystroke uniquely guarded against was landing in the wrong place, and the absolute path, `Repo:` and containment close that.
 
@@ -366,20 +543,42 @@ A close-out on a card that says `prefill` or `start` runs `scripts/keel-continue
 
 **The session's own judgment is reduced to exactly one mechanical test:** does `scripts/keel-continue` exist (`[ -x scripts/keel-continue ]`)? If not, print the prompt and stop — the session cannot run what is not there. If it exists, run it. That is the whole of the session's role.
 
-Everything that can stop a chain is answered BY THE SCRIPT, freshly, on every invocation — never recalled from the card, never inferred by the session from the hand-off's prose:
+**And a stop is never the answer to Keel's own scaffolding being in a bad state (UNBREAKABLE).** This is the rule the whole section was missing, and its absence cost nine idle hours. The chain used to treat two situations identically that share no information at all: a missing hand-off resolved to "resume normally from `docs/PROGRESS.md`" and the session continued, while a hand-off two commits behind resolved to `VERDICT: STOP` and the chain died permanently. Both cases have exactly the same evidence available — nothing usable from the courier, everything from the committed state files — and this file already says which one is the authority, *in every case*. It even says the right thing about the failure, one section up: **"`STOP` costs the file its authority, not the session its work."** That sentence was written for the arriving session. The launcher never applied it.
 
-1. **`Handover:` on the hand-off it is about to launch.** Contract point 3: not `clean` → print the reason and the prompt, fire nothing. A string match on a header the session just wrote — no interpretation, no exception for a reason that "sounds minor," and critically, **not a check the session performs before deciding whether to call the script** — the script performs it.
-2. **The tier's gates, re-verified live, never recalled from the card:** the tool registry probe (contract points 4–5) re-detects the entrypoint and its VERIFIED tier on every run rather than trusting Phase 1's answer, and the script re-checks `command -v claude` before firing a `start` action (contract point 5a) rather than trusting the Phase 1 preflight — PATH changes, a script gets deleted, an allow-list entry gets reverted by a merge, all after the card was written. Any one missing → print, name which.
-3. `scripts/keel-continue` does not exist on this project — the session's one pre-check, above; the script never gets here.
-4. The launch receipt for this hand-off is already claimed, the lane is busy, or the circuit breaker has tripped — the script's own state (contract point 6).
+So the closed list splits in two, and which side a condition lands on is decided by one question: **is a capability missing, or is a Keel artifact in a bad state?**
 
-**Nothing else stops it, and the closed list is the point.** A note on the card, an uneasy feeling about an untested path, the fact that a window will appear on the user's screen — none of these are inputs the script reads, so none of them can stop it, and the session has no seat at this table to begin with. If the script printed instead of firing, the session states which of its lines said so, verbatim; it does not add a reason of its own.
+- **A missing CAPABILITY is terminal, and honestly so.** No `claude` on PATH, no VERIFIED action for the detected tool, no `scripts/keel-continue` to run — nothing can launch anything, and pretending otherwise would fire into the void. These print, name what is missing, and stop.
+- **A Keel artifact in a bad state DEGRADES and fires anyway.** The hand-off is the scaffolding, not the building. A stale, absent, unreadable or blocked hand-off does not stop the work; it loses its authority and the launch falls back to what was always the authority: `claude "Read docs/PROGRESS.md and continue"`. The script says in its output that it degraded and why, so the outcome is never mistaken for a normal fire.
+- **Identity and concurrency NEVER degrade.** Containment, `Repo:`, an already-claimed receipt, a busy lane, a tripped breaker. Working in the wrong checkout, or opening a second window on one hand-off, is worse than not working — those stay terminal without exception, and no future rule may soften them.
 
-**An unexercised mechanism is not a blocked one, and this is the failure that was measured.** A card carrying "the end-to-end chain has never actually fired on this project — the pieces are tested, the launch is not; the first real close that chains is its own evidence" was read as a prohibition and the close-out printed instead of running the script at all. The note says the opposite: it is a request for the next close to BE the evidence. Written on the card, an unexercised path is a fact about the project's history, never a veto — the only things that can veto are the four entries above, all mechanical, all inside the script, and "not yet exercised" is not among them. Where the distinction has to be made in prose elsewhere, say what is missing and what unblocks it, never a bare "unverified": a note that reads like a warning will be obeyed as one.
+The full list, and it is closed:
+
+| Condition | Verdict | What happens |
+|---|---|---|
+| Hand-off missing | **DEGRADE** | Fire on `docs/PROGRESS.md`. Already the documented behaviour for the arriving session; now the launcher's too |
+| Hand-off stale (`Commit`/`Tree`/`Generated` disagree) | **DEGRADE** | Same. The post-commit hook makes this nearly unreachable, and "nearly" is why the row exists |
+| Hand-off unreadable or malformed header | **DEGRADE** | Same. An unparseable courier is an absent courier |
+| `Handover: blocked` | **DEGRADE**, and notify | Fire on `PROGRESS.md` with the block named in the prompt, so the next session works what does NOT depend on it (SKILL.md, "Finish the queue" — a stop is scoped to the item, never to the session). The block itself goes out through the notification channel |
+| Containment fails / `Repo:` disagrees | **TERMINAL** | Wrong checkout or wrong repository. Print, never fire |
+| Tree dirty | **TERMINAL** | Uncommitted work exists; a second session on top of it is how work gets lost. Print and name the files |
+| `docs/PROGRESS.md` absent | **TERMINAL** | Nothing left to degrade TO. This is the one case where the fallback itself is missing |
+| No VERIFIED action for the detected tool | **TERMINAL** | Missing capability |
+| `claude` not on PATH (`start`) | **TERMINAL** | Missing capability. `scripts/keel-chain-check` catches this at session start, hours earlier |
+| `Chaining model:` absent from the card | **DEGRADE** | Fire without `--model` and say so. A model nobody chose beats nine hours of nothing; the card line is a Keel artifact, not a capability |
+| `scripts/keel-continue` absent | **TERMINAL** | The session prints; it never hand-composes a launch (measured: five windows). `keel-chain-check` catches it at session start |
+| Launch receipt already claimed | **TERMINAL** | This hand-off already fired. Degrading would open a second window |
+| Lane busy (not this hand-off's launcher) | **TERMINAL** | Real concurrency protection |
+| Circuit breaker tripped | **TERMINAL** | Real loop protection |
+
+**Every DEGRADE row still verifies identity first.** Degrading means dropping the freshness guarantee, never the "am I in the right place" guarantee — the launch still passes this repository's ABSOLUTE path, and containment and `Repo:` still have to pass. The residual risk is real and worth naming: a degraded chain starts from `docs/PROGRESS.md`'s recorded position rather than a hand-off's, so if PROGRESS.md is itself behind, the next session re-derives from a slightly older point. That costs minutes of rework. The alternative, measured, costs a night.
+
+**Nothing outside that table stops it, and the closed list is the point.** A note on the card, an uneasy feeling about an untested path, the fact that a window will appear on the user's screen — none of these are inputs the script reads, so none of them can stop it, and the session has no seat at this table to begin with. If the script printed instead of firing, the session states which of its lines said so, verbatim; it does not add a reason of its own.
+
+**An unexercised mechanism is not a blocked one, and this is the failure that was measured.** A card carrying "the end-to-end chain has never actually fired on this project — the pieces are tested, the launch is not; the first real close that chains is its own evidence" was read as a prohibition and the close-out printed instead of running the script at all. The note says the opposite: it is a request for the next close to BE the evidence. Written on the card, an unexercised path is a fact about the project's history, never a veto — the only things that can veto are the TERMINAL rows of the table above, all mechanical, all inside the script, and "not yet exercised" is not among them. Where the distinction has to be made in prose elsewhere, say what is missing and what unblocks it, never a bare "unverified": a note that reads like a warning will be obeyed as one.
 
 **And the close-out NEVER asks the user for permission to chain.** The card's `Chaining:` value IS that permission — asked at Phase 1 step 0a, in full, with the warning that `start` opens CLI sessions and removes the supervisor, and recorded in `docs/decisions.md`. Asking again at the close ("this will open a Terminal window on your Mac, shall I?") re-litigates a settled decision at the exact moment the user is least likely to be there to answer, which converts an automatic close into a stop. That a window becomes visible is not a new decision; it is what `start` means. The permission question was answered once and is not asked twice.
 
-**A stop is reserved for what cannot be gotten past, never for what could still be worked around.** This is the same principle that governs the rest of `Autonomy: automatic` — a session with buildable work left in its queue does not stop to ask, it works the queue (SKILL.md, "Finish the queue") — applied to the one moment at the very end of a session where it is easiest to forget: closing is not exempt from "automatic means the work does not wait for a person who is not there." The four entries above are exhaustive precisely because each names a case where nothing further CAN be done without the missing piece — a blocked hand-off, a missing gate, a missing script, a script that has already answered no. Anything short of one of those four resolves to continuing, whether the continuation is the next slice or the next chat, and a session that pauses to weigh whether this particular close feels different has already left the closed list — the list exists exactly so that question is never reached.
+**A stop is reserved for what cannot be gotten past, never for what could still be worked around.** This is the same principle that governs the rest of `Autonomy: automatic` — a session with buildable work left in its queue does not stop to ask, it works the queue (SKILL.md, "Finish the queue") — applied to the one moment at the very end of a session where it is easiest to forget: closing is not exempt from "automatic means the work does not wait for a person who is not there." The TERMINAL rows above are exhaustive precisely because each names a case where nothing further CAN be done, or where doing it would be worse than not: a missing capability, a wrong place, a second window. Everything else — including every way Keel's own scaffolding can be in a bad state — degrades instead, and anything short of a TERMINAL row resolves to continuing, whether the continuation is the next slice or the next chat, and a session that pauses to weigh whether this particular close feels different has already left the closed list — the list exists exactly so that question is never reached.
 
 #### The single-lane lock
 
@@ -426,24 +625,27 @@ So the launcher gets its own guard, and it is the simpler of the two because it 
 >
 > - `off` — every chat ends with the hand-off written and the prompt ready to copy. You decide when it continues.
 >
-> Recommended value: on `Autonomy: automatic`, the highest of `start` / `prefill` this project's gates allow; otherwise `off`.
+> - `supervised` — something OUTSIDE this project already continues the work: an external supervisor (SessionPort, for example), a scheduler, a CI runner, or a person. The hand-off is still written and still shown; Keel opens nothing, because a chat it opened would be a session your supervisor cannot see or stop. Tell me WHAT supervises it and it goes on the card in the same line.
+>
 > - `prefill` — the next chat opens with the instruction already typed; you press Enter.
 > - `start` — the next chat opens **and starts by itself**, without you touching anything.
+>
+> Recommended value: on `Autonomy: automatic`, the highest of `start` / `prefill` this project's gates allow; otherwise `off` — or `supervised` where something outside this project genuinely does the continuing, which is a fact about your setup rather than a preference.
 >
 > **If you choose `start`, that happens in the CLI, not in your editor.** It is the only verified way to automate the full cycle: the VS Code URI pre-fills and does not submit, and its handler accepts no parameter that changes this. Choosing `start` means development moves to command-line sessions.
 >
 > **And it means development advances with nobody watching.** Decide whether that is acceptable on this project before choosing it.
 
-**One follow-up question, asked in the same breath and only when the answer is not `off`: which model should every chained chat run on?** Record it as `Chaining model:` on the card. It is a real question and not a default to fill in silently, because it is the difference between a chain that runs on the model the user thinks it runs on and one that quietly runs on something else at a different price — **a new `claude` process inherits nothing from the one that launched it**, so an unstated model is not "the same as now", it is "whatever the settings file says". Propose the model the user is working with in this session as the value, say plainly that it will be used at every link until they change the card, and record what they answer.
+**One follow-up question, asked in the same breath and only when the answer is `prefill` or `start`: which model should every chained chat run on?** Record it as `Chaining model:` on the card. It is a real question and not a default to fill in silently, because it is the difference between a chain that runs on the model the user thinks it runs on and one that quietly runs on something else at a different price — **a new `claude` process inherits nothing from the one that launched it**, so an unstated model is not "the same as now", it is "whatever the settings file says". Propose the model the user is working with in this session as the value, say plainly that it will be used at every link until they change the card, and record what they answer.
 
-**The recommendation follows `Autonomy:`, it is not fixed.** On a project whose card says `Autonomy: automatic` the recommended value is the MAXIMUM tier the project's gates allow — `start` where the four requirements are met, `prefill` otherwise — because automatic mode means the work does not stop for a person who is not there, and a hand-off nobody opens is a stop. Outside automatic mode the recommendation is `off`. The gates never bend: a recommendation cannot promote `start` on a project that has not earned it, and the user can always answer `off`.
+**The recommendation follows `Autonomy:`, it is not fixed.** On a project whose card says `Autonomy: automatic` the recommended value is the MAXIMUM tier the project's gates allow — `start` where the four requirements are met, `prefill` otherwise — because automatic mode means the work does not stop for a person who is not there, and a hand-off nobody opens is a stop. Outside automatic mode the recommendation is `off`. **`supervised` is never a recommendation at all** — it is recorded when it is TRUE, whatever `Autonomy:` says, because it describes the project's setup rather than a preference about it; a project whose continuation genuinely comes from outside is `supervised` on an automatic card exactly as on a manual one. The gates never bend: a recommendation cannot promote `start` on a project that has not earned it, and the user can always answer `off`.
 
 Two reasons the warning is text the user reads and not a footnote. **It changes the tool, not just a setting** — someone working in VS Code who picks `start` expecting their editor to do something gets terminal windows instead, and that belongs before the choice, not after. **And it changes who supervises** — `off` and `prefill` keep a person between links; `start` removes the only participant who can notice that the chain has forked.
 
 Whatever the value:
 
 - **Chaining fires only on a clean hand-off** — but `blocked` describes the SESSION, not an item in it. A "When to stop and ask" row (SKILL.md), a failed test point, an open Design Request, or the three-attempt rule blocks the ITEM it fired on, and the hand-off is `blocked` only when that leaves the queue with nothing independent to do. Parked items with buildable work still in the queue are a `clean` hand-off that CARRIES them: the next session picks up the work and the parked list travels with it, in the hand-off's own open-items section, so nothing is lost by not stopping. Writing `blocked` because something is blocked — rather than because everything is — is the same error the item/session distinction exists to prevent, and here it costs the whole next session: nothing is opened, and the user comes back to a chain that stopped at a link that had somewhere to go. When the hand-off IS genuinely blocked, it says so with the reason and nothing is opened: chaining a blocked state hands the next session a problem dressed as an instruction, and the next session cannot tell the difference.
-- **Opening a window the user did not ask for takes over their screen**, so it is never done silently and never on `off`.
+- **Opening a window the user did not ask for takes over their screen**, so it is never done silently, never on `off`, and never on `supervised` — where it would also open a session the external supervisor cannot reach.
 - **An open action is a local convenience only.** It needs the tool running on the same machine as the repository, so it has no meaning in CI, in a cloud session, or anywhere the repo is not open locally. Where it does not apply, the file alone does the whole job — chaining is a convenience on top of the file, never a replacement for it.
 
 #### Whenever a chat cannot be opened, the prompt is shown to be copied (UNBREAKABLE)
@@ -475,7 +677,7 @@ The chaining action is a property of the TOOL, not of Keel, so the script detect
 | Claude Code, VS Code extension | `CLAUDECODE=1` **and** `CLAUDE_CODE_ENTRYPOINT=claude-vscode` | `vscode://anthropic.claude-code/open?prompt=…` — pre-fills, does NOT submit → `prefill` | **VERIFIED** on macOS: new tab opened, box pre-filled, no session file written until Enter |
 | Claude Code, CLI | `CLAUDECODE=1` **and** `CLAUDE_CODE_ENTRYPOINT` set to anything OTHER than `claude-vscode` (observed: `cli` when a person types the command, `sdk-cli` when another session launches it) | `osascript` driving Terminal.app on `cd '<ABSOLUTE repo root>' && claude --model <card's `Chaining model:`> '<prompt>'` — submits immediately; **the `cd` and the `--model` are both part of the action, not niceties** — a new process inherits neither the launcher's directory nor its model (see "The launch does not inherit the launcher's directory" and "nor its model" below) → `start` | **VERIFIED** on macOS: `sdk-cli` in Terminal.app, end to end in a scratch repo; `cli` in VS Code's integrated terminal |
 | Cursor | Marker not verified | `cursor://anysphere.cursor-deeplink/prompt?text=…`; its documentation states deeplinks never trigger automatic execution → would be `prefill` | **DOCUMENTED, UNTESTED** — no row is active until someone runs it |
-| Codex | Marker not verified | A positional prompt argument is documented; whether it submits or pre-fills is not | **DOCUMENTED, UNTESTED** |
+| Codex, CLI | Marker not verified — no documented equivalent of `CLAUDECODE=1` exists; OpenAI's own environment-variable reference names none reserved for "this process is running inside a Codex session" | `osascript` driving Terminal.app on `cd '<ABSOLUTE repo root>' && codex --cd '<ABSOLUTE repo root>' --model <card's `Chaining model:`> --ask-for-approval never --sandbox workspace-write '<prompt>'` — `--cd` is Codex's own documented working-directory flag, kept alongside the shell `cd` as the same belt-and-braces the CLI row already needed for its own directory bug (below); `--ask-for-approval never --sandbox workspace-write` is Codex's documented auto-approval pair, scoped to the workspace and never the sandbox-erasing `--dangerously-bypass-approvals-and-sandbox` (`--yolo`); a positional prompt argument is documented, whether it submits or only pre-fills the input box is not → `start` | **DOCUMENTED, UNTESTED** — no row is active until `--smoke` observes it firing |
 | Gemini CLI | Marker not verified | The documented prompt flags are headless mode — run and exit, i.e. submitting, not pre-filling | **DOCUMENTED, UNTESTED** |
 | GitHub Copilot, Windsurf | — | No documented mechanism for opening a chat with a prompt | **NONE FOUND** |
 | Anything unidentified — a cloud session, a web or desktop chat, CI, an unknown tool | No marker matches | — | Print |
@@ -501,12 +703,13 @@ Generated at the Phase 5 scaffold on projects whose card is not `Chaining: off`.
 The contract it must satisfy, whatever language it is written in:
 
 1. Resolve `REPO_ROOT` (`git rev-parse --show-toplevel`) and build the ABSOLUTE hand-off path from it. Never emit a relative path.
-2. **Verify before firing**, by running `scripts/keel-handoff-verify` — not by composing git commands. A `VERDICT: STOP` → print, do not chain. Firing first and verifying afterwards means the next session discovers it must stop only after it has launched and spent context, which is the wrong order — and under `start` there is no human in between to notice.
-3. A missing file, an unreadable or malformed header (treat it exactly like a missing file — a header that cannot be parsed cannot be trusted), or a `Handover:` that is not `clean` → **print the reason AND the prompt itself, marked as a blocked hand-off, and exit 0.** The prompt rule admits no exception: "whenever a chat cannot be opened, for ANY reason, the prompt is printed" includes this one. Refusing to chain and refusing to print are different things, and only the first is intended.
+2. **Verify before firing**, by running `scripts/keel-handoff-verify` — not by composing git commands. A `VERDICT: STOP` is read ROW BY ROW, never as a single verdict: an identity row (containment, `Repo:`) or a dirty tree is TERMINAL, a freshness row (`Commit`, `Tree` clean-vs-clean, `Generated`) DEGRADES per point 3. Collapsing the two was the measured failure — a hand-off two commits behind killed a chain for nine hours on a repository that was demonstrably the right one. Firing first and verifying afterwards means the next session discovers it must stop only after it has launched and spent context, which is the wrong order — and under `start` there is no human in between to notice.
+3. **A hand-off that is missing, stale, unreadable, or `blocked` does NOT stop the launch — it DEGRADES it** (see "What may stop a chain", the DEGRADE/TERMINAL table). The courier loses its authority; the work does not lose its continuation. Fire on the authority that was never in doubt: `claude "Read docs/PROGRESS.md and continue"`, with the block named in the prompt where `Handover:` was blocked, and print in the output that this was a degraded fire and which row caused it — so it is never mistaken for a normal one. Identity is still verified first and never degrades: containment and `Repo:` must pass, the tree must be clean, and `docs/PROGRESS.md` must exist, or the row is TERMINAL and the script prints instead. The prompt rule admits no exception either way: "whenever a chat cannot be opened, for ANY reason, the prompt is printed."
 4. Detect the tool by `CLAUDE_CODE_ENTRYPOINT` (or the equivalent marker recorded for that tool), matching `claude-vscode` by name and treating every other value as the CLI — never by enumerating the CLI's values, which the vendor extends. No match, or a match whose row is not VERIFIED → print and exit 0. This is a success, not a failure.
+4a. **The action fired is ALWAYS the DETECTED tool's own row — never a different tool's action substituted as a fallback or a default (UNBREAKABLE).** Point 4 already says an unmatched or unverified row prints rather than fires; this names the trap a generator falls into even having read that correctly: writing the Claude Code branch first because it is the only VERIFIED one, then wiring every other branch — or the absence of a match — to fall through to it "so chaining still does something." **Measured:** a project accepting both Claude Code and Codex had its `scripts/keel-continue` open a Claude Code Terminal window at the close of a CODEX session — the CLI row's action fired under a different tool's detection, launching a session in the tool the closing session was never running, while the closing session itself got neither a continuation in its own tool nor the printed prompt point 4 already promises. Printing is not a lesser outcome to route around; it is what point 4 already specifies for exactly this case, and it costs nothing a person cannot recover from by reading the prompt. Firing the wrong tool costs a second, unrequested chat window and a launch receipt claimed for a session nobody asked to open.
 5. A VERIFIED row whose action tier exceeds the card's `Chaining:` value → downgrade to what the card allows; never upgrade. **If the row has no action at the resulting tier, print** — downgrading never means substituting another tier's action. (The CLI row knows only `start`; on a card that says `prefill`, it prints.)
 5a. **Before firing a `start` action, re-check `command -v claude` live — never trust the Phase 1 preflight's recorded answer.** The card only proves the CLI was on PATH the day it was asked; PATH is a property of the shell the script happens to run in, and it changes between sessions, between terminals, and across a reinstall. Absent → print the prompt and say so by name, rather than firing `osascript` on a command that will fail inside the new Terminal window with nobody there to read the error. This is the same reasoning as re-detecting the tool tier on every run (point 4) applied to the one dependency Phase 1 can only ever have checked once.
-5b. **Pass `--model <card's `Chaining model:`>` on every `start` fire — never a bare `claude '<prompt>'`.** The launched process inherits nothing from this one, so an omitted flag is not "keep the current model", it is "resolve from settings" — and the result is a chain that works perfectly, on a model nobody chose, at a capability and a price nobody agreed to, and says nothing about it. Card line missing or `n/a` on a chaining project → print and name the absent line, rather than firing a launch whose model is a guess. **Never substitute the launching session's model for the card's value:** the card is the recorded decision; the session's model is an accident of how the user happened to start it.
+5b. **Pass `--model <card's `Chaining model:`>` on every `start` fire — never a bare `claude '<prompt>'`.** The launched process inherits nothing from this one, so an omitted flag is not "keep the current model", it is "resolve from settings" — and the result is a chain that works perfectly, on a model nobody chose, at a capability and a price nobody agreed to, and says nothing about it. Card line missing or `n/a` on a chaining project → **fire without `--model` and say so in the output** (a DEGRADE row, not a stop: a model nobody chose beats a chain that does not run), and name the absent line so it gets added. **Never substitute the launching session's model for the card's value:** the card is the recorded decision; the session's model is an accident of how the user happened to start it.
 6. **Claim the launch receipt atomically (`mkdir`), write this session's PID into it, and fire ONCE.** Receipt already present → this hand-off was already launched: print the prompt, exit 0, fire nothing. The PID goes in because the arriving session needs to recognise its own launcher (the baton, in "The single-lane lock"); it is written immediately after the claim, before firing, since a launcher that fires first and records afterwards can be dead before it records. On a non-zero exit, or on any uncertainty about whether a window appeared, fall back to printing — **never to firing again** (see "One launch per hand-off").
 6a. **Never build the Terminal command as an interpolated string. Write it to a real, executable script file (shebang + `chmod +x`) and have `do script` execute that file BY PATH.** `do script "<absolute path to a script file>"` needs no nested quoting in any layer — the string handed to Terminal is a bare path. An inline string built by embedding one shell command inside another inside an AppleScript string literal stacks three independent quoting dialects (the generating shell, AppleScript's string literal, the shell Terminal spawns to run what it receives) that do not compose safely, and a mismatch fails **silently**: `osascript` still exits 0 and a window still opens, but the new shell receives the literal, un-executed text instead of running the intended command. This is not achievable "carefully" with more escaping; it requires not nesting the layers at all. Measured, twice, on a real close-out (see `docs/keel-continue-launch-postmortem.md` if a project has one) — the interpolated form typed the raw multi-line prompt into the shell instead of running it.
 When that script file is created with `mktemp`, use a template with the `X` run as the **last characters and no suffix after it** (`mktemp "$TMPDIR/keel-continue-launch.XXXXXX"`, never `...XXXXXX.sh`) — the launch script needs no file extension to run; it already has a shebang and is `chmod +x`'d. BSD/macOS `mktemp` (the vendor-supplied one on macOS, no `--suffix` flag) does not recognise a literal suffix after the `X` run as a pattern at all — given one, it silently creates the literal, unsubstituted filename. The FIRST call succeeds, because nothing yet exists at that literal path; the SECOND call to the same template collides with the file the first one left and fails with `mkstemp failed: File exists`. A single test run will not catch this trap.
@@ -530,17 +733,301 @@ So the command handed to Terminal.app is `cd '<absolute repo root>' && claude --
 
 `scripts/keel-handoff-verify` is the sibling artifact, generated at the same scaffold: it runs the five mechanical checks and prints one line each plus `VERDICT: CONTINUE|STOP`. Portability is the same open question — the first prototype was BSD/macOS only (`stat -f`, `date -j`); the Linux/GNU forms (`stat -c`, `date -d`) and Windows are unwritten. A generated script that only runs on the machine that generated it is a check that cannot be run, so this is tracked as a real gap rather than a detail.
 
+#### `scripts/keel-close` — the close-out is executed, never recited (UNBREAKABLE)
+
+**The close-out is an eleven-step sequence a session walks by hand, at the end of a session, with the context nearly spent.** Those are the worst conditions in which anything follows a list, and it is the moment Keel chose to ask for the most procedural discipline it asks for anywhere. The result is the failure this skill keeps meeting from a new angle each time: the rule was written, it was emphatic, it was marked UNBREAKABLE, and it was skipped anyway.
+
+Measured, and it is the cleanest example there is: a session wrote the hand-off, kept working, committed twice more, and never regenerated it. The header pointed at `415eb73` while `HEAD` had moved to `9e4dffb`. `scripts/keel-continue` refused — correctly, that is exactly what the courier checks are for — and the chain never fired. **Nine hours of nothing**, from a rule that already existed and already said, in this same file, that a written-and-abandoned hand-off is worse than none.
+
+The answer is not a longer rule, and it is not a checklist for the session to tick. **A checklist a session walks and marks itself is the same class of artifact that just failed**, with more ceremony: it is a promise with boxes. The answer is the one this skill already applied to the courier checks — *a session never composes these itself* — finally applied to the close-out too.
+
+`scripts/keel-close` is generated at the Phase 5 scaffold on EVERY project (every project closes sprints and ends sessions; `Chaining:` only decides what the last step does). It runs the whole close in a fixed order, and **the session's role becomes one command**. It cannot skip a step, because it is not walking steps.
+
+The order is the contract, and it is the order for a reason — **every commit happens before the hand-off is written, never after**:
+
+1. **Confidential-data scan, then commit everything outstanding.** Nothing is left uncommitted, ever (SKILL.md, "Work never lives only on this machine").
+2. **`scripts/keel-verify`**, output captured. Non-zero → stop here and report; a sprint does not close broken.
+3. **Merge to the integration branch and push** — in automatic mode without asking, per the card's `Autonomy:`. Outside it, list what stays unpushed.
+4. **Write `docs/continuation-prompt.md`.** `Commit:` and `Tree:` come from `git rev-parse HEAD` and `git status --porcelain` **executed at the instant of writing** — never from a value the session read earlier, remembered, or carried in its context. This single rule removes half of the measured failure; the post-commit hook below removes the other half.
+5. **`scripts/keel-chain-check`**, output captured (diagnostic, never a veto).
+6. **`scripts/keel-continue`** when the card is `prefill`/`start`, relaying what it printed verbatim.
+7. **`scripts/keel-handoff-verify --release`**, on every path.
+
+Then it **prints what it did, step by step, with each step's evidence** — the verify output, the pushed refs, the hand-off's real `Commit:`, the check's verdict, the launcher's exact words. That printed list is the checklist, and it is the only kind worth having: **an output, produced by having done the work, rather than an input a session ticks from memory.** A step that did not run has no line, and a line that exists carries the command output that proves it.
+
+What it does NOT do is decide anything. It stops on `keel-verify` failing and on nothing else: it does not judge `Handover:`, it does not weigh whether to chain, it does not interpret `keel-chain-check`'s verdict. Those judgments live where they already live, and this script is what makes sure each of them is actually reached.
+
+**And the sprint-close bookkeeping stays the session's** — `docs/PROGRESS.md`, the sprint file, `docs/lessons-learned.md`, the issue sweep, the self-audit (`references/phase-5-development.md` §5 steps 2-10). Those are judgments and prose, not mechanics, and a script cannot write them. They run BEFORE `keel-close`, so their commits are among the commits step 1 makes. The division is exact: **the session writes what only a mind can write, then hands the mechanical tail to an executable.**
+
+One allow-list entry: `Bash(./scripts/keel-close:*)`.
+
+#### `scripts/keel-stop-hook` — the turn that just stops (UNBREAKABLE)
+
+`scripts/keel-close` and the whole chaining machinery share one assumption, and it is invisible
+until it fails: **they all describe a session that DECIDES it is finished.** The close-out contract,
+the launcher, the lane and the launch receipts are each reached by a session that has concluded its
+work and is closing out. A turn that simply ENDS — no decision, no close-out, no hand-off — passes
+through none of them.
+
+**Measured, and it is a different failure from the stale hand-off in `keel-close`.** On one project
+the launch receipts recorded not a single chain fire across a seventeen-hour window in which `git
+log` shows two full working sessions. The chain did not fail; **it was never asked to fire.** The
+sessions ended their turn, and the CLI then sits waiting for a person who is not there. Ten of those
+seventeen hours were dead, and every mechanism behaved exactly as designed throughout.
+
+So Keel generates a **`Stop` hook**, registered in the tool's own settings, that runs at every end of
+turn:
+
+1. **It blocks the stop when the repository is in a state this skill calls UNBREAKABLE-broken** —
+   uncommitted work, unpushed commits, or a hand-off that no longer describes `HEAD`. Those are not
+   judgments; they are three commands, and each block says which one fired and how to clear it.
+   **Where the checkout holds another live session, the first of the three CEDES instead of
+   blocking** — "The state it reads is the SESSION's" below.
+2. **Otherwise it blocks once more to say the queue is not empty**, so the default at the end of a
+   turn becomes "carry on" rather than "wait for a person". This is "Finish the queue" (SKILL.md)
+   given a mechanism instead of a paragraph. **It CEDES on the same condition rule 1 does, it is
+   DISCHARGED by a completed close-out, and the queue it counts is `docs/PROGRESS.md`'s `## Open
+   items` and nothing else** — "The state it reads is the SESSION's" below.
+3. **It never spins.** A block that produced no change in **what that block itself named** is the
+   last one, and there is a hard cap per hour. Both are read from recorded state, never from
+   optimism — a hook that can loop is worse than no hook. The fingerprint and the block log are
+   scoped to the SESSION; scoped to the repository, as they were in v5.15.0, both are defeated by a
+   second session's ordinary work. **Each rule declares its OWN fingerprint inputs and the
+   fingerprint contains those and nothing else** — a shared enumeration is the same defect one rule
+   to the right, and v5.15.1 shipped one (below).
+4. **When it does allow the stop, it hands the queue on before going quiet:** it runs
+   `scripts/keel-continue`, so a braked session becomes a fresh one rather than an idle window, and
+   then says out loud what happened through the recorded notification channel. **A brake on this
+   session is not a reason for the work to stop.** Firing here is safe because `keel-continue` is
+   idempotent per hand-off — its receipt, its circuit breaker and the lane are the guards, and the
+   hook adds none of its own.
+5. **Any internal error exits 0 and allows the stop.** A hook that can break a session is worse than
+   no hook at all, and this one runs on every single turn.
+
+**The state it reads is the SESSION's, never the directory's (UNBREAKABLE).** Rules 1 and 3 were
+written as facts about the REPOSITORY, and one checkout can hold two sessions — this skill says so
+itself, in the operating principle that forbids writing into a repository another session is working
+in (`SKILL.md`; `references/anti-patterns.md`, 12e). One half of the skill recognised the
+concurrency while the other defined the state as though it could not happen. Measured on a real
+project: session A was blocked by rule 1 naming two integration-test files that session B had
+modified eight seconds earlier and was still editing. Two consequences follow, and the second is the
+serious one.
+
+- **The remedy the block offers is the thing this skill forbids.** "Commit to `develop`" means
+  `git add -A` in a tree you did not author (12h): the blocked session is told to clear a mess it
+  cannot clear without committing somebody else's unfinished work under its own message.
+- **The anti-spin brake does not release it.** Rule 3's fingerprint was `sha256(HEAD + git status
+  --porcelain)` — the whole tree — so every save in the other session changed it and "this block
+  changed nothing" never came true. The blocked session stayed blocked until the hourly cap let it
+  go, eight turns later. **That is not a block that expires; it is a block renewed by somebody else's
+  work**, and a brake defeated by ordinary activity elsewhere in the tree is not a brake.
+
+The same root cause wears a second hat with the sign reversed: the block log
+(`stop-blocks-<repo-key>.log` in the user's state directory) was keyed by working directory, so two
+sessions shared one anti-spin history and one session's block could satisfy the OTHER's
+"nothing changed" test, releasing a stop that should have been blocked. One bug, two hats —
+**state keyed to the directory enforcing a duty that belongs to the session.**
+
+- **Before rule 1 blocks on uncommitted work, the hook establishes whether another session is live in
+  this checkout**, by the same two commands the write rule already requires — `git status
+  --porcelain` plus the modification times of what it lists, and `claude agents --json --cwd <path>`
+  where the CLI is available — and its own identity from `scripts/keel-session-pid.sh`.
+- **A porcelain line is not a path, and the mtime half of that probe must PARSE it (UNBREAKABLE).**
+  `git status --porcelain` prints a two-character status, a space, and then something that is only
+  sometimes a bare path: a rename is `R  old -> new`, and any path with a space, a quote or a
+  non-ASCII byte arrives QUOTED and C-escaped, `"tests/e2e/mi fichero.js"`. Taking the line from the
+  fourth character onward and stat-ing the result — the obvious reading, and the one v5.19.1's
+  generated hook shipped — hands `stat` the string `old -> new`, which is not a file, so the path is
+  skipped. **Skip every entry and the probe reports "nothing was touched recently", which is the
+  answer that DEFEATS the cede**: another session can be live and named, and the hook blocks anyway,
+  on a tree whose only dirty entries are renames. Measured: a session blocked on a single staged
+  rename under `tests/e2e/`, remedy "commit to `develop`", in a checkout it had not authored — 12m
+  again, reached through a parser instead of through a key. So the rule is mechanical: **split on
+  ` -> ` and keep the DESTINATION, then unquote and unescape a quoted path.** Verify it against a
+  rename and against a path with a space, both of which a fixture can produce in four commands.
+- **A path the probe cannot stat means NOT ESTABLISHED, and not "not recent".** A deletion leaves
+  nothing to stat, and so does a rename's source. Neither is evidence that the tree has been quiet;
+  it is the absence of evidence either way, and the two must not collapse into one. Where every
+  entry is unstattable the mtime half has ANSWERED NOTHING, and the hook says so rather than letting
+  silence pass for a measurement (12l) — the cede then rests on `claude agents` alone, which is the
+  half that can actually tell another session from this one.
+- **Another live session, and the uncommitted paths are not this session's to commit → the hook
+  CEDES: it ALLOWS the stop and says so**, naming the other session and why it ceded. A cede is
+  printed as a cede and never as a pass: an allow that reads like a clean bill is a green result
+  answering a different question (12l).
+- **Ceding drops no guarantee; it moves it to the session that can act.** The uncommitted work
+  belongs to a session carrying this same hook, which will be blocked by it on its own next turn and
+  can commit under its own message. What is given up is blocking the one participant who could not
+  have fixed it.
+- **The other two states of rule 1 block whether or not the hook cedes.** Unpushed commits and a
+  hand-off that no longer describes `HEAD` are facts about `HEAD`, and clearing either authors
+  nothing that is not already committed.
+- **The block log is keyed by repository AND session.**
+
+**Rule 2 cedes on the same condition, and v5.15.1 left it out (UNBREAKABLE).** v5.15.1 fixed rule 1
+and wrote the general rule as anti-pattern 12m — and did not apply it to the sibling rule three lines
+away. Measured on the next project that ran it: a session completed `scripts/keel-close` in full
+(commit, verify, push, hand-off, chain-check, `keel-continue` firing the successor, lane released),
+and was then blocked by rule 2 in a checkout that by then belonged to the successor, where this
+skill's own UNBREAKABLE write rule forbids it to touch anything. **A block whose remedy the blocked
+party is forbidden to perform is not a brake, it is a trap.** So rule 2 cedes exactly as rule 1 does:
+another live session in the checkout → ALLOW, printed as a cede, naming the session it ceded to.
+Rule 2's premise is "there is work left AND this session can do it", and in a checkout owned by
+somebody else the second half is false.
+
+**A completed close-out DISCHARGES the queue block, and the evidence is recorded state.** The remedy
+rule 2 offers is "run `scripts/keel-close`". When that has run to completion the hook can see it
+without trusting anyone: a launch receipt claimed for THIS hand-off carrying this session's
+`launcher-pid`, the lane released, and `scripts/keel-handoff-verify` returning `CONTINUE` on a
+hand-off that describes `HEAD`. **All three present → rule 2 allows, and says the remedy is
+discharged and by which receipt.** Any one missing → it blocks as before, because a partial close-out
+is exactly the case the hook exists for. This is not optimism and not "the session says it
+finished": it is the same recorded state the chain already trusts to decide whether to fire. **A
+block that cannot see its own remedy being performed punishes compliance** — and the session it
+punishes is the one that did everything right.
+
+**The queue is counted where the queue lives: `docs/PROGRESS.md`, section `## Open items`, and
+nothing else.** v5.15.1 never said where, so each generator invented it, and the one measured
+grepped the whole file: 28 items in a 4,000-line living document whose closed sprints carry the same
+markers — including a sprint closed minutes earlier. Historical bullets are a RECORD, not a queue.
+Items parked on the user do not count either: a stop is scoped to the item (SKILL.md), so an item
+waiting on a person is not work this session can finish, and counting it makes the person's silence
+into this session's block. **An unspecified check is a check each generator invents, and it will be
+invented differently every time** — which is why the section, the markers and the exclusion are named
+here rather than left to the scaffold.
+
+**Each rule's fingerprint contains its OWN inputs and nothing else — v5.15.1's enumeration was the
+bug.** That release said the fingerprint "covers only what the block itself named" and then listed a
+fixed set: `HEAD`, the unpushed count, the hand-off's identity, the paths listed. That list is the
+UNION of every rule's inputs, not any one rule's. Applied to a queue block it drags in `HEAD` and the
+hand-off's `Generated:`, both of which change at every commit and every hand-off rewrite — so the
+brake re-armed on the session's own ordinary progress, and on a real project, where the queue is
+never empty, every committing session was blocked at every stop indefinitely. **A fingerprint that
+includes inputs the block did not name is defeated by ordinary work**, which is v5.15.0's whole-tree
+fingerprint again, one rule to the right. Declared per rule:
+
+| Block | Its fingerprint covers |
+|---|---|
+| Rule 1 — uncommitted | the status entries for the paths THIS block listed |
+| Rule 1 — unpushed | the unpushed commit count and the upstream ref |
+| Rule 1 — stale hand-off | the hand-off's `Commit:` and `HEAD` |
+| Rule 2 — queue | the `## Open items` identifiers THIS block named |
+
+**Fixing an instance is not fixing the class.** v5.15.1 generalised its defect into 12m correctly and
+then shipped the same defect twice more in the same file, because a generalisation written into an
+anti-pattern does not travel to its siblings by itself. **The release that generalises a defect
+sweeps every instance of the class it can reach, and names where it looked** — SKILL.md carries this
+as an operating principle and `references/anti-patterns.md` as self-audit row 17e.
+
+**Concurrency is detected; authorship is never attributed.** Git records that a path changed and
+never who changed it, so mapping a working-tree path to a PID is a guess, and a guess shipped as a
+check is worse than the gap it fills. Whether a second session is live is a fact two commands
+establish; who touched a given file is not, and no amount of care makes it one.
+
+**A probe that cannot answer means "not established", and not-established BLOCKS.** That is the
+v5.15.0 behaviour preserved exactly — a lone session with a dirty tree still blocks — because a fix
+that turns an unanswered question into a licence to stop has replaced one silent failure with a
+quieter one. **Rule 5 is untouched:** an internal error still exits 0, there is still deliberately no
+`ERR` trap (read the comment that says why before touching that part), and a cede is a decision the
+hook prints on its normal path, not an error exit. The hourly cap and `stop_hook_active` are
+unchanged, and a cede never bypasses either.
+
+**The single lane is NOT this bug and must not be "fixed" alongside it.** It is keyed to the working
+directory on purpose and correctly: what it serialises is the tree being written to, and two
+worktrees of one repository are two legitimate lanes. The tell is never "keyed by directory" on its
+own — it is state keyed by directory while the duty it enforces belongs to one session.
+
+**Verified in both directions, and observed firing for real.** A guard taught to cede is one edit
+away from a guard that never blocks, and both directions fail silently: the tests assert that a dirty
+tree with another session live ALLOWS and says why, that a dirty tree with no other session still
+BLOCKS, that two sessions' block logs are independent, and that the cap and `stop_hook_active` still
+behave. Fixtures can describe two sessions; only a real turn proves the hook reads them — so the
+change is not done until the fixed hook has been seen firing after a session restart. Present,
+registered and unit-tested is still not firing. **Every rule that can block gets both directions,
+not only the one that was reported**: rule 2 asserts that a queue block cedes to a live session,
+that a completed close-out discharges it, that a session committing three times in a row is not
+re-blocked by its own commits, and — the direction that keeps the guarantee — that a lone session
+with a non-empty `## Open items` and no close-out still BLOCKS.
+
+#### `scripts/keel-session-pid.sh` — one answer to "who am I" (UNBREAKABLE)
+
+Every mechanism above that records or compares a session needs the same identity and needs it to be
+the same in every script: the single lane's owner, the launch receipt's `launcher-pid`, the baton,
+and now the stop hook's concurrency probe and its block-log key. It is one sourced file exposing one
+function, `keel_session_pid`, which derives this session's identity once from its own process — the
+PID together with that process's start time, so a reused number cannot impersonate a dead session —
+and returns it unchanged for the life of the process. Generated at the Phase 5 scaffold beside
+`scripts/keel-verify`, dependency-light, **sourced and never re-implemented inline**.
+
+On most projects this is not new work: wherever `scripts/keel-handoff-verify` and
+`scripts/keel-continue` already record a PID, they already compute it. What v5.15.1 adds is the
+NAME. A helper nobody names is a helper each caller re-derives slightly differently, and three
+slightly different answers to "who am I" is the failure this section describes, one level down.
+
+**It is not a second `keel-close`, and the division is exact.** `keel-close` is the mechanical tail a
+session runs when it has decided to finish; the stop hook is what covers the case where that decision
+never happens. One is called; the other fires. A project needs both, and neither substitutes for the
+other — which is why the stop hook checks the same three states rather than trusting that a close-out
+ran.
+
+**Which tools it is registered in — the contract is not the trigger (UNBREAKABLE).** The hook's
+OUTPUT is Claude Code's own `Stop`-hook JSON schema — `hookSpecificOutput` with
+`hookEventName: "Stop"` and `decision: "block"` — and that schema is NEVER changed to serve a
+different tool: rewriting it to satisfy one assistant breaks the one integration that is already
+proven. The script is registered ONLY where that exact schema is CONFIRMED against the target tool's
+own current documentation — today, that is Claude Code alone (`references/assistant-config.md`, the
+container matrix's "Stop hook" row). **Measured:** a project running both Claude Code and OpenAI
+Codex on the same repository had `.codex/hooks.json` pointed at the identical script; Codex does not
+accept Claude Code's schema, rejected it with "invalid stop hook JSON output," and ended the very
+turn the hook exists to keep open — while the session's underlying work was fine throughout, which is
+what made the failure look like something else at first. A `Stop`-style hook is invoked by the
+ASSISTANT ITSELF, so its accepted output is that assistant's own, sometimes undocumented, private
+contract; that is exactly what makes it UNLIKE `.githooks/pre-commit` (`references/assistant-config.md`),
+which is invoked by GIT and stays portable because its output only ever has to satisfy git, never the
+assistant running the session. A tool's turn-end hook TRIGGER existing is not evidence that its output
+contract is Claude Code's, or documented at all, or stable — Codex's own hooks are undocumented, and
+marked experimental where they can be found at all. So for every accepted tool other than Claude Code,
+this mechanism's cell in the container matrix is `—`, exactly like an allow-list cell with no
+committable equivalent — the DUTY does not disappear (a session working in that tool still watches for
+the turn simply ending, per SKILL.md's operating principles), only the automated brake does, until a
+dedicated adapter is written against that tool's OWN confirmed contract and shares this section's state
+reads rather than reusing Claude Code's output. **Never invent that adapter from inference** — a
+guessed schema can fail exactly the way the unguessed one just did, one layer down, and now silently.
+
+Generated at the Phase 5 scaffold on EVERY project, and registered as a `Stop` hook ONLY in the
+settings of tools whose own contract for it is CONFIRMED (paragraph above) — today,
+`.claude/settings.json` alone. It needs one allow-list entry: `Bash(./scripts/keel-stop-hook:*)`.
+
+
+#### The post-commit hook — a stale hand-off becomes impossible, not merely detected (UNBREAKABLE)
+
+Step 4 above fixes the hand-off written from a remembered commit. It does not fix the other half, and the other half is what actually cost the nine hours: **committing AFTER the hand-off was written.** No script step and no checklist can reach that, because the two events are separated by hours of ordinary work, and the rule to regenerate lives in prose a working session is not re-reading.
+
+So Keel generates `.githooks/post-commit`, on EVERY project, and it does one thing: **delete `docs/continuation-prompt.md` if it exists.** That is the whole hook.
+
+Therefore a hand-off that exists is, by construction, newer than the last commit — and `Commit:` cannot disagree with `HEAD`, because a disagreeing one cannot exist. The failure is not caught earlier; it is removed from the space of possible states.
+
+This is only acceptable because this file already says what an absent hand-off means, and says it as a normal outcome rather than an error: **"A missing file is not an error — it means resume normally from PROGRESS.md."** The committed state files are the authority in every case anyway; the hand-off was never more than a courier. The hook trades a file that is sometimes present and sometimes lying for one that is either present and true or honestly absent. **An absent hand-off costs a session one read of `docs/PROGRESS.md`. A lying one cost nine hours.**
+
+Three consequences worth stating, because each looks like a regression until it is followed through:
+
+- **Mid-sprint there is often no hand-off on disk.** The rule this replaces — regenerate at every commit point — asked for the same freshness and delivered it only when someone remembered. The hook delivers honesty unconditionally, which is strictly better than freshness delivered sometimes.
+- **The sprint-close guarantee is unchanged**, because `keel-close` writes the hand-off at step 4, after every commit in step 1 and every push in step 3. A close still always leaves a current hand-off on disk. That is precisely why the order in `keel-close` is fixed rather than suggested.
+- **A session that dies mid-work leaves no hand-off.** It also leaves committed work and a current `docs/PROGRESS.md`, which is what the next session reads first anyway. What it no longer leaves is a document that reads like an instruction and is actually a memory.
+
+`core.hooksPath` is therefore set on EVERY project at the scaffold, not only when the assistant-config package is accepted: the confidential-data `pre-commit` gate stays conditional on that package, but the hooks directory itself is unconditional, because this hook is.
+
 #### `scripts/keel-chain-check` — the chain is verified, never assumed (UNBREAKABLE)
 
 **Everything above this line is a contract that nothing executes.** `keel-continue` has a thirteen-entry numbered contract, `start` has four gates, the permission mode, the `env.PATH`, the allow-list entries and the lane each have their own rule — and until this script existed, the first thing that ever checked any of it was a real close-out, at the end of a session, with the context nearly spent and nobody watching. That is the worst possible test harness, and it is the one the chain shipped with. Every field failure of the chain has the same shape: a piece of the contract was silently unmet for days, and the mechanism reported it exactly once, at the moment it was least recoverable.
 
 This skill's own rule settles what to do about it: *a check that cannot be run is a promise, and this skill does not write promises as checks.* So the chaining contract becomes an executable, generated beside `keel-verify`, `keel-doctor` and `keel-handoff-verify`, with ONE allow-list entry — `Bash(./scripts/keel-chain-check:*)` — and one job: answer, before anything depends on it, whether this project can actually chain unattended right now.
 
-It writes nothing to the repository, changes nothing, and asks nothing. Output is one line per row plus a final `VERDICT: READY` / `VERDICT: NOT READY` / `VERDICT: N/A (Chaining: off)`, and every `NOT READY` row names the exact fix rather than the symptom. `--json` for the assistant to read structured, like the doctor.
+It writes nothing to the repository, changes nothing, and asks nothing. Output is one line per row plus a final `VERDICT: READY` / `VERDICT: NOT READY` / `VERDICT: N/A (Chaining: off)` — or `VERDICT: N/A (Chaining: supervised)`, which is the same success for the same reason, and every `NOT READY` row names the exact fix rather than the symptom. `--json` for the assistant to read structured, like the doctor.
 
-**Section A — structural rows, run in every mode, no window opened, under a second.** Twelve rows in total across A and B.
+**Section A — structural rows, run in every mode, no window opened, under a second.** Thirteen rows in total across A and B.
 
-1. **The card parses.** `Chaining:` and `Autonomy:` are read from `docs/PROGRESS.md`. `Chaining: off` → `VERDICT: N/A` and exit 0 immediately; there is no chain to check and this is a success. Missing or unparsable card line → NOT READY, because a chain running on a value nobody can read is the failure mode this whole file exists to prevent.
+1. **The card parses.** `Chaining:` and `Autonomy:` are read from `docs/PROGRESS.md`. `Chaining: off` — or `Chaining: supervised`, where continuation belongs to something outside this project — → `VERDICT: N/A` and exit 0 immediately; there is no chain to check and this is a success. Missing or unparsable card line → NOT READY, because a chain running on a value nobody can read is the failure mode this whole file exists to prevent.
 2. **`scripts/keel-continue` exists and is executable** (`[ -x ]`). This is the single most common cause of a close-out that prints instead of chaining, and it is one `test` away from being known days earlier instead of at the close.
 3. **`scripts/keel-handoff-verify` exists and is executable.** `keel-continue` point 2 runs it before firing; a chain whose verifier is absent cannot fire at all.
 4. **Both allow-list entries are present in every capable tool's permission container** — `Bash(./scripts/keel-handoff-verify:*)` and `Bash(./scripts/keel-continue:*)`. A missing entry does not fail loudly: it opens a permission dialog at the one moment there is nobody to answer it, which is a chain that hangs rather than a chain that stops, and the two look identical from outside.
@@ -554,11 +1041,12 @@ It writes nothing to the repository, changes nothing, and asks nothing. Output i
 9. **The single-lane lock is reachable**: its directory exists outside the repository, in the user's state dir, and is writable. A lane that cannot be taken blocks the arriving session, not the launcher, so the launcher reports success.
 10. **`keel-continue` does not carry any of the four measured launch bugs.** These are greppable properties of the generated script, not judgments, and each one is a real incident: the Terminal command is not built as an interpolated string (point 6a); no `mktemp` template carries a literal suffix after its `X` run (point 6a); `claude` is not handed `$(cat …)` of the hand-off (point 6b); `keel-handoff-verify` is invoked before the fire and `--release` immediately before it (points 2 and 7). A row here failing means the launcher will exit 0 while doing the wrong thing, which is the one failure no downstream check can catch.
 10a. **The launcher passes `--model`, and the card says which** (contract point 5b). Two greppable facts: `scripts/keel-continue` builds its `claude` invocation with an explicit `--model`, and the card's `Chaining model:` line exists with a real value. Either missing → NOT READY. This is the quietest failure the chain has: a bare `claude '<prompt>'` opens a window that works perfectly, on whatever model the settings resolve to, at a capability and a price nobody chose — and nothing anywhere reports it, because from the launcher's side nothing went wrong. Measured: every link of a chain came up on Sonnet while the session launching it was on Opus.
+10b. **The post-commit hook is installed and active, and any hand-off on disk matches `HEAD`.** Three facts: `.githooks/post-commit` exists and is executable, `git config core.hooksPath` points at that directory, and — if `docs/continuation-prompt.md` exists at all — its `Commit:` equals `git rev-parse HEAD`. The third is redundant while the hook is working, and that is the point: it is the assertion that proves the hook is doing its job rather than merely being present. A repository cloned fresh has no `core.hooksPath` (it is local config, not committed), so this row is also what catches the machine where every guarantee above quietly stopped applying.
 11. **The proof has not gone stale — `Chain verified:` matches the script on disk.** The card carries a `Chain verified:` line recording the date, the tier proven, the Keel version that proved it, and the **checksum of `scripts/keel-continue` at the moment of the proof**. The script's current checksum is compared against it. They differ, or the line is absent → NOT READY, with one instruction: run `scripts/keel-chain-check --smoke`. This row is the load-bearing one. Every other row proves the pieces are present and shaped correctly; only this row answers whether the launcher has ever been *observed* to work, and it invalidates that answer the instant anybody edits the launcher. **A launcher that changed since it was last proven is an unproven launcher**, however careful the change looked.
 
 **Section C — `--smoke`, the launch actually performed and read back.**
 
-Rows 1-11 are static analysis — they read files and grep scripts. `--smoke` is the only thing in Keel that proves the launch RUNS, and it exists because point 8 of the `keel-continue` contract is true and unfixable by any amount of reading: *a `start` action's own exit code proves a window opened, not that the intended command ran inside it.* The four bugs of the v5.10.3 incident all exited 0.
+Every row above is static analysis — it reads files and greps scripts. `--smoke` is the only thing in Keel that proves the launch RUNS, and it exists because point 8 of the `keel-continue` contract is true and unfixable by any amount of reading: *a `start` action's own exit code proves a window opened, not that the intended command ran inside it.* The four bugs of the v5.10.3 incident all exited 0.
 
 What `--smoke` does, in order:
 
@@ -708,7 +1196,7 @@ The project root carries the Keel block below in TWO files, always: `CLAUDE.md` 
 One tool needs a third step: **Gemini CLI reads `GEMINI.md`, not `AGENTS.md`, by default.** If the user works with Gemini CLI, ask once and record the pick: mirror the same block in `GEMINI.md` (a third copy of the lock, refreshed with the others), or commit a `.gemini/settings.json` whose `context.fileName` includes `AGENTS.md` (no third copy to maintain). Either satisfies the lock.
 
 ```
-<!-- KEEL:BEGIN — v5.13.0 do not remove: binds every AI/session in this repo to the Keel workflow -->
+<!-- KEEL:BEGIN — v5.19.2 do not remove: binds every AI/session in this repo to the Keel workflow -->
 # Keel protocol (mandatory for ANY assistant working in this repository)
 
 This project is governed by the Keel workflow. Before reading code or changing ANYTHING:
