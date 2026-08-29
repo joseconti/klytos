@@ -541,10 +541,19 @@ class PrivacyManager
      */
     private function anonymizeAuditLog( string $userId ): int
     {
-        $entries   = $this->storage->list( 'audit-log' );
-        $count     = 0;
+        // Keyed by the STORAGE id, which is the only identity these records
+        // have. The previous code rebuilt an id from the timestamp as
+        // `Ymd-His-0000` when the record carried no `id` field — which it never
+        // does — while real audit ids end in `randomHex(4)`. So the write landed
+        // on an id nothing was stored under: it CREATED AN ORPHAN holding the
+        // anonymised copy and left the original, with the username and IP of a
+        // person who had exercised their right to erasure, untouched. The count
+        // it returned was true about records written and false about anything
+        // being erased (D-115, `GdprAuditAnonymisationTest`).
+        $entries = $this->storage->listWithIds( 'audit-log' );
+        $count   = 0;
 
-        foreach ( $entries as $entry ) {
+        foreach ( $entries as $id => $entry ) {
             if ( ( $entry['user_id'] ?? '' ) !== $userId ) {
                 continue;
             }
@@ -553,12 +562,8 @@ class PrivacyManager
             $entry['ip_address'] = '0.0.0.0';
             $entry['user_id']    = null;
 
-            // Reconstruct the entry ID for writing back.
-            $entryId = $this->reconstructAuditEntryId( $entry );
-            if ( $entryId !== null ) {
-                $this->storage->write( 'audit-log', $entryId, $entry );
-                $count++;
-            }
+            $this->storage->write( 'audit-log', (string) $id, $entry );
+            $count++;
         }
 
         return $count;
@@ -572,21 +577,39 @@ class PrivacyManager
      */
     private function deleteFormSubmissions( string $email ): int
     {
-        $submissions = $this->storage->list( 'form-submissions' );
+        /*
+         * TWO defects met here, and only one of them is this change's to fix.
+         *
+         * FIXED: the id. It was read as `$submission['id']` behind a guard, so
+         * even over a populated collection nothing would have been deleted
+         * (D-115). It is now the storage id, like every other site in this sweep.
+         *
+         * NOT FIXED, AND ESCALATED: `form-submissions` HAS NO WRITER ANYWHERE IN
+         * THE PRODUCT. The Klytos Forms plugin stores entries in `form-entries`
+         * (`FormManager.php:36`); the only other references to this name are a
+         * config entry and an index map. So this loop iterates an empty
+         * collection and `eraseUserData()` reports the section as `deleted` with
+         * a count of zero — a GDPR erasure that has never erased anything and
+         * says it succeeded.
+         *
+         * The fix is NOT to point this at `form-entries`: core would then be
+         * hard-coding a plugin's private collection name, and the privacy system
+         * already has `privacy.erasable_data` for exactly this — a plugin should
+         * register and perform its own erasure. That is a product decision, so it
+         * is recorded in `docs/PROGRESS.md` open items rather than guessed here.
+         */
+        $submissions = $this->storage->listWithIds( 'form-submissions' );
         $count       = 0;
 
-        foreach ( $submissions as $submission ) {
+        foreach ( $submissions as $submissionId => $submission ) {
             $submissionEmail = $submission['email']
                 ?? $submission['data']['email']
                 ?? $submission['fields']['email']
                 ?? '';
 
             if ( strtolower( trim( $submissionEmail ) ) === strtolower( trim( $email ) ) ) {
-                $submissionId = $submission['id'] ?? '';
-                if ( $submissionId !== '' ) {
-                    $this->storage->delete( 'form-submissions', $submissionId );
-                    $count++;
-                }
+                $this->storage->delete( 'form-submissions', (string) $submissionId );
+                $count++;
             }
         }
 
@@ -629,35 +652,5 @@ class PrivacyManager
         }
 
         return $count;
-    }
-
-    /**
-     * Reconstruct an audit log entry ID from its data.
-     *
-     * Audit log entry IDs follow the format: YYYYMMDD-HHiiss-XXXX.
-     * The storage layer includes the ID in the data on read.
-     *
-     * @param  array $entry Log entry data.
-     * @return string|null Entry ID, or null if not reconstructable.
-     */
-    private function reconstructAuditEntryId( array $entry ): ?string
-    {
-        // The storage layer typically includes 'id' in the read data.
-        if ( !empty( $entry['id'] ) ) {
-            return $entry['id'];
-        }
-
-        // Fallback: reconstruct from timestamp (imperfect but matches AuditLog pattern).
-        $timestamp = $entry['timestamp'] ?? '';
-        if ( $timestamp === '' ) {
-            return null;
-        }
-
-        $time = strtotime( $timestamp );
-        if ( $time === false ) {
-            return null;
-        }
-
-        return klytos_gmdate( 'Ymd-His', $time ) . '-0000';
     }
 }

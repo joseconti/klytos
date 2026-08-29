@@ -152,19 +152,20 @@ class AuditLog
     public function prune(int $retentionDays = self::DEFAULT_RETENTION_DAYS): int
     {
         $cutoff  = klytos_gmdate( 'c', strtotime("-{$retentionDays} days") );
-        $entries = $this->storage->list(self::COLLECTION);
+        $entries = $this->storage->listWithIds(self::COLLECTION);
         $pruned  = 0;
 
-        foreach ($entries as $entry) {
+        foreach ($entries as $id => $entry) {
             $entryTime = $entry['timestamp'] ?? '';
-            if (!empty($entryTime) && $entryTime < $cutoff) {
-                // Reconstruct the entry ID to delete it.
-                // The entry ID is embedded in the storage key.
-                $entryId = $this->reconstructEntryId($entry);
-                if ($entryId !== null) {
-                    $this->storage->delete(self::COLLECTION, $entryId);
-                    $pruned++;
-                }
+
+            // An undated entry is KEPT: retention decides what to destroy, and
+            // its unknown case must fail towards keeping the record.
+            if (empty($entryTime) || $entryTime >= $cutoff) {
+                continue;
+            }
+
+            if ($this->storage->delete(self::COLLECTION, (string) $id)) {
+                $pruned++;
             }
         }
 
@@ -196,33 +197,5 @@ class AuditLog
         }
 
         return $remoteAddr;
-    }
-
-    /**
-     * Reconstruct an entry ID from its data for deletion.
-     *
-     * Since entry IDs contain timestamps, we can approximate the ID from the entry data.
-     * This is an imperfect match — in practice, the storage layer handles this.
-     *
-     * @param  array $entry Log entry data.
-     * @return string|null Reconstructed entry ID, or null if not possible.
-     */
-    private function reconstructEntryId(array $entry): ?string
-    {
-        // The entry ID format is: YYYYMMDD-HHiiss-XXXX
-        // We can search by timestamp prefix in the storage.
-        $timestamp = $entry['timestamp'] ?? '';
-        if (empty($timestamp)) {
-            return null;
-        }
-
-        // Convert ISO timestamp to entry ID format.
-        $date = klytos_gmdate( 'Ymd-His', klytos_datetime_to_timestamp( $timestamp ) );
-
-        // Search for entries matching this timestamp prefix.
-        $entries = $this->storage->search(self::COLLECTION, $date, ['timestamp']);
-
-        // Return the first match (there should only be one per exact timestamp).
-        return !empty($entries) ? ($entries[0]['id'] ?? null) : null;
     }
 }

@@ -65,6 +65,33 @@ interface StorageInterface
     public function list(string $collection, array $filters = [], int $limit = 0, int $offset = 0): array;
 
     /**
+     * List records in a collection KEYED BY THEIR STORAGE ID.
+     *
+     * `list()` returns records only, which means a caller cannot act on a record
+     * it has just read: it has the data and no way back to the identity. That is
+     * not a theoretical gap. `AnalyticsManager::prune()` worked around it by
+     * reading `$entry['id']` — a field the analytics writer never stored — so
+     * `delete( 'analytics', '' )` threw, the daily retention cron failed every
+     * night into `error_log`, and the 90-day retention Klytos promises had never
+     * once run when this was found (D-115).
+     *
+     * The id is the storage KEY, so it always exists and needs no migration:
+     * records already written on live installs become deletable the moment a
+     * caller asks for them this way.
+     *
+     * Implementations MUST derive `list()` from this method rather than
+     * traversing twice — one traversal, two views — so the two cannot answer
+     * differently about the same collection.
+     *
+     * @param  string $collection Collection name.
+     * @param  array  $filters    Optional key-value filters applied to decrypted data.
+     * @param  int    $limit      Maximum records to return (0 = no limit).
+     * @param  int    $offset     Number of records to skip.
+     * @return array<string,array> Decrypted records, keyed by storage id.
+     */
+    public function listWithIds(string $collection, array $filters = [], int $limit = 0, int $offset = 0): array;
+
+    /**
      * Count records in a collection.
      *
      * @param  string $collection Collection name.

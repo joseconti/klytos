@@ -250,6 +250,29 @@ class FileStorage implements StorageInterface
      */
     public function list(string $collection, array $filters = [], int $limit = 0, int $offset = 0): array
     {
+        // ONE traversal, two views. `list()` is the id-less view of
+        // `listWithIds()` and never walks the directory itself, so the two can
+        // never answer differently about the same collection — which is the
+        // whole reason the id was recoverable in one and not the other (D-115).
+        return array_values($this->listWithIds($collection, $filters, $limit, $offset));
+    }
+
+    /**
+     * List records in a collection keyed by their storage id.
+     *
+     * The id is the FILENAME minus its extension, so it is always available and
+     * needs no migration: records already on disk become deletable the moment a
+     * caller asks for them this way. See `StorageInterface::listWithIds()` for
+     * why this exists.
+     *
+     * @param  string $collection Collection name.
+     * @param  array  $filters    Key-value pairs to match.
+     * @param  int    $limit      Maximum records to return (0 = unlimited).
+     * @param  int    $offset     Number of records to skip.
+     * @return array<string,array> Decrypted records, keyed by storage id.
+     */
+    public function listWithIds(string $collection, array $filters = [], int $limit = 0, int $offset = 0): array
+    {
         $dir = $this->dataDir . '/' . $this->sanitizeName($collection);
 
         if (!is_dir($dir)) {
@@ -264,6 +287,11 @@ class FileStorage implements StorageInterface
         if ($files === false) {
             return [];
         }
+
+        // A stable order is part of the contract: pagination over an order the
+        // filesystem chooses is not pagination. `glob()` sorts already; the
+        // merge of the two patterns does not, so it is re-sorted here.
+        sort($files);
 
         $records = [];
 
@@ -289,7 +317,16 @@ class FileStorage implements StorageInterface
                     continue;
                 }
 
-                $records[] = $record;
+                // The id is the basename without its extension — `.json.enc`
+                // first, because `.enc` alone would leave a trailing `.json`.
+                $id = basename($file);
+                if (str_ends_with($id, '.json.enc')) {
+                    $id = substr($id, 0, -strlen('.json.enc'));
+                } elseif (str_ends_with($id, '.json')) {
+                    $id = substr($id, 0, -strlen('.json'));
+                }
+
+                $records[$id] = $record;
             } catch (\RuntimeException $e) {
                 // Skip corrupted or unreadable files.
                 error_log("Klytos FileStorage: skipping corrupted file {$file}: " . $e->getMessage());
@@ -297,13 +334,14 @@ class FileStorage implements StorageInterface
             }
         }
 
-        // Apply pagination.
+        // Apply pagination. `true` preserves the keys, which are the ids — the
+        // one thing this method exists to carry.
         if ($offset > 0) {
-            $records = array_slice($records, $offset);
+            $records = array_slice($records, $offset, null, true);
         }
 
         if ($limit > 0) {
-            $records = array_slice($records, 0, $limit);
+            $records = array_slice($records, 0, $limit, true);
         }
 
         return $records;

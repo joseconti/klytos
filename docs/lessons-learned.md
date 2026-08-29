@@ -1899,3 +1899,44 @@ was not followed. Two mechanical consequences, adopted here:
 **And the smaller shape inside it:** ticking a row means walking that row. Where
 the walk is genuinely owed, the honest ledger value is `◐` with a note naming
 what is missing — which is what all five re-walked rows now carry.
+
+---
+
+## L-050 — A contract that returns data without identity makes every caller invent one, and six of them invented it wrong
+
+**When:** 2026-08-29, taken out of Phase 4 stage 7 by the user's instruction to fix it at the architectural level — D-115.
+
+**What happened.** `StorageInterface::list()` returned records and not the ids they were stored
+under. Nothing in the interface said a caller could not act on what it had just read, and nothing
+said it could either. Fourteen managers quietly compensated by writing an `'id'` field into the
+record; six did not, and every one of those that then looped list-then-delete was broken. One of them
+made a single-use login link replayable for its whole lifetime. Another turned a GDPR erasure into a
+routine that wrote a decoy record and kept the personal data.
+
+**Why nobody saw it for the life of the product.** The failure mode differed by backend. On the file
+backend the empty id reached `sanitizeId()` and **threw**; on the database backend it became
+`DELETE … WHERE id = ''`, matched nothing and returned `false` in silence. And six of the seven sites
+had already written a defensive `?? ''` or `if ( $id )` — so the guard that looked like care was the
+thing that converted a loud crash into a silent no-op. **The one instance that was ever going to be
+noticed was the only one somebody had forgotten to guard.**
+
+**The rule.** When a read contract hands back data whose identity the caller will need, the contract
+returns the identity too — or every caller reconstructs it, and reconstruction is guessing. Watch for
+the tell: a helper named `reconstruct*Id()`, or a `?? ''` on an id, is a caller compensating for a
+contract that under-delivers. Both helpers found here were deleted rather than fixed, because a
+private method that teaches the technique is how the next site gets written.
+
+**And the mechanical half, which is what actually closes the class.** It is not enough to add the
+richer method: `list()` is now DERIVED from `listWithIds()` — one traversal, two views — and a test
+asserts the two agree across filters, limits and offsets. The two used to be separate traversals,
+which is exactly how one could recover an id and the other could not. A second implementation of the
+same rule is free to drift; a derivation is not.
+
+**A second lesson rode along, about reaching code from the wrong tier.** `PrivacyManager` builds
+user-facing strings through `__()`, which the App declares INSIDE the `Klytos\Core` namespace and
+only after booting. Stubbing it in `tests/bootstrap.php` looked like the cheap way to unit-test the
+erasure. It is not: `bootI18n()` guards its own declaration with `function_exists( '__' )`, so the
+stub won the race and **silently stripped the integration tier of every translation** — three tests
+broke, and one of them was the test that exists to pin that namespaced declaration. **A test that
+needs a booted App belongs in the tier that boots one.** Faking the environment to move a test down a
+tier changes the environment for every test above it.

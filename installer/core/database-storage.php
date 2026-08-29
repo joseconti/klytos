@@ -336,6 +336,23 @@ class DatabaseStorage implements StorageInterface
      */
     public function list(string $collection, array $filters = [], int $limit = 0, int $offset = 0): array
     {
+        // ONE traversal, two views — see FileStorage::list() and
+        // StorageInterface::listWithIds(). `list()` never queries on its own, so
+        // the two cannot answer differently about the same collection (D-115).
+        return array_values($this->listWithIds($collection, $filters, $limit, $offset));
+    }
+
+    /**
+     * List records in a collection keyed by their storage id.
+     *
+     * @param  string $collection Collection name.
+     * @param  array  $filters    Key-value pairs to match.
+     * @param  int    $limit      Maximum records to return (0 = unlimited).
+     * @param  int    $offset     Number of records to skip.
+     * @return array<string,array> Decrypted records, keyed by storage id.
+     */
+    public function listWithIds(string $collection, array $filters = [], int $limit = 0, int $offset = 0): array
+    {
         $table = $this->tableName($collection);
         $pdo   = $this->getPdo();
 
@@ -359,7 +376,17 @@ class DatabaseStorage implements StorageInterface
         }
 
         // Build SQL query.
-        $sql = "SELECT `data` FROM `{$table}`";
+        //
+        // `id` is SELECTed, and it is not only for the key this method returns:
+        // `shouldEncrypt()` below decides PER RECORD for `config` (ids `tokens`,
+        // `app_passwords`, `oauth_clients`, `site`, `theme`, `menus`,
+        // `templates`, `post_types` — encryption-level-trait.php:53, :80). This
+        // query used to fetch `data` alone, so that call received `''`, answered
+        // "not encrypted" for every one of them, and `json_decode()` on
+        // ciphertext returned null — which the loop below skips with `continue`.
+        // On the MySQL backend those records were SILENTLY MISSING from every
+        // list() (D-115).
+        $sql = "SELECT `id`, `data` FROM `{$table}`";
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
@@ -415,7 +442,7 @@ class DatabaseStorage implements StorageInterface
                     }
                 }
 
-                $records[] = $record;
+                $records[(string) $row['id']] = $record;
             } catch (\RuntimeException $e) {
                 // Skip corrupted records.
                 error_log("Klytos DatabaseStorage: corrupted record in {$table}: " . $e->getMessage());
@@ -423,13 +450,14 @@ class DatabaseStorage implements StorageInterface
             }
         }
 
-        // Apply pagination for memory-filtered results.
+        // Apply pagination for memory-filtered results. `true` preserves the
+        // keys, which are the ids — the one thing this method exists to carry.
         if (!empty($memFilters)) {
             if ($offset > 0) {
-                $records = array_slice($records, $offset);
+                $records = array_slice($records, $offset, null, true);
             }
             if ($limit > 0) {
-                $records = array_slice($records, 0, $limit);
+                $records = array_slice($records, 0, $limit, true);
             }
         }
 

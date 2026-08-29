@@ -383,14 +383,15 @@ class TwoFactor
      */
     public function cleanupMagicLinks(): void
     {
-        $links = $this->storage->list(self::MAGIC_LINKS_COLLECTION);
+        // Keyed by the STORAGE id. It used to read `$link['id']`, which
+        // `createMagicLink()` never writes, so the `if ( $id )` guard was always
+        // false and expired links were never purged — they simply accumulated
+        // (D-115).
+        $links = $this->storage->listWithIds(self::MAGIC_LINKS_COLLECTION);
 
-        foreach ($links as $link) {
-            if ($link['used'] || strtotime($link['expires_at'] ?? '2000-01-01') < time()) {
-                $id = $link['id'] ?? null;
-                if ($id) {
-                    $this->storage->delete(self::MAGIC_LINKS_COLLECTION, $id);
-                }
+        foreach ($links as $id => $link) {
+            if (($link['used'] ?? false) || strtotime($link['expires_at'] ?? '2000-01-01') < time()) {
+                $this->storage->delete(self::MAGIC_LINKS_COLLECTION, (string) $id);
             }
         }
     }
@@ -1026,14 +1027,22 @@ class TwoFactor
      */
     private function markMagicLinkUsed(string $tokenHash): void
     {
-        $links = $this->storage->list(self::MAGIC_LINKS_COLLECTION);
-        foreach ($links as $link) {
+        // Keyed by the STORAGE id, and the write is no longer behind a guard
+        // that could never open.
+        //
+        // THIS WAS AN AUTHENTICATION DEFECT. It used to read `$link['id']`,
+        // which `createMagicLink()` never writes, so `if ( $id )` was always
+        // false and the write never ran. `used` stayed `false` for ever, and
+        // `verifyMagicLink()` skips a link only when `used` is true — so a
+        // single-use magic login link verified over and over for its whole
+        // ten-minute lifetime. Proven by `MagicLinkSingleUseTest`, which was
+        // seen failing on the replay before this line changed (D-115).
+        $links = $this->storage->listWithIds(self::MAGIC_LINKS_COLLECTION);
+
+        foreach ($links as $id => $link) {
             if (hash_equals($link['hash'] ?? '', $tokenHash)) {
                 $link['used'] = true;
-                $id = $link['id'] ?? null;
-                if ($id) {
-                    $this->storage->write(self::MAGIC_LINKS_COLLECTION, $id, $link);
-                }
+                $this->storage->write(self::MAGIC_LINKS_COLLECTION, (string) $id, $link);
                 return;
             }
         }

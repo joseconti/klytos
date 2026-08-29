@@ -69,6 +69,14 @@ class ProfilingStorage implements StorageInterface
         return $result;
     }
 
+    public function listWithIds( string $collection, array $filters = [], int $limit = 0, int $offset = 0 ): array
+    {
+        $start  = microtime( true );
+        $result = $this->inner->listWithIds( $collection, $filters, $limit, $offset );
+        $this->devBar->logStorageOp( 'listWithIds', $collection, microtime( true ) - $start );
+        return $result;
+    }
+
     public function count( string $collection, array $filters = [] ): int
     {
         $start  = microtime( true );

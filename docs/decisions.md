@@ -2979,3 +2979,114 @@ already existed on entries 44 and 18.
 PHP **420 / 2043**, 0 skips (was 401/1936) · browser tier **43 passing** · `keel-verify` **23 checks:
 17 pass, 6 warnings** · lint clean on all five touched PHP files · catalogue parity **PASS at 1537
 keys** in all 20.
+
+---
+
+## D-115 — `StorageInterface` gains `listWithIds()`, and seven silent failures close with it — including an auth replay and a GDPR erasure that erased nothing
+
+**Date:** 2026-08-29 · **Cross-cutting core/storage change, taken out of stage 7 deliberately** · Supersedes nothing.
+
+**Authorised by the user in the conversation** — "hazlo como creas que es mejor por toda la
+arquitectura" — after D-114 escalated the analytics retention defect rather than patching it inside
+a screen slice.
+
+### The root, and why it was never one bug
+
+`StorageInterface::list()` returned records and **not identity**: `FileStorage` built `$records[]`
+from filenames it then threw away, and `DatabaseStorage` ran `SELECT \`data\`` without the id column
+at all. So a caller could read a record and have no way back to the id it needed in order to write
+or delete it.
+
+Fourteen managers compensated by storing an `'id'` field inside the record. **Six did not**, and
+every one of those that also looped list-then-delete was broken. The correlation is exact: no
+manager that stores its id is broken, and no manager that omits it and loops is sound.
+
+**The failure mode differed by backend, which is why none of it was ever noticed.** On `FileStorage`
+the empty id reaches `sanitizeId()` and **throws**; on `DatabaseStorage` it becomes
+`DELETE … WHERE id = ''`, matches nothing and returns `false` **in silence**. Six of the seven sites
+had written a `?? ''` or `if ( $id )` guard, which converted the crash into silence on both.
+
+### The seven, and what each was really costing
+
+| # | Site | What it actually did |
+|---|---|---|
+| **B5** | `TwoFactor::markMagicLinkUsed()` | **AUTHENTICATION DEFECT.** The write marking a link used never ran, so `used` stayed `false` and `verifyMagicLink()` accepted the SAME single-use login link over and over for its full ten-minute lifetime |
+| **B3** | `PrivacyManager::anonymizeAuditLog()` | **GDPR erasure that erased nothing.** The id was rebuilt as `Ymd-His-0000` where real ids end in `randomHex(4)`, so the write created a NEW orphan holding the anonymised copy and left the original — username and IP of a person who had exercised their right to erasure — untouched. It then reported a count |
+| **B1** | `AnalyticsManager::prune()` | The daily `klytos.analytics_prune` cron **threw every night** into `error_log`; the 90-day retention had never once run |
+| **B2** | `AuditLog::prune()` | Deleted **nothing, silently, forever**. Doubly broken: `reconstructEntryId()` also searched a `Ymd-His` string against a timestamp `Helpers::now()` writes in ISO-8601, so it could never have matched either |
+| **B4** | `TwoFactor::cleanupMagicLinks()` | Expired magic links were never purged; they accumulated |
+| **B6** | `terminal-executor.php` `cache:clear` | Never cleared a single rate-limit record |
+| **B7** | `PrivacyManager::deleteFormSubmissions()` | id half fixed; **the collection half is escalated, not guessed** — see below |
+
+### The fix, and why it is a contract and not seven patches
+
+**`StorageInterface::listWithIds()`** — records keyed by their storage id. The id is the storage
+KEY, so it always exists and **needs no migration**: records already written on live installs became
+deletable the moment a caller asked for them this way. An `'id'`-field convention could not have
+done that, because the records most in need of pruning are exactly the ones already stored without
+one.
+
+**And `list()` is now DERIVED from it** — `array_values( listWithIds( … ) )` — in both real backends.
+One traversal, two views. That is the part that closes the class rather than the instances: the two
+used to be separate traversals, which is precisely how one could recover an id and the other could
+not. `StorageListWithIdsTest::testListIsExactlyListWithIdsWithoutTheKeys()` asserts they agree
+across filters, limits and offsets, so a future divergence fails a test instead of shipping.
+
+### A SECOND defect found in the storage layer, same root
+
+`DatabaseStorage::list()` called `shouldEncrypt( $collection, $row['id'] ?? '' )` while its SELECT
+fetched only `data` — so that call always received `''`. Encryption is decided **per record** for
+`config` (ids `tokens`, `app_passwords`, `oauth_clients`, `site`, `theme`, `menus`, `templates`,
+`post_types` — `encryption-level-trait.php:53`, `:80`), verified directly:
+
+```
+shouldEncrypt("config", "")       = false
+shouldEncrypt("config", "tokens") = true
+```
+
+So on the MySQL backend those records were read as plaintext, `json_decode()` returned null on
+ciphertext, and the loop's `continue` **silently dropped them from every `list()`**. Fixed by the
+same change: the SELECT now carries the id.
+
+### What is proven and what is NOT
+
+- **Proven, red then green:** B1 (`AnalyticsRetentionTest`, red = `InvalidArgumentException: Invalid
+  record ID: ''`), B5 (`MagicLinkSingleUseTest`, red = `THE REPLAY: … Failed asserting that true is
+  false`), B3 (`GdprAuditAnonymisationTest`, red re-observed in the integration tier on a planted
+  defect: `'20260829-185936-0000' ends not with "-0000"`, then restored byte-identical), and the new
+  contract (`StorageListWithIdsTest`, 6 tests).
+- **⚠ VERIFY — the `DatabaseStorage` half is UNPROVEN.** This project has **no DatabaseStorage tests
+  at all** and no MySQL in the doctor's requirements, which is precisely why the `SELECT data` defect
+  survived. The change is correct by reading and by the `shouldEncrypt` values above; it has not been
+  executed against a real MySQL. Steps to close it: stand up MySQL, point the playground at the
+  database backend, and run the suite plus a `list('config')` over a per-id-encrypted record.
+
+### Two things deliberately NOT done
+
+1. **`form-submissions` has no writer anywhere in the product.** Klytos Forms stores entries in
+   `form-entries`; the only other references are a config entry and an index map. Pointing core at
+   the plugin's collection would hard-code a plugin's private name into core when
+   `privacy.erasable_data` exists for exactly this. **A product decision, recorded in
+   `docs/PROGRESS.md` open items, not guessed here.**
+2. **`reconstructEntryId()` and `reconstructAuditEntryId()` were REMOVED, not left dead.** Both
+   documented a technique this change exists to abolish, and the second one's docblock asserted
+   something about the storage layer that was never true.
+
+### A process cost worth recording
+
+Reaching `PrivacyManager` from the unit tier needed `__()`, which `App::registerI18nGlobal()`
+declares **inside the `Klytos\Core` namespace** and only once an App has booted. A stub in
+`tests/bootstrap.php` looked like the cheap way in and was not: `bootI18n()` guards its declaration
+with `function_exists( '__' )`, so a global stub won the race and **silently stripped the integration
+tier of its translations** — measured, three tests broke, one of them the very test that pins the
+namespaced declaration. The stub was reverted and the test moved to the tier that boots an App.
+**Recorded as L-050.**
+
+**Files:** `installer/core/storage-interface.php`, `file-storage.php`, `database-storage.php`,
+`profiling-storage.php`, `analytics-manager.php`, `audit-log.php`, `privacy-manager.php`,
+`two-factor.php`, `terminal-executor.php`; `tests/Unit/AnalyticsRetentionTest.php`,
+`tests/Unit/MagicLinkSingleUseTest.php`, `tests/Unit/StorageListWithIdsTest.php`,
+`tests/Integration/GdprAuditAnonymisationTest.php`; `docs/threat-model.md` (**D21, D22, D23**).
+
+PHP **420 / 2043 → 437 / 2091**, 0 skips · lint clean on all nine touched core files, D-025 baseline
+unchanged (the one remaining warning is a pre-existing 178-character CSS string).

@@ -1628,20 +1628,27 @@
 > section states where the project IS; `docs/history.md` says how it got here.
 
 ## Open items
-- **ESCALATED, NOT FIXED — `AnalyticsManager::prune()` throws, and the 90-day analytics retention
-  has never run (found 2026-08-29, D-114).** `prune()` deletes with `$entry['id'] ?? ''` and
-  `recordPageView()` never writes an `id`, so `delete( 'analytics', '' )` raises
-  `InvalidArgumentException: Invalid record ID: ''`. `CronManager` registers
-  `klytos.analytics_prune` at 86400s calling `prune( 90 )` (`cron-manager.php:164-167`, `:333`,
-  `:351-354`), so **on any install holding data past the retention window that daily job fatals**
-  and the retention the engine's own header promises has never executed. **The root is deeper than
-  the missing field:** `StorageInterface::list()` returns `$records[]` with the ids discarded
-  (`file-storage.php:268-296`), so nothing that reads it can delete a specific record — a
-  storage-contract question, not a screen fix. Escalated per Keel's "looks like a security problem"
-  rule rather than widened into a screen slice; it is a privacy failure on a GDPR-facing promise.
-  **Its fix starts from a failing reproduction test**, and it wants deciding whether `list()` gains
-  an id-preserving sibling or every writer starts storing its own id.
-- Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
+- **THE STORAGE-IDENTITY DEFECT CLASS IS CLOSED — 2026-08-29 (D-115, L-050).** What D-114 escalated
+  as one broken pruner was **seven silent failures sharing one root**: `StorageInterface::list()`
+  returned records without the ids they were stored under, so a caller could read a record and have
+  no way back to the identity it needed. Fourteen managers compensated with an `'id'` field; six did
+  not, and every one of those that looped list-then-delete was broken — **including a single-use
+  magic login link that was replayable for its whole lifetime, and a GDPR erasure that wrote a decoy
+  record and kept the personal data.** Fixed with `listWithIds()` on the contract, with `list()` now
+  DERIVED from it so the two cannot diverge again. `docs/threat-model.md` gains **D21, D22, D23**.
+- **⚠ VERIFY — the `DatabaseStorage` half of D-115 is UNPROVEN.** This project has **no
+  DatabaseStorage tests at all** and no MySQL in `keel-doctor`'s requirements, which is exactly why
+  the `SELECT \`data\`` defect (per-id-encrypted `config` records silently dropped from every
+  `list()` on MySQL) survived unnoticed. The change is correct by reading and by the measured
+  `shouldEncrypt()` values, and it **has not been executed against a real MySQL**. To close: stand up
+  MySQL, point the playground at the database backend, run the suite plus a `list('config')` over a
+  per-id-encrypted record. **The absent DB test tier is itself the finding.**
+- **OPEN, and it is a product decision — `form-submissions` has no writer anywhere.** Klytos Forms
+  stores entries in `form-entries`; core's `PrivacyManager::deleteFormSubmissions()` iterates a
+  collection nothing writes, so that GDPR section has never erased anything and reports success. The
+  id half is fixed (D-115); **pointing core at the plugin's collection is NOT the fix** — that would
+  hard-code a plugin's private name into core when `privacy.erasable_data` exists for exactly this.
+  The plugin should register and perform its own erasure. Needs the user's decision.
 - Open Design Requests: **ELEVEN.**
   **DR-015 — DRAFTED 2026-08-29 (D-114), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-015.md`. Three of §7's five stats are unmeasurable from what

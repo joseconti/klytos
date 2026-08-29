@@ -250,7 +250,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\SiteConfig` | class | installer/core/site-config.php | — | Reads and writes global site configuration values |
 | `Klytos\Core\SiteHealthManager` | class | installer/core/site-health-manager.php | — | Runs the site health checks and reports their results |
 | `Klytos\Core\Storage` | class | installer/core/storage.php | — | Base storage helper for reading and writing encrypted data files |
-| `Klytos\Core\StorageInterface` | interface | installer/core/storage-interface.php | — | Contract all storage drivers implement for read/write/list/search/transaction |
+| `Klytos\Core\StorageInterface` | interface | installer/core/storage-interface.php | — | Contract all storage drivers implement for read/write/list/listWithIds/search/transaction — `listWithIds()` keys records by their storage id so a listed record can be written or deleted |
 | `Klytos\Core\TaskManager` | class | installer/core/task-manager.php | — | CRUD, listing and completion tracking for editorial tasks |
 | `Klytos\Core\TemplateResolver` | class | installer/core/template-resolver.php | — | Resolves template and part names to the file that should render them |
 | `Klytos\Core\TerminalExecutor` | class | installer/core/terminal-executor.php | — | Executes web-terminal commands and keeps the command registry and history |
@@ -1108,7 +1108,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
 | `Klytos\Core\X402\Providers\PaymentProviderInterface` | interface | installer/core/x402/providers/payment-provider-interface.php | — | Contract a payment plugin implements to settle x402 micropayments: advertises networks and assets, builds payment requirements, verifies a payment header |
-| `Klytos\Core\StorageInterface` | interface | installer/core/storage-interface.php | — | Contract a storage backend implements so plugins persist records through file or database drivers interchangeably |
+| `Klytos\Core\StorageInterface` | interface | installer/core/storage-interface.php | — | Contract a storage backend implements so plugins persist records through file or database drivers interchangeably; a backend must also implement `listWithIds()` and derive `list()` from it |
 | `Klytos\Core\CacheInterface` | interface | installer/core/cache-interface.php | — | Contract a cache driver implements to back klytos_cache() with APCu, file, Redis or Memcached |
 | {plugin-id}.php | entry point | installer/plugins/{plugin-id}/{plugin-id}.php | — | Mandatory bootstrap file whose name matches the directory; loaded by PluginLoader with a PHP plugin header |
 | klytos-plugin.json | manifest | installer/plugins/{plugin-id}/klytos-plugin.json | — | Optional manifest extending the PHP header with richer metadata, requirements and capability declarations |

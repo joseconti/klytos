@@ -492,13 +492,15 @@ class TerminalExecutor
             'permission'  => 'site.configure',
             'handler'     => function ( array $args, array $flags, self $terminal ): string {
                 $storage = klytos_storage();
-                $items   = $storage->list( 'rate-limits' );
-                foreach ( $items as $item ) {
-                    $id = $item['_id'] ?? $item['id'] ?? '';
-                    if ( $id !== '' ) {
-                        $storage->delete( 'rate-limits', (string) $id );
-                    }
+
+                // Keyed by the STORAGE id. It used to read `$item['_id']` or
+                // `$item['id']`, and the rate limiter writes neither (it stores
+                // key/count/window_start), so the guard below it was always
+                // false and `cache:clear` never cleared a single record (D-115).
+                foreach ( $storage->listWithIds( 'rate-limits' ) as $id => $item ) {
+                    $storage->delete( 'rate-limits', (string) $id );
                 }
+
                 return __( 'terminal.cmd_cache_clear_done' );
             },
         ];

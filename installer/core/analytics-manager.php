@@ -267,16 +267,26 @@ class AnalyticsManager
     public function prune(int $retentionDays = self::DEFAULT_RETENTION_DAYS): int
     {
         $cutoffDate = klytos_gmdate( 'Y-m-d', strtotime("-{$retentionDays} days") );
-        $entries    = $this->storage->list(self::COLLECTION);
+        $entries    = $this->storage->listWithIds(self::COLLECTION);
         $pruned     = 0;
 
-        foreach ($entries as $entry) {
+        foreach ($entries as $id => $entry) {
             $entryDate = $entry['date'] ?? '';
-            if (!empty($entryDate) && $entryDate < $cutoffDate) {
-                // Reconstruct entry ID from the date.
-                // Entry IDs start with YYYYMMDD so we can filter by prefix.
-                // This is a best-effort approach for the flat-file backend.
-                $this->storage->delete(self::COLLECTION, $entry['id'] ?? '');
+
+            // An undated record is KEPT. Retention decides what to destroy, so
+            // its unknown case must fail towards keeping data: a malformed row
+            // is a bug to investigate and deleting it destroys the evidence.
+            if (empty($entryDate) || $entryDate >= $cutoffDate) {
+                continue;
+            }
+
+            // The id is the STORAGE key, not a field of the record. It used to
+            // be read as `$entry['id']`, which `recordPageView()` never writes,
+            // so this call was `delete( 'analytics', '' )` — an exception on the
+            // file backend and a silent no-op on the database one. The daily
+            // `klytos.analytics_prune` cron therefore failed every night into
+            // error_log and the 90-day retention had never once run (D-115).
+            if ($this->storage->delete(self::COLLECTION, (string) $id)) {
                 $pruned++;
             }
         }
