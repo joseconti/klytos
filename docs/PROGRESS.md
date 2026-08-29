@@ -1584,8 +1584,39 @@
     is Design's call; asked in the DR-006 addendum.
   - §5.4's `Driven` boxes for entries **44, 13 and 18** are now `☑`; `docs/05-test-points.md` gains
     the stage-7 browser-tier row with its trace paths. **Slices 1–3 of stage 7 are COMPLETE.**
-  - **NEXT ACTION — stage 7, slice 4 of 14**, continuing in template order through the eleven
-    remaining unblocked entries.
+- **Stage 7 slice 4 of 14: entry 7 (Analytics) — DONE 2026-08-29 (D-114).** The chart pattern's
+  SECOND consumer, and the fourth slice running whose survey finding is the PRODUCT's.
+  - **The pattern was reused, not rewritten.** §7 draws a LINE where §18 draws bars and **the mark
+    is the only thing that differs** — one `.k-chart-line` class joined the component layer and
+    nothing else. The tier asserts the `<polyline>` is present **and that no `<rect>` is**, so a
+    second consumer cannot quietly become a second pattern.
+  - **THE SURVEY FINDING: three of §7's five stats are unmeasurable from what Klytos stores**, and
+    the reason is the analytics engine's privacy design rather than a gap. *Avg. time* needs two
+    instants and a pageview records one; *Bounce* is defined on a session and there is no session
+    concept at all; *Agent hits* needs a user agent the engine deliberately never stores, and the
+    only agent record in the product is the x402 log of agents that PAID. **DR-015.** Built
+    instead: FOUR measured cards, two of them shipped product §7 does not name — which is also
+    what keeps the row inside the template's 3–5 floor (adaptation 97).
+  - **A fourth, smaller finding:** *Visitors* counts distinct **visitor-days**, not people — the
+    hash is salted with a salt that rotates daily. §7's label is kept and the card states what the
+    number measures; asked in DR-015 rather than decided.
+  - **New public surface, test-first:** `AnalyticsManager::denseDailyViews()` — static, pure,
+    storage-free. `daily_views` carries only the days that HAVE entries, and a chart drawn from
+    that draws the 2nd next to the 4th at ordinary spacing and misrepresents a month while looking
+    healthy. Red observed (`Call to undefined method`), 7 tests.
+  - **Two classes REUSED rather than invented**, caught before anything shipped: `.k-stat-delta`
+    and `.k-widget-grid` both already existed on entries 44 and 18.
+  - **i18n: 32 keys × 20 catalogues, 680 insertions and 0 DELETIONS.** The first attempt used
+    `json.dump` and produced 1400/720 — these catalogues are not uniformly indented, so a rewrite
+    normalises the whole file. Reverted and redone as a textual insertion.
+  - **Tree state:** PHP **420 / 2043**, 0 skips (was 401/1936) · browser tier **43 passing** ·
+    `keel-verify` **23 checks: 17 pass, 6 warnings** · lint clean on all five touched PHP files ·
+    `docs/api/INDEX.md` **1071 → 1075** · catalogue parity PASS at 1537 keys.
+
+  - **NEXT ACTION — stage 7, slice 5 of 14.** Ten unblocked entries remain, in template order:
+    **4** Assets · **21** Blocks · **31** Templates (gallery-grid, no consumer yet) ·
+    **20** Translations · **29** AI images · **40** Block data (editor-split) · **10** Log in ·
+    **43** Reset password (auth-centered, no consumer yet) · **8** MCP · **38** Plugin page.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because
@@ -1597,8 +1628,26 @@
 > section states where the project IS; `docs/history.md` says how it got here.
 
 ## Open items
+- **ESCALATED, NOT FIXED — `AnalyticsManager::prune()` throws, and the 90-day analytics retention
+  has never run (found 2026-08-29, D-114).** `prune()` deletes with `$entry['id'] ?? ''` and
+  `recordPageView()` never writes an `id`, so `delete( 'analytics', '' )` raises
+  `InvalidArgumentException: Invalid record ID: ''`. `CronManager` registers
+  `klytos.analytics_prune` at 86400s calling `prune( 90 )` (`cron-manager.php:164-167`, `:333`,
+  `:351-354`), so **on any install holding data past the retention window that daily job fatals**
+  and the retention the engine's own header promises has never executed. **The root is deeper than
+  the missing field:** `StorageInterface::list()` returns `$records[]` with the ids discarded
+  (`file-storage.php:268-296`), so nothing that reads it can delete a specific record — a
+  storage-contract question, not a screen fix. Escalated per Keel's "looks like a security problem"
+  rule rather than widened into a screen slice; it is a privacy failure on a GDPR-facing promise.
+  **Its fix starts from a failing reproduction test**, and it wants deciding whether `list()` gains
+  an id-preserving sibling or every writer starts storing its own id.
 - Unresolved user questions: **none open** — the four `BUILD-SPEC.md` §5.11 questions were answered 2026-07-29 (**D-072**). *(The 2026-07-25 "todas las guías, en inglés y en español" instruction was scoped with the user the same day — see the deferred item below.)*
-- Open Design Requests: **TEN.**
+- Open Design Requests: **ELEVEN.**
+  **DR-015 — DRAFTED 2026-08-29 (D-114), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-015.md`. Three of §7's five stats are unmeasurable from what
+  Klytos stores, and the reason is the analytics engine's privacy design rather than a gap: one
+  instant per pageview, no session concept, and no user agent by design. **Blocks nothing** — the
+  screen is built on four measured facts.
   **DR-014 — DRAFTED 2026-08-11 (D-112), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-014.md`. §18's fifth stat, *Settlement lag*, **has no clock
   behind it**: a transaction records exactly ONE instant, `created_at`, with `facilitator_ok` a bool

@@ -186,6 +186,50 @@ class AnalyticsManager
     }
 
     /**
+     * Fill a sparse daily-views map into a DENSE, ordered series over a range.
+     *
+     * `getSummary()`'s `daily_views` carries only the days that have entries, so
+     * a range with no traffic on the 3rd simply has no `03` key. A chart drawn
+     * from that is not a chart with a gap — it draws the 2nd next to the 4th at
+     * ordinary spacing and misrepresents the shape of the traffic without
+     * anything looking wrong.
+     *
+     * Deliberately STATIC and free of storage: it is a pure function of the map
+     * and the two dates, which is what lets it be unit-tested directly and what
+     * keeps it from adding a second full-collection read to a screen whose
+     * single read is already the expensive part.
+     *
+     * An inverted range answers `[]` rather than swapping the bounds: `?period=`
+     * is user input on entry 7, and a silently corrected range draws a chart
+     * nobody asked for, where an empty one draws the template's empty state.
+     *
+     * @param  array<string,int|string> $dailyViews Sparse map, `Y-m-d` => count.
+     * @param  string                   $dateFrom   First day of the range (`Y-m-d`), inclusive.
+     * @param  string                   $dateTo     Last day of the range (`Y-m-d`), inclusive.
+     * @return list<array{date: string, views: int}> One row per day, ascending.
+     */
+    public static function denseDailyViews(array $dailyViews, string $dateFrom, string $dateTo): array
+    {
+        $from = strtotime($dateFrom . ' UTC');
+        $to   = strtotime($dateTo . ' UTC');
+
+        if ($from === false || $to === false || $from > $to) {
+            return [];
+        }
+
+        $series = [];
+        for ($day = $from; $day <= $to; $day += 86400) {
+            $date     = klytos_gmdate('Y-m-d', $day);
+            $series[] = [
+                'date'  => $date,
+                'views' => (int) ($dailyViews[$date] ?? 0),
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
      * Get the top pages by view count.
      *
      * @param  string $dateFrom Start date (YYYY-MM-DD).

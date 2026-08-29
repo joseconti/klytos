@@ -1,12 +1,14 @@
-// Manifest entries 44 (Dashboard), 13 (Tasks) and 18 (Agent payments) —
-// the three built consumers of `template-overview-stats.md`, driven in a browser.
+// Manifest entries 44 (Dashboard), 13 (Tasks), 18 (Agent payments) and
+// 7 (Analytics) — the four built consumers of `template-overview-stats.md`,
+// driven in a browser.
 //
-// ONE file for three screens, deliberately. What is under test here is mostly
+// ONE file for four screens, deliberately. What is under test here is mostly
 // the TEMPLATE — the stat card, the tile, the chart pattern, the reflow — and
 // three per-screen files would have carried three copies of it, which is L-004's
 // shape. Each screen's own server-rendered contract is already pinned by its
 // integration test (`DashboardHttpTest`, `TasksHttpTest`,
-// `X402DashboardHttpTest`) and is deliberately NOT repeated here.
+// `X402DashboardHttpTest`, `AnalyticsHttpTest`) and is deliberately NOT
+// repeated here.
 //
 // THE ASSERTION THIS FILE EXISTS FOR is `the stat tile's glyph is 18 x 18`.
 // `klytos_admin_icon()` writes an `<svg>` with no width and no height, and an
@@ -29,9 +31,14 @@ const SCREENS = {
 	dashboard: '/installer/admin/index.php',
 	tasks: '/installer/admin/tasks.php',
 	x402: '/installer/admin/x402-dashboard.php',
+	// Entry 7, the template's FOURTH consumer and the chart pattern's SECOND.
+	// It joins this file rather than taking one of its own for the same reason
+	// the first three share it: what is under test is mostly the TEMPLATE, and
+	// three copies of that would be L-004's shape.
+	analytics: '/installer/admin/analytics.php?period=30d',
 };
 
-/** Run one of the two population fixtures through the real managers. */
+/** Run one of the three population fixtures through the real managers. */
 function fixture( name, args = [] ) {
 	return execFileSync(
 		'php',
@@ -99,11 +106,13 @@ async function axeWholePage( page ) {
 test.beforeAll( () => {
 	fixture( 'reset-tasks.php' );
 	fixture( 'reset-x402.php' );
+	fixture( 'reset-analytics.php' );
 } );
 
 test.afterAll( () => {
 	fixture( 'reset-tasks.php', [ '--off' ] );
 	fixture( 'reset-x402.php', [ '--off' ] );
+	fixture( 'reset-analytics.php', [ '--off' ] );
 } );
 
 test.beforeEach( async ( { page } ) => {
@@ -111,7 +120,7 @@ test.beforeEach( async ( { page } ) => {
 } );
 
 // ─────────────────────────────────────────────────────────────────
-// THE TEMPLATE'S CONTRACT, measured on all three screens
+// THE TEMPLATE'S CONTRACT, measured on every consumer
 // ─────────────────────────────────────────────────────────────────
 
 for ( const [ name, url ] of Object.entries( SCREENS ) ) {
@@ -274,6 +283,56 @@ test( 'x402: the data table has real COLUMNS at 1440, not one cell per row', asy
 		.evaluate( ( el ) => getComputedStyle( el ).gridTemplateColumns.split( /\s+/ ).length );
 
 	expect( tracks, 'the chart table renders three tracks — 1 means the 1fr fallback' ).toBe( 3 );
+} );
+
+test( 'analytics: the chart is a LINE and it is the SAME pattern, not a second one', async ( { page } ) => {
+	await open( page, SCREENS.analytics );
+
+	// §7 draws a line where §18 draws bars. The MARK is the only thing allowed to
+	// differ: `template-overview-stats.md` §4 says "this is the only accessible
+	// chart pattern the admin uses; do not invent another".
+	const svg = page.locator( '.k-chart-svg' );
+	await expect( svg ).toBeVisible();
+
+	await expect( svg.locator( 'polyline.k-chart-line' ) ).toHaveCount( 1 );
+	await expect( svg.locator( 'rect.k-chart-bar' ) ).toHaveCount( 0 );
+
+	// The pattern's own three rules, on the second consumer.
+	await expect( svg ).toHaveAttribute( 'role', 'img' );
+	const label = await svg.getAttribute( 'aria-label' );
+	expect( label, 'the accessible name carries the numbers, not just a title' ).toMatch( /12/ );
+	expect( label ).toMatch( /6/ );
+
+	// The <svg> is really sized — 300x150 is what an unsized one renders at.
+	const box = await svg.boundingBox();
+	expect( box.height, 'the chart is not at the SVG default height' ).toBeCloseTo( 240, 0 );
+
+	// The line has one vertex per DAY of the range, not per day with traffic.
+	// Four of the thirty days carry views; a 4-point line would be a chart that
+	// misrepresents a month while looking perfectly healthy.
+	const vertices = ( await svg.locator( 'polyline.k-chart-line' ).getAttribute( 'points' ) )
+		.trim().split( /\s+/ ).length;
+	expect( vertices, 'one vertex per day of the range' ).toBe( 30 );
+} );
+
+test( 'analytics: the data table has real COLUMNS at 1440, not one cell per row', async ( { page } ) => {
+	await page.setViewportSize( { width: 1440, height: 1000 } );
+	await open( page, SCREENS.analytics );
+
+	// Entry 18 shipped exactly this defect and only the capture saw it (D-113).
+	// Every consumer of the template gets the assertion from now on.
+	const tracks = await page.locator( '[data-testid="analytics.chart_table"] tbody tr' ).first()
+		.evaluate( ( el ) => getComputedStyle( el ).gridTemplateColumns.split( /\s+/ ).length );
+
+	expect( tracks, 'two tracks — 1 means the 1fr fallback' ).toBe( 2 );
+} );
+
+test( 'analytics: below 900px the chart is REPLACED by its table, not shrunk', async ( { page } ) => {
+	await page.setViewportSize( { width: 400, height: 900 } );
+	await open( page, SCREENS.analytics );
+
+	await expect( page.locator( '.k-chart' ) ).toBeHidden();
+	await expect( page.locator( '[data-testid="analytics.chart_table"]' ) ).toBeVisible();
 } );
 
 test( 'x402: below 900px the chart is REPLACED by its table, not shrunk', async ( { page } ) => {

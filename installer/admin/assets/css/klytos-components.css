@@ -3076,6 +3076,21 @@ textarea.k-control.k-conv-input {
 }
 
 .k-chart-bar   { fill: var(--color-acento); }
+
+/* The LINE mark. §7 draws a line where §18 draws bars, and that is the ONLY
+   difference between the two charts — the pattern around them (role="img" with
+   the headline, the <details> table in the DOM, the replacement below 900px) is
+   the same one, built once. `vector-effect` keeps the stroke 2px after the
+   container scales the viewBox with `preserveAspectRatio="none"`, which would
+   otherwise stretch it horizontally with everything else. */
+.k-chart-line {
+    fill: none;
+    stroke: var(--color-acento);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
 .k-chart-grid  { stroke: var(--separador); stroke-width: 1; }
 .k-chart-axis  { stroke: var(--borde-control); stroke-width: 1; }
 

@@ -2878,3 +2878,104 @@ The *Top pages* and *Top bots* cards print their title **twice**: once as the ca
 again as the table's `<caption>`, which `accessibility.md` §2.1 requires to be visible. Which of the
 two is the duplicate is a design call and not the build's, so it is recorded here and asked with the
 DR-006 addendum rather than resolved by picking one.
+
+---
+
+## D-114 — Stage 7, slice 4: entry 7 (Analytics), the chart pattern's second consumer, and a privacy control that has never run
+
+**Date:** 2026-08-29 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, slice 4** · Supersedes nothing.
+
+**The per-screen survey ran before the first line — the EIGHTEENTH in eighteen — and for the FOURTH
+slice running the disagreement was with the PRODUCT rather than with the delivery.**
+
+### What is built
+
+Manifest entry 7 on `overview-stats`: four stat cards, the 30-day line chart with its `<details>`
+data table, the two detail cards (*Top pages*, *Referrers*), the period chips and §7's empty state.
+H1 **Analytics**, entry point `analytics.php`, gated centrally at `analytics.view`.
+
+**It is the chart pattern's SECOND consumer**, and the pattern was reused rather than rewritten —
+`role="img"` with the headline in its `aria-label`, a real `<table>` with the same numbers following
+it in the DOM inside a `<details>`, the chart replaced by that table below 900px. §7 draws a **line**
+where §18 draws bars, and **the mark is the only thing that differs**: one `.k-chart-line` class
+joined the component layer and nothing else. The browser tier asserts the `<polyline>` is there
+**and that no `<rect>` is**, so a second consumer cannot quietly become a second pattern.
+
+### THE SURVEY FINDING — three of §7's five stats have no source, and the reason is by design
+
+`recordPageView()` writes exactly six fields: `page_path`, `referrer_domain`, `device_category`,
+`visitor_hash`, `date`, `timestamp`. From that:
+
+- ***Avg. time*** needs two instants and a pageview records one. No session, no exit event, no link
+  between two pageviews. **Entry 18's *Settlement lag* exactly** (D-112).
+- ***Bounce*** is defined on a SESSION and there is no session concept at all. The nearest computable
+  figure — visitor-days with exactly one pageview — is a different metric under a standard metric's
+  name, which is worse than an absent card.
+- ***Agent hits*** needs a user agent the engine **deliberately never stores**. The only agent record
+  in Klytos is the x402 transaction log, i.e. agents that PAID — entry 18's *Paid requests* under
+  another name, on another screen.
+
+**DR-015**, drafted. Built instead: **four** measured cards — §7's *Views* and *Visitors* plus
+*Avg. views/day* and *Pages tracked*, both shipped product predating the redesign. Two cards alone
+would also break `template-overview-stats.md` §1's 3–5 floor (adaptation 97).
+
+**And a fourth, smaller finding that is a wording question:** the *Visitors* figure counts distinct
+**visitor-days**, not people, because `hashVisitorIdentity()` salts with a salt that rotates daily so
+a visitor cannot be followed across days. §7's label is kept and a supporting line on the card states
+what the number measures. Asked in DR-015 rather than decided here.
+
+### A NEW PUBLIC SURFACE, written test-first
+
+`AnalyticsManager::denseDailyViews()` — static, storage-free, a pure function of a sparse map and two
+dates. `getSummary()`'s `daily_views` carries only the days that HAVE entries, and a chart drawn from
+that draws the 2nd next to the 4th at ordinary spacing and **misrepresents the shape of the traffic
+while looking perfectly healthy**. Red observed first (`Call to undefined method`), 7 tests.
+Documented in `docs/reference/analytics-screen.md` with its INDEX row in the same slice.
+
+### THE ESCALATION — `AnalyticsManager::prune()` throws, and the 90-day retention has never run
+
+Found by this slice's fixture, not by reading. `prune()` deletes with `$entry['id'] ?? ''`, and
+`recordPageView()` **never writes an `id` field**, so `delete( 'analytics', '' )` raises
+`InvalidArgumentException: Invalid record ID: ''`. Reproduced directly:
+
+```
+stored fields: page_path, referrer_domain, device_category, visitor_hash, date, timestamp
+has id field?  NO
+PHP Fatal error: Uncaught InvalidArgumentException: Invalid record ID: ''
+  analytics-manager.php(279): ProfilingStorage->delete('analytics', '')
+```
+
+`CronManager` registers `klytos.analytics_prune` on an 86400s interval calling `prune( 90 )`
+(`cron-manager.php:164-167`, `:333`, `:351-354`), so **on any install holding data past the retention
+window that daily job fatals**, and the 90-day retention this engine's own header promises has never
+executed once.
+
+**The root is deeper than the missing field.** `StorageInterface::list()` returns `$records[]` with
+the ids discarded entirely (`file-storage.php:268-296`), so *nothing that reads it can delete a
+specific record*. That is a storage-contract question, not a screen fix.
+
+**It is recorded and escalated, NOT fixed here.** Keel's rule is explicit: something that looks like a
+security problem is escalated, never patched quietly and never folded into the current slice — and a
+retention control that is declared and does not run is a privacy failure on a GDPR-facing promise.
+It is in `docs/PROGRESS.md` open items and `docs/roadmap.md`, and it was reported to the user in the
+conversation the moment it was confirmed. Its fix starts, like every bug fix here, from a failing
+reproduction test.
+
+### Files
+
+`installer/admin/analytics.php` (rewritten), `installer/core/analytics-manager.php`
+(`denseDailyViews()`), `installer/admin/assets/css/klytos-components.css` (`.k-chart-line`), all 20
+`installer/core/lang/*.json` (**32 keys × 20, pure additions — 680 insertions, 0 deletions**),
+`tests/Unit/AnalyticsDenseSeriesTest.php`, `tests/Integration/AnalyticsHttpTest.php`,
+`tests/E2E/fixtures/reset-analytics.php`, `tests/E2E/overview-stats.spec.js`,
+`docs/reference/analytics-screen.md`, `docs/api/INDEX.md` (**1071 → 1075**; Actions 373 → 375,
+Filters 154 → 156), `docs/design/design-requests/DR-015.md`, `docs/BUILD-SPEC.md` §5.4 row 7 and
+§5.9 adaptations **97–100**.
+
+**Two classes reused rather than invented**, caught by the reuse check before a line shipped:
+`.k-stat-delta` for the card's supporting line and `.k-widget-grid` for the detail-card pair — both
+already existed on entries 44 and 18.
+
+PHP **420 / 2043**, 0 skips (was 401/1936) · browser tier **43 passing** · `keel-verify` **23 checks:
+17 pass, 6 warnings** · lint clean on all five touched PHP files · catalogue parity **PASS at 1537
+keys** in all 20.

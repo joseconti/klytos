@@ -9,13 +9,13 @@
 |------|-------|
 | Global helper functions | 154 |
 | Classes and interfaces | 103 |
-| Actions | 373 |
-| Filters | 154 |
+| Actions | 375 |
+| Filters | 156 |
 | MCP tools | 206 |
 | HTTP routes | 35 |
 | Terminal / CLI commands | 27 |
 | Plugin extension contracts | 19 |
-| **Total** | **1071** |
+| **Total** | **1075** |
 
 Scope: everything under `installer/` except `installer/vendor-ai/` and
 `installer/admin/assets/vendor/`, which are third-party and excluded.
@@ -188,7 +188,7 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 | `Klytos\Core\Ai\ChatResult` | class | installer/core/ai/chat-engine.php | — | Value object holding the outcome of a chat across AI and tool iterations |
 | `Klytos\Core\Ai\UnsupportedRuntimeException` | class | installer/core/ai/unsupported-runtime-exception.php | docs/reference/ai-runtime.md | Thrown by App::getChatEngine() when this PHP is older than the vendored AI stack requires, instead of fataling inside vendor-ai (NEW-06, D-053) |
 | `Klytos\Core\AiImageGenerator` | class | installer/core/ai-image-generator.php | — | Generates images through configured AI providers and keeps a generation history |
-| `Klytos\Core\AnalyticsManager` | class | installer/core/analytics-manager.php | — | Records page views and reports traffic summaries and top pages |
+| `Klytos\Core\AnalyticsManager` | class | installer/core/analytics-manager.php | docs/reference/analytics-screen.md | Records page views and reports traffic summaries, top pages, and the dense per-day series a chart needs |
 | `Klytos\Core\App` | class | installer/core/app.php | — | Singleton application container that boots the CMS and exposes every core service |
 | `Klytos\Core\AssetManager` | class | installer/core/asset-manager.php | — | Manages media uploads, categories, image editing and asset usage tracking |
 | `Klytos\Core\AuditLog` | class | installer/core/audit-log.php | — | Records and queries security-relevant admin activity, pruning old entries |
@@ -288,8 +288,10 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 ## Actions
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
-| admin.analytics.after | action | installer/admin/analytics.php | — | Emitted at the tail of the analytics screen markup; no payload, echo extra HTML |
-| admin.analytics.before | action | installer/admin/analytics.php | — | Emitted at the top of the analytics screen markup; no payload, echo extra HTML |
+| admin.analytics.after | action | installer/admin/analytics.php | docs/reference/analytics-screen.md | Emitted at the tail of the analytics screen markup; no payload, echo extra HTML |
+| admin.analytics.after_stats | action | installer/admin/analytics.php | docs/reference/analytics-screen.md | Emitted just below the analytics stat row; no payload, echo extra HTML |
+| admin.analytics.before | action | installer/admin/analytics.php | docs/reference/analytics-screen.md | Emitted at the top of the analytics screen markup; no payload, echo extra HTML |
+| admin.analytics.before_stats | action | installer/admin/analytics.php | docs/reference/analytics-screen.md | Emitted just above the analytics stat row; no payload, echo extra HTML |
 | admin.assets.after | action | installer/admin/assets.php | — | Emitted at the tail of the media library screen; no payload, echo extra HTML |
 | admin.assets.after_toolbar | action | installer/admin/assets.php | — | Emitted just below the media library toolbar so plugins can inject controls; no payload |
 | admin.assets.before | action | installer/admin/assets.php | — | Emitted at the top of the media library screen; no payload, echo extra HTML |
@@ -665,6 +667,8 @@ Scope: everything under `installer/` except `installer/vendor-ai/` and
 ## Filters
 | Surface | Kind | Code file | Doc | Purpose (one line) |
 |---------|------|-----------|-----|--------------------|
+| admin.analytics.detail_cards | filter | installer/admin/analytics.php | docs/reference/analytics-screen.md | Filters the Top pages and Referrers cards, each row carrying id, title, head, empty sentence and rows |
+| admin.analytics.stats | filter | installer/admin/analytics.php | docs/reference/analytics-screen.md | Filters the analytics stat cards, each carrying id, glyph, tone, value, label and its supporting note |
 | admin.consent.audit_rows | filter | installer/admin/consent.php | — | Filters the cookie audit table's rows, so a plugin can surface a cookie it sets outside a declaration |
 | admin.consent.declarations | filter | installer/admin/consent.php | — | Filters the plugin consent declarations the audit card lists and offers a Remove for |
 | admin.content_model.post_types | filter | installer/admin/post-types.php | — | Filters the post types the Content model screen lists, after the manager returns them |
