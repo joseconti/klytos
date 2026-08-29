@@ -18,7 +18,7 @@
 // @license GPL-3.0-or-later
 // @copyright Copyright (c) 2026 José Conti — https://klytos.io
 
-const { test, expect, login, KNOWN_DELIVERY_GAPS } = require( './fixtures' );
+const { test, expect, login, KNOWN_DELIVERY_GAPS, DEV_ONLY_SURFACES } = require( './fixtures' );
 const AxeBuilder = require( '@axe-core/playwright' ).default;
 const { execFileSync } = require( 'child_process' );
 const path = require( 'path' );
@@ -81,6 +81,16 @@ async function axeWholePage( page ) {
 
 	for ( const gap of KNOWN_DELIVERY_GAPS ) {
 		builder = builder.exclude( gap );
+	}
+
+	// The dev bar is not part of the product a normal install serves, and every
+	// other whole-page scan in this tier excludes it. This file did not, which
+	// is why its first run reported four violations that belong to nobody's
+	// screen: `.devbar-tab-content` (scrollable, no focusable content) in both
+	// themes and three `.devbar-*` contrast nodes in light — the exact set
+	// `fixtures.js` already records against DEV_ONLY_SURFACES.
+	for ( const surface of DEV_ONLY_SURFACES ) {
+		builder = builder.exclude( surface );
 	}
 
 	return builder.analyze();
@@ -175,6 +185,40 @@ for ( const [ name, url ] of Object.entries( SCREENS ) ) {
 	} );
 
 	for ( const theme of [ 'dark', 'light' ] ) {
+		test( `${ name }: a link inside a tinted banner takes the tint's colour, not the accent — ${ theme }`, async ( { page } ) => {
+			await open( page, url, theme );
+
+			const banner = page.locator( '.k-banner' ).first();
+			if ( await banner.count() === 0 ) {
+				test.skip( true, `${ name } renders no banner in this state` );
+				return;
+			}
+
+			const link = banner.locator( 'a' ).first();
+			if ( await link.count() === 0 ) {
+				test.skip( true, `${ name }'s banner carries no link` );
+				return;
+			}
+
+			// Read the COMPUTED values out of the browser rather than reasoning
+			// about which rule wins — build rule 1, four times over in this build.
+			const seen = await link.evaluate( ( el ) => ( {
+				link: getComputedStyle( el ).color,
+				container: getComputedStyle( el.closest( '.k-banner' ) ).color,
+				decoration: getComputedStyle( el ).textDecorationLine,
+			} ) );
+
+			// `--color-acento` over `--tinte-aviso` measured 3.68:1 in light on
+			// this very link. The tint's own `--sobre-tinte-*` is what the
+			// delivery specifies for text on a tint, and it is what the
+			// container already carries.
+			expect( seen.link, 'banner link colour == the banner\'s own colour' ).toBe( seen.container );
+
+			// Colour is not the only means of distinguishing the link (WCAG 1.4.1),
+			// which is what taking the container's colour would otherwise cost.
+			expect( seen.decoration, 'banner link is underlined' ).toContain( 'underline' );
+		} );
+
 		test( `${ name }: axe is clean on the whole page — ${ theme }`, async ( { page } ) => {
 			await open( page, url, theme );
 
@@ -209,6 +253,27 @@ test( 'x402: the chart draws real bars and its <details> table is open beside it
 
 	// §4's table equivalent, open and reachable without a click.
 	await expect( page.locator( '[data-testid="x402.chart_table"]' ) ).toBeVisible();
+} );
+
+test( 'x402: the data table has real COLUMNS at 1440, not one cell per row', async ( { page } ) => {
+	await page.setViewportSize( { width: 1440, height: 1000 } );
+	await open( page, SCREENS.x402 );
+
+	// `.k-table` is `display: grid` and `klytos-components.css` gives `tr` a
+	// deliberate `grid-template-columns: 1fr` fallback so that a screen which
+	// forgets to declare its own is "visibly wrong rather than subtly wrong".
+	// Entry 18 forgot, and shipped: all three of its tables rendered ONE CELL
+	// PER ROW at every width, turning a 1000px viewport into a 5731px page.
+	//
+	// Nothing asserted it and nothing could have at the level the tests were
+	// written — the table WAS present, WAS open and DID follow the chart in the
+	// DOM, all of which is true of a one-column table. It was found by looking
+	// at the capture (L-048). This is the assertion that makes the reading
+	// unnecessary next time.
+	const tracks = await page.locator( '[data-testid="x402.chart_table"] tbody tr' ).first()
+		.evaluate( ( el ) => getComputedStyle( el ).gridTemplateColumns.split( /\s+/ ).length );
+
+	expect( tracks, 'the chart table renders three tracks — 1 means the 1fr fallback' ).toBe( 3 );
 } );
 
 test( 'x402: below 900px the chart is REPLACED by its table, not shrunk', async ( { page } ) => {

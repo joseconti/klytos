@@ -285,7 +285,7 @@ foreach ( $dailyRevenue as $day ) {
             <details class="k-chart-details" open data-testid="x402.chart_details">
                 <summary><?php echo klytos_esc_html( __( 'klytos-x402.view_as_table' ) ); ?></summary>
 
-                <table class="k-table" data-testid="x402.chart_table">
+                <table class="k-table k-x402-table" data-testid="x402.chart_table">
                     <caption class="k-table-caption"><?php echo klytos_esc_html( $headline ); ?></caption>
                     <thead>
                         <tr>
@@ -360,7 +360,7 @@ $detailCards = [
                         <span class="k-empty-text"><?php echo klytos_esc_html( __( 'klytos-x402.no_transactions' ) ); ?></span>
                     </p>
                 <?php else : ?>
-                    <table class="k-table">
+                    <table class="k-table k-x402-table">
                         <caption class="k-table-caption"><?php echo klytos_esc_html( (string) $card['title'] ); ?></caption>
                         <thead>
                             <tr>
@@ -399,7 +399,7 @@ $detailCards = [
             <h2 class="k-card-heading" id="x402-provider-heading">
                 <?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?>
             </h2>
-            <table class="k-table">
+            <table class="k-table k-x402-provider-table">
                 <caption class="k-table-caption"><?php echo klytos_esc_html( __( 'klytos-x402.provider' ) ); ?></caption>
                 <tbody>
                     <tr>
@@ -415,6 +415,52 @@ $detailCards = [
         </div>
     </section>
 <?php endif; ?>
+
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+/*
+ * `grid-template-columns` is PER SCREEN (template-list-table.md §1) and this
+ * screen never declared one, so all three of its tables fell to
+ * `klytos-components.css`'s deliberate `1fr` fallback — "a screen that forgets
+ * to is visibly wrong rather than subtly wrong" — and rendered ONE CELL PER
+ * ROW at every width. Shipped in `d71a704`. The chart's 30-day data table alone
+ * turned a 1000px viewport into a 5731px page.
+ *
+ * NOTHING ASSERTED IT AND NOTHING COULD HAVE, at the level the tests were
+ * written: `X402DashboardHttpTest` asserts the markup, which is correct; the
+ * browser tier asserted the table is present, open, and follows the chart in
+ * the DOM, all of which is true of a one-column table. **It was found by
+ * LOOKING AT THE CAPTURE** — L-048's duty, on its tenth mechanism and the first
+ * time the capture, rather than an assertion, is the only thing that saw it.
+ *
+ * WHERE THE VALUE COMES FROM. §18 records no columns and no widths for any of
+ * the three — the same gap DR-006 is sent and unanswered about, arriving on a
+ * screen its table never enumerated (an ADDENDUM records it). Unlike entry 25,
+ * no prototype settles it either: `Klytos Admin - Screens 3.dc.html` carries
+ * `x402Tables` as name/count/amount ROWS with an icon, not as a grid with
+ * tracks. So this is DERIVED and not read: the tracks are content-driven —
+ * the label takes the space, each number takes exactly what it needs — which
+ * invents no measurement and cannot disagree with a value Design has yet to
+ * write. It is replaced verbatim the moment DR-006 answers. Adaptation 95.
+ *
+ * `minmax(0, 1fr)` and not `1fr`: a grid track's default minimum is auto, so a
+ * long unbroken path in Top pages would push the numeric columns off the card
+ * instead of wrapping.
+ *
+ * The `:not()` is load-bearing, exactly as on Pages and Consent:
+ * `.k-table-row-full` is (0,1,0) and carries its own `1fr` for a row that spans
+ * every column, while a bare descendant selector here is (0,1,1) and would
+ * silently outrank it — build rule 1's specificity mechanism (L-032), read back
+ * out of the browser rather than reasoned about.
+ */
+.k-x402-table tr:not(.k-table-row-full) {
+    grid-template-columns: minmax(0, 1fr) max-content max-content;
+}
+
+/* The provider fact is a two-column key/value table, not a three-column one. */
+.k-x402-provider-table tr:not(.k-table-row-full) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+}
+</style>
 
 <?php klytos_do_action( 'admin.x402_dashboard.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

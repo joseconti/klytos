@@ -1843,6 +1843,20 @@ mechanism and the first where the losing rule was one I never wrote: I set
 which another class had already set. **Reading your own rule tells you nothing
 about which rule wins.**
 
+**MECHANISM TEN — 2026-08-29 (D-113), and it is the strongest case this lesson
+has.** Entry 18's three tables had no `grid-template-columns`, so all three fell
+to the component layer's deliberate `1fr` fallback and rendered ONE CELL PER ROW
+at every width — shipped in `d71a704`, turning a 1000px viewport into a 5731px
+page. The browser tier asserted that the table is present, that its `<details>`
+is open, and that it follows the chart **by DOM position**. Every one of those
+assertions is TRUE of a one-column table, and all of them passed. The integration
+tier asserted the markup, correctly. **Nothing was wrong with any assertion; the
+defect simply lived outside what any of them measured, and the capture is what
+saw it.** The rule this lesson already states — produce the image and READ it —
+is the only thing that worked here, so it is not a supplement to the assertions:
+on this mechanism it was the entire detection.
+
+
 ## L-049 — A ledger nobody ticks is a ledger nobody counts, and twenty-one screens hid behind three honest stage closes
 
 **Date:** 2026-08-11 · Phase 4, Step 7 · Recorded with **D-109**.

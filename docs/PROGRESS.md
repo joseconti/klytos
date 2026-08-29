@@ -1551,19 +1551,41 @@
   - **Tree state:** PHP **401 / 1936**, 0 skips (was 390/1804) · `keel-verify` **23 checks:
     17 pass, 6 warnings**, test-point rows **34** · lint on the touched file clean.
 
-- **The browser tier for entries 44, 13 and 18 is WRITTEN and NOT RUN — 2026-08-11,
-  commit `2a8bf6b`.** `tests/E2E/overview-stats.spec.js` exists and covers all three
-  screens in one file, because what it tests is mostly the TEMPLATE. **It has never
-  executed.** The playground was started on `KPORT=8191` (bind, owning PID 84654 and
-  the absence of a `Server:` header all confirmed), both fixtures were seeded and then
-  cleared, and the session ended before the run. **No §5.4 `Driven` box moved and no
-  test-point row was written** — a spec that has never run is a claim, and this project
-  does not write claims into its records.
-  - **The assertion the file exists for:** the stat tile's glyph measures **18 × 18**
-    and not **300 × 150**. That is L-048, and it is the defect entry 44 shipped for a
-    whole commit.
-  - **Owed, in order:** start the playground, run the spec, READ the twelve captures,
-    then write the test-point row and move the three `Driven` boxes.
+- **THE BROWSER TIER FOR ENTRIES 44, 13 AND 18 IS RUN — 2026-08-29 (D-113).**
+  `tests/E2E/overview-stats.spec.js`: **32 passing, 4 skipped**, playground `KPORT=8201` (bind,
+  owning PID `php83 99500` and the absence of a `Server:` header all confirmed; `--reset` reseed;
+  `keel-doctor --check` green, 14 rows, before the run). The four skips are declared conditionals
+  carrying their reason on the skip — Tasks and Agent payments link nowhere from their stat rows,
+  and Tasks renders no banner — not silent passes.
+  - **The assertion the file exists for PASSES on all three:** the stat tile is 32px and its glyph
+    **18 × 18**, not the SVG default of 300 × 150. L-048's ninth mechanism is now measured.
+  - **THE DEFECT THE CAPTURE FOUND, AND NO ASSERTION COULD.** Entry 18's three tables had no
+    `grid-template-columns`, so all three fell to `klytos-components.css`'s deliberate `1fr`
+    fallback and rendered **ONE CELL PER ROW at every width** — shipped in `d71a704`, turning a
+    1000px viewport into a **5731px** page. The tier asserted the table is present, is open and
+    follows the chart in the DOM; every one of those is true of a one-column table. **The witness
+    was the image.** L-048's TENTH mechanism, and the first where the capture rather than an
+    assertion is the only thing that saw it. Adaptation **95**, DERIVED not read (§18 records no
+    widths and no prototype draws these as a grid — DR-006 gains an addendum), now pinned by a
+    track-count assertion.
+  - **The second defect, the build's and not Design's:** a link inside a tinted banner was painted
+    `--color-acento`, which over `--tinte-aviso` composites to **3.68:1 in light** on entries 44 and
+    18. The delivery states the rule itself — text on a tint is `--sobre-tinte-*` — so this is the
+    link layer's over-broad ENUMERATION, not a palette gap. Adaptation **96**: `currentColor` plus
+    an underline (WCAG 1.4.1).
+  - **Both fixes proven by planting the defect back and watching the test go red**, then restored
+    and diffed byte-identical.
+  - **A TEST defect separated from the product ones:** the first run reported four violations
+    belonging to nobody's screen — `.devbar-tab-content` and three `.devbar-*` contrast nodes —
+    because this spec was the ONLY whole-page scan in the tier omitting the `DEV_ONLY_SURFACES`
+    exclusion the other fourteen all carry.
+  - **Recorded, not fixed:** *Top pages* and *Top bots* print their title twice, as the card `<h2>`
+    and again as the table `<caption>` that §2.1 requires to be visible. Which one is the duplicate
+    is Design's call; asked in the DR-006 addendum.
+  - §5.4's `Driven` boxes for entries **44, 13 and 18** are now `☑`; `docs/05-test-points.md` gains
+    the stage-7 browser-tier row with its trace paths. **Slices 1–3 of stage 7 are COMPLETE.**
+  - **NEXT ACTION — stage 7, slice 4 of 14**, continuing in template order through the eleven
+    remaining unblocked entries.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because

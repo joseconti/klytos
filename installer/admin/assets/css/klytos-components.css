@@ -2927,6 +2927,33 @@ textarea.k-control.k-conv-input {
     color: var(--sobre-tinte-aviso);
 }
 
+/* A LINK inside a tinted banner takes the tint's own text colour, never the
+   accent. The link layer's enumeration above names `.k-banner` so a link there
+   would not fall back to `klytos-base.css`'s pre-redesign blue — and that made
+   it `--color-acento`, which over `--tinte-aviso` composites to **3.68:1 in
+   light**, measured out of the browser on entries 44 (`dashboard.indexing_link`)
+   and 18 (`x402.no_provider_action`) the first time this template's spec ran.
+
+   It is the BUILD's defect and not a palette gap for Design: the delivery
+   states the rule itself — text on a tint is `--sobre-tinte-*`
+   (`SPEC/color-contrast-audit.md`, `klytos-admin.css:18`) — and
+   `.k-banner--aviso` already sets exactly that colour on the container. This is
+   the same shape as the three pairs stage 3 fixed rather than registered.
+
+   `currentColor`, so every future `.k-banner--*` modifier is right by
+   construction rather than by being remembered — the enumeration trap above,
+   not repeated one component further down. The underline keeps the link
+   distinguishable without relying on colour (WCAG 1.4.1).
+
+   Specificity: `.k-banner :where(a…)` is (0,1,0), identical to the enumeration
+   above, so this wins on SOURCE ORDER and must stay below it. Build rule 1 says
+   never to assume that — the ratio is read back out of the browser in
+   `tests/E2E/overview-stats.spec.js`. */
+.k-banner :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
+    color: inherit;
+    text-decoration: underline;
+}
+
 .k-banner-icon {
     flex: none;
     width: 18px;

@@ -2799,3 +2799,82 @@ component), all 20 `installer/lang/x402/*.json` (13 keys),
 `docs/design/design-requests/DR-014.md`, `docs/BUILD-SPEC.md` §5.3 (overview-stats — the chart row
 now ticks), §5.4 (row 18 + its note) and §5.9 (adaptations **91–94**).
 PHP **401 / 1936**, 0 skips (was 390/1804). Commit `d71a704`.
+
+---
+
+## D-113 — Stage 7's browser tier for entries 44, 13 and 18 is RUN, and the capture found what no assertion could
+
+**Date:** 2026-08-29 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, the owed browser tier** · Supersedes nothing.
+
+`tests/E2E/overview-stats.spec.js` was written on 2026-08-11 (commit `2a8bf6b`) and **never
+executed** — the session ended between the seeding and the run. This entry records the run.
+
+**Result: 32 passing, 4 skipped**, playground `KPORT=8201` (bind confirmed, owning PID `php83 99500`
+per L-021, no `Server:` header per L-011, `--reset` reseed per L-028, `keel-doctor --check` green
+before the run per D-067). The four skips are declared conditionals carrying their reason —
+Tasks and Agent payments link nowhere from their stat rows, and Tasks renders no banner — not
+silent passes.
+
+**The assertion the file exists for PASSES on all three screens:** the stat tile is 32px and its
+glyph 18 × 18, not the SVG default of 300 × 150. L-048's ninth mechanism, closed in `1bfa568`, is
+now measured rather than believed.
+
+### Two real defects, and the more expensive one was found by LOOKING
+
+**(1) Entry 18's three tables had no `grid-template-columns`.** `.k-table` is `display: grid` and
+`klytos-components.css` gives `tr` a deliberate `1fr` fallback so that a screen which forgets to
+declare its own is "visibly wrong rather than subtly wrong". Entry 18 forgot, and shipped in
+`d71a704`: the chart's data table, *Top pages* and *Top bots* all rendered **one cell per row at
+every width**, turning a 1000px viewport into a **5731px** page.
+
+**Nothing asserted it and nothing could have at the level the tests were written.**
+`X402DashboardHttpTest` asserts the markup, which is correct. The browser tier asserted the table is
+present, is open, and follows the chart in the DOM — every one of which is true of a one-column
+table. **The witness was the capture.** That is L-048's duty arriving on its tenth mechanism, and
+the first time in this build where the image rather than an assertion is the only thing that saw the
+defect. Fixed as **adaptation 95** and now pinned by a track-count assertion read out of the browser.
+
+The widths are DERIVED and not read: §18 records none, and unlike entry 25 no prototype settles it
+either — `Klytos Admin - Screens 3.dc.html` carries `x402Tables` as name/count/amount ROWS with an
+icon, not as a grid with tracks. `minmax(0, 1fr) max-content max-content` invents no measurement and
+cannot disagree with a value Design has yet to write; it is replaced verbatim when DR-006 answers,
+and an **ADDENDUM** was added to that request recording this surface.
+
+**(2) A link inside a tinted banner was painted `--color-acento`** — over `--tinte-aviso` that
+composites to **3.68:1 in light**, on `dashboard.indexing_link` (entry 44) and
+`x402.no_provider_action` (entry 18). This one is the BUILD's and not Design's, and the delivery
+says so itself: text on a tint is `--sobre-tinte-*` (`SPEC/color-contrast-audit.md`,
+`klytos-admin.css:18`), which `.k-banner--aviso` already sets on the container. The link layer's
+ENUMERATION names `.k-banner` so a link there would not fall back to the pre-redesign blue, and that
+made it the accent. Fixed as **adaptation 96** with `currentColor` — so every future `.k-banner--*`
+modifier is right by construction rather than by being remembered — plus an underline, because
+colour must not be the only means of distinguishing it (WCAG 1.4.1).
+
+**Both fixes were proven by planting the defect back and watching its test go red**, then restored
+and diffed byte-identical.
+
+### And a TEST defect, separated from the product ones — which was part of the work
+
+The first run reported four violations belonging to nobody's screen: `.devbar-tab-content`
+(scrollable, no focusable content) in both themes and three `.devbar-*` contrast nodes in light.
+They are the dev bar, which reaches no ordinary install, and `fixtures.js` already records that
+exact set under `DEV_ONLY_SURFACES`. **This spec was the only whole-page scan in the tier that did
+not apply the exclusion** — fourteen others do. Added.
+
+### What moved
+
+`docs/BUILD-SPEC.md` §5.4 rows **13, 18 and 44** now carry `☑ DRIVEN`; §5.9 gains adaptations
+**95 and 96**; `docs/05-test-points.md` gains the stage-7 browser-tier row with its trace paths;
+`docs/design/design-requests/DR-006.md` gains the entry-18 addendum.
+
+**Files:** `installer/admin/x402-dashboard.php` (three table classes + the screen's nonced grid
+block), `installer/admin/assets/css/klytos-components.css` (the banner-link rule),
+`tests/E2E/overview-stats.spec.js` (the `DEV_ONLY_SURFACES` exclusion, the banner-link test per
+theme, the track-count test). **No i18n key was added** — neither fix touches a user-facing string.
+
+### Left standing, recorded rather than fixed
+
+The *Top pages* and *Top bots* cards print their title **twice**: once as the card's `<h2>` and
+again as the table's `<caption>`, which `accessibility.md` §2.1 requires to be visible. Which of the
+two is the duplicate is a design call and not the build's, so it is recorded here and asked with the
+DR-006 addendum rather than resolved by picking one.
