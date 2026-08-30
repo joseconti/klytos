@@ -214,3 +214,84 @@ klytos_add_filter( 'mcp.handle_tool', function ( mixed $result, string $toolName
         ];
     }
 }, 10 );
+
+// ─── Privacy (GDPR) ─────────────────────────────────────────
+//
+// Forms holds personal data — an email address in a field the form declares,
+// plus the submitter's IP in the entry's metadata — so Forms answers for it on
+// a subject access or erasure request.
+//
+// Core used to carry a `core:form_submissions` section over a collection called
+// `form-submissions` that nothing in the product has ever written to, so a
+// person's form data was silently missing from both the export and the erasure
+// and nothing said so. Core no longer knows this collection exists; the plugin
+// declares, exports and erases its own data through the three extension points
+// the privacy manager already provides (D-116).
+//
+// The section id is namespaced with the plugin's own id, so two plugins holding
+// personal data can never collide.
+
+/** Declare the section, and only when the person actually has entries. */
+klytos_add_filter( 'privacy.erasable_data', function ( array $sections, string $userId, array $user ): array {
+    $entries = klytos_forms()->entriesForEmail( (string) ( $user['email'] ?? '' ) );
+
+    if ( $entries === [] ) {
+        return $sections;
+    }
+
+    $sections[] = [
+        'id'             => 'klytos-forms:entries',
+        'source'         => 'klytos-forms',
+        // `\Klytos\Core\__()` explicitly, not a bare `__()`. The global alias is
+        // declared by `admin/bootstrap.php:28` and therefore exists only on the
+        // ADMIN request path, while an erasure can also be driven from MCP or a
+        // scheduled task — where a bare call would fatal. The namespaced function
+        // is the one `App::registerI18nGlobal()` really declares.
+        'label'          => \Klytos\Core\__( 'klytos_forms.privacy_section' ),
+        'erasable'       => true,
+        'erasure_method' => 'delete',
+        'item_count'     => count( $entries ),
+    ];
+
+    return $sections;
+}, 10 );
+
+/** Perform the erasure, but only for the section the caller actually selected. */
+klytos_add_filter( 'privacy.erase_plugin_data', function ( array $results, string $userId, array $selectedSections ): array {
+    if ( ! in_array( 'klytos-forms:entries', $selectedSections, true ) ) {
+        return $results;
+    }
+
+    // `getById()` throws when the record is gone, which on an erasure run is a
+    // real possibility if the account section was erased first. A section that
+    // cannot find its subject reports nothing rather than taking the whole
+    // erasure down with it.
+    try {
+        $user = klytos_app()->getUserManager()->getById( $userId );
+    } catch ( \Throwable $e ) {
+        return $results;
+    }
+
+    $deleted = klytos_forms()->deleteEntriesForEmail( (string) ( $user['email'] ?? '' ) );
+
+    $results[] = [
+        'section' => 'klytos-forms:entries',
+        'status'  => 'deleted',
+        'count'   => $deleted,
+    ];
+
+    return $results;
+}, 10 );
+
+/** Include the person's entries in their data export. */
+klytos_add_filter( 'privacy.export_data', function ( array $data, string $userId, array $user ): array {
+    $entries = klytos_forms()->entriesForEmail( (string) ( $user['email'] ?? '' ) );
+
+    if ( $entries === [] ) {
+        return $data;
+    }
+
+    $data['klytos-forms:entries'] = array_values( $entries );
+
+    return $data;
+}, 10 );

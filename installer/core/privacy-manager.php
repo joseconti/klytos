@@ -16,7 +16,6 @@
  * Core collections containing personal data:
  * - users              — User profiles.
  * - audit-log          — Activity logs (anonymized on erasure, never deleted).
- * - form-submissions   — Contact form entries (fully deleted on erasure).
  * - tasks              — Task assignments (user references cleared on erasure).
  *
  * Analytics data is excluded: it uses daily-salted SHA-256 hashes which are
@@ -143,16 +142,10 @@ class PrivacyManager
             ];
         }
 
-        // Section 3: Form submissions matching user email.
-        $formSubmissions = $this->getFormSubmissionsForUser( $user['email'] );
-        if ( !empty( $formSubmissions ) ) {
-            $data['sections'][] = [
-                'source' => 'core',
-                'label'  => __( 'privacy.section_forms' ),
-                'count'  => count( $formSubmissions ),
-                'data'   => $formSubmissions,
-            ];
-        }
+        // Section 3 used to be form submissions and is gone from core for the
+        // reason given in `collectErasableData()`: the collection it read has no
+        // writer. The plugin that owns the data adds its own section through
+        // `privacy.export_data`, which is applied below (D-116).
 
         // Section 4: Task assignments.
         $tasks = $this->getTasksForUser( $userId );
@@ -316,18 +309,20 @@ class PrivacyManager
             ];
         }
 
-        // Form submissions.
-        $formSubmissions = $this->getFormSubmissionsForUser( $user['email'] );
-        if ( !empty( $formSubmissions ) ) {
-            $sections[] = [
-                'id'             => 'core:form_submissions',
-                'source'         => 'core',
-                'label'          => __( 'privacy.section_forms' ),
-                'erasable'       => true,
-                'erasure_method' => 'delete',
-                'item_count'     => count( $formSubmissions ),
-            ];
-        }
+        /*
+         * FORM DATA IS NOT CORE'S. It used to be declared here over a collection
+         * called `form-submissions` that nothing in the product has ever written
+         * to — Klytos Forms stores entries in `form-entries` — and because the
+         * section was gated on finding matches it never even appeared. A person's
+         * form data was silently absent from both export and erasure, and nothing
+         * said so (D-116).
+         *
+         * The plugin that holds the data now declares, exports and erases it
+         * through `privacy.erasable_data`, `privacy.export_data` and
+         * `privacy.erase_plugin_data`. Core does not learn a plugin's collection
+         * names, and any other plugin holding personal data is covered by the
+         * same route rather than needing a case added here.
+         */
 
         // Tasks.
         $tasks = $this->getTasksForUser( $userId );
@@ -410,11 +405,6 @@ class PrivacyManager
                     $results[] = ['section' => $sectionId, 'status' => 'anonymized', 'count' => $count];
                     break;
 
-                case 'core:form_submissions':
-                    $count = $this->deleteFormSubmissions( $user['email'] );
-                    $results[] = ['section' => $sectionId, 'status' => 'deleted', 'count' => $count];
-                    break;
-
                 case 'core:tasks':
                     $count = $this->anonymizeTaskAssignments( $userId );
                     $results[] = ['section' => $sectionId, 'status' => 'anonymized', 'count' => $count];
@@ -448,31 +438,6 @@ class PrivacyManager
 
     // ─── Internal: Core Data Collection ──────────────────────────
 
-    /**
-     * Get form submissions matching a user's email.
-     *
-     * @param  string $email User email.
-     * @return array  Matching form submissions.
-     */
-    private function getFormSubmissionsForUser( string $email ): array
-    {
-        $submissions = $this->storage->list( 'form-submissions' );
-        $matches     = [];
-
-        foreach ( $submissions as $submission ) {
-            // Check common email fields in form submissions.
-            $submissionEmail = $submission['email']
-                ?? $submission['data']['email']
-                ?? $submission['fields']['email']
-                ?? '';
-
-            if ( strtolower( trim( $submissionEmail ) ) === strtolower( trim( $email ) ) ) {
-                $matches[] = $submission;
-            }
-        }
-
-        return $matches;
-    }
 
     /**
      * Get tasks assigned to or created by a user.
@@ -569,52 +534,6 @@ class PrivacyManager
         return $count;
     }
 
-    /**
-     * Delete form submissions matching a user's email.
-     *
-     * @param  string $email User email.
-     * @return int    Number of submissions deleted.
-     */
-    private function deleteFormSubmissions( string $email ): int
-    {
-        /*
-         * TWO defects met here, and only one of them is this change's to fix.
-         *
-         * FIXED: the id. It was read as `$submission['id']` behind a guard, so
-         * even over a populated collection nothing would have been deleted
-         * (D-115). It is now the storage id, like every other site in this sweep.
-         *
-         * NOT FIXED, AND ESCALATED: `form-submissions` HAS NO WRITER ANYWHERE IN
-         * THE PRODUCT. The Klytos Forms plugin stores entries in `form-entries`
-         * (`FormManager.php:36`); the only other references to this name are a
-         * config entry and an index map. So this loop iterates an empty
-         * collection and `eraseUserData()` reports the section as `deleted` with
-         * a count of zero — a GDPR erasure that has never erased anything and
-         * says it succeeded.
-         *
-         * The fix is NOT to point this at `form-entries`: core would then be
-         * hard-coding a plugin's private collection name, and the privacy system
-         * already has `privacy.erasable_data` for exactly this — a plugin should
-         * register and perform its own erasure. That is a product decision, so it
-         * is recorded in `docs/PROGRESS.md` open items rather than guessed here.
-         */
-        $submissions = $this->storage->listWithIds( 'form-submissions' );
-        $count       = 0;
-
-        foreach ( $submissions as $submissionId => $submission ) {
-            $submissionEmail = $submission['email']
-                ?? $submission['data']['email']
-                ?? $submission['fields']['email']
-                ?? '';
-
-            if ( strtolower( trim( $submissionEmail ) ) === strtolower( trim( $email ) ) ) {
-                $this->storage->delete( 'form-submissions', (string) $submissionId );
-                $count++;
-            }
-        }
-
-        return $count;
-    }
 
     /**
      * Anonymize task assignments for a user.

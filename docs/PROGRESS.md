@@ -1643,12 +1643,18 @@
   `shouldEncrypt()` values, and it **has not been executed against a real MySQL**. To close: stand up
   MySQL, point the playground at the database backend, run the suite plus a `list('config')` over a
   per-id-encrypted record. **The absent DB test tier is itself the finding.**
-- **OPEN, and it is a product decision — `form-submissions` has no writer anywhere.** Klytos Forms
-  stores entries in `form-entries`; core's `PrivacyManager::deleteFormSubmissions()` iterates a
-  collection nothing writes, so that GDPR section has never erased anything and reports success. The
-  id half is fixed (D-115); **pointing core at the plugin's collection is NOT the fix** — that would
-  hard-code a plugin's private name into core when `privacy.erasable_data` exists for exactly this.
-  The plugin should register and perform its own erasure. Needs the user's decision.
+- **CLOSED 2026-08-30 (D-116) — form data is the plugin's, and Forms now owns it.** The user chose
+  the architectural route over pointing core at `form-entries`. Core's `core:form_submissions`
+  section, its switch case and its two private helpers are **removed**; Klytos Forms declares,
+  exports and erases its own entries through `privacy.erasable_data`, `privacy.export_data` and
+  `privacy.erase_plugin_data` — a route the privacy manager already provided and nobody had used.
+  The email is matched from the FORM'S OWN SCHEMA rather than by guessing key names, because
+  under-matching on an erasure means leaving personal data behind.
+- **Recorded, not fixed (D-116):** the Forms plugin's sidebar entry is **hardcoded Spanish**
+  (`'Formularios'`, `'Todos los formularios'`) in an English-base product with 20 catalogues — it is
+  the label visible in every admin capture this build has taken. It belongs to the plugin's own i18n
+  slice. `klytos-importer.php:55` calls a bare `__()` that only resolves on the admin request path;
+  harmless where it runs today, and the same trap D-116 hit.
 - Open Design Requests: **ELEVEN.**
   **DR-015 — DRAFTED 2026-08-29 (D-114), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-015.md`. Three of §7's five stats are unmeasurable from what

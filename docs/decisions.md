@@ -3090,3 +3090,69 @@ namespaced declaration. The stub was reverted and the test moved to the tier tha
 
 PHP **420 / 2043 → 437 / 2091**, 0 skips · lint clean on all nine touched core files, D-025 baseline
 unchanged (the one remaining warning is a pre-existing 178-character CSS string).
+
+---
+
+## D-116 — Form data belongs to the plugin that holds it: core stops owning a GDPR section over a collection nothing writes
+
+**Date:** 2026-08-30 · **Follow-up to D-115, answering the first of three questions the user decided** · Supersedes the `core:form_submissions` section.
+
+**The user chose "que Forms haga su propio borrado"** over pointing core at `form-entries` or simply
+retiring the section.
+
+### What was wrong, stated precisely
+
+Core carried a `core:form_submissions` section reading a collection called `form-submissions`.
+**Nothing in the product has ever written to that name** — Klytos Forms stores entries in
+`form-entries` (`FormManager.php:36`); the only other references were a config entry and a
+database index map.
+
+**And the section was gated on finding matches, so it never even appeared.** That is worse than a
+loud failure and better than nothing in exactly the wrong way: a person's form data was silently
+absent from both the data export and the erasure, and no screen, log or report said so. An
+uncovered category that announces itself is a gap; one that is invisible is a compliance claim
+nobody can check. `FormsPrivacyTest` was seen failing on all three — the section not declared, the
+erasure removing nothing, the export not carrying the entries.
+
+### The shape of the fix, and why not the cheap one
+
+Pointing core at `form-entries` was rejected: it hard-codes a plugin's private collection name into
+core, breaks silently the day the plugin renames it, and covers no other plugin.
+
+**The plumbing already existed and was unused.** `PrivacyManager` applies `privacy.erasable_data`
+(declare), `privacy.erase_plugin_data` (erase) and `privacy.export_data` (export), and the erasure
+switch's `default:` branch already read *"Plugin section — handled via filter below"*. So the route
+was built and nobody had travelled it. Forms now registers on all three, and **core no longer knows
+that form data exists**: the section, the switch case, `getFormSubmissionsForUser()`,
+`deleteFormSubmissions()` and the header line are all removed.
+
+The section id is namespaced `klytos-forms:entries`, so two plugins holding personal data cannot
+collide.
+
+### Two things the implementation got right on purpose
+
+- **The email is read from the FORM'S OWN SCHEMA** — the fields it declares as `type => 'email'` —
+  not by guessing key names like `email` / `data.email` / `fields.email`, which is what core's dead
+  code did. A form may name its email field anything or have several; a key-name guess
+  under-matches, and on an erasure under-matching means **leaving personal data behind**.
+- **`\Klytos\Core\__()` is called explicitly, never a bare `__()`.** The global alias is declared by
+  `admin/bootstrap.php:28` and therefore exists only on the ADMIN request path, while an erasure can
+  also be driven from MCP or a scheduled task — where a bare call fatals. Found by the test, which
+  does not load the admin bootstrap. **`klytos-importer.php:55` has the same bare call** in its
+  sidebar filter; that one only ever runs in the admin, so it is recorded rather than changed.
+
+### Found along the way, recorded not fixed
+
+**The Forms plugin's sidebar entry is hardcoded Spanish** — `'Formularios'`, `'Todos los
+formularios'` (`klytos-forms.php:61`, `:70`) — in an English-base product with 20 catalogues. It is
+the "Formularios" visible in every admin capture this build has taken. Not this change's scope; it
+belongs to the plugin's own i18n slice.
+
+**Files:** `installer/core/privacy-manager.php` (section, case and two private methods removed),
+`installer/plugins/klytos-forms/klytos-forms.php` (three hooks),
+`installer/plugins/klytos-forms/src/FormManager.php` (`entriesForEmail()`,
+`deleteEntriesForEmail()`), all 20 `installer/plugins/klytos-forms/lang/*.json` (1 key each, **20
+insertions, 0 deletions**), `tests/Integration/FormsPrivacyTest.php` (5 tests).
+
+PHP **437 / 2091 → 442 / 2123**, 0 skips · lint on all three touched PHP files **identical to HEAD**,
+so the D-025 baseline did not grow.

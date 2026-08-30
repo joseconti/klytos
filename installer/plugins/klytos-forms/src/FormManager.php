@@ -579,6 +579,87 @@ class FormManager
         return $deleted;
     }
 
+    // ─── Privacy (GDPR) ─────────────────────────────────────────
+    //
+    // Forms holds personal data — an email address in a field the form itself
+    // defines, plus the submitter's IP in `metadata` — so Forms answers for it.
+    // Core used to own a `core:form_submissions` section over a collection
+    // called `form-submissions` that nothing has ever written to, so a person's
+    // form data was silently absent from both export and erasure (D-116).
+    //
+    // Core does not learn this collection's name: the plugin registers on
+    // `privacy.erasable_data`, `privacy.erase_plugin_data` and
+    // `privacy.export_data` in `klytos-forms.php`.
+
+    /**
+     * Find every entry submitted by an email address, keyed by entry id.
+     *
+     * The email is read from the FORM'S OWN SCHEMA — the fields it declares as
+     * `type => 'email'` — rather than by guessing at key names. A form may have
+     * more than one email field, or name it something other than `email`, and a
+     * key-name guess would silently under-match, which on an erasure means
+     * leaving personal data behind.
+     *
+     * @param  string $email Address to match, compared case-insensitively.
+     * @return array<string,array> Matching entries, keyed by entry id.
+     */
+    public function entriesForEmail( string $email ): array
+    {
+        $needle = strtolower( trim( $email ) );
+
+        if ( $needle === '' ) {
+            return [];
+        }
+
+        $emailFieldsByForm = [];
+        $matches           = [];
+
+        foreach ( $this->storage->listWithIds( self::ENTRIES_COLLECTION ) as $entryId => $entry ) {
+            $formId = (string) ( $entry['form_id'] ?? '' );
+
+            if ( ! isset( $emailFieldsByForm[ $formId ] ) ) {
+                $form                          = $formId !== '' ? $this->getForm( $formId ) : null;
+                $emailFieldsByForm[ $formId ] = [];
+
+                foreach ( (array) ( $form['fields'] ?? [] ) as $field ) {
+                    if ( ( $field['type'] ?? '' ) === 'email' && isset( $field['id'] ) ) {
+                        $emailFieldsByForm[ $formId ][] = (string) $field['id'];
+                    }
+                }
+            }
+
+            foreach ( $emailFieldsByForm[ $formId ] as $fieldId ) {
+                $value = $entry['data'][ $fieldId ] ?? '';
+
+                if ( is_string( $value ) && strtolower( trim( $value ) ) === $needle ) {
+                    $matches[ (string) $entryId ] = $entry;
+                    break;
+                }
+            }
+        }
+
+        return $matches;
+    }
+
+    /**
+     * Delete every entry submitted by an email address.
+     *
+     * @param  string $email Address to match.
+     * @return int    Number of entries actually deleted.
+     */
+    public function deleteEntriesForEmail( string $email ): int
+    {
+        $deleted = 0;
+
+        foreach ( array_keys( $this->entriesForEmail( $email ) ) as $entryId ) {
+            if ( $this->storage->delete( self::ENTRIES_COLLECTION, (string) $entryId ) ) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
     /**
      * Export entries as CSV or JSON.
      */
