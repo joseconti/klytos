@@ -1636,13 +1636,14 @@
   magic login link that was replayable for its whole lifetime, and a GDPR erasure that wrote a decoy
   record and kept the personal data.** Fixed with `listWithIds()` on the contract, with `list()` now
   DERIVED from it so the two cannot diverge again. `docs/threat-model.md` gains **D21, D22, D23**.
-- **⚠ VERIFY — the `DatabaseStorage` half of D-115 is UNPROVEN.** This project has **no
-  DatabaseStorage tests at all** and no MySQL in `keel-doctor`'s requirements, which is exactly why
-  the `SELECT \`data\`` defect (per-id-encrypted `config` records silently dropped from every
-  `list()` on MySQL) survived unnoticed. The change is correct by reading and by the measured
-  `shouldEncrypt()` values, and it **has not been executed against a real MySQL**. To close: stand up
-  MySQL, point the playground at the database backend, run the suite plus a `list('config')` over a
-  per-id-encrypted record. **The absent DB test tier is itself the finding.**
+- **CLOSED 2026-08-30 (D-117) — the `⚠ VERIFY` on D-115's database half is discharged, and the
+  backend has a test tier at last.** Klytos ships two storage backends and one of them had never
+  executed a single test, which is precisely how the `SELECT` defect survived: it lives in a code
+  path the file backend does not have. `tests/Unit/DatabaseStorageTest.php` (8 tests, MariaDB 11.4 in
+  Docker) closes it, and the fix is proven by **planting the original defect back** — five of eight
+  fail, with `Failed asserting that an array has the key 'tokens'` naming it exactly — then restored
+  byte-identical. The tier **skips cleanly** with no database, and `keel-doctor` carries an optional
+  `Test database (MySQL/MariaDB)` row so the gap stays visible: a skipped backend is not a tested one.
 - **CLOSED 2026-08-30 (D-116) — form data is the plugin's, and Forms now owns it.** The user chose
   the architectural route over pointing core at `form-entries`. Core's `core:form_submissions`
   section, its switch case and its two private helpers are **removed**; Klytos Forms declares,

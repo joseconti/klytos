@@ -720,6 +720,39 @@ authorization over HTTP, always.
 
 ## Running the tests
 
+### The database backend's tier — optional, and it SKIPS without a database
+
+Klytos ships two storage backends and, until 2026-08-30, only the flat-file one had ever executed a
+test. That is exactly how D-115's `SELECT` defect survived: on the database backend the
+per-record-encrypted `config` rows (`tokens`, `app_passwords`, `oauth_clients`, and more at higher
+levels) were **silently dropped from every listing**, and no file-tier test could ever have seen it,
+because the file tier does not have that code path.
+
+`tests/Unit/DatabaseStorageTest.php` closes that gap. It needs a throwaway database:
+
+```bash
+docker run -d --name klytos-test-mysql \
+  -e MARIADB_ROOT_PASSWORD=klytos-test -e MARIADB_DATABASE=klytos_test \
+  -p 13306:3306 mariadb:11.4
+```
+
+**With no database reachable the tier skips**, with a message that repeats that command — so a
+machine without a container runtime still gets a green suite, and `scripts/keel-doctor` carries a
+`Test database (MySQL/MariaDB)` row so the gap is visible rather than silent. **A skipped backend is
+not a tested one.**
+
+MariaDB and not MySQL 8.4 on purpose: 8.4 removed `mysql_native_password`, and this machine's
+`mysqlnd` cannot speak `caching_sha2_password` — measured, `SQLSTATE[HY000] [2054]`. MariaDB is a
+first-class target for this product either way. Override the defaults with `KLYTOS_TEST_DB_HOST`,
+`_PORT`, `_NAME`, `_USER` and `_PASS`.
+
+Stop it when you are done — it holds no state anything else needs:
+
+```bash
+docker rm -f klytos-test-mysql
+```
+
+
 > **STOP — two things first, if you have been following this document from the top.**
 > Both were found by a fresh-context QA pass at the sprint-1 close, and both make the suite report
 > failures that are **artefacts of the walkthrough, not defects in the product**. A newcomer hitting

@@ -238,6 +238,43 @@ else
     add_row "Docker" "absent" "not required" "MISSING" "optional" "-"
 fi
 
+# The DATABASE backend's test tier (D-117).
+#
+# Klytos ships TWO storage backends and, until 2026-08-30, only one of them had
+# ever executed a test — which is exactly how D-115's `SELECT` defect survived:
+# per-record-encrypted `config` rows were silently dropped from every listing on
+# the database backend, and no file-tier test could ever have seen it.
+#
+# OPTIONAL, and deliberately so: `tests/Unit/DatabaseStorageTest.php` SKIPS with
+# instructions when no database answers, so a developer without a container
+# runtime still gets a green suite. The row exists so the gap is VISIBLE rather
+# than silent — a skipped backend is not a tested one.
+#
+# MariaDB rather than MySQL 8.4: 8.4 removed `mysql_native_password` and this
+# machine's `mysqlnd` cannot speak `caching_sha2_password` (measured,
+# SQLSTATE[HY000] [2054]). MariaDB is a first-class target for this product.
+DB_HINT='docker run -d --name klytos-test-mysql -e MARIADB_ROOT_PASSWORD=klytos-test -e MARIADB_DATABASE=klytos_test -p 13306:3306 mariadb:11.4'
+DB_HOST="${KLYTOS_TEST_DB_HOST:-127.0.0.1}"
+DB_PORT="${KLYTOS_TEST_DB_PORT:-13306}"
+
+if php -r 'exit(extension_loaded("pdo_mysql") ? 0 : 1);' 2>/dev/null; then
+    if php -r '
+        $h = getenv("KLYTOS_TEST_DB_HOST") ?: "127.0.0.1";
+        $p = (int) (getenv("KLYTOS_TEST_DB_PORT") ?: 13306);
+        $n = getenv("KLYTOS_TEST_DB_NAME") ?: "klytos_test";
+        $u = getenv("KLYTOS_TEST_DB_USER") ?: "root";
+        $w = getenv("KLYTOS_TEST_DB_PASS") ?: "klytos-test";
+        try { new PDO("mysql:host=$h;port=$p;dbname=$n", $u, $w, [PDO::ATTR_TIMEOUT => 2]); exit(0); }
+        catch (Throwable $e) { exit(1); }
+    ' 2>/dev/null; then
+        add_row "Test database (MySQL/MariaDB)" "answering on ${DB_HOST}:${DB_PORT}" "for DatabaseStorageTest" "OK" "optional" "-"
+    else
+        add_row "Test database (MySQL/MariaDB)" "nothing on ${DB_HOST}:${DB_PORT} — that tier SKIPS" "for DatabaseStorageTest" "MISSING" "optional" "${DB_HINT}"
+    fi
+else
+    add_row "Test database (MySQL/MariaDB)" "pdo_mysql not loaded" "for DatabaseStorageTest" "MISSING" "optional" "install the pdo_mysql extension"
+fi
+
 if command -v git >/dev/null 2>&1; then
     add_row "git" "$(git --version 2>/dev/null | awk '{print $3}')" "any" "OK" "blocking" "-"
 else

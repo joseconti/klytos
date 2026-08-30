@@ -3156,3 +3156,69 @@ insertions, 0 deletions**), `tests/Integration/FormsPrivacyTest.php` (5 tests).
 
 PHP **437 / 2091 → 442 / 2123**, 0 skips · lint on all three touched PHP files **identical to HEAD**,
 so the D-025 baseline did not grow.
+
+---
+
+## D-117 — The database backend gets a test tier, and D-115's `⚠ VERIFY` closes against a real database
+
+**Date:** 2026-08-30 · **Follow-up to D-115, answering the second of three questions the user decided** · Supersedes D-115's `⚠ VERIFY`.
+
+**The user chose "tier de tests con MySQL en Docker"** over verifying once by hand or deferring to
+Phase 7.
+
+### The gap, stated plainly
+
+Klytos ships **two** storage backends and, until today, **one of them had never executed a single
+test**. There were no `DatabaseStorage` tests at all and no database in `keel-doctor`'s
+requirements. That is not a coincidence next to D-115: it is the mechanism. The `SELECT \`data\``
+defect — per-record-encrypted `config` rows silently dropped from every listing — lives in a code
+path the file backend does not have, so no amount of testing the file tier could ever have reached
+it. **The absent tier was the finding.**
+
+### What now exists
+
+`tests/Unit/DatabaseStorageTest.php` — 8 tests over a real database: the write/read round trip,
+`listWithIds()` keyed by storage id, **a listed record actually being deletable** (the D-115
+property, on the backend where it used to fail *silently* rather than by throwing), `list()` proven
+to be `listWithIds()` without the keys on this backend too, pagination preserving keys, filters over
+decrypted values, a missing table answering empty — and the regression the tier was built for.
+
+**The `⚠ VERIFY` is closed by planting the original defect back.** With `SELECT \`id\`, \`data\``
+reverted to `SELECT \`data\`` and the keying removed, **five of the eight fail**, and the one that
+names the defect says exactly what it was:
+
+```
+testPerRecordEncryptedConfigRowsSurviveAListing
+Failed asserting that an array has the key 'tokens'.
+```
+
+Restored byte-identical, all eight pass. The fix is now proven against a real database rather than
+by reading, and the tier is proven to catch the thing it was written for.
+
+### Three deliberate choices
+
+- **MariaDB 11.4, not MySQL 8.4.** Measured, not assumed: 8.4 removed `mysql_native_password` and
+  this machine's `mysqlnd` cannot speak `caching_sha2_password` (`SQLSTATE[HY000] [2054]`). MariaDB
+  is a first-class target for this product — the project card names "MySQL/MariaDB" — so nothing is
+  lost. Recorded because the next person will hit the same wall.
+- **It SKIPS, loudly, when no database answers.** A developer with no container runtime still gets a
+  green suite, and the skip message repeats the exact `docker run` command. Verified both ways: with
+  the database stopped the tier reports `Skipped: 8` and the suite stays green.
+- **`keel-doctor` gains a `Test database (MySQL/MariaDB)` row, OPTIONAL.** Blocking would push a
+  container runtime onto every contributor for a backend many installs never use — the same
+  reasoning the Docker row already carries. Optional-but-visible is the point: **a skipped backend
+  is not a tested one**, and the row is what stops that being silent.
+
+### The precondition that keeps this test honest
+
+`testPerRecordEncryptedConfigRowsSurviveAListing` uses `tokens`, not `site`: `site` is
+per-record-encrypted only from the `professional` level up, while `tokens` is on the list from
+`basic` (`encryption-level-trait.php:53`). The test **asserts both preconditions** —
+`shouldEncrypt( 'config', 'tokens' )` is true and `shouldEncrypt( 'config', '' )` is false — so it
+cannot quietly stop testing the thing it names if a default changes.
+
+**Files:** `tests/Unit/DatabaseStorageTest.php` (new), `scripts/keel-doctor` (the database row),
+`docs/playground.md` ("The database backend's tier").
+
+PHP **442 / 2123 → 450 / 2138**, 0 skips with the database up, 8 clean skips without it ·
+`keel-verify` 23 checks: 17 pass, 6 warnings · lint clean.
