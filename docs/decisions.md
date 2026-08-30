@@ -3310,3 +3310,79 @@ PASS at 1554 keys.
 **OWED AND NOT CLAIMED: the browser tier and the captures.** No axe run, no geometry, no both-themes
 pass, no 320 px reflow, no capture-and-look — which is precisely the thing D-113 showed is the only
 witness for a whole class of defect. §5.4's `Driven` box for entry 4 reads `◐` and says so in words.
+
+---
+
+## D-119 — Entry 4's browser tier, and three defects that only the capture could see
+
+**Date:** 2026-08-30 · **Phase 4 Step 4, stage 7 slice 5 — the owed browser tier** · Completes D-118.
+
+`tests/E2E/assets.spec.js` — **17 passing** on `KPORT=8204` (bind, owning PID, no `Server:` header,
+`--reset` reseed, `keel-doctor --check` green first).
+
+### THREE DEFECTS THE CAPTURE FOUND, AND EVERY ASSERTION PASSED
+
+All three are TEXT, which is exactly the class a structural assertion cannot reach — and the reason
+L-048's capture-and-look duty exists:
+
+1. **`Max size: {size}MB`** — the placeholder printed raw. `assets.max_size` carries a `{size}` and
+   the screen had no way to ask for the real limit: `AssetManager` kept `maxFileSize` private with no
+   accessor. Adding `getMaxFileSize()` was the smaller change than duplicating the 10 MB default into
+   the screen, where it would drift.
+2. **The usage count had no number.** `assets.usages` was the bare label `"Usages"`, so §4's tile —
+   "thumbnail · filename · size · **usage count**" — drew a link with nothing measured in it. The
+   string now carries `{count}` in all 20 catalogues.
+3. **The `<h1>` said "Files".** `SPEC/navigation.md:62` states it outright: "*Assets*, not 'Media' —
+   the screen's `<h1>` is **Assets** and the nav now agrees with it." `assets.title` is the shipped
+   string "Files" with other consumers, so a new `assets.heading` carries the heading rather than
+   repurposing one that nobody asked to change.
+
+**Now pinned by one test that reads the rendered text**: no `{placeholder}` anywhere on the page, the
+`<h1>` is exactly `Assets`, and exactly one usage element contains a digit.
+
+### AND A FOURTH, IN CODE I HAD JUST WRITTEN
+
+The gallery's usage link rendered at **`#5B8DEF` on `--fondo-elevado`, 4.31:1 in dark** — the
+pre-redesign blue from `klytos-base.css`'s bare `a`. `.k-tile` is a new container and I did not add
+it to the link layer's ENUMERATION, whose own comment warns about exactly this and records the two
+previous times it happened. **Reading the warning is not the same as acting on it**, so the comment
+now says so, and every new container gets an axe run in both themes before it is called done.
+
+### One registered rather than fixed, and it is the delivery's own reasoning failing
+
+`template-gallery-grid.md` §1 specifies the file-type pill as white "on a 42 %-black plate — which is
+**the one place a fixed rgba is correct, because it sits over arbitrary imagery**". Over
+`--fondo-ventana` that plate composites to `#8b8b8c`, and white on it measures **3.4:1** in light.
+
+Both halves are §1's, so it is Design's under Phase 4 rule 2 — registered as **DR-005 addendum 4**
+with its ratio pinned as a floor, never substituted. What makes it worth recording beyond the number:
+**the specification's own justification is what fails.** A plate chosen because it sits over
+arbitrary imagery cannot be verified against one background, and the case where nothing is behind it
+— a document tile, or an image that does not fill its box — is precisely the case the reasoning does
+not cover.
+
+### And a playground gap that made the product look broken
+
+Every uploaded thumbnail 404'd. `AssetManager` writes into the web root and a real install serves
+that directory, so `/assets/images/2026/08/x.png` works in production — but `scripts/dev/router.php`
+mapped everything it did not recognise into `installer/public/`, so the playground disagreed with
+production on a surface the screen depends on. That is the same disagreement the router's own comment
+refuses to accept on the public entry points. Fixed, scoped to `/assets/` and to real files, with
+`realpath()` containment: a traversal attempt answers **403**, verified.
+
+**Found through the read-back duty**, not through anything visible — the tier reported
+`console.error: Failed to load resource: 404` before a single assertion ran.
+
+### One test defect of my own, separated from the four product ones
+
+The hover-reveal test read `opacity` once and got a value mid-transition. That is D-078 exactly — a
+contrast taken during a transition reported a button at 2.59:1 that is 4.86:1 — arriving on opacity
+instead of colour. Polled now.
+
+**Files:** `installer/admin/assets.php`, `installer/core/asset-manager.php` (`getMaxFileSize()`),
+`installer/admin/assets/css/klytos-components.css` (`.k-tile` enumerated), `scripts/dev/router.php`,
+`tests/E2E/assets.spec.js`, `tests/E2E/fixtures.js` (DR-005 addendum 4), all 20 catalogues
+(`assets.heading` added, `assets.usages` given its `{count}`).
+
+PHP **472 / 2263 → 472 / 2264**, 0 skips · browser tier **17 passing** · `keel-verify` 17 pass /
+6 warnings · catalogue parity PASS at **1555** keys.

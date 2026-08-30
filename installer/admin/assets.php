@@ -34,7 +34,17 @@ require_once __DIR__ . '/bootstrap.php';
 
 use Klytos\Core\Helpers;
 
-$pageTitle    = __( 'assets.title' );
+/*
+ * `assets.heading`, not `assets.title`.
+ *
+ * `SPEC/navigation.md:62` is explicit — "*Assets*, not 'Media' — the screen's
+ * `<h1>` is **Assets** and the nav now agrees with it" — and `assets.title` is
+ * the shipped string "Files", used in several other places. A new key carries
+ * the heading rather than repurposing one whose other consumers did not ask to
+ * change. Caught by reading the capture: the H1 said "Files" and no assertion
+ * looked (D-119).
+ */
+$pageTitle    = __( 'assets.heading' );
 $assetManager = $app->getAssetManager();
 $siteUrl      = rtrim( (string) $app->getSiteConfig()->getValue( 'site_url', '' ), '/' );
 $adminPath    = $adminPath ?? Helpers::getBasePath() . 'admin/';
@@ -338,7 +348,16 @@ $chips = [
         <input class="k-control" type="file" name="file" required data-testid="assets.file">
     </label>
 
-    <p class="k-hint"><?php echo klytos_esc_html( __( 'assets.max_size' ) ); ?></p>
+    <p class="k-hint">
+        <?php
+        // The real limit, not the placeholder. `assets.max_size` carries a
+        // `{size}` and the first build of this screen printed it raw — caught by
+        // reading the capture, not by any assertion (D-119).
+        echo klytos_esc_html( __( 'assets.max_size', [
+            'size' => (string) (int) round( $assetManager->getMaxFileSize() / 1048576 ),
+        ] ) );
+        ?>
+    </p>
 
     <button class="k-btn k-btn--primary" type="submit" data-testid="assets.upload">
         <?php echo klytos_esc_html( __( 'assets.upload' ) ); ?>

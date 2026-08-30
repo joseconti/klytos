@@ -292,6 +292,25 @@ const KNOWN_DELIVERY_GAPS = [
     // Both ratios are pinned as FLOORS in shell.spec.js, so an open request
     // cannot become a licence to regress.
     '.k-nav-item[aria-current="page"] .k-nav-label',
+
+    // DR-005, ADDENDUM 4 — the gallery tile's file-type pill, LIGHT theme.
+    // `template-gallery-grid.md` §1 specifies it as white "on a 42 %-black
+    // plate — which is the one place a fixed rgba is correct, because it sits
+    // over arbitrary imagery". Over `--fondo-ventana` that plate composites to
+    // #8b8b8c and white on it measures **3.4:1**.
+    //
+    // Both halves are the delivery's — the plate value and the preview
+    // background are both §1's — so it is Design's under Phase 4 rule 2 and is
+    // registered rather than substituted. The interesting part is that the
+    // spec's own justification is what fails: a plate chosen because it sits
+    // over ARBITRARY imagery is exactly the thing that cannot be verified
+    // against one background, and the case where nothing is behind it (a
+    // document tile, or an image that does not fill its box) is the case the
+    // reasoning does not cover.
+    //
+    // The floor is pinned in assets.spec.js, so an open request cannot become a
+    // licence to regress.
+    '.k-tile-pill',
 ];
 
 /*

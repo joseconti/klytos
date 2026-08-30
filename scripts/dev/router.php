@@ -151,6 +151,53 @@ if ( $requestPath === '/' . $adminDir || str_starts_with( $requestPath, '/' . $a
     return true;
 }
 
+// ─── Uploaded assets, served from the WEB ROOT ───────────────────────────
+//
+// `AssetManager` writes into `dirname( installer/ )` — the web root — and a real
+// install serves that directory directly, so `/assets/images/2026/08/x.png` is a
+// working URL in production. This router mapped everything it did not recognise
+// into `installer/public/`, so every uploaded thumbnail 404'd under the
+// playground and nowhere else.
+//
+// That is exactly the disagreement the comment below refuses to accept on the
+// public entry points, arriving on a different surface: a screen that renders
+// correctly in production looked broken here, and entry 4's browser tier caught
+// it through the read-back duty rather than through anything visible (D-119).
+//
+// Scoped to `/assets/` and to real files. `realpath()` confirms the resolved
+// path is still inside that directory, so a `..` in the request cannot walk out
+// of it.
+if ( str_starts_with( $requestPath, '/assets/' ) ) {
+    $assetsRoot = realpath( dirname( $klytosRoot ) . '/assets' );
+    $candidate  = realpath( dirname( $klytosRoot ) . $requestPath );
+
+    if ( $assetsRoot !== false && $candidate !== false
+        && str_starts_with( $candidate, $assetsRoot . DIRECTORY_SEPARATOR )
+        && is_file( $candidate )
+    ) {
+        $mime = match ( strtolower( (string) pathinfo( $candidate, PATHINFO_EXTENSION ) ) ) {
+            'png'          => 'image/png',
+            'jpg', 'jpeg'  => 'image/jpeg',
+            'gif'          => 'image/gif',
+            'webp'         => 'image/webp',
+            'svg'          => 'image/svg+xml',
+            'avif'         => 'image/avif',
+            'mp4'          => 'video/mp4',
+            'webm'         => 'video/webm',
+            'pdf'          => 'application/pdf',
+            'css'          => 'text/css',
+            'js'           => 'text/javascript',
+            'woff2'        => 'font/woff2',
+            default        => 'application/octet-stream',
+        };
+
+        header( 'Content-Type: ' . $mime );
+        header( 'X-Content-Type-Options: nosniff' );
+        readfile( $candidate );
+        return true;
+    }
+}
+
 // ─── Everything else: the generated static site ──────────────────────────
 $publicPath = $klytosRoot . '/public' . ( $requestPath === '/' ? '/index.html' : $requestPath );
 

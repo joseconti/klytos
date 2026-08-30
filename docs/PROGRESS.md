@@ -1635,12 +1635,20 @@
     non-empty directory.
   - **Tree state:** PHP **460/2160 → 472/2263**, 0 skips · `keel-verify` 17 pass / 6 warnings ·
     **lint on `assets.php` 18 warnings → 3** · catalogue parity PASS at **1554** keys.
-  - **OWED AND NOT CLAIMED: the browser tier and the captures** — no axe, no geometry, no
-    both-themes pass, no 320 px reflow, no capture-and-look. §5.4's `Driven` box reads `◐`.
+  - **THE BROWSER TIER IS RUN — 2026-08-30 (D-119), 17 passing.** §5.4's `Driven` box is `☑`.
+    **Three defects the CAPTURES found and every assertion passed**, all of them TEXT: a raw
+    `{size}` placeholder, a usage count with no number, and an `<h1>` reading "Files" where
+    `navigation.md:62` states it is "Assets". **A fourth in code just written:** the usage link at
+    `#5B8DEF`, 4.31:1 in dark, because `.k-tile` was not added to the link layer's ENUMERATION —
+    the third time that trap has fired and its own comment warns about it. **A playground gap**
+    made every thumbnail 404 (the router looked in `installer/public/` while the product writes to
+    the WEB ROOT), found through the read-back duty and fixed with `realpath()` containment.
+    **Registered, not fixed:** the file-type pill at 3.4:1 in light — DR-005 addendum 4, and the
+    delivery's own justification for the plate is what fails.
 
-  - **NEXT ACTION — finish entry 4's browser tier**, then stage 7 slice 6. Nine unblocked entries
-    remain after entry 4: **21** Blocks · **31** Templates · **20** Translations · **29** AI images ·
-    **40** Block data · **10** Log in · **43** Reset password · **8** MCP · **38** Plugin page.
+  - **NEXT ACTION — stage 7 slice 6.** Nine unblocked entries remain: **21** Blocks · **31**
+    Templates · **20** Translations · **29** AI images · **40** Block data · **10** Log in ·
+    **43** Reset password · **8** MCP · **38** Plugin page.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because

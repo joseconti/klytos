@@ -240,6 +240,22 @@ class AssetManager
      *
      * @return string
      */
+    /**
+     * The maximum upload size, in bytes.
+     *
+     * Added because entry 4's drop zone prints it and had no way to ask: the
+     * screen rendered `Max size: {size}MB` with the placeholder intact, which
+     * the browser tier's CAPTURE caught and every assertion passed (D-119).
+     * Duplicating the 10 MB default in the screen would have been the same
+     * defect with a number that drifts.
+     *
+     * @return int Maximum upload size in bytes.
+     */
+    public function getMaxFileSize(): int
+    {
+        return $this->maxFileSize;
+    }
+
     public function getAssetsDir(): string
     {
         return $this->assetsDir;

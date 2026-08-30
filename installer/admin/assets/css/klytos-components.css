@@ -85,9 +85,16 @@
    found on a card. Build rule 1's mechanism again, on a new container.
    `.k-modal-window` was added the moment the container was written, in stage 6
    slice 2, rather than after a measurement caught it — which is the only way
-   an enumeration ever stops costing what it cost here twice. */
+   an enumeration ever stops costing what it cost here twice.
+
+   `.k-tile` is the THIRD time and it was not added in time: entry 4's gallery
+   shipped its usage link at #5B8DEF on --fondo-elevado, 4.31:1 in dark, and the
+   browser tier's axe run is what said so (D-119). The lesson this enumeration
+   keeps teaching is that reading the warning is not the same as acting on it —
+   which is why every new container now gets an axe run in both themes before it
+   is called done. */
 :is(.k-card, .k-bulkbar, .k-empty, .k-status-line, .k-table, .k-inspector, .k-modal-window, .k-conv,
-    .k-banner)
+    .k-banner, .k-tile)
     :where(a:not(.k-btn):not(.k-chip):not(.k-stat)) {
     color: var(--color-acento);
 }
