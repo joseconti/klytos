@@ -3386,3 +3386,70 @@ instead of colour. Polled now.
 
 PHP **472 / 2263 → 472 / 2264**, 0 skips · browser tier **17 passing** · `keel-verify` 17 pass /
 6 warnings · catalogue parity PASS at **1555** keys.
+
+---
+
+## D-120 — Stage 7, slice 6: entry 21 (Blocks), and a unit test that agreed with itself
+
+**Date:** 2026-08-30 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, slice 6** · Supersedes nothing.
+
+The **second consumer** of `template-gallery-grid.md`. The tile, the grid, the empty state and the
+`.k-chip` layer are entry 4's and were reused unchanged; what this slice adds to the layer is the
+**wireframe** preview §1 gives blocks (120px, where an asset preview is 96px) and the group rhythm.
+
+### The survey finding: a count that is not unmeasurable, only indirect
+
+§21's tile draws a **usage count** and `BlockManager` tracks no usage of any kind — no
+`block-usage` collection, nothing counting references. But unlike entry 13's due dates or entry 18's
+settlement lag, the figure is **real**: a page template lists the blocks it renders. So it is counted
+once for the whole screen in `PageTemplateManager::blockUsageCounts()`, and — because a block in one
+template can render on fifty pages — **the tile names its unit**: "In 2 template(s)", "In no
+template", never a bare number. **DR-016** asks which §21 means.
+
+### THE DEFECT, AND IT IS THE ONE THIS BUILD KEEPS RE-LEARNING
+
+`blockUsageCounts()` read a plain `blocks` list of ids. **`addBlock()` writes `structure`, a list of
+`['block_id' => …, 'order' => …]`.** So the method counted nothing, and every tile on the real
+screen read "In no template".
+
+**Its unit test passed — six tests, green — because the test's own fixture seeded the shape the
+method expected.** A fixture that invents the shape it tests against proves only that the code agrees
+with the fixture. It was the DRIVEN screen that caught it, and only because the counts were checked
+against what the fixture had actually written rather than merely being present.
+
+The fix is not the field name. The test now seeds **through `save()` and `addBlock()`** — the
+product's own writers — so the shape can never drift from what the product produces. That is L-051's
+family arriving from the other direction: L-051 was a test that passed for the wrong reason because
+the harness made the real path unreachable; this one passed for the wrong reason because the fixture
+invented the data.
+
+### And the capture found what every assertion passed, for the tenth time
+
+Three category groups rendered with **no vertical rhythm**, so each `<h2>` sat flush against the tile
+above it. The markup was correct, the grouping was correct, `aria-labelledby` pointed at real
+headings — and it looked broken. `.k-gallery-group` now carries the spacing, and a test measures the
+real gap between two groups' bounding boxes rather than asserting a class is present.
+
+### Two more things fixed on the way, both shipped defects
+
+- **The category labels were hard-coded English** — `'Structure'`, `'Content'`, `'Interaction'`,
+  `'Social Proof'`, `'Custom'` — on a product with twenty catalogues. The same defect as the Forms
+  plugin's Spanish sidebar (D-116), from the opposite side. Now catalogue keys, with a fallback to
+  the raw id so a plugin's own category still reads.
+- **A failed preview showed the manager's English exception.** Logged and replaced with a translated
+  line (D-111's shape, on its sixth screen).
+
+**Files:** `installer/admin/blocks.php` (rewritten, 153 → 213 lines),
+`installer/core/page-template-manager.php` (`blockUsageCounts()`),
+`installer/admin/assets/css/klytos-components.css` (`.k-tile-preview--wireframe`, `.k-wireframe`,
+`.k-block-preview`, `.k-gallery-group`), all 20 catalogues (**a `blocks` root, 12 keys × 20, 280
+insertions, 0 deletions**), `tests/Unit/BlockUsageCountsTest.php`,
+`tests/Integration/BlocksHttpTest.php` (7 tests / 37 assertions),
+`tests/E2E/blocks.spec.js` (**13 passing**), `tests/E2E/fixtures/reset-blocks.php`,
+`docs/design/design-requests/DR-016.md`.
+
+PHP **472 / 2264 → 485 / 2294** · browser tier **13 passing** · `keel-verify` 17 pass / 6 warnings ·
+lint on `blocks.php` **2 warnings → 0** · catalogue parity PASS at **1567** keys.
+
+**The 8 skips in that run are the `DatabaseStorage` tier**, skipping because the Docker daemon was
+not running — the designed behaviour verified in D-117, not a regression.

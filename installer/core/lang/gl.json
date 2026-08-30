@@ -169,6 +169,20 @@
     "wrong": "Contrasinal incorrecto. Ténteo de novo.",
     "hint": "Esta páxina está protexida con contrasinal."
   },
+  "blocks": {
+    "heading": "Bloques",
+    "empty_sentence": "Non hai bloques rexistrados. Os bloques veñen do conxunto base e dos complementos.",
+    "open_plugins": "Abrir os complementos",
+    "error_preview": "Non se puido previsualizar ese bloque. Consulta os rexistros para saber por que.",
+    "preview_of": "Vista previa de {block}",
+    "in_templates": "En {count} modelo(s)",
+    "in_no_template": "En ningún modelo",
+    "category_structure": "Estrutura",
+    "category_content": "Contido",
+    "category_interaction": "Interacción",
+    "category_social_proof": "Proba social",
+    "category_custom": "Personalizado"
+  },
   "bulk": {
     "select_all": "Seleccionar todo",
     "selected_count": "{count} elementos seleccionados",

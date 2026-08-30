@@ -169,6 +169,20 @@
     "wrong": "Väärä salasana. Yritä uudelleen.",
     "hint": "Tämä sivu on salasanasuojattu."
   },
+  "blocks": {
+    "heading": "Lohkot",
+    "empty_sentence": "Lohkoja ei ole rekisteröity. Lohkot tulevat perusjoukosta ja lisäosista.",
+    "open_plugins": "Avaa lisäosat",
+    "error_preview": "Lohkon esikatselu ei onnistunut. Syy löytyy lokeista.",
+    "preview_of": "Esikatselu: {block}",
+    "in_templates": "{count} mallipohjassa",
+    "in_no_template": "Ei missään mallipohjassa",
+    "category_structure": "Rakenne",
+    "category_content": "Sisältö",
+    "category_interaction": "Vuorovaikutus",
+    "category_social_proof": "Sosiaalinen todiste",
+    "category_custom": "Mukautettu"
+  },
   "bulk": {
     "select_all": "Valitse kaikki",
     "selected_count": "{count} kohdetta valittu",

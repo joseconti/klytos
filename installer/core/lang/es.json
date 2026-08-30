@@ -169,6 +169,20 @@
     "wrong": "Contrasena incorrecta. Intentelo de nuevo.",
     "hint": "Esta pagina esta protegida con contrasena."
   },
+  "blocks": {
+    "heading": "Bloques",
+    "empty_sentence": "No hay bloques registrados. Los bloques vienen del conjunto base y de los plugins.",
+    "open_plugins": "Abrir Plugins",
+    "error_preview": "No se pudo previsualizar ese bloque. Consulta los registros para saber por qué.",
+    "preview_of": "Vista previa de {block}",
+    "in_templates": "En {count} plantilla(s)",
+    "in_no_template": "En ninguna plantilla",
+    "category_structure": "Estructura",
+    "category_content": "Contenido",
+    "category_interaction": "Interacción",
+    "category_social_proof": "Prueba social",
+    "category_custom": "Personalizado"
+  },
   "bulk": {
     "select_all": "Seleccionar todo",
     "selected_count": "{count} elementos seleccionados",

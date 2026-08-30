@@ -169,6 +169,20 @@
     "wrong": "パスワードが正しくありません。もう一度お試しください。",
     "hint": "このページはパスワードで保護されています。"
   },
+  "blocks": {
+    "heading": "ブロック",
+    "empty_sentence": "登録されたブロックがありません。ブロックはコアのセットとプラグインから提供されます。",
+    "open_plugins": "プラグインを開く",
+    "error_preview": "そのブロックはプレビューできませんでした。理由はログを確認してください。",
+    "preview_of": "{block} のプレビュー",
+    "in_templates": "{count} 件のテンプレートで使用",
+    "in_no_template": "どのテンプレートでも未使用",
+    "category_structure": "構造",
+    "category_content": "コンテンツ",
+    "category_interaction": "インタラクション",
+    "category_social_proof": "社会的証明",
+    "category_custom": "カスタム"
+  },
   "bulk": {
     "select_all": "すべて選択",
     "selected_count": "{count}件を選択中",

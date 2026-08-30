@@ -169,6 +169,20 @@
     "wrong": "Yanlış şifre. Lütfen tekrar deneyin.",
     "hint": "Bu sayfa şifre ile korunmaktadır."
   },
+  "blocks": {
+    "heading": "Bloklar",
+    "empty_sentence": "Kayıtlı blok yok. Bloklar çekirdek kümeden ve eklentilerden gelir.",
+    "open_plugins": "Eklentileri aç",
+    "error_preview": "Bu bloğun önizlemesi yapılamadı. Nedeni günlüklerde.",
+    "preview_of": "{block} önizlemesi",
+    "in_templates": "{count} şablonda",
+    "in_no_template": "Hiçbir şablonda",
+    "category_structure": "Yapı",
+    "category_content": "İçerik",
+    "category_interaction": "Etkileşim",
+    "category_social_proof": "Sosyal kanıt",
+    "category_custom": "Özel"
+  },
   "bulk": {
     "select_all": "Tümünü seç",
     "selected_count": "{count} öğe seçildi",

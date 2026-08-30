@@ -169,6 +169,20 @@
     "wrong": "Incorrect password. Please try again.",
     "hint": "This page is password protected."
   },
+  "blocks": {
+    "heading": "Blocks",
+    "empty_sentence": "No blocks are registered. Blocks come from the core set and from plugins.",
+    "open_plugins": "Open Plugins",
+    "error_preview": "That block could not be previewed. Open Logs for the reason.",
+    "preview_of": "Preview of {block}",
+    "in_templates": "In {count} template(s)",
+    "in_no_template": "In no template",
+    "category_structure": "Structure",
+    "category_content": "Content",
+    "category_interaction": "Interaction",
+    "category_social_proof": "Social proof",
+    "category_custom": "Custom"
+  },
   "bulk": {
     "select_all": "Select all",
     "selected_count": "{count} items selected",

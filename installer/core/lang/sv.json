@@ -169,6 +169,20 @@
     "wrong": "Felaktigt lösenord. Försök igen.",
     "hint": "Denna sida är lösenordsskyddad."
   },
+  "blocks": {
+    "heading": "Block",
+    "empty_sentence": "Inga block är registrerade. Block kommer från kärnuppsättningen och från tillägg.",
+    "open_plugins": "Öppna tillägg",
+    "error_preview": "Blocket kunde inte förhandsgranskas. Orsaken finns i loggarna.",
+    "preview_of": "Förhandsgranskning av {block}",
+    "in_templates": "I {count} mall(ar)",
+    "in_no_template": "I ingen mall",
+    "category_structure": "Struktur",
+    "category_content": "Innehåll",
+    "category_interaction": "Interaktion",
+    "category_social_proof": "Socialt bevis",
+    "category_custom": "Anpassat"
+  },
   "bulk": {
     "select_all": "Markera alla",
     "selected_count": "{count} objekt markerade",

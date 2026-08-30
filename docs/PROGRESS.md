@@ -1646,8 +1646,29 @@
     **Registered, not fixed:** the file-type pill at 3.4:1 in light — DR-005 addendum 4, and the
     delivery's own justification for the plate is what fails.
 
-  - **NEXT ACTION — stage 7 slice 6.** Nine unblocked entries remain: **21** Blocks · **31**
-    Templates · **20** Translations · **29** AI images · **40** Block data · **10** Log in ·
+- **Stage 7 slice 6 of 14: entry 21 (Blocks) — DONE 2026-08-30 (D-120).** The SECOND consumer of
+  `gallery-grid`; the layer built on entry 4 was reused unchanged and gained the **wireframe**
+  preview §1 gives blocks (120px, where an asset preview is 96px) plus the group rhythm.
+  - **The survey finding: a count that is indirect, not unmeasurable.** §21 draws a usage count and
+    `BlockManager` tracks none — but a page template lists its blocks, so the figure is real. Counted
+    once for the whole screen, and **the tile NAMES its unit** ("In 2 template(s)"), because a block
+    in one template can render on fifty pages. **DR-016** asks which §21 means.
+  - **THE DEFECT, and it is the one this build keeps re-learning:** `blockUsageCounts()` read a
+    plain `blocks` list where `addBlock()` writes `structure[].block_id`, so every tile said "In no
+    template" — **and its unit test passed, because the test's own fixture seeded the shape the
+    method expected.** The driven screen caught it. The test now seeds through `save()` and
+    `addBlock()`, so the shape cannot drift from what the product writes. L-051's family from the
+    other direction.
+  - **The capture found what every assertion passed, for the tenth time:** three groups with no
+    vertical rhythm, each `<h2>` flush against the tile above it. Now spaced, and pinned by measuring
+    the real gap between bounding boxes rather than asserting a class exists.
+  - **Two shipped defects fixed on the way:** the category labels were hard-coded English on a
+    twenty-catalogue product, and a failed preview showed the manager's English exception.
+  - **Tree state:** PHP **472/2264 → 485/2294** · browser tier **13 passing** · `keel-verify` 17/6 ·
+    lint on `blocks.php` **2 warnings → 0** · catalogue parity PASS at **1567** keys.
+
+  - **NEXT ACTION — stage 7 slice 7.** Eight unblocked entries remain: **31** Templates ·
+    **20** Translations · **29** AI images · **40** Block data · **10** Log in ·
     **43** Reset password · **8** MCP · **38** Plugin page.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
@@ -1688,7 +1709,12 @@
   the label visible in every admin capture this build has taken. It belongs to the plugin's own i18n
   slice. `klytos-importer.php:55` calls a bare `__()` that only resolves on the admin request path;
   harmless where it runs today, and the same trap D-116 hit.
-- Open Design Requests: **ELEVEN.**
+- Open Design Requests: **TWELVE.**
+  **DR-016 — DRAFTED 2026-08-30 (D-120), NOT SENT** — the ready-to-paste prompt is the last section
+  of `docs/design/design-requests/DR-016.md`. §21's tile draws a "usage count" without saying what
+  it counts, and the two readings — templates or pages — are different facts: a block in ONE
+  template can render on FIFTY pages. **Blocks nothing** — the screen counts templates and names
+  the unit on the tile.
   **DR-015 — DRAFTED 2026-08-29 (D-114), NOT SENT** — the ready-to-paste prompt is the last section
   of `docs/design/design-requests/DR-015.md`. Three of §7's five stats are unmeasurable from what
   Klytos stores, and the reason is the analytics engine's privacy design rather than a gap: one

@@ -169,6 +169,20 @@
     "wrong": "Mot de passe incorrect. Veuillez réessayer.",
     "hint": "Cette page est protégée par mot de passe."
   },
+  "blocks": {
+    "heading": "Blocs",
+    "empty_sentence": "Aucun bloc enregistré. Les blocs proviennent du jeu de base et des extensions.",
+    "open_plugins": "Ouvrir les extensions",
+    "error_preview": "Ce bloc n’a pas pu être prévisualisé. Consultez les journaux pour la raison.",
+    "preview_of": "Aperçu de {block}",
+    "in_templates": "Dans {count} modèle(s)",
+    "in_no_template": "Dans aucun modèle",
+    "category_structure": "Structure",
+    "category_content": "Contenu",
+    "category_interaction": "Interaction",
+    "category_social_proof": "Preuve sociale",
+    "category_custom": "Personnalisé"
+  },
   "bulk": {
     "select_all": "Tout sélectionner",
     "selected_count": "{count} éléments sélectionnés",

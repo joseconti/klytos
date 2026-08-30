@@ -169,6 +169,20 @@
     "wrong": "Falsches Passwort. Bitte versuchen Sie es erneut.",
     "hint": "Diese Seite ist passwortgeschützt."
   },
+  "blocks": {
+    "heading": "Blöcke",
+    "empty_sentence": "Es sind keine Blöcke registriert. Blöcke stammen aus dem Kernsatz und aus Plugins.",
+    "open_plugins": "Plugins öffnen",
+    "error_preview": "Dieser Block konnte nicht angezeigt werden. Der Grund steht in den Protokollen.",
+    "preview_of": "Vorschau von {block}",
+    "in_templates": "In {count} Vorlage(n)",
+    "in_no_template": "In keiner Vorlage",
+    "category_structure": "Struktur",
+    "category_content": "Inhalt",
+    "category_interaction": "Interaktion",
+    "category_social_proof": "Sozialer Beweis",
+    "category_custom": "Benutzerdefiniert"
+  },
   "bulk": {
     "select_all": "Alle auswählen",
     "selected_count": "{count} Elemente ausgewählt",

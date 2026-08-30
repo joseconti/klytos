@@ -169,6 +169,20 @@
     "wrong": "Contrasenya incorrecta. Torneu-ho a provar.",
     "hint": "Aquesta pàgina està protegida amb contrasenya."
   },
+  "blocks": {
+    "heading": "Blocs",
+    "empty_sentence": "No hi ha blocs registrats. Els blocs vénen del conjunt base i dels connectors.",
+    "open_plugins": "Obre els connectors",
+    "error_preview": "No s’ha pogut previsualitzar aquest bloc. Consulta els registres per saber-ne el motiu.",
+    "preview_of": "Vista prèvia de {block}",
+    "in_templates": "En {count} plantilla/es",
+    "in_no_template": "En cap plantilla",
+    "category_structure": "Estructura",
+    "category_content": "Contingut",
+    "category_interaction": "Interacció",
+    "category_social_proof": "Prova social",
+    "category_custom": "Personalitzat"
+  },
   "bulk": {
     "select_all": "Selecciona tot",
     "selected_count": "{count} elements seleccionats",

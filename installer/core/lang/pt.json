@@ -169,6 +169,20 @@
     "wrong": "Palavra-passe incorreta. Por favor, tente novamente.",
     "hint": "Esta página está protegida por palavra-passe."
   },
+  "blocks": {
+    "heading": "Blocos",
+    "empty_sentence": "Não há blocos registados. Os blocos vêm do conjunto base e dos plugins.",
+    "open_plugins": "Abrir os plugins",
+    "error_preview": "Não foi possível pré-visualizar esse bloco. Consulte os registos para saber porquê.",
+    "preview_of": "Pré-visualização de {block}",
+    "in_templates": "Em {count} modelo(s)",
+    "in_no_template": "Em nenhum modelo",
+    "category_structure": "Estrutura",
+    "category_content": "Conteúdo",
+    "category_interaction": "Interação",
+    "category_social_proof": "Prova social",
+    "category_custom": "Personalizado"
+  },
   "bulk": {
     "select_all": "Selecionar tudo",
     "selected_count": "{count} itens selecionados",

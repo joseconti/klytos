@@ -365,6 +365,66 @@ class PageTemplateManager
      *
      * @return array Array of available template type definitions.
      */
+    /**
+     * How many TEMPLATES use each block, counted in one traversal.
+     *
+     * Manifest entry 21's tile draws a usage count and `BlockManager` tracks no
+     * usage of any kind — there is no `block-usage` collection and nothing
+     * counts references. The relationship the product does store runs this way
+     * round: a template holds block ids (`addBlock()`), and a page gets its
+     * blocks from its template. So the count is real, and it is TEMPLATES.
+     *
+     * Whether §21 means templates or the pages behind them is not something the
+     * tile gets to decide quietly — the screen says which it is, and **DR-016**
+     * asks. A block used twice in one template counts that template ONCE: the
+     * figure answers "how many templates use this", and counting placements
+     * instead would change the meaning while looking identical.
+     *
+     * Here and not on `BlockManager` because the dependency already runs this
+     * way: templates know their blocks, blocks know nothing about templates, and
+     * inverting that for convenience would be a cycle.
+     *
+     * @return array<string,int> Block id => number of templates using it.
+     *                           A block nothing uses is ABSENT, so the caller
+     *                           decides how to draw zero.
+     */
+    public function blockUsageCounts(): array
+    {
+        $counts = [];
+
+        foreach ($this->storage->list(self::COLLECTION) as $template) {
+            // `structure`, a list of `['block_id' => …, 'order' => …]` — the
+            // shape `addBlock()` really writes. This method first read a plain
+            // `blocks` list of ids, which is what its unit test had seeded, so
+            // the test passed and every count on the real screen was ZERO. The
+            // driven screen is what said so (D-120), and the test now goes
+            // through `addBlock()` rather than through an invented shape.
+            $structure = $template['structure'] ?? [];
+
+            // The collection is writable by MCP and by plugins, so a string
+            // where a list belongs is reachable — and a gallery that fatals on
+            // one bad record shows nobody their blocks.
+            if (!is_array($structure)) {
+                continue;
+            }
+
+            $seen = [];
+
+            foreach ($structure as $ref) {
+                $blockId = is_array($ref) ? (string) ($ref['block_id'] ?? '') : '';
+
+                if ($blockId === '' || isset($seen[$blockId])) {
+                    continue;
+                }
+
+                $seen[$blockId]   = true;
+                $counts[$blockId] = ($counts[$blockId] ?? 0) + 1;
+            }
+        }
+
+        return $counts;
+    }
+
     public function getAvailableTypes(): array
     {
         $types = $this->list('all');

@@ -169,6 +169,20 @@
     "wrong": "Nieprawidłowe hasło. Spróbuj ponownie.",
     "hint": "Ta strona jest chroniona hasłem."
   },
+  "blocks": {
+    "heading": "Bloki",
+    "empty_sentence": "Nie zarejestrowano żadnych bloków. Bloki pochodzą z zestawu podstawowego i z wtyczek.",
+    "open_plugins": "Otwórz wtyczki",
+    "error_preview": "Nie udało się wyświetlić podglądu tego bloku. Powód znajdziesz w dziennikach.",
+    "preview_of": "Podgląd bloku {block}",
+    "in_templates": "W {count} szablonach",
+    "in_no_template": "W żadnym szablonie",
+    "category_structure": "Struktura",
+    "category_content": "Treść",
+    "category_interaction": "Interakcja",
+    "category_social_proof": "Dowód społeczny",
+    "category_custom": "Niestandardowe"
+  },
   "bulk": {
     "select_all": "Zaznacz wszystkie",
     "selected_count": "Zaznaczono {count} elementów",

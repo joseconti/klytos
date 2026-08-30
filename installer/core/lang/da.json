@@ -169,6 +169,20 @@
     "wrong": "Forkert adgangskode. Prøv igen.",
     "hint": "Denne side er beskyttet med adgangskode."
   },
+  "blocks": {
+    "heading": "Blokke",
+    "empty_sentence": "Der er ingen registrerede blokke. Blokke kommer fra kernesættet og fra plugins.",
+    "open_plugins": "Åbn plugins",
+    "error_preview": "Blokken kunne ikke forhåndsvises. Årsagen står i logfilerne.",
+    "preview_of": "Forhåndsvisning af {block}",
+    "in_templates": "I {count} skabelon(er)",
+    "in_no_template": "I ingen skabelon",
+    "category_structure": "Struktur",
+    "category_content": "Indhold",
+    "category_interaction": "Interaktion",
+    "category_social_proof": "Social dokumentation",
+    "category_custom": "Brugerdefineret"
+  },
   "bulk": {
     "select_all": "Vælg alle",
     "selected_count": "{count} elementer valgt",

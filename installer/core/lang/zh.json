@@ -169,6 +169,20 @@
     "wrong": "密码不正确，请重试。",
     "hint": "此页面受密码保护。"
   },
+  "blocks": {
+    "heading": "区块",
+    "empty_sentence": "尚未注册任何区块。区块来自核心集合和插件。",
+    "open_plugins": "打开插件",
+    "error_preview": "无法预览该区块。原因请查看日志。",
+    "preview_of": "{block} 的预览",
+    "in_templates": "用于 {count} 个模板",
+    "in_no_template": "未用于任何模板",
+    "category_structure": "结构",
+    "category_content": "内容",
+    "category_interaction": "交互",
+    "category_social_proof": "社会认同",
+    "category_custom": "自定义"
+  },
   "bulk": {
     "select_all": "全选",
     "selected_count": "已选择 {count} 项",

@@ -169,6 +169,20 @@
     "wrong": "Pasahitz okerra. Saiatu berriro.",
     "hint": "Orri hau pasahitzarekin babestuta dago."
   },
+  "blocks": {
+    "heading": "Blokeak",
+    "empty_sentence": "Ez dago blokerik erregistratuta. Blokeak oinarrizko multzotik eta pluginetatik datoz.",
+    "open_plugins": "Ireki pluginak",
+    "error_preview": "Ezin izan da bloke hori aurreikusi. Begiratu erregistroak arrazoia jakiteko.",
+    "preview_of": "{block} blokearen aurrebista",
+    "in_templates": "{count} txantiloitan",
+    "in_no_template": "Txantiloirik ez",
+    "category_structure": "Egitura",
+    "category_content": "Edukia",
+    "category_interaction": "Elkarrekintza",
+    "category_social_proof": "Gizarte-froga",
+    "category_custom": "Pertsonalizatua"
+  },
   "bulk": {
     "select_all": "Guztiak hautatu",
     "selected_count": "{count} elementu hautatuta",

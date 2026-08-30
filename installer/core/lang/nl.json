@@ -169,6 +169,20 @@
     "wrong": "Onjuist wachtwoord. Probeer het opnieuw.",
     "hint": "Deze pagina is met een wachtwoord beveiligd."
   },
+  "blocks": {
+    "heading": "Blokken",
+    "empty_sentence": "Er zijn geen blokken geregistreerd. Blokken komen uit de kernset en uit plug-ins.",
+    "open_plugins": "Plug-ins openen",
+    "error_preview": "Dat blok kon niet worden voorvertoond. De reden staat in de logboeken.",
+    "preview_of": "Voorvertoning van {block}",
+    "in_templates": "In {count} sjablo(o)n(en)",
+    "in_no_template": "In geen enkel sjabloon",
+    "category_structure": "Structuur",
+    "category_content": "Inhoud",
+    "category_interaction": "Interactie",
+    "category_social_proof": "Sociaal bewijs",
+    "category_custom": "Aangepast"
+  },
   "bulk": {
     "select_all": "Alles selecteren",
     "selected_count": "{count} items geselecteerd",

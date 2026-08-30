@@ -169,6 +169,20 @@
     "wrong": "Feil passord. Vennligst prov igjen.",
     "hint": "Denne siden er passordbeskyttet."
   },
+  "blocks": {
+    "heading": "Blokker",
+    "empty_sentence": "Ingen blokker er registrert. Blokker kommer fra kjernesettet og fra utvidelser.",
+    "open_plugins": "Åpne utvidelser",
+    "error_preview": "Blokken kunne ikke forhåndsvises. Årsaken står i loggene.",
+    "preview_of": "Forhåndsvisning av {block}",
+    "in_templates": "I {count} mal(er)",
+    "in_no_template": "I ingen mal",
+    "category_structure": "Struktur",
+    "category_content": "Innhold",
+    "category_interaction": "Interaksjon",
+    "category_social_proof": "Sosialt bevis",
+    "category_custom": "Egendefinert"
+  },
   "bulk": {
     "select_all": "Velg alle",
     "selected_count": "{count} elementer valgt",

@@ -3283,3 +3283,57 @@ textarea.k-control.k-conv-input {
     display: inline;
     margin: 0;
 }
+
+/* The WIREFRAME preview — template-gallery-grid.md §1: "Previews are wireframes
+   for blocks and templates (grey rectangles at the real proportions), real
+   thumbnails for assets." Built with entry 21, the layer's second consumer.
+
+   120px, where an asset preview is 96px — §1 gives the two different heights. */
+.k-tile-preview--wireframe {
+    height: 120px;
+}
+
+.k-wireframe {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-6);
+    width: 72%;
+}
+
+.k-wireframe-bar {
+    height: 10px;
+    border-radius: 3px;
+    /* A grey rectangle, and one that survives a forced-colours mode: a bar drawn
+       only with a background disappears there, so the border carries it. */
+    background: var(--separador);
+    border: 1px solid transparent;
+}
+
+.k-wireframe-bar--wide  { height: 16px; }
+.k-wireframe-bar--short { width: 55%; }
+
+@media (forced-colors: active) {
+    .k-wireframe-bar { border-color: CanvasText; }
+}
+
+/* The rendered block preview panel sits on the card and must not inherit the
+   admin's own type scale — it is a piece of the SITE, shown here. */
+.k-block-preview {
+    margin: var(--esp-12) 0;
+    padding: var(--esp-16);
+    background: var(--fondo-ventana);
+    border-radius: var(--radio-card);
+    overflow-x: auto;
+}
+
+/* A gallery GROUP — §21 requires each category to be its own `<h2>` plus its own
+   labelled list, and three of those stacked with no rhythm put every heading
+   flush against the tile above it. The capture is what showed that; the markup
+   was correct and every assertion passed (D-120). */
+.k-gallery-group + .k-gallery-group {
+    margin-top: var(--esp-24);
+}
+
+.k-gallery-group > .k-card-heading {
+    margin: 0;
+}

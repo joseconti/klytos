@@ -169,6 +169,20 @@
     "wrong": "Password errata. Riprova.",
     "hint": "Questa pagina è protetta da password."
   },
+  "blocks": {
+    "heading": "Blocchi",
+    "empty_sentence": "Nessun blocco registrato. I blocchi provengono dal set di base e dai plugin.",
+    "open_plugins": "Apri i plugin",
+    "error_preview": "Non è stato possibile visualizzare l’anteprima di quel blocco. Consulta i registri.",
+    "preview_of": "Anteprima di {block}",
+    "in_templates": "In {count} modello/i",
+    "in_no_template": "In nessun modello",
+    "category_structure": "Struttura",
+    "category_content": "Contenuto",
+    "category_interaction": "Interazione",
+    "category_social_proof": "Riprova sociale",
+    "category_custom": "Personalizzato"
+  },
   "bulk": {
     "select_all": "Seleziona tutto",
     "selected_count": "{count} elementi selezionati",
