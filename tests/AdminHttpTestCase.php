@@ -340,7 +340,26 @@ abstract class AdminHttpTestCase extends IntegrationTestCase
         $handle = $this->handleFor( $path );
 
         if ( $role !== null ) {
-            $fields['csrf'] = self::CSRF_TOKEN;
+            /*
+             * The valid token is injected UNLESS the caller supplied one.
+             *
+             * It used to be injected unconditionally, which made a refused-CSRF
+             * test impossible to write through this method — and one was written
+             * anyway. `TasksHttpTest::testARefusedCsrfPostIsReportedRatherThanSwallowed`
+             * sends `csrf_token => 'wrong'`, a field name nothing reads
+             * (`Helpers::verifyCsrf()` reads `csrf`), so the request carried a
+             * VALID token and the error it asserted came from its non-existent
+             * `task_id` instead. The test passed, and not for the reason its
+             * name claims — which is worse than no test, because it looks like
+             * coverage (D-118).
+             *
+             * A caller that puts `csrf` in $fields now keeps it, so the refusal
+             * path is reachable. Every existing caller is unaffected: none of
+             * them set it.
+             */
+            if ( ! array_key_exists( 'csrf', $fields ) ) {
+                $fields['csrf'] = self::CSRF_TOKEN;
+            }
 
             curl_setopt( $handle, CURLOPT_COOKIE, 'klytos_session=' . ( $sessionId ?? $this->sessionFor( $role ) ) );
         } elseif ( $sessionId !== null ) {

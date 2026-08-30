@@ -1940,3 +1940,36 @@ stub won the race and **silently stripped the integration tier of every translat
 broke, and one of them was the test that exists to pin that namespaced declaration. **A test that
 needs a booted App belongs in the tier that boots one.** Faking the environment to move a test down a
 tier changes the environment for every test above it.
+
+---
+
+## L-051 — A test can pass for a reason its own name contradicts, and then it is worse than no test
+
+**When:** 2026-08-30, Phase 4 stage 7 slice 5 (entry 4, Assets) — D-118.
+
+**What happened.** `TasksHttpTest::testARefusedCsrfPostIsReportedRatherThanSwallowed` had been green
+since the Tasks slice. It posts `csrf_token => 'wrong'` and asserts that the screen renders its error
+alert. Both halves are true and unrelated: `Helpers::verifyCsrf()` reads `csrf`, not `csrf_token`, and
+`AdminHttpTestCase::post()` injected a valid `csrf` on every call — so the request carried a **valid**
+token, sailed through the CSRF check, and produced the error from its non-existent `task_id`
+instead. The test proved that the error path renders. It never once proved that a refused CSRF is
+reported, which is the only thing its name claims and the whole reason it was written.
+
+**Why it survived.** Nothing about it looked wrong. It was named for the right property, it exercised
+a real screen, it asserted a real element, and it went green on the first run — which is exactly the
+signal that stops anyone looking. It was found only because a later slice tried to write the same
+test on another screen and discovered the harness made it impossible: the token could not be made
+wrong.
+
+**The rule, and it is not "read your tests more carefully".** A test whose failure mode was never
+observed has not been tested — it has been *written*. This project already knows that for production
+code: the reproduction test comes first and the red is watched. The same applies to a test that
+guards a refusal, a permission or an error path: **make the thing fail once, deliberately, and watch
+the test catch it.** Every such test in this build that was proven by planting the defect back is
+sound; this one was never planted against anything.
+
+**And the mechanical half.** The harness was fixed rather than the single test: `post()` now keeps a
+`csrf` the caller supplies, so the refusal path is reachable from every screen's tests instead of
+from none. A convenience that makes a defect unreachable is not a convenience — it is the L-026
+shape, a harness repairing the thing under test. Where a harness must inject something, it injects it
+only when the caller did not.

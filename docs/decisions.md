@@ -3222,3 +3222,91 @@ cannot quietly stop testing the thing it names if a default changes.
 
 PHP **442 / 2123 → 450 / 2138**, 0 skips with the database up, 8 clean skips without it ·
 `keel-verify` 23 checks: 17 pass, 6 warnings · lint clean.
+
+---
+
+## D-118 — Stage 7, slice 5: entry 4 (Assets), and the first screen this build had to re-architect rather than re-skin
+
+**Date:** 2026-08-30 · **Phase 4 Step 4, stage 7 of 7 — the unblocked screens, slice 5** · Supersedes nothing.
+
+### THE SURVEY FINDING, and for once it is not a missing capability
+
+The per-screen survey ran before the first line — the nineteenth in nineteen — and this time the
+product holds **everything** §4 draws: `alt_text` is stored per asset, `getUsage()` returns the
+context with a label, `getUnusedAssets()` exists, `mime_type` and `size_human` are recorded. After
+four consecutive slices whose finding was a card with no data behind it, entry 4 needed no Design
+Request at all.
+
+**The finding is the architecture instead.** The shipped screen rendered everything in the browser:
+`<!-- Populated by JS -->` inside a card that started `hidden`, every filter a `<select>` filtered
+client-side, pagination built in JavaScript. **With scripting off it showed nothing.**
+`template-gallery-grid.md` §2 is explicit — "Loading — **server-rendered.** Pagination is a link.
+There is no infinite scroll anywhere in the admin" — so entry 4 is a re-architecture, not a re-skin,
+and it is substantially larger than the four slices before it. Said before building, not after.
+
+### One selection, not two
+
+Making the screen server-rendered means it needs the filtering, search, sort and pagination the JSON
+endpoint already performed. Writing that again in the screen would be L-004 at its most expensive:
+two implementations of *which assets does this person see*, free to drift, one deciding what a page
+shows and the other what an MCP client is told.
+
+So it moved down into **`AssetManager::query()`** and the endpoint consumes it — **83 lines of
+endpoint logic became a 32-line call**. Two additions, never replacements: `document` joins
+`image`/`video` as a named kind (it is *not* a MIME prefix — `application/pdf`, `text/csv` and a Word
+file share none, and a filter offering "Documents" must not quietly mean "PDFs"), and every row
+carries `usage_count` from one traversal of the usage index rather than one per tile.
+
+**And an expectation of mine was wrong, not the product's.** The test first asserted that an unknown
+kind narrows nothing. The shipped screen sends `application` and `font` as type values, so that would
+have silently widened two live controls. Any value other than the named kinds stays a MIME prefix,
+and the test says so with the reason.
+
+### §4's two deltas, both built and both asserted by COUNT
+
+- The **"No alt text" chip** appears on exactly the one image that lacks alt text — a chip on every
+  tile and a chip on none are both wrong and both look plausible in a screenshot — and it is a real
+  anchor at `#alt`. That destination now exists: **the alt field was JavaScript-only**, so the link
+  §4 asks for had nowhere to go until this screen rendered its detail panel server-side.
+- **Delete is disabled for an asset in use, with the reason in the accessible name** — never in a
+  tooltip (D-079's rule). And **the disabled attribute is not the boundary**: the same rule is
+  enforced on the POST, because a crafted request does not go through the screen. The shipped JSON
+  endpoint still deletes whatever it is given; recorded, not changed from a screen slice.
+
+### A TEST THAT PASSED FOR THE WRONG REASON, found and fixed
+
+`AdminHttpTestCase::post()` injected a valid CSRF token unconditionally, which made a refused-CSRF
+test unwritable through it — **and one was written anyway**.
+`TasksHttpTest::testARefusedCsrfPostIsReportedRatherThanSwallowed` sends `csrf_token => 'wrong'`, a
+field name nothing reads (`Helpers::verifyCsrf()` reads `csrf`), so the request carried a valid token
+and the error it asserted came from its non-existent `task_id` instead. It proved the error path
+renders; it never proved a refusal is reported.
+
+**That is worse than a missing test, because it looks like coverage.** The harness now keeps a `csrf`
+the caller supplies — every existing caller is unaffected, none of them set it — so the refusal path
+is reachable, and `AssetsHttpTest` exercises it for real. **Recorded as L-051.**
+
+### And the fixture broke a rule the suite already guards
+
+`AssetManager::upload()` creates `assets/images/<year>/<month>/` under the web root, and
+`AdminGateHttpTest` asserts the suite leaves no build output in the repository root (**NEW-04**). The
+first whole-suite run after the fixture existed caught it. The teardown now walks upward from the
+deepest dated directory, stopping the moment one is not empty — so an install with a real library
+keeps every folder, and `css/` and `js/` in that root are untouched.
+
+**Files:** `installer/admin/assets.php` (rewritten, 926 → 560 lines),
+`installer/core/asset-manager.php` (`query()`), `installer/admin/api/assets-management.php`
+(consumes it), `installer/admin/assets/css/klytos-components.css` (the gallery-grid layer:
+`.k-gallery`, `.k-tile` and its parts, `.k-chip--aviso`, `.k-dropzone`, `.k-filter-form`,
+`.k-inline-form`), all 20 `installer/core/lang/*.json` (**17 keys × 20, 340 insertions, 0
+deletions**), `tests/Unit/AssetQueryTest.php`, `tests/Integration/AssetsHttpTest.php`,
+`tests/E2E/fixtures/reset-assets.php`, `tests/AdminHttpTestCase.php`, `docs/BUILD-SPEC.md` §5.4 row 4
+and §5.9 adaptations **101–105**.
+
+PHP **460 / 2160 → 472 / 2263**, 0 skips · `keel-verify` 23 checks: 17 pass, 6 warnings ·
+**lint on `assets.php` went 18 warnings → 3**, and the D-025 baseline did not grow · catalogue parity
+PASS at 1554 keys.
+
+**OWED AND NOT CLAIMED: the browser tier and the captures.** No axe run, no geometry, no both-themes
+pass, no 320 px reflow, no capture-and-look — which is precisely the thing D-113 showed is the only
+witness for a whole class of defect. §5.4's `Driven` box for entry 4 reads `◐` and says so in words.

@@ -3112,3 +3112,167 @@ textarea.k-control.k-conv-input {
        one thing §4 exists to prevent. So this rule only removes the chart. */
     .k-chart { display: none; }
 }
+
+/* ============================================================
+   GALLERY GRID — template-gallery-grid.md §1, manifest entry 4
+   Built with entry 4 (Assets), the template's first consumer.
+   ============================================================ */
+
+.k-gallery {
+    display: grid;
+    /* §1, quoted: repeat(auto-fill, minmax(180px, 1fr)), gap 14. */
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin: var(--esp-16) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.k-tile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-6);
+    padding: var(--esp-12);
+    background: var(--fondo-elevado);
+    border-radius: var(--radio-card);
+    box-shadow: var(--sombra-card);
+    overflow: hidden;
+}
+
+/* §2 Focus: "the tile is a <div> containing a primary <a> plus an actions
+   <button>, and each takes its own ring — never a nested-interactive tile."
+   So the ring is on the primary link, not on the tile. */
+.k-tile-primary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--esp-6);
+    text-decoration: none;
+    color: inherit;
+}
+
+.k-tile-preview {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* §1: "preview 96px (assets)". */
+    height: 96px;
+    background: var(--fondo-ventana);
+    border-radius: var(--radio-control, 8px);
+    overflow: hidden;
+}
+
+.k-tile-preview img {
+    max-width: 100%;
+    max-height: 96px;
+    object-fit: contain;
+}
+
+/* `klytos_admin_icon()` writes an <svg> with no width and no height, and an
+   <svg> with neither renders at the SVG DEFAULT of 300 x 150 — L-048, which
+   shipped on entry 44's stat tiles for a whole commit. Sized on the CONTAINER so
+   a future consumer cannot forget it. */
+.k-tile-glyph > svg {
+    width: 32px;
+    height: 32px;
+    color: var(--texto-sutil);
+}
+
+/* §1: "A file-type pill sits top-right on asset previews at --type-numeric size
+   on a 42 %-black plate — which is the one place a fixed rgba is correct,
+   because it sits over arbitrary imagery." */
+.k-tile-pill {
+    position: absolute;
+    top: var(--esp-6);
+    right: var(--esp-6);
+    padding: 2px var(--esp-6);
+    border-radius: var(--radio-chip, 999px);
+    background: rgba(0, 0, 0, 0.42);
+    color: #fff;
+    font: var(--type-numeric);
+}
+
+/* §1: "name — --type-body, truncated to one line". */
+.k-tile-name {
+    font: var(--type-body);
+    color: var(--texto-primario);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* §1: "meta — --type-caption, --texto-sutil — size, usage count, category". */
+.k-tile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--esp-6);
+    margin: 0;
+    font: var(--type-caption);
+    color: var(--texto-sutil);
+}
+
+/* §2 Hover: "the preview area dims 6 % and the tile's actions fade in. Actions
+   are in the DOM at all times." In the DOM AND reachable: opacity is the only
+   thing that moves, so the button keeps its size, its hit area and its place in
+   the tab order. `:focus-within` is what makes that true for a keyboard. */
+.k-tile-actions {
+    margin: 0;
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.k-tile:hover .k-tile-actions,
+.k-tile:focus-within .k-tile-actions {
+    opacity: 1;
+}
+
+.k-tile:hover .k-tile-preview {
+    filter: brightness(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .k-tile-actions { transition: none; }
+}
+
+/* An always-visible actions row is the honest default where a pointer is not
+   the input method: a hover-revealed control on a touch screen is a control
+   nobody finds. */
+@media (hover: none) {
+    .k-tile-actions { opacity: 1; }
+}
+
+/* The chip's warning variant — §4's "No alt text". The tint carries its own
+   text colour, exactly as `.k-banner--aviso` does: a semantic colour on its own
+   tint is what the badge rule already forbids. */
+.k-chip--aviso {
+    background: var(--tinte-aviso);
+    color: var(--sobre-tinte-aviso);
+    border-color: transparent;
+}
+
+/* §1's drop zone: "1.5px dashed --borde-control, radius 10, padding 18". */
+.k-dropzone {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--esp-12);
+    margin: var(--esp-16) 0;
+    padding: 18px;
+    border: 1.5px dashed var(--borde-control);
+    border-radius: var(--radio-card);
+}
+
+/* The filter form and the inline maintenance forms sit on one row with the
+   chips; each stays a real form so every control works with no script. */
+.k-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--esp-12);
+    margin: var(--esp-12) 0;
+}
+
+.k-inline-form {
+    display: inline;
+    margin: 0;
+}

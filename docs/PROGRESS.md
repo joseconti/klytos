@@ -1613,10 +1613,34 @@
     `keel-verify` **23 checks: 17 pass, 6 warnings** · lint clean on all five touched PHP files ·
     `docs/api/INDEX.md` **1071 → 1075** · catalogue parity PASS at 1537 keys.
 
-  - **NEXT ACTION — stage 7, slice 5 of 14.** Ten unblocked entries remain, in template order:
-    **4** Assets · **21** Blocks · **31** Templates (gallery-grid, no consumer yet) ·
-    **20** Translations · **29** AI images · **40** Block data (editor-split) · **10** Log in ·
-    **43** Reset password (auth-centered, no consumer yet) · **8** MCP · **38** Plugin page.
+- **Stage 7 slice 5 of 14: entry 4 (Assets) — SERVER TIER DONE 2026-08-30 (D-118, L-051).** The
+  FIRST consumer of `gallery-grid`, and **the first screen this build had to re-architect rather
+  than re-skin.**
+  - **The survey found no missing capability for once** — `alt_text`, `getUsage()`,
+    `getUnusedAssets()`, `mime_type` are all there, so entry 4 needed no Design Request. **The
+    finding is the architecture:** the shipped screen rendered everything in the browser and showed
+    NOTHING with scripting off, where the template says "server-rendered. Pagination is a link".
+  - **One selection, not two:** the endpoint's 83 lines of filtering/search/sort/pagination moved
+    into `AssetManager::query()` and became a 32-line call. `document` joins the named kinds (it is
+    not a MIME prefix); every row carries `usage_count` from one traversal.
+  - **§4's two deltas built and asserted BY COUNT:** the *No alt text* chip on exactly one tile,
+    linking to an alt field that **only existed in JavaScript until this screen rendered it
+    server-side**; and delete disabled with the reason in the accessible name — **plus the same rule
+    enforced on the POST**, because a disabled attribute is not a boundary.
+  - **A TEST THAT PASSED FOR THE WRONG REASON (L-051):** `TasksHttpTest`'s refused-CSRF test sent a
+    field name nothing reads while the harness injected a valid token, so it asserted an error that
+    came from a bad task id. The harness was fixed, not the single test.
+  - **And the fixture broke NEW-04** — `upload()` creates dated directories under the web root and
+    the suite guards against build output there. Teardown now prunes upward, stopping at the first
+    non-empty directory.
+  - **Tree state:** PHP **460/2160 → 472/2263**, 0 skips · `keel-verify` 17 pass / 6 warnings ·
+    **lint on `assets.php` 18 warnings → 3** · catalogue parity PASS at **1554** keys.
+  - **OWED AND NOT CLAIMED: the browser tier and the captures** — no axe, no geometry, no
+    both-themes pass, no 320 px reflow, no capture-and-look. §5.4's `Driven` box reads `◐`.
+
+  - **NEXT ACTION — finish entry 4's browser tier**, then stage 7 slice 6. Nine unblocked entries
+    remain after entry 4: **21** Blocks · **31** Templates · **20** Translations · **29** AI images ·
+    **40** Block data · **10** Log in · **43** Reset password · **8** MCP · **38** Plugin page.
 
 - **After Sprint 6**, the recorded route is `docs/roadmap.md` (D-062): **NEW-27** first (the
   `.gitattributes` review), then the rest of the hardening — with **NEW-17** early, because

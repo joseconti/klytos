@@ -1,13 +1,24 @@
 <?php
 
 /**
- * Klytos Admin — Asset Management (Media Library)
+ * Klytos Admin — Assets (manifest entry 4, template `gallery-grid`)
  *
- * Enhanced media library with grid/list views, filters, detail panel,
- * category management, usage tracking, and bulk cleanup.
+ * H1 **Assets**, entry point `assets.php`, gated centrally at `assets.manage`.
  *
- * @package Klytos
- * @since   0.18.0
+ * THE FIRST CONSUMER of `template-gallery-grid.md`, so this screen carries that
+ * template's whole §5.3 table.
+ *
+ * AND IT IS A RE-ARCHITECTURE, NOT A RE-SKIN. The shipped screen rendered
+ * everything in the browser — `<!-- Populated by JS -->`, a card that started
+ * `hidden`, pagination built in JavaScript, every filter a `<select>` filtered
+ * client-side — so with scripting off it showed nothing at all. The template is
+ * explicit in §2: "**Loading — server-rendered.** Pagination is a link. There is
+ * no infinite scroll anywhere in the admin." Every control on this screen now
+ * works with JavaScript disabled, like the twelve screens before it (D-118).
+ *
+ * The selection itself lives in `AssetManager::query()`, which the JSON endpoint
+ * also consumes — one definition of "which assets does this person see", never
+ * two (L-004).
  *
  * @license    GPL-3.0-or-later — https://www.gnu.org/licenses/gpl-3.0.html
  * @copyright  Copyright (c) 2026 José Conti — https://plugins.joseconti.com — https://klytos.io
@@ -24,903 +35,552 @@ require_once __DIR__ . '/bootstrap.php';
 use Klytos\Core\Helpers;
 
 $pageTitle    = __( 'assets.title' );
-$auth         = $app->getAuth();
 $assetManager = $app->getAssetManager();
-$csrf         = $auth->getCsrfToken();
 $siteUrl      = rtrim( (string) $app->getSiteConfig()->getValue( 'site_url', '' ), '/' );
-$apiBase      = Helpers::getBasePath() . 'admin/api/assets-management.php';
+$adminPath    = $adminPath ?? Helpers::getBasePath() . 'admin/';
 
-// Handle traditional upload (non-JS fallback).
 $success = '';
 $error   = '';
 
-if ( $_SERVER['REQUEST_METHOD'] === 'POST' && klytos_verify_csrf() ) {
-    $action = $_POST['action'] ?? '';
+/*
+ * ─── Actions ─────────────────────────────────────────────────────
+ *
+ * Every one of them is a real POST with a CSRF token, handled here. They used to
+ * be `fetch()` calls from the toolbar into the JSON endpoint, so none of them
+ * worked without JavaScript. The endpoint keeps its actions for MCP and for any
+ * script that wants them; these are the same operations reachable from a form.
+ *
+ * A refused CSRF REPORTS itself. Five screens in this build shipped a silent
+ * refusal before someone noticed (D-111), and a person who is told nothing
+ * assumes the click worked.
+ */
+if ( $_SERVER['REQUEST_METHOD'] === 'POST' ) {
+    if ( ! klytos_verify_csrf() ) {
+        $error = __( 'assets.error_csrf' );
+    } else {
+        $action = klytos_sanitize_key( (string) ( $_POST['action'] ?? '' ) );
 
-    if ( $action === 'upload' && isset( $_FILES['file'] ) ) {
-        $file = $_FILES['file'];
-        if ( $file['error'] === UPLOAD_ERR_OK ) {
-            $data = file_get_contents( $file['tmp_name'] );
-            try {
-                $result = $assetManager->upload(
-                    $file['name'],
-                    base64_encode( $data ),
-                    $_POST['directory'] ?? 'images'
-                );
-                $success = __( 'assets.upload_success' );
-            } catch ( \RuntimeException $e ) {
-                $error = $e->getMessage();
+        try {
+            switch ( $action ) {
+                case 'upload':
+                    if ( ! isset( $_FILES['file'] ) || $_FILES['file']['error'] !== UPLOAD_ERR_OK ) {
+                        $error = __( 'assets.upload_error' );
+                        break;
+                    }
+
+                    $data = file_get_contents( $_FILES['file']['tmp_name'] );
+
+                    if ( $data === false ) {
+                        $error = __( 'assets.upload_error' );
+                        break;
+                    }
+
+                    $assetManager->upload(
+                        (string) $_FILES['file']['name'],
+                        base64_encode( $data ),
+                        klytos_sanitize_key( (string) ( $_POST['directory'] ?? 'images' ) )
+                    );
+                    $success = __( 'assets.upload_success' );
+                    break;
+
+                case 'update':
+                    $id     = klytos_sanitize_key( (string) ( $_POST['id'] ?? '' ) );
+                    $record = $assetManager->getStorage()->read( 'assets', $id );
+
+                    foreach ( ['title', 'alt_text', 'description'] as $field ) {
+                        if ( array_key_exists( $field, $_POST ) ) {
+                            $record[ $field ] = klytos_sanitize_text( (string) $_POST[ $field ] );
+                        }
+                    }
+
+                    $record['categories'] = array_map(
+                        'strval',
+                        array_filter( (array) ( $_POST['categories'] ?? [] ) )
+                    );
+                    $record['updated_at'] = Helpers::now();
+
+                    $assetManager->getStorage()->write( 'assets', $id, $record );
+                    $success = __( 'assets.saved' );
+                    break;
+
+                case 'delete':
+                    $id     = klytos_sanitize_key( (string) ( $_POST['id'] ?? '' ) );
+                    $record = $assetManager->getStorage()->read( 'assets', $id );
+
+                    /*
+                     * §4's delta disables delete for an asset in use. **A
+                     * disabled control is not a security boundary** — it is a
+                     * courtesy to whoever is looking at the screen — so the same
+                     * rule is enforced HERE, where a crafted POST arrives. The
+                     * shipped JSON endpoint does not do this and deletes
+                     * whatever it is given; recorded rather than changed from a
+                     * screen slice.
+                     */
+                    if ( $assetManager->isAssetInUse( $id ) ) {
+                        $error = __( 'assets.error_delete_in_use' );
+                        break;
+                    }
+
+                    $assetManager->delete( (string) ( $record['path'] ?? '' ) );
+                    $success = __( 'assets.deleted' );
+                    break;
+
+                case 'sync':
+                    $synced  = $assetManager->syncExistingAssets();
+                    $success = __( 'assets.sync_done', ['count' => (string) $synced] );
+                    break;
+
+                case 'rebuild_usage':
+                    $assetManager->rebuildUsageIndex();
+                    $success = __( 'assets.rebuild_done' );
+                    break;
+
+                default:
+                    $error = __( 'assets.error_action' );
+                    break;
             }
-        } else {
-            $error = __( 'assets.upload_error' );
+        } catch ( \Throwable $e ) {
+            // The manager's own message is not shown: it is English-only on a
+            // screen that ships in twenty locales (D-111's shape).
+            klytos_log( 'error', 'assets screen action failed: ' . $e->getMessage() );
+            $error = __( 'assets.error_action' );
         }
     }
 }
 
+/*
+ * ─── The listing ─────────────────────────────────────────────────
+ */
+$filter   = klytos_sanitize_key( (string) ( $_GET['filter'] ?? 'all' ) );
+$type     = klytos_sanitize_key( (string) ( $_GET['type'] ?? '' ) );
+$category = klytos_sanitize_key( (string) ( $_GET['category'] ?? '' ) );
+$search   = klytos_sanitize_text( (string) ( $_GET['search'] ?? '' ) );
+$page     = max( 1, (int) ( $_GET['page'] ?? 1 ) );
+
+$result = $assetManager->query( [
+    'filter'   => $filter,
+    'type'     => $type,
+    'category' => $category,
+    'search'   => $search,
+    'page'     => $page,
+    'per_page' => 24,
+] );
+
+$assets     = $result['assets'];
+$total      = $result['total'];
+$pages      = $result['pages'];
+$categories = $assetManager->listCategories();
+
+/** True when the listing is empty because of a filter, rather than because nothing is uploaded. */
+$isFiltered = $filter !== 'all' || $type !== '' || $category !== '' || $search !== '';
+
+/** The asset whose detail panel is open, if any. */
+$openAssetId = klytos_sanitize_key( (string) ( $_GET['asset'] ?? '' ) );
+$openAsset   = null;
+
+if ( $openAssetId !== '' ) {
+    try {
+        $openAsset = $assetManager->getStorage()->read( 'assets', $openAssetId );
+    } catch ( \Throwable $e ) {
+        $openAsset = null;
+    }
+}
+
+/** Build a listing URL, preserving every filter the person already chose. */
+$listUrl = static function ( array $overrides = [] ) use ( $adminPath, $filter, $type, $category, $search, $page ): string {
+    $params = array_merge( [
+        'filter'   => $filter,
+        'type'     => $type,
+        'category' => $category,
+        'search'   => $search,
+        'page'     => $page,
+    ], $overrides );
+
+    // Empty values are dropped so a shared URL says only what was chosen.
+    $params = array_filter( $params, static fn( $v ): bool => $v !== '' && $v !== null && $v !== 0 );
+
+    return $adminPath . 'assets.php' . ( $params === [] ? '' : '?' . http_build_query( $params ) );
+};
+
 require_once __DIR__ . '/templates/header.php';
 require_once __DIR__ . '/templates/sidebar.php';
+klytos_do_action( 'admin.assets.before' );
+
+/*
+ * Defined AFTER the shell: `$spriteUrl` and `klytos_admin_icon()` are created by
+ * `templates/sidebar.php`, and a closure binds its `use` variables at DEFINITION
+ * time — D-110's defect, which turned a whole screen into a 500.
+ */
+
+/** The file-kind a tile shows, from the stored MIME type. */
+$kindOf = static function ( string $mime ): string {
+    if ( str_starts_with( $mime, 'image/' ) ) {
+        return 'image';
+    }
+    if ( str_starts_with( $mime, 'video/' ) ) {
+        return 'video';
+    }
+    if ( str_starts_with( $mime, 'font/' ) ) {
+        return 'font';
+    }
+
+    return 'document';
+};
 ?>
-<?php klytos_do_action( 'admin.assets.before' ); ?>
 
-<?php if ( $success ): ?>
-    <div class="alert alert-success"><?php echo klytos_esc_html( $success ); ?></div>
-<?php endif; ?>
-<?php if ( $error ): ?>
-    <div class="alert alert-error"><?php echo klytos_esc_html( $error ); ?></div>
+<?php if ( $success !== '' ) : ?>
+    <p class="k-status-line k-status-line--info" role="status" data-testid="assets.success">
+        <?php echo klytos_esc_html( $success ); ?>
+    </p>
 <?php endif; ?>
 
-<!-- ─── Toolbar ─────────────────────────────────────────────── -->
+<?php if ( $error !== '' ) : ?>
+    <p class="k-status-line k-status-line--aviso" role="alert" data-testid="assets.error">
+        <?php echo klytos_esc_html( $error ); ?>
+    </p>
+<?php endif; ?>
+
 <?php klytos_do_action( 'admin.assets.before_toolbar' ); ?>
-<div class="card" id="assets-toolbar">
-    <div class="flex flex-wrap flex-gap-sm flex-center flex-between">
-        <div class="flex flex-wrap flex-gap-sm flex-center">
-            <!-- Usage filter -->
-            <select id="filter-usage" class="form-control w-auto">
-                <option value="all"><?php echo __( 'common.all' ); ?></option>
-                <option value="in_use"><?php echo __( 'assets.in_use' ); ?></option>
-                <option value="unused"><?php echo __( 'assets.unused' ); ?></option>
-            </select>
 
-            <!-- Category filter -->
-            <select id="filter-category" class="form-control w-auto">
-                <option value=""><?php echo __( 'assets.all_categories' ); ?></option>
-            </select>
+<?php
+// ─── The filter row ──────────────────────────────────────────────
+//
+// §4's chips are All · Images · Video · Documents · Unused. **Fonts is kept as a
+// sixth**: it is a shipped control (`assets.php:95` before this rewrite) and
+// removing a filter someone may be using is not a fidelity decision — the same
+// call as entry 13's *In progress* chip and entry 7's 24h period.
+$chips = [
+    ['label' => __( 'assets.filter_all' ),   'params' => ['filter' => 'all', 'type' => '', 'page' => 1],      'active' => $filter === 'all' && $type === ''],
+    ['label' => __( 'assets.type_image' ),    'params' => ['filter' => 'all', 'type' => 'image', 'page' => 1],    'active' => $type === 'image'],
+    ['label' => __( 'assets.type_video' ),    'params' => ['filter' => 'all', 'type' => 'video', 'page' => 1],    'active' => $type === 'video'],
+    ['label' => __( 'assets.type_document' ), 'params' => ['filter' => 'all', 'type' => 'document', 'page' => 1], 'active' => $type === 'document'],
+    ['label' => __( 'assets.type_font' ),     'params' => ['filter' => 'all', 'type' => 'font', 'page' => 1],     'active' => $type === 'font'],
+    ['label' => __( 'assets.unused' ),        'params' => ['filter' => 'unused', 'type' => '', 'page' => 1],   'active' => $filter === 'unused'],
+];
+?>
+<nav class="k-filters" aria-label="<?php echo klytos_esc_attr( __( 'assets.filter_label' ) ); ?>"
+     data-testid="assets.filters">
+    <?php foreach ( klytos_apply_filters( 'admin.assets.filters', $chips ) as $i => $chip ) : ?>
+        <a class="k-chip" href="<?php echo klytos_esc_url( $listUrl( (array) $chip['params'] ) ); ?>"
+           <?php echo $chip['active'] ? 'aria-current="true"' : ''; ?>
+           data-testid="assets.chip.<?php echo (int) $i; ?>">
+            <?php echo klytos_esc_html( (string) $chip['label'] ); ?>
+        </a>
+    <?php endforeach; ?>
+</nav>
 
-            <!-- Type filter -->
-            <select id="filter-type" class="form-control w-auto">
-                <option value=""><?php echo __( 'assets.all_types' ); ?></option>
-                <option value="image"><?php echo __( 'assets.type_image' ); ?></option>
-                <option value="video"><?php echo __( 'assets.type_video' ); ?></option>
-                <option value="application"><?php echo __( 'assets.type_document' ); ?></option>
-                <option value="font"><?php echo __( 'assets.type_font' ); ?></option>
-            </select>
+<?php // Search and category are a real GET form, so both work with no script. ?>
+<form method="get" action="<?php echo klytos_esc_url( $adminPath . 'assets.php' ); ?>"
+      class="k-filter-form" data-testid="assets.search_form">
+    <input type="hidden" name="filter" value="<?php echo klytos_esc_attr( $filter ); ?>">
+    <input type="hidden" name="type" value="<?php echo klytos_esc_attr( $type ); ?>">
 
-            <!-- Search -->
-            <input type="text" id="filter-search" class="form-control" placeholder="<?php echo klytos_esc_attr( __( 'common.search' ) ); ?>" style="width:180px">
-        </div>
+    <label class="k-field">
+        <span class="k-label"><?php echo klytos_esc_html( __( 'assets.search_label' ) ); ?></span>
+        <input class="k-control" type="search" name="search"
+               value="<?php echo klytos_esc_attr( $search ); ?>"
+               data-testid="assets.search">
+    </label>
 
-        <div class="flex flex-gap-sm flex-center">
-            <!-- View toggle -->
-            <button type="button" class="btn btn-outline btn-sm" id="btn-view-grid" title="Grid view">&#9638;</button>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-view-list" title="List view">&#9776;</button>
+    <label class="k-field">
+        <span class="k-label"><?php echo klytos_esc_html( __( 'assets.categories' ) ); ?></span>
+        <select class="k-control" name="category" data-testid="assets.category">
+            <option value=""><?php echo klytos_esc_html( __( 'assets.all_categories' ) ); ?></option>
+            <?php foreach ( $categories as $cat ) : ?>
+                <option value="<?php echo klytos_esc_attr( (string) ( $cat['id'] ?? '' ) ); ?>"
+                    <?php echo $category === ( $cat['id'] ?? '' ) ? 'selected' : ''; ?>>
+                    <?php echo klytos_esc_html( (string) ( $cat['name'] ?? '' ) ); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </label>
 
-            <!-- Actions -->
-            <button type="button" class="btn btn-outline btn-sm" id="btn-manage-categories"><?php echo __( 'assets.manage_categories' ); ?></button>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-sync"><?php echo __( 'assets.sync' ); ?></button>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-rebuild-usage"><?php echo __( 'assets.rebuild_usage' ); ?></button>
-            <button type="button" class="btn btn-danger btn-sm" id="btn-cleanup-unused"><?php echo __( 'assets.cleanup_unused' ); ?></button>
-        </div>
-    </div>
+    <button class="k-btn" type="submit"><?php echo klytos_esc_html( __( 'assets.apply' ) ); ?></button>
+</form>
+
+<?php // The maintenance actions, as forms rather than fetch() calls. ?>
+<div class="k-toolbar" data-testid="assets.maintenance">
+    <form method="post" class="k-inline-form">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="action" value="sync">
+        <button class="k-btn k-btn--sm" type="submit" data-testid="assets.sync">
+            <?php echo klytos_esc_html( __( 'assets.sync' ) ); ?>
+        </button>
+    </form>
+
+    <form method="post" class="k-inline-form">
+        <?php echo klytos_csrf_field(); ?>
+        <input type="hidden" name="action" value="rebuild_usage">
+        <button class="k-btn k-btn--sm" type="submit" data-testid="assets.rebuild">
+            <?php echo klytos_esc_html( __( 'assets.rebuild_usage' ) ); ?>
+        </button>
+    </form>
 </div>
 <?php klytos_do_action( 'admin.assets.after_toolbar' ); ?>
 
-<!-- ─── Upload Zone ─────────────────────────────────────────── -->
-<div class="card">
-    <div class="card-header"><h3><?php echo __( 'assets.upload' ); ?></h3></div>
-    <form method="post" enctype="multipart/form-data" id="upload-form">
-        <?php echo klytos_csrf_field(); ?>
-        <input type="hidden" name="action" value="upload">
+<?php
+/*
+ * ─── The drop zone ───────────────────────────────────────────────
+ *
+ * Template §1 gives Assets a drop zone, and §2's Drag-over state says "A
+ * keyboard user reaches the same thing through 'Choose files', which is always
+ * present". The file input IS that control and it is the whole mechanism here:
+ * the drag-over and uploading states are client-side by nature and this screen
+ * has no script (adaptations 103–104, the same family as 72–73).
+ */
+?>
+<form method="post" enctype="multipart/form-data" class="k-dropzone" data-testid="assets.upload_form">
+    <?php echo klytos_csrf_field(); ?>
+    <input type="hidden" name="action" value="upload">
 
-        <div id="drop-zone" class="p-3 text-center rounded-lg mb-2" style="border:2px dashed var(--admin-border,#555);cursor:pointer;transition:border-color .2s,background .2s;">
-            <p class="mb-1" style="font-size:1.1rem;" id="drop-zone-text">
-                <?php echo __( 'assets.drop_zone_text' ); ?>
-            </p>
-            <p class="mb-0 text-sm text-muted" id="drop-zone-file"></p>
-            <input type="file" name="file" id="file-input" class="hidden" required>
+    <label class="k-field">
+        <span class="k-label"><?php echo klytos_esc_html( __( 'assets.drop_zone_text' ) ); ?></span>
+        <input class="k-control" type="file" name="file" required data-testid="assets.file">
+    </label>
+
+    <p class="k-hint"><?php echo klytos_esc_html( __( 'assets.max_size' ) ); ?></p>
+
+    <button class="k-btn k-btn--primary" type="submit" data-testid="assets.upload">
+        <?php echo klytos_esc_html( __( 'assets.upload' ) ); ?>
+    </button>
+</form>
+
+<?php // ─── The grid ────────────────────────────────────────────── ?>
+<?php if ( $assets === [] ) : ?>
+    <p class="k-empty" data-testid="assets.empty">
+        <?php klytos_admin_icon( $spriteUrl, 'ks-perm_media', 'k-empty-icon' ); ?>
+        <span class="k-empty-text">
+            <?php
+            // Two DIFFERENT sentences. "Nothing matches your filter" and
+            // "nothing has been uploaded" are opposite facts, and a screen that
+            // says the second when the first is true sends someone looking for a
+            // problem that is not there.
+            echo klytos_esc_html(
+                $isFiltered ? __( 'assets.empty_filtered' ) : __( 'assets.empty_none' )
+            );
+            ?>
+        </span>
+        <?php if ( $isFiltered ) : ?>
+            <a href="<?php echo klytos_esc_url( $listUrl( ['filter' => 'all', 'type' => '', 'category' => '', 'search' => '', 'page' => 1] ) ); ?>"
+               data-testid="assets.empty_action">
+                <?php echo klytos_esc_html( __( 'assets.clear_filters' ) ); ?>
+            </a>
+        <?php endif; ?>
+    </p>
+<?php else : ?>
+    <section aria-labelledby="assets-grid-heading" data-testid="assets.grid_section">
+        <h2 class="k-card-heading" id="assets-grid-heading">
+            <?php echo klytos_esc_html( __( 'assets.asset_count', ['count' => (string) $total] ) ); ?>
+        </h2>
+
+        <ul class="k-gallery" data-testid="assets.grid">
+            <?php foreach ( $assets as $asset ) : ?>
+                <?php
+                $assetId  = (string) ( $asset['id'] ?? '' );
+                $filename = (string) ( $asset['filename'] ?? '' );
+                $mime     = (string) ( $asset['mime_type'] ?? '' );
+                $kind     = $kindOf( $mime );
+                $usage    = (int) ( $asset['usage_count'] ?? 0 );
+                $hasAlt   = trim( (string) ( $asset['alt_text'] ?? '' ) ) !== '';
+                $url      = $siteUrl . '/' . ltrim( (string) ( $asset['path'] ?? '' ), '/' );
+                $detail   = $listUrl( ['asset' => $assetId] );
+                ?>
+                <li class="k-tile" data-testid="assets.tile.<?php echo klytos_esc_attr( $assetId ); ?>">
+                    <?php
+                    /*
+                     * Template §2 Focus: "the tile is a `<div>` containing a
+                     * primary `<a>` plus an actions `<button>`, and each takes
+                     * its own ring — never a nested-interactive tile." This tile
+                     * has more than one action, so that is the shape used.
+                     */
+                    ?>
+                    <a class="k-tile-primary" href="<?php echo klytos_esc_url( $detail ); ?>"
+                       data-testid="assets.tile_link.<?php echo klytos_esc_attr( $assetId ); ?>">
+                        <span class="k-tile-preview">
+                            <?php if ( $kind === 'image' ) : ?>
+                                <?php
+                                // The alt is EMPTY on purpose: the filename is
+                                // right below it in text, so a description here
+                                // would be read twice. A decorative image inside
+                                // a labelled link is `alt=""`.
+                                ?>
+                                <img src="<?php echo klytos_esc_url( $url ); ?>" alt="" loading="lazy"
+                                     width="96" height="96">
+                            <?php else : ?>
+                                <span class="k-tile-glyph" aria-hidden="true">
+                                    <?php klytos_admin_icon( $spriteUrl, 'ks-description', '' ); ?>
+                                </span>
+                            <?php endif; ?>
+
+                            <span class="k-tile-pill"><?php echo klytos_esc_html( strtoupper( (string) pathinfo( $filename, PATHINFO_EXTENSION ) ) ); ?></span>
+                        </span>
+
+                        <span class="k-tile-name"><?php echo klytos_esc_html( $filename ); ?></span>
+                    </a>
+
+                    <p class="k-tile-meta">
+                        <span><?php echo klytos_esc_html( (string) ( $asset['size_human'] ?? '' ) ); ?></span>
+
+                        <?php if ( $usage > 0 ) : ?>
+                            <?php // §4's delta: the usage count links to the pages. ?>
+                            <a href="<?php echo klytos_esc_url( $detail . '#usage' ); ?>"
+                               data-testid="assets.usage.<?php echo klytos_esc_attr( $assetId ); ?>">
+                                <?php echo klytos_esc_html( __( 'assets.usages', ['count' => (string) $usage] ) ); ?>
+                            </a>
+                        <?php else : ?>
+                            <span data-testid="assets.usage.<?php echo klytos_esc_attr( $assetId ); ?>">
+                                <?php echo klytos_esc_html( __( 'assets.not_in_use' ) ); ?>
+                            </span>
+                        <?php endif; ?>
+                    </p>
+
+                    <?php if ( $kind === 'image' && ! $hasAlt ) : ?>
+                        <?php
+                        // §4's delta: the "No alt text" chip is a LINK to the
+                        // asset's alt field. That field is on the detail panel
+                        // below, which this screen renders server-side — the
+                        // shipped one existed only in JavaScript, so the link
+                        // had nowhere to go.
+                        ?>
+                        <a class="k-chip k-chip--aviso" href="<?php echo klytos_esc_url( $detail . '#alt' ); ?>"
+                           data-testid="assets.no_alt.<?php echo klytos_esc_attr( $assetId ); ?>">
+                            <?php echo klytos_esc_html( __( 'assets.no_alt_text' ) ); ?>
+                        </a>
+                    <?php endif; ?>
+
+                    <form method="post" class="k-tile-actions">
+                        <?php echo klytos_csrf_field(); ?>
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="<?php echo klytos_esc_attr( $assetId ); ?>">
+                        <?php
+                        // §4's delta: delete is disabled for an asset in use,
+                        // and THE REASON IS IN THE ACCESSIBLE NAME — a disabled
+                        // control whose reason is only in a tooltip tells a
+                        // screen-reader user nothing (entry 1's rule, D-079).
+                        $deleteName = $usage > 0
+                            ? __( 'assets.delete_blocked', ['file' => $filename, 'count' => (string) $usage] )
+                            : __( 'assets.delete_named', ['file' => $filename] );
+                        ?>
+                        <button class="k-btn k-btn--destructive k-btn--sm" type="submit"
+                                aria-label="<?php echo klytos_esc_attr( $deleteName ); ?>"
+                                <?php echo $usage > 0 ? 'disabled' : ''; ?>
+                                data-testid="assets.delete.<?php echo klytos_esc_attr( $assetId ); ?>">
+                            <?php echo klytos_esc_html( __( 'assets.delete' ) ); ?>
+                        </button>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+
+        <?php if ( $pages > 1 ) : ?>
+            <?php // Pagination is LINKS — template §2: "Pagination is a link." ?>
+            <nav class="k-pagination" aria-label="<?php echo klytos_esc_attr( __( 'assets.pagination_label' ) ); ?>"
+                 data-testid="assets.pagination">
+                <?php for ( $p = 1; $p <= $pages; $p++ ) : ?>
+                    <a href="<?php echo klytos_esc_url( $listUrl( ['page' => $p] ) ); ?>"
+                       <?php echo $p === $page ? 'aria-current="page"' : ''; ?>
+                       data-testid="assets.page.<?php echo (int) $p; ?>">
+                        <?php echo (int) $p; ?>
+                    </a>
+                <?php endfor; ?>
+            </nav>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
+
+<?php // ─── The detail panel, server-rendered ──────────────────── ?>
+<?php if ( $openAsset !== null ) : ?>
+    <section class="k-card k-card--padded" aria-labelledby="asset-detail-heading" data-testid="assets.detail">
+        <div class="k-card-body">
+            <h2 class="k-card-heading" id="asset-detail-heading">
+                <?php echo klytos_esc_html( (string) ( $openAsset['filename'] ?? '' ) ); ?>
+            </h2>
+
+            <form method="post">
+                <?php echo klytos_csrf_field(); ?>
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="id" value="<?php echo klytos_esc_attr( $openAssetId ); ?>">
+
+                <label class="k-field">
+                    <span class="k-label"><?php echo klytos_esc_html( __( 'assets.field_title' ) ); ?></span>
+                    <input class="k-control" type="text" name="title"
+                           value="<?php echo klytos_esc_attr( (string) ( $openAsset['title'] ?? '' ) ); ?>"
+                           data-testid="assets.detail_title">
+                </label>
+
+                <?php // `id="alt"` is the "No alt text" chip's destination. ?>
+                <label class="k-field" id="alt">
+                    <span class="k-label"><?php echo klytos_esc_html( __( 'assets.field_alt' ) ); ?></span>
+                    <input class="k-control" type="text" name="alt_text"
+                           value="<?php echo klytos_esc_attr( (string) ( $openAsset['alt_text'] ?? '' ) ); ?>"
+                           data-testid="assets.detail_alt">
+                </label>
+
+                <label class="k-field">
+                    <span class="k-label"><?php echo klytos_esc_html( __( 'assets.field_description' ) ); ?></span>
+                    <textarea class="k-control" name="description" rows="3"
+                              data-testid="assets.detail_description"><?php echo klytos_esc_textarea( (string) ( $openAsset['description'] ?? '' ) ); ?></textarea>
+                </label>
+
+                <button class="k-btn k-btn--primary" type="submit" data-testid="assets.detail_save">
+                    <?php echo klytos_esc_html( __( 'assets.save' ) ); ?>
+                </button>
+            </form>
+
+            <?php $usageRecords = $assetManager->getUsage( $openAssetId ); ?>
+            <h3 class="k-card-heading" id="usage"><?php echo klytos_esc_html( __( 'assets.used_in' ) ); ?></h3>
+
+            <?php if ( $usageRecords === [] ) : ?>
+                <p class="k-empty">
+                    <span class="k-empty-text"><?php echo klytos_esc_html( __( 'assets.not_in_use' ) ); ?></span>
+                </p>
+            <?php else : ?>
+                <table class="k-table k-assets-table" data-testid="assets.usage_table">
+                    <caption class="k-table-caption"><?php echo klytos_esc_html( __( 'assets.used_in' ) ); ?></caption>
+                    <thead>
+                        <tr>
+                            <th scope="col"><?php echo klytos_esc_html( __( 'assets.context' ) ); ?></th>
+                            <th scope="col"><?php echo klytos_esc_html( __( 'assets.field' ) ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $usageRecords as $usageRecord ) : ?>
+                            <tr>
+                                <th scope="row">
+                                    <?php
+                                    $contextType  = (string) ( $usageRecord['context_type'] ?? '' );
+                                    $contextId    = (string) ( $usageRecord['context_id'] ?? '' );
+                                    $contextLabel = (string) ( $usageRecord['context_label'] ?? $contextId );
+                                    ?>
+                                    <?php if ( $contextType === 'page' && $contextId !== '' ) : ?>
+                                        <a href="<?php echo klytos_esc_url( $adminPath . 'page-editor.php?slug=' . rawurlencode( $contextId ) ); ?>">
+                                            <?php echo klytos_esc_html( $contextLabel ); ?>
+                                        </a>
+                                    <?php else : ?>
+                                        <?php echo klytos_esc_html( $contextLabel ); ?>
+                                    <?php endif; ?>
+                                </th>
+                                <td><?php echo klytos_esc_html( (string) ( $usageRecord['field'] ?? '' ) ); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
         </div>
-
-        <div class="flex flex-gap-sm" style="align-items:end;">
-            <div class="form-group flex-1">
-                <label>Directory</label>
-                <select name="directory" class="form-control">
-                    <option value="images">images</option>
-                    <option value="images/ai-generated">images/ai-generated</option>
-                    <option value="fonts">fonts</option>
-                    <option value="docs">docs</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary"><?php echo __( 'common.upload' ); ?></button>
-        </div>
-        <p class="form-help"><?php echo __( 'assets.max_size', ['size' => '10'] ); ?></p>
-    </form>
-</div>
-
-<!-- ─── Asset Grid View ─────────────────────────────────────── -->
-<div class="card hidden" id="assets-grid-card">
-    <div class="card-header">
-        <h3 id="assets-grid-title"><?php echo __( 'assets.title' ); ?></h3>
-    </div>
-    <div id="assets-grid" class="p-2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;">
-        <!-- Populated by JS -->
-    </div>
-    <div id="assets-grid-empty" class="empty-state hidden">
-        <h3><?php echo __( 'assets.no_assets' ); ?></h3>
-    </div>
-    <div id="assets-pagination" class="flex flex-center flex-gap-sm p-2"></div>
-</div>
-
-<!-- ─── Asset List View ─────────────────────────────────────── -->
-<div class="card hidden" id="assets-list-card">
-    <div class="card-header">
-        <h3 id="assets-list-title"><?php echo __( 'assets.title' ); ?></h3>
-    </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th style="width:50px;"></th>
-                    <th><?php echo __( 'common.name' ); ?></th>
-                    <th><?php echo __( 'common.type' ); ?></th>
-                    <th><?php echo __( 'common.size' ); ?></th>
-                    <th><?php echo __( 'assets.categories' ); ?></th>
-                    <th><?php echo __( 'assets.usages' ); ?></th>
-                    <th><?php echo __( 'common.date' ); ?></th>
-                    <th><?php echo __( 'common.actions' ); ?></th>
-                </tr>
-            </thead>
-            <tbody id="assets-list-tbody">
-                <!-- Populated by JS -->
-            </tbody>
-        </table>
-    </div>
-    <div id="assets-list-empty" class="empty-state hidden">
-        <h3><?php echo __( 'assets.no_assets' ); ?></h3>
-    </div>
-    <div id="assets-list-pagination" class="flex flex-center flex-gap-sm p-2"></div>
-</div>
-
-<!-- ─── Detail Panel (slide-in) ─────────────────────────────── -->
-<div id="asset-detail-overlay" class="modal-overlay">
-    <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
-        <div class="flex flex-between flex-center mb-2">
-            <h3 id="detail-title" class="mb-0"><?php echo __( 'assets.detail' ); ?></h3>
-            <button type="button" class="btn btn-outline btn-sm" id="detail-close">&times;</button>
-        </div>
-
-        <!-- Preview -->
-        <div id="detail-preview" class="text-center mb-2 rounded-lg p-2 flex flex-center" style="background:var(--admin-bg);min-height:120px;justify-content:center;">
-        </div>
-
-        <!-- Editable fields -->
-        <div class="form-group">
-            <label><?php echo __( 'assets.field_title' ); ?></label>
-            <input type="text" id="detail-field-title" class="form-control">
-        </div>
-        <div class="form-group">
-            <label><?php echo __( 'assets.field_alt' ); ?></label>
-            <input type="text" id="detail-field-alt" class="form-control">
-        </div>
-        <div class="form-group">
-            <label><?php echo __( 'assets.field_description' ); ?></label>
-            <textarea id="detail-field-description" class="form-control" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-            <label><?php echo __( 'assets.categories' ); ?></label>
-            <select id="detail-field-categories" class="form-control" multiple style="min-height:60px"></select>
-        </div>
-
-        <!-- Usage table -->
-        <div class="mt-2 mb-2">
-            <h4 class="mb-1"><?php echo __( 'assets.used_in' ); ?></h4>
-            <div id="detail-usage" class="text-sm"></div>
-        </div>
-
-        <!-- Technical info -->
-        <div class="mt-2 mb-2 text-sm text-muted">
-            <div id="detail-info"></div>
-        </div>
-
-        <?php klytos_do_action( 'admin.assets.detail_panel_extra' ); ?>
-
-        <!-- Actions -->
-        <div class="flex flex-gap-sm mt-2">
-            <button type="button" class="btn btn-primary" id="detail-save"><?php echo __( 'common.save' ); ?></button>
-            <button type="button" class="btn btn-outline" id="detail-copy-url"><?php echo __( 'assets.copy_url' ); ?></button>
-            <button type="button" class="btn btn-danger" id="detail-delete"><?php echo __( 'common.delete' ); ?></button>
-        </div>
-    </div>
-</div>
-
-<!-- ─── Categories Modal ────────────────────────────────────── -->
-<div id="categories-modal" class="modal-overlay">
-    <div class="modal" style="max-width:500px;max-height:80vh;overflow-y:auto;">
-        <div class="flex flex-between flex-center mb-2">
-            <h3 class="mb-0"><?php echo __( 'assets.manage_categories' ); ?></h3>
-            <button type="button" class="btn btn-outline btn-sm" id="categories-close">&times;</button>
-        </div>
-
-        <!-- Create category -->
-        <div class="flex flex-gap-sm mb-2">
-            <input type="text" id="cat-new-name" class="form-control flex-1" placeholder="<?php echo klytos_esc_attr( __( 'assets.category_name' ) ); ?>">
-            <input type="text" id="cat-new-desc" class="form-control flex-1" placeholder="<?php echo klytos_esc_attr( __( 'assets.category_description' ) ); ?>">
-            <button type="button" class="btn btn-primary btn-sm" id="cat-create"><?php echo __( 'common.create' ); ?></button>
-        </div>
-
-        <!-- Category list -->
-        <div id="categories-list"></div>
-    </div>
-</div>
-
-<!-- ─── Cleanup Confirmation Modal ──────────────────────────── -->
-<div id="cleanup-modal" class="modal-overlay">
-    <div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto;">
-        <div class="flex flex-between flex-center mb-2">
-            <h3 class="mb-0"><?php echo __( 'assets.cleanup_unused' ); ?></h3>
-            <button type="button" class="btn btn-outline btn-sm" id="cleanup-close">&times;</button>
-        </div>
-        <p><?php echo __( 'assets.cleanup_confirm_text' ); ?></p>
-        <div id="cleanup-preview" class="mt-2 mb-2" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:0.5rem;max-height:300px;overflow-y:auto;"></div>
-        <p id="cleanup-count" class="font-bold"></p>
-        <div class="flex flex-gap-sm">
-            <button type="button" class="btn btn-danger" id="cleanup-confirm"><?php echo __( 'assets.cleanup_confirm' ); ?></button>
-            <button type="button" class="btn btn-outline" id="cleanup-cancel"><?php echo __( 'common.cancel' ); ?></button>
-        </div>
-    </div>
-</div>
-
-<!-- ─── JavaScript ──────────────────────────────────────────── -->
-<script nonce="<?php echo $cspNonce; ?>">
-(function() {
-    'use strict';
-
-    var API_BASE   = <?php echo json_encode( $apiBase ); ?>;
-    var SITE_URL   = <?php echo json_encode( $siteUrl ); ?>;
-    var CSRF_TOKEN = <?php echo json_encode( $csrf ); ?>;
-
-    var state = {
-        view: 'grid',
-        filter: 'all',
-        category: '',
-        type: '',
-        search: '',
-        page: 1,
-        perPage: 24,
-        assets: [],
-        total: 0,
-        pages: 0,
-        categories: [],
-        currentAsset: null
-    };
-
-    // ── Helpers ────────────────────────────────────────────────
-
-    function apiGet( action, params ) {
-        var url = API_BASE + '?action=' + encodeURIComponent( action );
-        if ( params ) {
-            Object.keys( params ).forEach( function( k ) {
-                if ( params[k] !== '' && params[k] !== null && params[k] !== undefined ) {
-                    url += '&' + encodeURIComponent( k ) + '=' + encodeURIComponent( params[k] );
-                }
-            });
-        }
-        return fetch( url, { credentials: 'same-origin' } ).then( function( r ) { return r.json(); } );
-    }
-
-    function apiPost( action, data ) {
-        data = data || {};
-        data.action = action;
-        return fetch( API_BASE, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN
-            },
-            body: JSON.stringify( data )
-        }).then( function( r ) { return r.json(); } );
-    }
-
-    function esc( str ) {
-        var el = document.createElement( 'span' );
-        el.textContent = str || '';
-        return el.innerHTML;
-    }
-
-    function isImage( mime ) {
-        return ( mime || '' ).indexOf( 'image/' ) === 0;
-    }
-
-    function thumbUrl( asset ) {
-        if ( isImage( asset.mime_type ) ) {
-            return SITE_URL + '/' + asset.path;
-        }
-        return '';
-    }
-
-    function shortDate( iso ) {
-        if ( !iso ) return '';
-        return iso.substring( 0, 10 );
-    }
-
-    // ── Load Assets ───────────────────────────────────────────
-
-    function loadAssets() {
-        apiGet( 'list', {
-            filter: state.filter,
-            category: state.category,
-            type: state.type,
-            search: state.search,
-            page: state.page,
-            per_page: state.perPage
-        }).then( function( data ) {
-            if ( !data.success ) return;
-            state.assets = data.assets || [];
-            state.total  = data.total || 0;
-            state.pages  = data.pages || 0;
-            render();
-        });
-    }
-
-    function loadCategories( callback ) {
-        apiGet( 'list_categories' ).then( function( data ) {
-            if ( data.success ) {
-                state.categories = data.categories || [];
-                populateCategoryFilters();
-            }
-            if ( callback ) callback();
-        });
-    }
-
-    // ── Render ─────────────────────────────────────────────────
-
-    function render() {
-        if ( state.view === 'grid' ) {
-            renderGrid();
-        } else {
-            renderList();
-        }
-    }
-
-    function renderGrid() {
-        var gridCard = document.getElementById( 'assets-grid-card' );
-        var listCard = document.getElementById( 'assets-list-card' );
-        gridCard.classList.remove( 'hidden' );
-        listCard.classList.add( 'hidden' );
-
-        var container = document.getElementById( 'assets-grid' );
-        var empty     = document.getElementById( 'assets-grid-empty' );
-
-        document.getElementById( 'assets-grid-title' ).textContent =
-            <?php echo json_encode( __( 'assets.title' ) ); ?> + ' (' + state.total + ')';
-
-        if ( state.assets.length === 0 ) {
-            container.innerHTML = '';
-            container.classList.add( 'hidden' );
-            empty.classList.remove( 'hidden' );
-            renderPagination( 'assets-pagination' );
-            return;
-        }
-
-        container.classList.remove( 'hidden' );
-        empty.classList.add( 'hidden' );
-
-        var html = '';
-        state.assets.forEach( function( asset ) {
-            var thumb = thumbUrl( asset );
-            var bgStyle = thumb
-                ? 'background-image:url(\'' + esc( thumb ) + '\');background-size:cover;background-position:center;'
-                : 'background:var(--admin-bg);display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:var(--admin-text-muted,#888);';
-
-            html += '<div class="asset-thumb" data-id="' + esc( asset.id ) + '" style="cursor:pointer;border-radius:8px;overflow:hidden;border:1px solid var(--admin-border,#333);transition:box-shadow .2s;">';
-            html += '<div style="aspect-ratio:1;' + bgStyle + '">';
-            if ( !thumb ) {
-                html += '<span>' + esc( asset.mime_type || 'file' ) + '</span>';
-            }
-            html += '</div>';
-            html += '<div class="flex flex-between flex-center text-xs px-1 py-1" style="background:var(--admin-surface);">';
-            html += '<span class="truncate flex-1" title="' + esc( asset.filename ) + '">' + esc( asset.filename ) + '</span>';
-            html += '</div>';
-            html += '</div>';
-        });
-
-        container.innerHTML = html;
-
-        container.querySelectorAll( '.asset-thumb' ).forEach( function( el ) {
-            el.addEventListener( 'click', function() {
-                openDetail( el.getAttribute( 'data-id' ) );
-            });
-        });
-
-        renderPagination( 'assets-pagination' );
-    }
-
-    function renderList() {
-        var gridCard = document.getElementById( 'assets-grid-card' );
-        var listCard = document.getElementById( 'assets-list-card' );
-        gridCard.classList.add( 'hidden' );
-        listCard.classList.remove( 'hidden' );
-
-        var tbody = document.getElementById( 'assets-list-tbody' );
-        var empty = document.getElementById( 'assets-list-empty' );
-
-        document.getElementById( 'assets-list-title' ).textContent =
-            <?php echo json_encode( __( 'assets.title' ) ); ?> + ' (' + state.total + ')';
-
-        if ( state.assets.length === 0 ) {
-            tbody.innerHTML = '';
-            empty.classList.remove( 'hidden' );
-            renderPagination( 'assets-list-pagination' );
-            return;
-        }
-
-        empty.classList.add( 'hidden' );
-
-        var html = '';
-        state.assets.forEach( function( asset ) {
-            var thumb = thumbUrl( asset );
-            var cats  = ( asset.categories || [] ).join( ', ' ) || '—';
-
-            html += '<tr style="cursor:pointer;" data-id="' + esc( asset.id ) + '">';
-            html += '<td>';
-            if ( thumb ) {
-                html += '<img src="' + esc( thumb ) + '" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">';
-            } else {
-                html += '<div style="width:40px;height:40px;background:var(--admin-bg);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--admin-text-muted,#888);">FILE</div>';
-            }
-            html += '</td>';
-            html += '<td class="mono text-sm">' + esc( asset.filename ) + '</td>';
-            html += '<td>' + esc( asset.mime_type ) + '</td>';
-            html += '<td>' + esc( asset.size_human ) + '</td>';
-            html += '<td>' + esc( cats ) + '</td>';
-            html += '<td>—</td>';
-            html += '<td>' + shortDate( asset.uploaded_at ) + '</td>';
-            html += '<td><button type="button" class="btn btn-outline btn-sm btn-detail">' + <?php echo json_encode( __( 'common.view' ) ); ?> + '</button></td>';
-            html += '</tr>';
-        });
-
-        tbody.innerHTML = html;
-
-        tbody.querySelectorAll( 'tr[data-id]' ).forEach( function( row ) {
-            row.addEventListener( 'click', function() {
-                openDetail( row.getAttribute( 'data-id' ) );
-            });
-        });
-
-        renderPagination( 'assets-list-pagination' );
-    }
-
-    function renderPagination( containerId ) {
-        var container = document.getElementById( containerId );
-        if ( !container ) return;
-        if ( state.pages <= 1 ) {
-            container.innerHTML = '';
-            return;
-        }
-
-        var html = '';
-        for ( var i = 1; i <= state.pages; i++ ) {
-            var cls = i === state.page ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm';
-            html += '<button type="button" class="' + cls + ' btn-page" data-page="' + i + '">' + i + '</button>';
-        }
-        container.innerHTML = html;
-
-        container.querySelectorAll( '.btn-page' ).forEach( function( btn ) {
-            btn.addEventListener( 'click', function() {
-                state.page = parseInt( btn.getAttribute( 'data-page' ), 10 );
-                loadAssets();
-            });
-        });
-    }
-
-    // ── Detail Panel ──────────────────────────────────────────
-
-    function openDetail( assetId ) {
-        apiGet( 'get', { id: assetId } ).then( function( data ) {
-            if ( !data.success || !data.asset ) return;
-
-            state.currentAsset = data.asset;
-            var a = data.asset;
-
-            // Preview.
-            var preview = document.getElementById( 'detail-preview' );
-            if ( isImage( a.mime_type ) ) {
-                preview.innerHTML = '<img src="' + esc( SITE_URL + '/' + a.path ) + '" alt="" class="w-full rounded" style="max-height:300px">';
-            } else {
-                preview.innerHTML = '<div style="padding:2rem;font-size:0.9rem;color:var(--admin-text-muted,#888);">' + esc( a.mime_type ) + '<br>' + esc( a.filename ) + '</div>';
-            }
-
-            // Fields.
-            document.getElementById( 'detail-field-title' ).value       = a.title || '';
-            document.getElementById( 'detail-field-alt' ).value         = a.alt_text || '';
-            document.getElementById( 'detail-field-description' ).value = a.description || '';
-            document.getElementById( 'detail-title' ).textContent       = a.filename || '';
-
-            // Categories select.
-            var catSelect = document.getElementById( 'detail-field-categories' );
-            catSelect.innerHTML = '';
-            state.categories.forEach( function( cat ) {
-                var opt = document.createElement( 'option' );
-                opt.value = cat.id;
-                opt.textContent = cat.name;
-                if ( ( a.categories || [] ).indexOf( cat.id ) !== -1 ) {
-                    opt.selected = true;
-                }
-                catSelect.appendChild( opt );
-            });
-
-            // Usage table.
-            var usageDiv = document.getElementById( 'detail-usage' );
-            var usages   = a.usage || [];
-            if ( usages.length === 0 ) {
-                usageDiv.innerHTML = '<p class="text-muted">' + <?php echo json_encode( __( 'assets.not_in_use' ) ); ?> + '</p>';
-            } else {
-                var uHtml = '<table class="w-full text-sm"><thead><tr><th>' + <?php echo json_encode( __( 'common.type' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.context' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.field' ) ); ?> + '</th></tr></thead><tbody>';
-                usages.forEach( function( u ) {
-                    uHtml += '<tr><td>' + esc( u.context_type ) + '</td><td>' + esc( u.context_label || u.context_id ) + '</td><td>' + esc( u.field ) + '</td></tr>';
-                });
-                uHtml += '</tbody></table>';
-                usageDiv.innerHTML = uHtml;
-            }
-
-            // Technical info.
-            var infoHtml = '';
-            infoHtml += '<div><strong>Path:</strong> ' + esc( a.path ) + '</div>';
-            infoHtml += '<div><strong>Size:</strong> ' + esc( a.size_human ) + '</div>';
-            infoHtml += '<div><strong>MIME:</strong> ' + esc( a.mime_type ) + '</div>';
-            infoHtml += '<div><strong>Uploaded:</strong> ' + shortDate( a.uploaded_at ) + '</div>';
-            infoHtml += '<div><strong>By:</strong> ' + esc( a.uploaded_by ) + '</div>';
-            document.getElementById( 'detail-info' ).innerHTML = infoHtml;
-
-            // Show overlay.
-            document.getElementById( 'asset-detail-overlay' ).classList.add( 'active' );
-        });
-    }
-
-    function closeDetail() {
-        document.getElementById( 'asset-detail-overlay' ).classList.remove( 'active' );
-        state.currentAsset = null;
-    }
-
-    function saveDetail() {
-        if ( !state.currentAsset ) return;
-
-        var catSelect = document.getElementById( 'detail-field-categories' );
-        var cats = [];
-        for ( var i = 0; i < catSelect.options.length; i++ ) {
-            if ( catSelect.options[i].selected ) {
-                cats.push( catSelect.options[i].value );
-            }
-        }
-
-        apiPost( 'update', {
-            id:          state.currentAsset.id,
-            title:       document.getElementById( 'detail-field-title' ).value,
-            alt_text:    document.getElementById( 'detail-field-alt' ).value,
-            description: document.getElementById( 'detail-field-description' ).value,
-            categories:  cats
-        }).then( function( data ) {
-            if ( data.success ) {
-                closeDetail();
-                loadAssets();
-            }
-        });
-    }
-
-    function deleteFromDetail() {
-        if ( !state.currentAsset ) return;
-
-        var usages = state.currentAsset.usage || [];
-        var msg = usages.length > 0
-            ? <?php echo json_encode( __( 'assets.confirm_delete_in_use' ) ); ?> + ' (' + usages.length + ' ' + <?php echo json_encode( __( 'assets.usages' ) ); ?> + ')'
-            : <?php echo json_encode( __( 'assets.confirm_delete_asset' ) ); ?>;
-
-        if ( !confirm( msg ) ) return;
-
-        apiPost( 'delete', { id: state.currentAsset.id } ).then( function( data ) {
-            if ( data.success ) {
-                closeDetail();
-                loadAssets();
-            }
-        });
-    }
-
-    function copyUrl() {
-        if ( !state.currentAsset ) return;
-        var url = SITE_URL + '/' + state.currentAsset.path;
-        if ( navigator.clipboard ) {
-            navigator.clipboard.writeText( url );
-        }
-    }
-
-    // ── Categories Modal ──────────────────────────────────────
-
-    function openCategories() {
-        loadCategories( function() {
-            renderCategoryList();
-            document.getElementById( 'categories-modal' ).classList.add( 'active' );
-        });
-    }
-
-    function closeCategories() {
-        document.getElementById( 'categories-modal' ).classList.remove( 'active' );
-    }
-
-    function renderCategoryList() {
-        var container = document.getElementById( 'categories-list' );
-        if ( state.categories.length === 0 ) {
-            container.innerHTML = '<p class="text-muted">' + <?php echo json_encode( __( 'assets.no_categories' ) ); ?> + '</p>';
-            return;
-        }
-
-        var html = '<table class="w-full text-sm"><thead><tr><th>' + <?php echo json_encode( __( 'common.name' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'assets.asset_count' ) ); ?> + '</th><th>' + <?php echo json_encode( __( 'common.actions' ) ); ?> + '</th></tr></thead><tbody>';
-        state.categories.forEach( function( cat ) {
-            html += '<tr>';
-            html += '<td><strong>' + esc( cat.name ) + '</strong>';
-            if ( cat.description ) html += '<br><small class="text-muted">' + esc( cat.description ) + '</small>';
-            html += '</td>';
-            html += '<td>' + ( cat.asset_count || 0 ) + '</td>';
-            html += '<td><button type="button" class="btn btn-danger btn-sm btn-cat-delete" data-id="' + esc( cat.id ) + '">' + <?php echo json_encode( __( 'common.delete' ) ); ?> + '</button></td>';
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        container.innerHTML = html;
-
-        container.querySelectorAll( '.btn-cat-delete' ).forEach( function( btn ) {
-            btn.addEventListener( 'click', function() {
-                var catId = btn.getAttribute( 'data-id' );
-                if ( confirm( <?php echo json_encode( __( 'assets.confirm_delete_category' ) ); ?> ) ) {
-                    apiPost( 'delete_category', { id: catId } ).then( function() {
-                        loadCategories( renderCategoryList );
-                    });
-                }
-            });
-        });
-    }
-
-    function createCategory() {
-        var name = document.getElementById( 'cat-new-name' ).value.trim();
-        var desc = document.getElementById( 'cat-new-desc' ).value.trim();
-        if ( !name ) return;
-
-        apiPost( 'create_category', { name: name, description: desc } ).then( function( data ) {
-            if ( data.success ) {
-                document.getElementById( 'cat-new-name' ).value = '';
-                document.getElementById( 'cat-new-desc' ).value = '';
-                loadCategories( renderCategoryList );
-            } else if ( data.error ) {
-                alert( data.error );
-            }
-        });
-    }
-
-    // ── Cleanup Modal ─────────────────────────────────────────
-
-    function openCleanup() {
-        apiGet( 'list', { filter: 'unused', per_page: 100 } ).then( function( data ) {
-            if ( !data.success ) return;
-
-            var assets = data.assets || [];
-            var preview = document.getElementById( 'cleanup-preview' );
-            var count   = document.getElementById( 'cleanup-count' );
-
-            if ( assets.length === 0 ) {
-                preview.innerHTML = '';
-                count.textContent = <?php echo json_encode( __( 'assets.no_unused' ) ); ?>;
-                document.getElementById( 'cleanup-confirm' ).style.display = 'none';
-            } else {
-                var html = '';
-                assets.forEach( function( asset ) {
-                    var thumb = thumbUrl( asset );
-                    if ( thumb ) {
-                        html += '<img src="' + esc( thumb ) + '" alt="" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">';
-                    } else {
-                        html += '<div style="width:80px;height:80px;background:var(--admin-bg);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--admin-text-muted,#888);">' + esc( asset.filename ) + '</div>';
-                    }
-                });
-                preview.innerHTML = html;
-                count.textContent = assets.length + ' ' + <?php echo json_encode( __( 'assets.files_to_delete' ) ); ?>;
-                document.getElementById( 'cleanup-confirm' ).style.display = '';
-            }
-
-            document.getElementById( 'cleanup-modal' ).classList.add( 'active' );
-        });
-    }
-
-    function confirmCleanup() {
-        apiGet( 'list', { filter: 'unused', per_page: 500 } ).then( function( data ) {
-            if ( !data.success ) return;
-            var ids = ( data.assets || [] ).map( function( a ) { return a.id; } );
-            if ( ids.length === 0 ) return;
-
-            apiPost( 'bulk_delete', { ids: ids } ).then( function( res ) {
-                document.getElementById( 'cleanup-modal' ).classList.remove( 'active' );
-                loadAssets();
-            });
-        });
-    }
-
-    // ── Sync & Rebuild ────────────────────────────────────────
-
-    function syncAssets() {
-        apiPost( 'sync' ).then( function( data ) {
-            if ( data.success ) {
-                alert( <?php echo json_encode( __( 'assets.sync_done' ) ); ?> + ': ' + ( data.synced || 0 ) );
-                loadAssets();
-            }
-        });
-    }
-
-    function rebuildUsage() {
-        apiPost( 'rebuild_usage' ).then( function( data ) {
-            if ( data.success ) {
-                var s = data.stats || {};
-                alert( <?php echo json_encode( __( 'assets.rebuild_done' ) ); ?> + ': ' + ( s.scanned_pages || 0 ) + ' pages, ' + ( s.usages_found || 0 ) + ' usages' );
-            }
-        });
-    }
-
-    // ── Category filter population ────────────────────────────
-
-    function populateCategoryFilters() {
-        var select = document.getElementById( 'filter-category' );
-        var current = select.value;
-        // Keep first option.
-        while ( select.options.length > 1 ) {
-            select.remove( 1 );
-        }
-        state.categories.forEach( function( cat ) {
-            var opt = document.createElement( 'option' );
-            opt.value = cat.id;
-            opt.textContent = cat.name + ' (' + ( cat.asset_count || 0 ) + ')';
-            select.appendChild( opt );
-        });
-        select.value = current;
-    }
-
-    // ── View Toggle ───────────────────────────────────────────
-
-    function setView( view ) {
-        state.view = view;
-        document.getElementById( 'btn-view-grid' ).classList.toggle( 'btn-primary', view === 'grid' );
-        document.getElementById( 'btn-view-grid' ).classList.toggle( 'btn-outline', view !== 'grid' );
-        document.getElementById( 'btn-view-list' ).classList.toggle( 'btn-primary', view === 'list' );
-        document.getElementById( 'btn-view-list' ).classList.toggle( 'btn-outline', view !== 'list' );
-        render();
-    }
-
-    // ── Event Listeners ───────────────────────────────────────
-
-    // Filter changes.
-    document.getElementById( 'filter-usage' ).addEventListener( 'change', function() {
-        state.filter = this.value;
-        state.page = 1;
-        loadAssets();
-    });
-
-    document.getElementById( 'filter-category' ).addEventListener( 'change', function() {
-        state.category = this.value;
-        state.page = 1;
-        loadAssets();
-    });
-
-    document.getElementById( 'filter-type' ).addEventListener( 'change', function() {
-        state.type = this.value;
-        state.page = 1;
-        loadAssets();
-    });
-
-    var searchTimer = null;
-    document.getElementById( 'filter-search' ).addEventListener( 'input', function() {
-        var val = this.value;
-        clearTimeout( searchTimer );
-        searchTimer = setTimeout( function() {
-            state.search = val;
-            state.page = 1;
-            loadAssets();
-        }, 300 );
-    });
-
-    // View toggles.
-    document.getElementById( 'btn-view-grid' ).addEventListener( 'click', function() { setView( 'grid' ); });
-    document.getElementById( 'btn-view-list' ).addEventListener( 'click', function() { setView( 'list' ); });
-
-    // Toolbar actions.
-    document.getElementById( 'btn-manage-categories' ).addEventListener( 'click', openCategories );
-    document.getElementById( 'btn-sync' ).addEventListener( 'click', syncAssets );
-    document.getElementById( 'btn-rebuild-usage' ).addEventListener( 'click', rebuildUsage );
-    document.getElementById( 'btn-cleanup-unused' ).addEventListener( 'click', openCleanup );
-
-    // Detail panel.
-    document.getElementById( 'detail-close' ).addEventListener( 'click', closeDetail );
-    document.getElementById( 'detail-save' ).addEventListener( 'click', saveDetail );
-    document.getElementById( 'detail-delete' ).addEventListener( 'click', deleteFromDetail );
-    document.getElementById( 'detail-copy-url' ).addEventListener( 'click', copyUrl );
-
-    // Categories modal.
-    document.getElementById( 'categories-close' ).addEventListener( 'click', closeCategories );
-    document.getElementById( 'cat-create' ).addEventListener( 'click', createCategory );
-
-    // Cleanup modal.
-    document.getElementById( 'cleanup-close' ).addEventListener( 'click', function() {
-        document.getElementById( 'cleanup-modal' ).classList.remove( 'active' );
-    });
-    document.getElementById( 'cleanup-cancel' ).addEventListener( 'click', function() {
-        document.getElementById( 'cleanup-modal' ).classList.remove( 'active' );
-    });
-    document.getElementById( 'cleanup-confirm' ).addEventListener( 'click', confirmCleanup );
-
-    // Close overlays on backdrop click.
-    ['asset-detail-overlay', 'categories-modal', 'cleanup-modal'].forEach( function( id ) {
-        document.getElementById( id ).addEventListener( 'click', function( e ) {
-            if ( e.target === this ) {
-                this.classList.remove( 'active' );
-            }
-        });
-    });
-
-    // Drag & drop upload.
-    var dropZone  = document.getElementById( 'drop-zone' );
-    var fileInput = document.getElementById( 'file-input' );
-    var fileLabel = document.getElementById( 'drop-zone-file' );
-
-    if ( dropZone && fileInput ) {
-        dropZone.addEventListener( 'click', function() { fileInput.click(); } );
-
-        fileInput.addEventListener( 'change', function() {
-            if ( fileInput.files.length ) {
-                fileLabel.textContent = fileInput.files[0].name;
-            }
-        });
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach( function( evt ) {
-            dropZone.addEventListener( evt, function( e ) {
-                e.preventDefault();
-                e.stopPropagation();
-            });
-        });
-
-        ['dragenter', 'dragover'].forEach( function( evt ) {
-            dropZone.addEventListener( evt, function() {
-                dropZone.style.borderColor = 'var(--admin-primary,#4f8cff)';
-                dropZone.style.background  = 'rgba(79,140,255,0.08)';
-            });
-        });
-
-        ['dragleave', 'drop'].forEach( function( evt ) {
-            dropZone.addEventListener( evt, function() {
-                dropZone.style.borderColor = '';
-                dropZone.style.background  = '';
-            });
-        });
-
-        dropZone.addEventListener( 'drop', function( e ) {
-            var files = e.dataTransfer.files;
-            if ( files.length ) {
-                fileInput.files = files;
-                fileLabel.textContent = files[0].name;
-            }
-        });
-    }
-
-    // ── Init ──────────────────────────────────────────────────
-
-    setView( 'grid' );
-    loadCategories( function() {
-        loadAssets();
-    });
-
-})();
-</script>
+    </section>
+<?php endif; ?>
+
+<style nonce="<?php echo klytos_esc_attr( $cspNonce ); ?>">
+/*
+ * `grid-template-columns` is PER SCREEN (template-list-table.md §1) and §4
+ * records none for the usage table — DR-006's gap on its seventeenth surface,
+ * covered by the same addendum. Content-driven, replaced verbatim when DR-006
+ * answers. Adaptation 105.
+ */
+.k-assets-table tr:not(.k-table-row-full) {
+    grid-template-columns: minmax(0, 1fr) max-content;
+}
+</style>
 
 <?php klytos_do_action( 'admin.assets.after' ); ?>
 <?php require_once __DIR__ . '/templates/footer.php'; ?>
