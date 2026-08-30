@@ -742,6 +742,116 @@ class AssetManager
     }
 
     /**
+     * Select assets for a listing: filter, search, sort and paginate, once.
+     *
+     * THE ONE definition of "which assets does this person see". It used to live
+     * in `admin/api/assets-management.php`'s `list` case alone, which was fine
+     * while the screen was rendered by JavaScript from that endpoint. Manifest
+     * entry 4 makes the screen SERVER-RENDERED (`template-gallery-grid.md` §2:
+     * "Loading — server-rendered. Pagination is a link"), and a screen that
+     * repeated the selection would be a second implementation of the same rule,
+     * free to drift — one deciding what a page shows and the other what an MCP
+     * client is told (L-004). So it moved here and both callers use it.
+     *
+     * `usage_count` is attached to every row because the tile draws it and its
+     * delta links it: computing it per tile would be one storage traversal per
+     * asset, and the usage collection is read once here instead.
+     *
+     * @param array{
+     *     filter?: string, category?: string, type?: string, search?: string,
+     *     page?: int, per_page?: int
+     * } $args `filter` is `all` | `unused` | `in_use`; `type` is `image` |
+     *         `video` | `document`; unknown values do not narrow the result.
+     * @return array{assets: list<array>, total: int, page: int, pages: int}
+     */
+    public function query( array $args = [] ): array
+    {
+        $filter   = (string) ( $args['filter'] ?? 'all' );
+        $category = (string) ( $args['category'] ?? '' );
+        $type     = (string) ( $args['type'] ?? '' );
+        $search   = (string) ( $args['search'] ?? '' );
+        $page     = max( 1, (int) ( $args['page'] ?? 1 ) );
+        $perPage  = min( 100, max( 1, (int) ( $args['per_page'] ?? 20 ) ) );
+
+        $assets = $this->storage->list( 'assets' );
+
+        // The usage index, read ONCE and turned into a count per asset.
+        $usageCounts = [];
+        foreach ( $this->storage->list( 'asset-usage' ) as $usage ) {
+            $assetId = (string) ( $usage['asset_id'] ?? '' );
+            if ( $assetId !== '' ) {
+                $usageCounts[ $assetId ] = ( $usageCounts[ $assetId ] ?? 0 ) + 1;
+            }
+        }
+
+        foreach ( $assets as $i => $asset ) {
+            $assets[ $i ]['usage_count'] = $usageCounts[ (string) ( $asset['id'] ?? '' ) ] ?? 0;
+        }
+
+        if ( $filter === 'unused' ) {
+            $assets = array_filter( $assets, static fn( array $a ): bool => ( $a['usage_count'] ?? 0 ) === 0 );
+        } elseif ( $filter === 'in_use' ) {
+            $assets = array_filter( $assets, static fn( array $a ): bool => ( $a['usage_count'] ?? 0 ) > 0 );
+        }
+
+        if ( $category !== '' ) {
+            $assets = array_filter( $assets, static function ( array $a ) use ( $category ): bool {
+                return isset( $a['categories'] ) && in_array( $category, (array) $a['categories'], true );
+            } );
+        }
+
+        if ( $type !== '' ) {
+            $assets = array_filter( $assets, static function ( array $a ) use ( $type ): bool {
+                $mime = (string) ( $a['mime_type'] ?? '' );
+
+                // `document` is NOT a MIME prefix: it is everything that is
+                // neither an image nor a video. `application/pdf`, `text/csv`
+                // and a Word file share no prefix, and a filter offering
+                // "Documents" must not quietly mean "PDFs".
+                if ( $type === 'document' ) {
+                    return ! str_starts_with( $mime, 'image/' ) && ! str_starts_with( $mime, 'video/' );
+                }
+
+                // Everything else is a MIME PREFIX, which is what this filter
+                // has always meant. The shipped screen sends `application` for
+                // its Documents option and `font` for its Fonts one, so
+                // treating an unrecognised value as "no filter" would silently
+                // widen two live controls (measured on `assets.php:94-95`
+                // before this method existed). The named kinds are additions,
+                // never replacements.
+                return str_starts_with( $mime, $type . '/' );
+            } );
+        }
+
+        if ( $search !== '' ) {
+            $needle = mb_strtolower( $search );
+            $assets = array_filter( $assets, static function ( array $a ) use ( $needle ): bool {
+                return str_contains( mb_strtolower( (string) ( $a['filename'] ?? '' ) ), $needle )
+                    || str_contains( mb_strtolower( (string) ( $a['title'] ?? '' ) ), $needle );
+            } );
+        }
+
+        $assets = array_values( $assets );
+
+        usort(
+            $assets,
+            static fn( array $a, array $b ): int => strcmp(
+                (string) ( $b['uploaded_at'] ?? '' ),
+                (string) ( $a['uploaded_at'] ?? '' )
+            )
+        );
+
+        $total = count( $assets );
+
+        return [
+            'assets' => array_slice( $assets, ( $page - 1 ) * $perPage, $perPage ),
+            'total'  => $total,
+            'page'   => $page,
+            'pages'  => (int) ceil( $total / $perPage ),
+        ];
+    }
+
+    /**
      * Get all assets that are not used anywhere.
      *
      * @return array

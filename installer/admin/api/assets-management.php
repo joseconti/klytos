@@ -43,86 +43,35 @@ if ( $method === 'GET' ) {
 
     switch ( $action ) {
         case 'list':
-            $filter   = $_GET['filter'] ?? 'all';
-            $category = $_GET['category'] ?? '';
-            $type     = $_GET['type'] ?? '';
-            $search   = $_GET['search'] ?? '';
-            $page     = max( 1, (int) ( $_GET['page'] ?? 1 ) );
-            $perPage  = min( 100, max( 1, (int) ( $_GET['per_page'] ?? 20 ) ) );
-
-            // Get base asset list.
-            if ( $filter === 'unused' ) {
-                $assets = $assetManager->getUnusedAssets();
-            } elseif ( $filter === 'in_use' ) {
-                $allAssets = $assetManager->getStorage()->list( 'assets' );
-                $allUsage  = $assetManager->getStorage()->list( 'asset-usage' );
-                $usedIds   = [];
-                foreach ( $allUsage as $usage ) {
-                    $usedIds[$usage['asset_id'] ?? ''] = true;
-                }
-                $assets = array_filter( $allAssets, fn( $a ) => isset( $usedIds[$a['id']] ) );
-                $assets = array_values( $assets );
-            } else {
-                $assets = $assetManager->getStorage()->list( 'assets' );
-            }
-
-            // Filter by category.
-            if ( $category !== '' ) {
-                $assets = array_filter( $assets, function ( $a ) use ( $category ) {
-                    return isset( $a['categories'] ) && in_array( $category, $a['categories'], true );
-                } );
-                $assets = array_values( $assets );
-            }
-
-            // Filter by MIME type prefix.
-            if ( $type !== '' ) {
-                $assets = array_filter( $assets, function ( $a ) use ( $type ) {
-                    return str_starts_with( $a['mime_type'] ?? '', $type . '/' );
-                } );
-                $assets = array_values( $assets );
-            }
-
-            // Search by name/title.
-            if ( $search !== '' ) {
-                $needle = mb_strtolower( $search );
-                $assets = array_filter( $assets, function ( $a ) use ( $needle ) {
-                    return str_contains( mb_strtolower( $a['filename'] ?? '' ), $needle )
-                        || str_contains( mb_strtolower( $a['title'] ?? '' ), $needle );
-                } );
-                $assets = array_values( $assets );
-            }
-
-            // Sort by uploaded_at descending.
-            usort( $assets, fn( $a, $b ) => strcmp( $b['uploaded_at'] ?? '', $a['uploaded_at'] ?? '' ) );
-
-            // Paginate.
-            $total  = count( $assets );
-            $offset = ( $page - 1 ) * $perPage;
-            $paged  = array_slice( $assets, $offset, $perPage );
+            /*
+             * The selection itself lives in `AssetManager::query()`. It used to
+             * be written out here, which was fine while this endpoint was the
+             * only consumer — the screen was rendered by JavaScript from it.
+             * Entry 4 makes the screen server-rendered, and two copies of
+             * "which assets does this person see" would be free to drift, one
+             * deciding what a page shows and the other what an MCP client is
+             * told (L-004, D-118).
+             *
+             * `type` now accepts `document` as well as a MIME prefix, and every
+             * row carries `usage_count`. Both are additions; nothing this
+             * endpoint answered before has changed shape.
+             */
+            $result = $assetManager->query( [
+                'filter'   => $_GET['filter'] ?? 'all',
+                'category' => $_GET['category'] ?? '',
+                'type'     => $_GET['type'] ?? '',
+                'search'   => $_GET['search'] ?? '',
+                'page'     => (int) ( $_GET['page'] ?? 1 ),
+                'per_page' => (int) ( $_GET['per_page'] ?? 20 ),
+            ] );
 
             Helpers::jsonResponse( [
                 'success' => true,
-                'assets'  => $paged,
-                'total'   => $total,
-                'page'    => $page,
-                'pages'   => (int) ceil( $total / $perPage ),
+                'assets'  => $result['assets'],
+                'total'   => $result['total'],
+                'page'    => $result['page'],
+                'pages'   => $result['pages'],
             ] );
-            break;
-
-        case 'get':
-            $id = $_GET['id'] ?? '';
-            if ( $id === '' ) {
-                Helpers::jsonResponse( ['error' => 'Missing id parameter'], 400 );
-            }
-
-            try {
-                $asset = $assetManager->getStorage()->read( 'assets', $id );
-                $asset['usage'] = $assetManager->getUsage( $id );
-
-                Helpers::jsonResponse( ['success' => true, 'asset' => $asset] );
-            } catch ( \Throwable $e ) {
-                Helpers::jsonResponse( ['error' => 'Asset not found'], 404 );
-            }
             break;
 
         case 'list_categories':
