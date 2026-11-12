@@ -1,0 +1,470 @@
+#!/usr/bin/env python3
+"""keel-site — Klytos CMS tenants on the shared Parallels VM `keel-development` (D-121).
+
+Keel references/parallels-development.md, "scripts/keel-site — the contract". Klytos passes the hosting
+test (it is built to run on an ordinary hosting account: files under a vhost, optionally a database,
+nothing that needs root), so it is a tenant of the shared VM, never a VM of its own.
+
+Two tenants, each with its own Unix user, PHP-FPM pool, open_basedir, database and database user, and
+Apache vhost on its own port — served by REAL Apache + mod_rewrite, so installer/.htaccess (the
+production access controls) is exercised instead of being re-implemented by scripts/dev/router.php:
+
+  klytos          the playground: this repository, seeded by scripts/dev/seed-playground.php (port 8121)
+  klytos-install  a disposable empty web root for the standalone installer from the sibling
+                  klytos-installer repository (port 8122) — created for one test, retired after it
+
+WHY A COPY AND NOT A MOUNT (D-121, measured 2026-11-12). Klytos writes into its own tree at runtime
+(installer/config, installer/data, installer/public, installer/backups), so the read-only bind mount
+plugins use is not enough, and an overlayfs over the Parallels share denies the tenant's Unix user
+read access (prl_fsd exports the share as keel:0500; the overlay keeps that mode). So the tenant holds
+a copy of the working tree, synced from the read-only share `klytos` with rsync, honouring every
+.gitignore: ignored files are never copied (the host playground's encrypted config and keys stay on
+the host) and are protected on the VM side, so the tenant's runtime state survives a sync. Every
+command that touches the site syncs first, so the VM always runs what is on disk on the host.
+
+The host reaches each site through an SSH forward on 127.0.0.1:<local port> (macOS Local Network
+privacy blocks non-Apple binaries from the VM's address; /usr/bin/ssh is allowed).
+
+Every command is non-interactive, says what it did and exits non-zero on failure.
+  provision | create | start | stop | sync | url | forward [--down] | php <args> | sql <args>
+  seed | reset | test [<phpunit args>] | logs | install-test | retire | list | doctor
+The site is chosen with --site <name> or KEEL_SITE; default `klytos`.
+"""
+import argparse
+import os
+import secrets
+import shlex
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+VM = 'keel-development'
+SHARE = 'klytos'
+KEY = Path.home() / '.ssh' / 'keel_development'
+STATE = REPO / '.keel-site'                      # machine-local, gitignored: forward PIDs only
+INSTALLER_SRC = REPO.parent / 'klytos-installer' / 'installer.php'
+SITES = {
+    'klytos': {'php': '8.3', 'port': 8121, 'local': 18121, 'kind': 'repo'},
+    'klytos-install': {'php': '8.3', 'port': 8122, 'local': 18122, 'kind': 'installer'},
+}
+DEFAULT_SITE = 'klytos'
+SSH_OPTS = ['-i', str(KEY), '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+            '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR']
+
+
+class Site:
+    def __init__(self, name):
+        if name not in SITES:
+            raise SystemExit(f'keel-site: unknown site {name!r}; this project has {", ".join(SITES)}.')
+        self.name = name
+        self.__dict__.update(SITES[name])
+        self.user = f'ks-{name}'
+        self.db = 'ks_' + name.replace('-', '_')
+        self.root = f'/srv/keel/sites/{name}'
+        self.public = f'{self.root}/public'
+        self.app = f'{self.public}' if self.kind == 'installer' else f'{self.root}/app'
+
+
+def prl_exec(cmd, capture=True):
+    """prlctl exec, retrying only its own transient failure (255 + PrlJob_, measured on this VM)."""
+    res = None
+    for _ in range(5):
+        res = subprocess.run(['prlctl', 'exec', VM, 'bash -c ' + shlex.quote(cmd)], text=True, capture_output=capture)
+        if res.returncode == 255 and 'PrlJob_' in ((res.stderr or '') + (res.stdout or '')):
+            time.sleep(1)
+            continue
+        return res
+    return res
+
+
+def vm(cmd, check=True):
+    res = prl_exec(cmd)
+    if check and res.returncode != 0:
+        sys.stderr.write((res.stdout or '') + (res.stderr or ''))
+        raise SystemExit(f'keel-site: FAILED on the VM ({res.returncode}): {cmd[:200]}')
+    return res.stdout or ''
+
+
+def passthru(cmd):
+    res = prl_exec(cmd, capture=False)
+    raise SystemExit(res.returncode)
+
+
+def vm_status():
+    out = subprocess.run(['prlctl', 'status', VM], text=True, capture_output=True, check=True).stdout
+    return out.strip().rsplit(' ', 1)[-1]
+
+
+def ip():
+    return vm('hostname -I').split()[0]
+
+
+def exists(s):
+    return vm(f'test -f {s.root}/site.env && echo yes || true').strip() == 'yes'
+
+
+def require_site(s):
+    if not exists(s):
+        raise SystemExit(f'keel-site: {s.name} does not exist on {VM}; run `scripts/keel-site --site {s.name} create`.')
+
+
+# ─── the SSH forward ────────────────────────────────────────────────────────────
+
+def pidfile(s):
+    return STATE / f'forward-{s.name}.pid'
+
+
+def listening(port):
+    with socket.socket() as sock:
+        sock.settimeout(0.5)
+        return sock.connect_ex(('127.0.0.1', port)) == 0
+
+
+def forward_pid(s):
+    try:
+        pid = int(pidfile(s).read_text().strip())
+        os.kill(pid, 0)
+        return pid
+    except (OSError, ValueError):
+        return None
+
+
+def forward_up(s):
+    if forward_pid(s) and listening(s.local):
+        return
+    if listening(s.local):
+        raise SystemExit(f'keel-site: 127.0.0.1:{s.local} is taken by something that is not this forward '
+                         f'(`lsof -nP -iTCP:{s.local} -sTCP:LISTEN`). Free it; never test against it.')
+    STATE.mkdir(exist_ok=True)
+    proc = subprocess.Popen(['/usr/bin/ssh', *SSH_OPTS, '-N', '-o', 'ExitOnForwardFailure=yes',
+                             '-L', f'127.0.0.1:{s.local}:127.0.0.1:{s.port}', f'keel@{ip()}'],
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            start_new_session=True)
+    pidfile(s).write_text(str(proc.pid))
+    for _ in range(40):
+        if listening(s.local):
+            return
+        if proc.poll() is not None:
+            break
+        time.sleep(0.25)
+    raise SystemExit(f'keel-site: the SSH forward to {s.name} did not come up on 127.0.0.1:{s.local}.')
+
+
+def forward_down(s):
+    pid = forward_pid(s)
+    if pid:
+        os.kill(pid, 15)
+    pidfile(s).unlink(missing_ok=True)
+    return pid
+
+
+def local_url(s):
+    return f'http://127.0.0.1:{s.local}'
+
+
+# ─── tenant plumbing ────────────────────────────────────────────────────────────
+
+def sync(s):
+    """Working tree → tenant copy. .gitignore'd paths are neither copied nor deleted (state survives)."""
+    if s.kind != 'repo':
+        return
+    if not vm(f'ls -A /media/psf/{SHARE} 2>/dev/null | head -1').strip():
+        raise SystemExit(f'keel-site: /media/psf/{SHARE} is empty in the guest. Re-add the read-only share: '
+                         f'prlctl set {VM} --shf-host-add {SHARE} --path {REPO} --mode ro')
+    # The file list comes from git on the HOST (tracked + untracked-not-ignored), never from rsync's
+    # own .gitignore parsing: rsync reads a leading `!` as "clear the filter list", and Klytos's
+    # .gitignore uses negations. A file the previous sync copied and this list no longer has was
+    # deleted on the host, so it is deleted here; runtime state is never in either list.
+    out = subprocess.run(['git', '-C', str(REPO), 'ls-files', '-co', '--exclude-standard', '-z'],
+                         capture_output=True, check=True).stdout.decode()
+    skip = ('.claude/', '.agents/', 'node_modules/', 'tests/E2E/artifacts/')
+    files = sorted(f for f in out.split('\0') if f and not f.startswith(skip) and (REPO / f).is_file())
+    script = (f'set -e; cd {s.root}; cat > .sync-new; '
+              f'rsync -a --from0 --files-from=.sync-new --chown={s.user}:{s.user} --chmod=Du+rwx,Dgo+rx,Fu+rw,Fgo+r /media/psf/{SHARE}/ app/; '
+              f'if [ -f .sync-old ]; then comm -z -23 .sync-old .sync-new | (cd app && xargs -0 -r rm -f --); fi; '
+              f'mv .sync-new .sync-old')
+    res = subprocess.run(['/usr/bin/ssh', *SSH_OPTS, f'keel@{ip()}', 'sudo bash -c ' + shlex.quote(script)],
+                         input='\0'.join(files).encode() + b'\0', capture_output=True)
+    if res.returncode != 0:
+        sys.stderr.write(res.stdout.decode() + res.stderr.decode())
+        raise SystemExit(f'keel-site: sync of {s.name} failed ({res.returncode})')
+
+
+def php_cmd(s, args):
+    return (f'cd {s.app} && sudo -u {s.user} env XDEBUG_MODE=off HOME={s.root} php{s.php} '
+            + ' '.join(shlex.quote(a) for a in args))
+
+
+def seed(s, reset):
+    if s.kind != 'repo':
+        raise SystemExit(f'keel-site: {s.name} has no seed; it is a web root for the standalone installer.')
+    out = vm(php_cmd(s, ['scripts/dev/seed-playground.php'] + (['--reset'] if reset else [])))
+    print(out.rstrip())
+
+
+def ensure_share():
+    """The read-only share of THIS repository only; added live (no guest restart, which would unmount
+    every other tenant's share), then waited for until it has content."""
+    shares = subprocess.run(['prlctl', 'list', '-i', VM], text=True, capture_output=True).stdout
+    if f"  {SHARE} (+) path='{REPO}' mode='ro'" not in shares:
+        subprocess.run(['prlctl', 'set', VM, '--shf-host-add', SHARE, '--path', str(REPO), '--mode', 'ro'],
+                       check=True, capture_output=True)
+    for _ in range(30):
+        if vm(f'ls -A /media/psf/{SHARE} 2>/dev/null | head -1', check=False).strip():
+            return
+        time.sleep(2)
+    raise SystemExit(f'keel-site: the share {SHARE} did not appear in the guest.')
+
+
+def cmd_provision(s, _):
+    raise SystemExit(f'keel-site: {VM} is the SHARED VM and this project does not provision it. Its recipe '
+                     'and scripts are in docs/machines/keel-development/ (section 9, "Rebuild procedure").')
+
+
+def cmd_create(s, _):
+    if vm_status() != 'running':
+        subprocess.run(['prlctl', 'start', VM], check=True)
+    if exists(s):
+        raise SystemExit(f'keel-site: {s.name} already exists; use reset, or retire first.')
+    pw = secrets.token_hex(12)
+    vm(f'''sudo bash -s <<'CREATE'
+set -e
+id {s.user} >/dev/null 2>&1 || useradd --system --create-home --home-dir {s.root} --shell /usr/sbin/nologin {s.user}
+chmod 750 {s.root}; usermod -a -G {s.user} www-data; setfacl -m u:www-data:rx {s.root}
+mkdir -p {s.public} {s.app}; chown {s.user}: {s.public} {s.app}
+printf 'php={s.php}\\nport={s.port}\\nkind={s.kind}\\nklytos_share={SHARE}\\n' > {s.root}/site.env
+printf 'DB_NAME={s.db}\\nDB_USER={s.db}\\nDB_PASSWORD={pw}\\nDB_HOST=localhost\\n' > {s.root}/db.env
+chown {s.user}: {s.root}/db.env; chmod 600 {s.root}/db.env
+mariadb -e "CREATE DATABASE IF NOT EXISTS {s.db} CHARACTER SET utf8mb4; CREATE USER IF NOT EXISTS '{s.db}'@'localhost' IDENTIFIED BY '{pw}'; GRANT ALL ON {s.db}.* TO '{s.db}'@'localhost'; FLUSH PRIVILEGES;"
+cat > /etc/php/{s.php}/fpm/pool.d/{s.name}.conf <<POOL
+[{s.name}]
+user = {s.user}
+group = {s.user}
+listen = /run/php/{s.user}.sock
+listen.owner = www-data
+listen.group = www-data
+pm = ondemand
+pm.max_children = 6
+php_admin_value[open_basedir] = {s.root}:/tmp:/usr/share/php
+php_admin_value[error_log] = {s.root}/php-error.log
+php_admin_flag[log_errors] = on
+php_admin_flag[display_errors] = off
+POOL
+cat > /etc/apache2/sites-available/{s.name}.conf <<VHOST
+Listen {s.port}
+<VirtualHost *:{s.port}>
+  DocumentRoot {s.public}
+  <Directory {s.public}>
+    AllowOverride All
+    Require all granted
+  </Directory>
+  <FilesMatch \\.php$>
+    SetHandler "proxy:unix:/run/php/{s.user}.sock|fcgi://{s.name}"
+  </FilesMatch>
+  ErrorLog \\${{APACHE_LOG_DIR}}/{s.name}-error.log
+  CustomLog \\${{APACHE_LOG_DIR}}/{s.name}-access.log combined
+</VirtualHost>
+VHOST
+a2ensite -q {s.name}; systemctl reload php{s.php}-fpm; systemctl reload apache2
+CREATE''')
+    if s.kind == 'repo':
+        ensure_share()
+        sync(s)
+        # Production layout: the web root holds the public site and the admin directory beside it.
+        # installer/ is reached through a symlink inside the tenant's own tree (no plugin identity
+        # to break here, unlike WordPress), and everything else is routed to installer/public/ —
+        # the same mapping scripts/dev/router.php gives the built-in server.
+        vm(f'''sudo bash -s <<'LAYOUT'
+set -e
+ln -sfn {s.app}/installer {s.public}/installer
+cat > {s.public}/.htaccess <<'HT'
+# keel-site (D-121): dev-only web-root rules, never shipped. / maps to the generated site in
+# installer/public/, exactly as scripts/dev/router.php does for the built-in server.
+Options +FollowSymLinks
+DirectoryIndex index.html index.php
+RewriteEngine On
+RewriteRule ^\\. - [F,L]
+RewriteCond %{{REQUEST_URI}} !^/installer(/|$)
+RewriteRule ^(.*)$ /installer/public/$1 [L]
+HT
+chown -h {s.user}: {s.public}/installer {s.public}/.htaccess
+LAYOUT''')
+        seed(s, reset=False)
+    print(f'keel-site: {s.name} created (PHP {s.php}, VM port {s.port}); `scripts/keel-site --site {s.name} url`')
+
+
+def cmd_start(s, _):
+    if vm_status() != 'running':
+        subprocess.run(['prlctl', 'start', VM], check=True)
+    require_site(s)
+    sync(s)
+    forward_up(s)
+    print(f'keel-site: {VM} running; {s.name} at {local_url(s)}')
+
+
+def cmd_stop(s, _):
+    pid = forward_down(s)
+    print(f'keel-site: forward for {s.name} ' + (f'stopped (PID {pid})' if pid else 'was not running')
+          + f'; {VM} is shared and stays up (suspend it only when no project needs it).')
+
+
+def cmd_sync(s, _):
+    require_site(s)
+    sync(s)
+    print(f'keel-site: {s.name} synced from the share')
+
+
+def cmd_url(s, _):
+    print(local_url(s))
+
+
+def cmd_forward(s, ns):
+    if ns.down:
+        return cmd_stop(s, ns)
+    require_site(s)
+    forward_up(s)
+    print(f'keel-site: {s.name} forwarded at {local_url(s)}')
+
+
+def cmd_php(s, ns):
+    require_site(s)
+    sync(s)
+    passthru(php_cmd(s, ns.args))
+
+
+def cmd_sql(s, ns):
+    require_site(s)
+    passthru(f'sudo mariadb {s.db} -e ' + shlex.quote(' '.join(ns.args)))
+
+
+def cmd_seed(s, _):
+    require_site(s)
+    sync(s)
+    seed(s, reset=False)
+
+
+def cmd_reset(s, _):
+    """Known state: wipe runtime state and seed again. Touches this site only."""
+    require_site(s)
+    sync(s)
+    seed(s, reset=True)
+    vm(f'sudo truncate -s0 {s.root}/php-error.log 2>/dev/null || true')
+    print(f'keel-site: {s.name} reset and seeded')
+
+
+def cmd_test(s, ns):
+    """PHPUnit inside the tenant, as the tenant's user, against the tenant's PHP."""
+    require_site(s)
+    sync(s)
+    if vm(f'test -x {s.app}/vendor/bin/phpunit && echo yes || true').strip() != 'yes':
+        vm(f'cd {s.app} && sudo -u {s.user} env HOME={s.root} COMPOSER_HOME={s.root}/.composer '
+           f'php{s.php} /usr/bin/composer install --no-interaction --no-progress -q')
+    # The HTTP-tier harness binds php -S on a fixed band (8101+); on the shared VM other tenants own
+    # 8101-8115, and the harness rightly refuses a server it did not start. Shift the whole band
+    # (tests/AdminHttpTestCase.php resolvedPort()) to 9101+, free on this VM; overridable.
+    offset = os.environ.get('KLYTOS_TEST_PORT_OFFSET', '1000')
+    cmd = php_cmd(s, ['vendor/bin/phpunit', '--do-not-cache-result'] + ns.args)
+    passthru(cmd.replace('env XDEBUG_MODE=off', f'env XDEBUG_MODE=off KLYTOS_TEST_PORT_OFFSET={int(offset)}', 1))
+
+
+def cmd_logs(s, _):
+    require_site(s)
+    print(vm(f'sudo bash -c "tail -n 40 {s.root}/php-error.log 2>/dev/null; '
+             f'tail -n 20 /var/log/apache2/{s.name}-error.log 2>/dev/null; '
+             f'ls -d {s.app}/installer/data/logs* 2>/dev/null | head -5"', check=False), end='')
+
+
+def cmd_install_test(s, _):
+    """Put the standalone installer from ../klytos-installer into the empty tenant and print the URL."""
+    if s.kind != 'installer':
+        raise SystemExit('keel-site: install-test runs on the `klytos-install` site (--site klytos-install).')
+    require_site(s)
+    if not INSTALLER_SRC.is_file():
+        raise SystemExit(f'keel-site: {INSTALLER_SRC} not found (the klytos-installer repository).')
+    vm(f'sudo find {s.public} -mindepth 1 -delete')
+    data = INSTALLER_SRC.read_bytes()
+    res = subprocess.run(['/usr/bin/ssh', *SSH_OPTS, f'keel@{ip()}',
+                          f'sudo -u {s.user} tee {s.public}/installer.php >/dev/null'], input=data, capture_output=True)
+    if res.returncode != 0:
+        raise SystemExit('keel-site: could not copy installer.php into the tenant')
+    forward_up(s)
+    print(f'keel-site: fresh web root with installer.php → {local_url(s)}/installer.php')
+
+
+def cmd_retire(s, _):
+    if vm(f'test -d {s.root} && echo yes || true').strip() != 'yes':
+        print(f'keel-site: {s.name} does not exist; nothing to retire')
+        return
+    forward_down(s)
+    before = vm(f'sudo du -sh {s.root} | cut -f1', check=False).strip()
+    vm(f'''sudo bash -s <<'RETIRE'
+a2dissite -q {s.name} 2>/dev/null || true
+rm -f /etc/apache2/sites-available/{s.name}.conf /etc/php/{s.php}/fpm/pool.d/{s.name}.conf
+systemctl reload apache2; systemctl reload php{s.php}-fpm
+mariadb -e "DROP DATABASE IF EXISTS {s.db}; DROP USER IF EXISTS '{s.db}'@'localhost';"
+rm -f /var/log/apache2/{s.name}-error.log /var/log/apache2/{s.name}-access.log
+gpasswd -d www-data {s.user} >/dev/null 2>&1 || true
+id {s.user} >/dev/null 2>&1 && userdel -r {s.user} 2>/dev/null || true
+getent group {s.user} >/dev/null && groupdel {s.user} || true
+rm -rf {s.root}
+RETIRE''')
+    left = [n for n in SITES if vm(f'test -d /srv/keel/sites/{n} && echo y || true').strip()]
+    if not left:
+        subprocess.run(['prlctl', 'set', VM, '--shf-host-del', SHARE], check=False, capture_output=True)
+    print(f'keel-site: {s.name} retired ({before} freed: vhost, pool, database and user, Unix user and group'
+          + ('; share removed' if not left else f'; share kept for {", ".join(left)}') + ')')
+
+
+def cmd_list(s, _):
+    print(vm('for n in ' + ' '.join(SITES) + '; do d=/srv/keel/sites/$n; [ -d $d ] || continue; '
+             'echo "$n: $(tr "\\n" " " < $d/site.env)disk=$(sudo du -sh $d | cut -f1) '
+             'last-use=$(sudo date -r $d/php-error.log +%F 2>/dev/null || echo -)"; done'), end='')
+
+
+def cmd_doctor(s, _):
+    print('vm:', vm_status(), '| disk:', vm('df -h / --output=used,size,pcent | tail -1').strip(), '(cap 120 GB)', end='')
+    rev = subprocess.run(['prlctl', 'list', '-i', VM], text=True, capture_output=True).stdout
+    rev = next((w for line in rev.splitlines() if line.startswith('Description:') for w in line.split()
+                if w.startswith('keel-base-rev=')), 'keel-base-rev=?')
+    doc = (REPO / 'docs/machines/keel-development/recipe.md').read_text() if \
+        (REPO / 'docs/machines/keel-development/recipe.md').is_file() else ''
+    print(f'\nshared VM {rev}; this repository\'s copy ' + ('matches' if rev in doc else 'is BEHIND — refresh it'))
+    bad = rev not in doc
+    for name in SITES:
+        t = Site(name)
+        if not exists(t):
+            print(f'{name}: not created')
+            continue
+        code = vm(f'curl -s -o /dev/null -w "%{{http_code}}" http://127.0.0.1:{t.port}/installer/admin/', check=False).strip()
+        print(f'{name}: VM http {code} (admin) | PHP {t.php} | {local_url(t)} | forward '
+              + ('up' if forward_pid(t) and listening(t.local) else 'down'))
+        bad |= t.kind == 'repo' and code not in ('200', '302')
+    raise SystemExit(1 if bad else 0)
+
+
+parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument('--site', default=os.environ.get('KEEL_SITE') or DEFAULT_SITE)
+sub = parser.add_subparsers(dest='command', required=True)
+for name, fn in {'provision': cmd_provision, 'create': cmd_create, 'start': cmd_start, 'stop': cmd_stop,
+                 'sync': cmd_sync, 'url': cmd_url, 'seed': cmd_seed, 'reset': cmd_reset, 'logs': cmd_logs,
+                 'install-test': cmd_install_test, 'retire': cmd_retire, 'list': cmd_list,
+                 'doctor': cmd_doctor}.items():
+    sub.add_parser(name).set_defaults(run=fn)
+p = sub.add_parser('forward')
+p.add_argument('--down', action='store_true')
+p.set_defaults(run=cmd_forward)
+for name, fn in {'php': cmd_php, 'sql': cmd_sql, 'test': cmd_test}.items():
+    p = sub.add_parser(name)
+    p.add_argument('args', nargs=argparse.REMAINDER)
+    p.set_defaults(run=fn)
+ns, extra = parser.parse_known_args()
+if extra and not hasattr(ns, 'args'):
+    parser.error('unrecognized arguments: ' + ' '.join(extra))
+if hasattr(ns, 'args'):
+    # Everything after the command word, verbatim and in order (argparse reorders option-looking args).
+    rest = sys.argv[sys.argv.index(ns.command) + 1:]
+    ns.args = rest[1:] if rest[:1] == ['--'] else rest
+ns.run(Site(ns.site), ns)

@@ -1250,3 +1250,493 @@ The cede requires two facts — another session live in the checkout, AND someth
 **The probe whose parser drops every input, so it answers with the default that disables the guard.** A parser written against the shape the output usually has produces nothing on the shapes it does not have; the loop `continue`s, no error is raised, and the probe returns its empty answer — which the caller cannot distinguish from a real negative. The rule: a probe distinguishes THREE outcomes, never two — found, not found, and could not tell — and "could not tell" is never reported in the words of "not found". The tell is a `continue` inside a probe: ask what the loop returns when every iteration takes that branch. Row 17k checks it.
 
 **Reconciliation:** regenerate `scripts/keel-stop-hook` on any project that carries one, and verify the cede against a rename. Refresh the lock stamp when the freshness check next runs.
+
+## 5.20.0
+
+### Fixed — one session opens one chat, and the brake stops being keyed to a file the system deletes
+
+Measured on two different repositories, at every single close: **two chats.** One opened when the session ran its close-out, a second when its turn actually ended. Nothing errored, and every component behaved to its own specification.
+
+The sequence: `scripts/keel-close` step 6 fired `scripts/keel-continue`, which claimed the launch receipt for hand-off H and opened window one. The close-out's own last commit then ran `.githooks/post-commit`, which DELETED H — correct, deliberate, and the reason a stale hand-off can no longer exist. Rule 4 of `scripts/keel-stop-hook` fired the same launcher afterwards, found no hand-off, took the DEGRADE row (fire on `docs/PROGRESS.md`, because a Keel artifact in a bad state must never stop the work), and opened window two against no receipt at all. **The only anti-duplicate guard in the mechanism was keyed to the one artifact the mechanism deliberately destroys**, and on the degraded path it was not bypassed — it was never reachable, because a missing hand-off has no identity to claim.
+
+Two contradictions made it invisible while it was being written. `references/project-state.md` said "exactly one place in the whole skill may invoke `scripts/keel-continue`" and v5.15.0 had added the second five versions earlier; `references/phase-5-development.md` said the close-out "is the only place in the skill that invokes it". And rule 4 justified firing by delegation — "its receipt, its circuit breaker and the lane are the guards, and the hook adds none of its own" — a sentence that is true only while the hand-off still exists.
+
+- **One launch per SESSION, alongside one per hand-off.** Every fire now also claims `fired-<repo-key>-<keel_session_pid>` in the user's state directory, atomically, written by the launcher immediately BEFORE the launch. A session whose entry exists never fires again, whatever any hand-off says. The two brakes answer different questions: the receipt serialises a CONTINUATION across sessions, the ledger serialises a SESSION across its own attempts, and the double launch walked between them.
+- **The DEGRADE path claims a receipt too, and its identity is now defined in the contract** — `degraded:<repo-key>:<HEAD>` — instead of being left to whoever generates the script. It does not replace the ledger and cannot: `HEAD` moves the moment the successor commits in the shared checkout.
+- **Rule 4 of the stop hook reads the ledger itself** and stands down when this session already fired, naming the entry. It still adds no guard of its own; it reads the one the launcher writes, which is exactly what the delegation was missing.
+- **The invariant names its invokers instead of counting them.** Two places may invoke the launcher — the close-out, and rule 4 of the stop hook where no close-out was reached — and the second is subordinate to the first. An invariant that names a NUMBER is falsified by the next mechanism rather than amended by it.
+- **`scripts/keel-chain-check` gains rows 7a and 7b** (fifteen rows now, from thirteen): the fire ledger is reachable and carries no dead session's entry, and BOTH invokers are wired to the same brake — the launcher claims the entry, the hook reads it. Either missing → NOT READY, naming which. A brake only one of two callers consults is a coincidence, not a mechanism.
+- **`--smoke` fires TWICE and asserts the second opens nothing.** The double launch was invisible to a smoke test that fires once, which is why it passed on every project it ran on. A mechanism whose whole contract is "at most one" is not proven by observing one.
+
+### Added — anti-pattern 12v, and self-audit row 17l
+
+**The guard keyed to the artifact the system deliberately deletes.** An at-most-once guard is keyed to the thing the action is about; elsewhere, for its own good reasons, another rule deletes that thing; the guard's answer to "have we already done this?" becomes a fresh, empty, unclaimed key. The rule: a brake is keyed to something that outlives every path the braked action can take, and **the ACTOR always outlives the artifact** — so key it to the session as well as to the artifact, and make the degraded path claim a degraded identity. Two tells: what deletes the key, and — where an action has more than one caller — whether each caller claims the brake itself. Row 17l checks both.
+
+**Reconciliation:** regenerate `scripts/keel-continue`, `scripts/keel-stop-hook` and `scripts/keel-chain-check` on any project whose card is not `Chaining: off` or `supervised`, then run `scripts/keel-chain-check --smoke` (it re-proves the launcher and writes `Chain verified:`). Refresh the lock stamp when the freshness check next runs.
+
+## 5.21.0
+
+### Changed — sprints stop being a Phase 5 step and become the ledger of all work
+
+Reported by the user: sessions were not creating sprints, and when asked what was left and how long it would take, a session answered "starting the audit". Reading the skill found that no rule had ever said otherwise. Sprints were created at Phase 5 §0 and updated at the sprint close; an audit, a forge issue, a hotfix, a maintenance touch, an adoption or a reconciliation never passed through either, so that work had no slice to mark, the remaining time was recomputed only at a close it never reached, and "what is left?" had no defined answer — which let a session read it as "carry on".
+
+- **New cross-cutting UNBREAKABLE section in `SKILL.md`, "Sprints are the ledger of all work", plus an operating principle.** Six points: no work starts outside the plan (a unit of work of ANY kind is a slice with its hours before its first change, and a project with no plan gets one now); finishing is recording (the commit that finishes a slice sets `done`, writes `actual_hours` and regenerates `docs/.keel/plan.json`); work found on the way is added, never absorbed; "what is left / how long" is a question answered from `plan.json` and never by starting work; opting out is the user's, explicit and recorded; and all of it is checked.
+- **New card line `Sprints: on | off (D-0XX)`.** `on` is written when the state files are created and is never asked; `off` only on the user's explicit statement, with its decision entry. An inference is never an opt-out.
+- **Slice schema gains `actual_hours`; `plan.json` gains `remaining_hours`, `actual_hours` and the deviation**, per sprint and in total, all computed at generation time. Remaining excludes contingency and `deferred.md`.
+- **The "what is left" answer has a fixed shape** (`references/project-state.md`): pending slices with hours, the sprint's remaining hours, later sprints and the total, every figure labelled as AI working time plus supervision, and the deviation so far.
+- **`scripts/keel-verify` fails when the plan is behind the work.** The check is ancestry: the newest commit touching anything other than the bookkeeping files (`docs/sprints/`, `docs/.keel/`, `docs/PROGRESS.md`, `docs/token-ledger.md`) must be contained in the newest commit touching `docs/sprints/`. It also fails a `done` slice with no `actual_hours`, a PROGRESS position that names no open slice, and a card with no `Sprints:` line or an `off` with no D-entry.
+- **`scripts/keel-stop-hook` rule 1 gains a fourth UNBREAKABLE-broken state, "plan behind the work"**, using the same ancestry test. It cedes to another live session exactly as uncommitted work does, because the unrecorded commits may be that session's; its fingerprint is the two commits it named.
+- **The lock block (`CLAUDE.md` + `AGENTS.md`) carries the rule**, so a session that reads only the lock is bound by it too.
+- **Phase 5 §2, `references/maintenance.md`, `references/adoption.md` and `references/estimation-budget.md`** apply the rule at their own entry points: the slice's commit records it, every maintenance item is a slice before its first edit, the adoption's own steps and its fix-now bucket are a sprint, and actuals per slice feed the deviation.
+
+### Added — anti-pattern 12w, and self-audit row 17m
+
+**The plan that only exists for one entry point.** A tracking artifact written by one phase silently stops describing a project that other entry points also change. The rule: a plan is a ledger of ALL work or it is decoration; the tell is to list every way work reaches the project and ask which of them writes to it. Row 17m checks the ancestry, the actuals, and that every entry point since the last audit left a slice.
+
+**Reconciliation:** add `Sprints: on` to the card (or `off` only where the user has explicitly said so — record the D-entry). Where no `docs/sprints/` exists, create the plan from the open items and the work in flight, with hours, and show it to the user. Backfill `actual_hours` on `done` slices where it can be honestly estimated, marking the estimate as such. Regenerate `scripts/keel-verify` and `scripts/keel-stop-hook`, and `docs/.keel/plan.json` with its new fields. Refresh the lock block (its text changed, not only its stamp).
+
+## 6.0.0
+
+### Added — every session is timed by the clock and closed against the plan
+
+Reported by the user: there was no real control of time. Sprints carried estimated hours, but nothing recorded when a session started or ended, nothing stated at the start what the session intended to do and how long that should take, and `actual_hours` was written by the session from its own impression of how long the work took — by a model, which does not know what time it is and cannot feel elapsed time. So the deviation between plan and reality was never computed, and no estimate was ever corrected by one.
+
+- **New cross-cutting UNBREAKABLE section in `SKILL.md`, "Session time — measured, never remembered", plus an operating principle.** A session opens by reading the system clock and stating what is left and what THIS session plans, with hours, before any work; every slice boundary and every wait on the person is marked on the clock; the session closes by reading the clock again and showing, unprompted, what was done, each finished slice's estimated hours against its measured hours, what was left unfinished with the time spent, unplanned work added, the deviation in hours and percent, and what is left afterwards.
+- **New script `scripts/keel-time`** (`references/project-state.md`, "Session time"): `start`, `slice-start`, `slice-end`, `pause`, `resume`, `end`, `report`. It is the only thing that reads the clock. `slice-end` writes the measured, cumulative `actual_hours` into the sprint file so the slice's commit carries it; paused time is subtracted; a session that ended without `end` is closed by the next `start` at its LAST recorded event, never at the moment the next session opens.
+- **New committed file `docs/sessions.md`** — one row per session with its clock-read start and end, planned, done, estimated, actual and deviation — and **new gitignored file `docs/.keel/clock.jsonl`** (`keel.clock/1`) holding the raw events, so the tree is not dirtied between commits and a dead machine loses at most the in-flight session's timing.
+- **Slice field `actual_source: measured | estimated`.** Where no clock can be read, or for an actual that predates this version, the figure says so. A measured figure and an estimated one are never mixed without their label.
+- **`scripts/keel-close` gains step 0, `scripts/keel-time end`**, before its commit, so the session row and the partial actuals are committed and the report is part of what the close prints.
+- **`scripts/keel-verify` fails** a `measured` done slice that no `docs/sessions.md` row lists, a session row whose deviation is not its actual minus its estimate, and a `.gitignore` missing `docs/.keel/clock.jsonl`. `docs/sessions.md` joins the bookkeeping files.
+- **Applied at every entry point:** Phase 1 step 0a generates the script and times the first session, adoption times its own sprint, maintenance opens every session on the clock, the continuation prompt and the lock block carry the rule, and `references/estimation-budget.md` starts the next estimate of a kind of slice from its measured hours and always reconciles hours at release.
+
+### Changed — before a push, only the tests the change reaches; the entire suite at every release
+
+Reported by the user: tests grow without limit, and on a large project running all of them on every push is a nightmare of time. Every test must still be written; what changes is which tests run when.
+
+- **New section in `references/test-automation.md`, "Which tests run when", and a principle and paragraph in `SKILL.md`.** Test points, pushes and sprint closes run the affected selection of their diff; the ENTIRE suite runs at the Phase 7 gate on the release candidate — a hotfix and a maintenance release included — and nowhere else by default.
+- **New script `scripts/keel-affected-tests`**, generated at the Phase 5 scaffold from a new `Test selection` line in the technical plan. Four inclusions: the changed files' tests, the tests of everything that depends on them (transitively — which is what keeps a sprint-3 change that breaks sprint-1 code inside the selection), every added or modified test and regression test, and the plan's always-run set. A closed widening list: lockfiles, test configuration and bootstrap, shared fixtures, build, environment and CI configuration, and the script itself widen to the entire suite; a schema migration adds the integration and upgrade tests; an uncovered source file widens to its module and is reported as a coverage gap; a docs-only diff runs no tests. **An empty selection for a diff that touches source is a selector failure, never a green.** One `scope:` line per run goes into the evidence. Impact tools by stack are tabulated (Jest, Vitest, Playwright, pytest, PHPUnit, Go, Rust, monorepo tools, Xcode).
+- **New hook `.githooks/pre-push`** runs the selection over every branch being pushed and refuses the push on red; tag pushes are skipped, because a tag's evidence is the Phase 7 full-suite run.
+- **New card line `Push test scope: affected | full (D-0XX)`** — `affected` by default and never asked; `full` only on the user's explicit request.
+- **Phase 5:** the sprint close runs the selection over the whole sprint's diff instead of the full suite; the cross-cutting verification no longer re-runs the automated suite; the definition of done changes accordingly; `keel-verify` gains the test-selection row. **Phase 7:** the gate is the one place the entire suite is mandatory, recorded as `scope: full — M of M`; a lower count fails it. **Maintenance:** "The full-suite rule" becomes "The test-scope rule". **CI:** runs on `main`, tags and PRs to `main` keep the full suite; the pushes the wider `CI runs on:` values add run the affected selection.
+- **Unchanged, on purpose:** every behaviour still gets its test, the reproduction test still precedes every bug fix, a requirement-derived test is still never edited to pass, and the hotfix end-to-end reduction remains the only reduction of a release run.
+
+### Added — anti-patterns 12x and 12y, self-audit rows 17n and 17o, evals E23 and E24
+
+**12x, the hours nobody measured**: actuals typed from impression make the deviation noise. **12y, the whole suite as the price of every push**: a rule that cannot be wrong in a small project is never examined in a large one.
+
+**Reconciliation:** `MANIFEST.md` Table 3, v6.0.0 — generate `scripts/keel-time`, `scripts/keel-affected-tests` and `.githooks/pre-push`; create `docs/sessions.md`; gitignore `docs/.keel/clock.jsonl`; mark every existing `actual_hours` as `actual_source: estimated`; add `Push test scope: affected` and the plan's `Test selection` line; regenerate `scripts/keel-close` and `scripts/keel-verify`; refresh the lock block (its text changed).
+
+## 6.1.0
+
+### Changed — the tool registry becomes DATA: one row file per assistant, `scripts/keel-tools/<tool>.sh`
+
+Reported by the user, working one project with both Claude Code and OpenAI Codex: each assistant needs different commands at a close and at the opening of the next session, and those commands lived inside the single shared launcher as per-tool branches — so a session repairing its own tool edited lines belonging to the other, and a Keel update regenerated the file and took both sets of repairs with it. Their statement of the requirement is the one this version implements: changing from one agent to another must not mean fixing the new one and breaking the last one. The rule forbidding exactly this already existed — `references/project-state.md` said "there is no per-tool script and no per-tool branch in the skill" — and was unobeyable, because the registry it pointed at was prose, and prose cannot be sourced. This version gives it a container.
+
+- **New generated artifact: `scripts/keel-tools/<tool>.sh`, one row file per accepted assistant** (`references/project-state.md`, "The registry is DATA" — new subsection). It is the only place in a project that knows anything about a given tool, and it carries as FIELDS every fact a shared script used to hardcode: `KEEL_TOOL_EVIDENCE` (`VERIFIED` / `DOCUMENTED` / `NONE` — only `VERIFIED` ever fires), `KEEL_TOOL_VERIFIED_ON`, `KEEL_TOOL_TIER`, `KEEL_TOOL_CLI`, `KEEL_TOOL_PASS_MODEL`, `KEEL_TOOL_STOP_HOOK`, `KEEL_TOOL_LIVE_QUERY`, plus `keel_tool_detect` and `keel_tool_launch`. The test for what belongs there is one line: if a shared script would otherwise have to ask WHICH tool it is running in, the answer is a field. A row that omits a field is an unfinished row, never a default.
+- **New UNBREAKABLE rule: a session may create or edit ONLY the row of the tool it is itself running in.** This is what makes switching assistants safe by construction instead of by care — one assistant's facts are not in any file another assistant's session has reason to open. Repairing another tool's row from outside it is done blind, against a tool the session cannot run, and it is the measured failure.
+- **The shared scripts carry no tool name on an executable line.** `scripts/keel-continue`, `scripts/keel-close`, `scripts/keel-stop-hook` and `scripts/keel-chain-check` resolve the detected tool's row, source it and use the fields. Comments may still name a tool — the history of a measured trap is worth keeping beside the code it shaped.
+- **`scripts/keel-continue`'s contract now reads the row**: detection is each row's own `keel_tool_detect` (the marker belongs to the tool, so the test for it belongs in the tool's row); point 5a re-checks `command -v "$KEEL_TOOL_CLI"` live rather than a literal; point 5b passes the card's `Chaining model:` only to rows whose `KEEL_TOOL_PASS_MODEL` is `yes`, and says which model the next link runs on when the row declines it.
+- **The stop hook's registration becomes a field, not a judgment.** `KEEL_TOOL_STOP_HOOK` answers where `scripts/keel-stop-hook`'s Claude Code schema may be registered, so a generator no longer re-derives from prose the one question that paragraph exists to settle. The measured Codex rejection of that payload stands as the reason the field is never guessed.
+- **Editing a row un-proves the chain, exactly as editing the launcher does.** The card's `Chain verified:` line now carries the fired row's checksum beside `scripts/keel-continue`'s; a changed row reports NOT READY until `scripts/keel-chain-check --smoke` is run again.
+- **The hook registration is checked against its row, and the check names the remedy.** New field `KEEL_TOOL_HOOK_FILE` (where that tool registers turn-end hooks) plus a `scripts/keel-verify` row: the container mentions `scripts/keel-stop-hook` if and only if the row's `KEEL_TOOL_STOP_HOOK` is `yes`. This closes the live half of the defect — `.codex/hooks.json` pointed at a script whose JSON is deliberately Claude Code's `Stop` schema, which Codex rejects with `invalid stop hook JSON output`, ending the very turn the hook exists to keep open. The check's message says which way to repair it, because the tempting direction is the wrong one: **remove the registration from the tool that rejects the payload; never change the output and break the assistant where it already works.** That assistant is not running, so nothing in the session reports the damage, and the session's own tool stops complaining — which reads exactly like success. The check reads the container FROM the row rather than knowing `.codex/hooks.json`, since a check that hardcodes a tool's path is anti-pattern 12z inside the detector.
+- **Four new `scripts/keel-verify` rows** (`references/phase-5-development.md` §1a): every tool on the card's `Assistant config:` tools list has a row file; every row declares every field; **no shared `scripts/keel-*` matches a registry tool name outside a comment**; and the hook-registration row above. The third fails when somebody "just adds an `if`" and the fourth when somebody registers a hook a tool rejects — the regressions rather than their symptoms.
+- **Generated at the Phase 5 scaffold**, one row per accepted tool including those whose action is `NONE`: a row saying the tool prints is a recorded answer, a missing row is an unanswered question the next session re-derives. `references/assistant-config.md`'s container matrix gains the row as a piece, with the note that it is the one piece whose container is Keel's rather than the vendor's — because it exists for the shared scripts to look up, not for a tool to read.
+- **What this buys at an update:** the shared scripts are the template's and are regenerated freely; the rows are the project's and are not. A project that added a tool, corrected a flag or promoted a row to `VERIFIED` keeps all of it.
+- **New anti-pattern 12z**, "The shared script adapted to the tool the session happens to be running in" — with its sibling, the generated script registered as a native hook in an assistant whose output contract nobody confirmed, and the rule for which half to repair. Self-audit question 17p covers both.
+
+### Fixed
+
+- **`references/anti-patterns.md`: entries 12v–12y were filed under the "WordPress and WooCommerce" heading** although all four are universal (the guard keyed to a deleted artifact, the plan that exists for one entry point, the hours nobody measured, the whole suite as the price of every push). The heading moved down to where the WordPress entries actually start, so a session reading only the universal section no longer skips four of its traps.
+
+## 6.2.0
+
+### Changed — the Codex row's sandbox flag is `--sandbox danger-full-access`, measured
+
+Reported by the user after many sessions on real projects: a Codex session launched the way v5.18.0 documented it — `--ask-for-approval never --sandbox workspace-write` — runs, and then fails at the tasks it is given. The invocation that works is `cd '<repo>' && codex --cd '<repo>' --ask-for-approval never --sandbox danger-full-access`. That flag pair was never measured when the row was written; it was read off OpenAI's documentation and chosen because scoping the sandbox is what a careful reader picks. Use says otherwise, so use wins.
+
+- **The tool registry's Codex `start` row carries `--sandbox danger-full-access`** (`references/project-state.md`, the registry table), and so do the launch examples a session may quote (`references/phase-5-development.md` §"Complete the assistant config package"). Evidence stays **DOCUMENTED, UNTESTED**, now with the split stated in the cell: the FLAGS are measured, the chained launch through `osascript` is not, and no tier moves without `scripts/keel-chain-check --smoke` observing a firing.
+- **The cost is named instead of dressed up.** New paragraph under the registry table: `--ask-for-approval never` with `--sandbox danger-full-access` is, in posture, what `--yolo` is — no approval gate, no sandbox boundary. The previous text implied the row bought working sessions *and* a scoped sandbox; it bought one of the two. What contains the session is Keel's own containment — the card's `Repo:` line, the mandatory `cd` **and** `--cd` onto the absolute repo root, and the confidential-data pre-commit gate — none of which depend on a sandbox mode. Wanting the boundary back means `Chaining: supervised` or `off` and launching by hand, never putting `workspace-write` back, which only returns the failure.
+- **Eval probe B updated** (`tests/evals/scenarios.md`): a row carrying `workspace-write` is now an explicit FAIL, beside the existing "sits blocked on an approval prompt" failure.
+- **Why it is in the skill at all:** a session that sets a project up — Codex's own included — had no sourced launch line to hand a person, so the first Codex sessions on a project were prepared wrong and the trouble was blamed on the work rather than on the invocation. The registry is where a launch line lives; this one now matches what a machine actually does.
+
+**Reconciliation:** `MANIFEST.md` Table 3, v6.2.0 — regenerate `scripts/keel-tools/codex.sh` on projects that accepted Codex (its `keel_tool_launch` carries the old flag), then re-run `scripts/keel-chain-check --smoke`; refresh the lock block's stamp (its text is unchanged).
+
+### Fixed
+
+- **`MANIFEST.md`: the v6.1.0 reconciliation row was sitting inside Table 2**, among the "skill file → last changed in" rows, instead of at the end of Table 3 where the delta lives. A project reconciling from a v6.0.0 baseline reads Table 3 and would have found nothing to apply for v6.1.0. Both rows (v6.1.0 and this version's) are now the last rows of Table 3.
+
+## 6.3.0
+
+### Added — an active security audit: the profiles hunt, a second agent refutes, only survivors are reported
+
+Asked for by the user, and adapted from the METHOD of Cloudflare's open-source `security-audit-skill` (MIT, credited in `NOTICE`), not its infrastructure. Until now Keel's security was a checklist walked by the session that wrote the code: it proves the rules were considered, not that nobody can break them.
+
+- **New `references/security-audit.md`: a six-step run.**
+  1. Reconnaissance that REUSES the project's recorded map (discovery, spec, technical plan, threat model, `docs/api/INDEX.md`) and checks it against the registration calls on disk.
+  2. A coverage plan in which **every section of each applicable `references/security/*.md` profile becomes a hunting module**, plus a "Declared controls" module that checks every `IN PLACE` row of the threat model.
+  3. Hunters that look for violations rather than tick boxes, with a candidate gate.
+  4. **A fresh verifier per candidate that never sees the hunter's reasoning and tries to refute it.**
+  5. A small `findings.json` (`confirmed` / `needs_validation` / `rejected`; file, line, severity, category, description, status) whose invariants are checked mechanically.
+  6. A `SECURITY-AUDIT.md` derived only from those records: confirmed findings grouped by severity, `needs_validation` listed apart for the user to decide.
+- **The profiles themselves are untouched.** Phase 1 and every Phase 5 test point keep using them exactly as before. The audit never runs on a slice.
+- **New card line `Security audit:`**, derived at Phase 2 §4c and never asked. It is `required` when money moves, personal data is held, or a programmatic surface (MCP, REST, webhooks, public AJAX) is reachable from outside. **On `required` the Phase 7 gate needs an audit covering the candidate with no confirmed finding open, or a D-entry declining it.** On `optional` the audit is offered in one line.
+- **Trigger:** "security audit" / "auditoría de seguridad" of a Keel project now routes to this flow (SKILL.md "Security routing" and the description). A review of a single change stays with the profile and the `security-auditor` agent.
+- **Disclosure is designed in.** The run directory `docs/security-audit/` is gitignored while confirmed findings are open. Only the counts-only log `docs/security-audit.md` is committed, and a finding is named there only once its fix ships. Fix slices carry neutral titles, and a confirmed vulnerability is never filed as a public forge issue. This is recorded as a deliberate exception to "the work never lives only on this machine": the run is reproducible at its commit.
+- **No sandbox, stated honestly.** Execution happens only in the project's playground with seed data, stops at the smallest observable effect, and never touches production. A fact only production can show is `needs_validation` with an owner-observed check.
+- **No subagents, disclosed.** The verifier follows the existing fan-out fallback chain. Inline verification is marked `verified_by: inline`, the report's first line says independence was reduced, and where subagents exist an inline `confirmed` is not acceptable.
+- **After the report:** every confirmed finding becomes a slice whose fix starts from a failing reproduction test; critical and high on a released product take the hotfix path. A threat-model control the audit found missing goes back to `TO BUILD`. New section in `references/maintenance.md` for audits of released projects.
+
+**Reconciliation:** `MANIFEST.md` Table 3, v6.3.0. Derive the `Security audit:` card line; nothing is created until an audit runs; restamp the lock block (its text is unchanged).
+
+
+## 6.4.0
+
+### Added
+- **Mandatory remaining-time projection at every session close**, shown unprompted beside the
+  baseline remaining hours: `remaining_hours × (measured actual / estimated hours of completed
+  slices)`, labelled "if the observed pace continues". Uses the cumulative measured sample,
+  counts each finished slice once, excludes unfinished and estimated-source actuals, and explains
+  unavailable data. The same projection accompanies remaining-time questions.
+- Session reports explicitly show active working time (wall-clock minus pauses), planned hours,
+  like-for-like finished-work deviation and the cumulative deviation behind the projection.
+- Derived `pace_factor` and `projected_remaining_hours` in `plan.json`; `Active h`, `Pace factor`
+  and `Projected left h` in the session ledger, with verification rules and a legacy-row migration.
+
+### Changed
+- Generated `keel-time` and `keel-verify` contracts, the development close checklist and the
+  estimation procedure now require both remaining-time figures. Original estimates are preserved;
+  projections never rewrite the plan or silently deduct time spent on unfinished work.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v6.4.0. Refresh the generated timing and
+verification scripts and plan fields; extend the ledger without fabricating historical projections;
+restamp the lock version (its text is unchanged).
+
+
+## 6.5.0
+
+### Added
+- **A browser MCP costs one browser per session, so it is configured, shared and cleaned up by
+  rule** (`references/test-automation.md`). Registered at project level only, never per user;
+  `--headless --isolated` by default; one shared Chrome over `--cdp-endpoint`, bound to
+  `127.0.0.1` with a throwaway profile, where several sessions run at once; `browser_close` at the
+  end of every driven check; orphaned browsers reaped.
+- **Three advisory `keel-doctor` rows** that check it instead of relying on memory: a browser MCP
+  registered at user level, a project registration missing `--headless`/`--isolated` (or
+  `--cdp-endpoint`), and Playwright browsers orphaned to PID 1 with their resident memory. `--fix`
+  kills exactly those PIDs, never `pkill -f ms-playwright`.
+- **Local Playwright workers are capped** from the config (`PW_WORKERS`, default 2; CI keeps the
+  default) and the cap is recorded in the Testing block. Measured on a 32 GB laptop: one e2e run
+  held about 2 GB (two workers, each with a headless browser and an `ffmpeg` recording video), with
+  no MCP involved; four sessions running suites exhausted the machine.
+
+### Changed
+- The fan-out rule (`references/assistant-config.md`) treats the machine's memory as an
+  environment: concurrent browser suites take turns under "one executing verifier per
+  environment". The MCP registration section names the browser MCP's scope and flags, and the
+  Phase 2 Testing block records the browser MCP shape.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v6.5.0. Cap local workers, register any
+browser MCP at project level with its flags, regenerate the doctor rows; restamp the lock version
+(its text is unchanged).
+
+
+## 6.6.0
+
+### Changed
+
+- **Planning now distinguishes approved scope, current unbuilt scope and elapsed work.** Every
+  executable slice has immutable `original_hours`, explicit `residual_hours`, and separate
+  `actual_hours`; historical actuals and approved estimates are never rewritten to make a balance
+  fall.
+- **A split is a same-checkpoint reconciliation.** Extracted work declares its parent and exclusive
+  requirement ownership; the parent loses that ownership in the same plan update, and the balance
+  records completion, genuine additions and explicit residual re-estimates separately. Counted
+  parent/child scope may not overlap. Grouping containers are uncounted.
+- **Remaining time is honest about its evidence.** A split with unchanged scope conserves remaining
+  work. Time spent on an unfinished item is shown separately and never deducted automatically. A
+  legacy plan stays `unreconciled` until unbuilt requirements and residuals are explicitly mapped.
+  The conditional pace projection may legitimately rise after a measured outlier while remaining
+  residual scope falls.
+- **Generated plan tooling is now required to verify the contract.** `keel-verify` checks ownership,
+  residual change history, same-checkpoint reconciliation and the explained balance equation; E25
+  covers split conservation, child completion, genuine additions, re-estimation and pace outliers.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v6.6.0. Migrate legacy estimates without
+inventing residuals, reconcile open parent/child scope as planned work, regenerate the plan/timing/
+verification scripts, and refresh the lock block.
+
+
+## 7.0.0
+
+### Hardened during pre-release review
+
+- Cross-worktree coordination now uses a shared POSIX file lock in the canonical Git common directory
+  and a persistent run-owner registry. Two runs cannot independently claim the same integration branch;
+  a worktree/branch cannot be assigned to two live attempts.
+- Registered assignments and approved scope are snapshotted. Historical completed slices do not require
+  migration, future sprints are not dispatched, and accounting updates cannot forge dependency completion.
+- Launch is registered under the lock before another caller can dispatch. Failed/blocked attempts retain
+  claims until explicit quiescent resolution; retry is bounded. Worker role checks validate actual cwd and
+  committed, staged, unstaged and untracked paths.
+- Candidate checks execute in a separate clean worktree. Integration acceptance requires evidence produced
+  by `verify-integration`, the actual promoted branch head and worker/report ancestry. Fabricated commit
+  strings, altered evidence and branch movement cannot unlock dependencies.
+- Regression coverage now includes simultaneous real local processes writing and committing in worktrees,
+  candidate verification/merge, launch races, assignment substitution, migration, and failure recovery.
+  These fixtures exercise Git/process behavior; model backends still require their own smoke acceptance.
+
+### Added
+
+- **Dependency-aware parallel development.** Approved independent slices now enter a rolling queue:
+  ready work fills free slots immediately, while dependants unlock only after their prerequisite is
+  integrated and verified. The ordinary project session remains the sole coordinator and state writer.
+- **Executable scheduler contract.** The standard-library `scripts/keel_parallel.py` validates the DAG,
+  ownership, shared resources and semantic contracts; locks claims atomically; validates Git worktree
+  identity; rejects symlink escapes and aggregate-state writes; records results, reviews and integration
+  idempotently; reconciles dead workers; and launches verified CLI adapters with explicit cwd/deadlines.
+- **Versioned worker artifacts.** `keel.sprint/2`, `keel.worker-assignment/1` and
+  `keel.worker-result/1` carry exact scope, repository identity, evidence, state contributions and timing.
+  Runtime journals stay gitignored; per-attempt result reports remain committed.
+- **Deterministic regression suite.** Local Git/worktree fixtures cover the A/B/C rolling queue,
+  dependency errors, path/resource/contract collisions, wrong branches, symlink escapes, review gating,
+  idempotence, explicit cwd, bounded cancellation and paths containing spaces. CI runs it with bytecode
+  disabled before a release can pass.
+
+### Changed
+
+- Capability discovery now tests what the current session can actually isolate and observe: native writing
+  workers first, a verified unattended CLI adapter second, and an explicit serial fallback otherwise.
+  Product names, reviewer-agent config and continuation launchers are not treated as worker capability.
+- Worker role entry, timing, verification and close rules are separate from ordinary-session duties.
+  Workers cannot update aggregate state, push, release or chain; the coordinator applies structured
+  contributions in the serialized integration transaction and re-runs affected post-merge checks.
+- Parallel accounting reports elapsed run duration, summed worker effort, coordinator time and available
+  token/cost counters separately. Scheduling never changes approved scope or estimates.
+- The obsolete v5 launch commands and numeric report/signal format were removed from active documentation,
+  eliminating a contradictory fallback path.
+
+**Major update. Reconciliation:** `MANIFEST.md` Table 3, v7.0.0. Existing serial projects continue
+unchanged. Projects opting into parallel writing migrate only their active sprint, scaffold the helper and
+runtime ignores, verify one isolated backend, and refresh the portability lock.
+
+## 7.1.0
+
+### Fixed
+
+- Static-analysis runs that fail before analysing their target now have an explicit
+  `BLOCKED — ENVIRONMENT` verdict. Their launcher or socket error cannot be reported
+  as a code finding or merged into a passing result.
+- The canonical command's exit status, first failure line, scope and missing
+  capability must be recorded. An alternate sequential/no-parallel run may diagnose
+  the code separately, but is not equivalent unless the technical plan says so and
+  never changes the blocked canonical invocation into PASS.
+- Phase 7 now requires every mandatory canonical static-analysis command to run on
+  the candidate before release evidence is accepted.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v7.1.0. No new project
+artifact or card line; apply the evidence classification at the next test point and
+refresh the portability lock.
+
+## 7.2.0
+
+### Added
+
+- **Inbound tunnel (`references/inbound-tunnel.md`).** A playground on `localhost` can now receive
+  calls from outside — payment notifications, webhooks, a URL a third party fetches, a remote client
+  connecting to a local server — through a public HTTPS tunnel, Cloudflare quick tunnel by default,
+  a named tunnel or a recorded substitute when the hostname must be stable. Keel no longer asks for
+  a deployment to an online server only to be reachable, and reachability is no longer a reason to
+  delegate a flow or to forge the inbound request.
+- **`scripts/playground-tunnel`**, generated at the Phase 5 scaffold when the technical plan lists an
+  inbound call: open and wait, `--url` to attach to a tunnel already open, `--restore`. It points the
+  playground's public base URL at the tunnel, applies a playground-only proxy-scheme shim, and
+  restores `localhost` on every exit path. It never ships.
+- **The live drive (`references/test-automation.md`).** At every slice's test point the assistant
+  also uses the new or changed behaviour for real: a real browser (Playwright) against the running
+  playground, nothing mocked, the real third-party sandbox on the other end, through the tunnel when
+  that third party calls back. It runs beside the end-to-end tests and never replaces them; what it
+  finds becomes a failing test first.
+- Technical-plan `Inbound calls` inventory (Phase 2), negative-control evidence for each inbound
+  flow, exposure rules for a tunnelled playground, and the handling of a session whose permissions
+  forbid opening an ingress (the user launches, the assistant attaches and drives the rest).
+
+### Changed
+
+- A gateway's sandbox payment, asynchronous notification included, is now a driven flow. `CREDENTIAL`
+  covers only test credentials that belong to the user; a publicly reachable webhook is no longer
+  part of it.
+- "e2e green" is not a valid value for the `Real run in playground` evidence cell.
+- The release linter checks that the tunnel contract and the live-drive rule are present.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v7.2.0. One conditional project artifact
+(`scripts/playground-tunnel`), no new card line; refresh the portability lock.
+
+## 7.3.0
+
+### Added
+
+- **Claude Code agent teams are always enabled.** Whenever Claude Code is in use, the session-start
+  setup merges `env.CLAUDE_CODE_EXPERIMENTAL_AGENTS_TEAMS: "1"` into `.claude/settings.local.json`,
+  whatever the automatic-mode answer: the key grants no permission and only makes the native
+  orchestration available to parallel development. It takes effect at the next Claude Code start,
+  and the kickoff probe still verifies the capability before any worker relies on it.
+
+### Changed
+
+- **Parallel development runs as many workers as the session can sustain.** The project card
+  default becomes `Parallel development: auto; max_workers: max`. At every kickoff the effective
+  cap resolves to the largest number of concurrent writers the observed limits allow (session agent
+  budget, backend limit, an explicit user ceiling, shared resources), and the sprint plan names the
+  limit that set it. A `max_workers: 2` left by v7.x without a decision choosing it migrates to `max`.
+- **The post-update reconciliation is mandatory.** After every Keel update it runs immediately,
+  before any other work; it is never offered, skipped or left for a later session. Only a production
+  hotfix already under way goes first, and the reconciliation runs right after it. The portability
+  lock now says the reconciliation runs rather than that it is offered.
+- **Two standing checks run in every reconciliation, from this version on**, whether or not the
+  versions crossed mention them, and neither can be declined: the Claude Code agent teams flag is
+  present in `.claude/settings.local.json` wherever Claude Code is in use, and the card's
+  `Parallel development:` is at `max_workers: max` unless the user chose a ceiling in a D-entry.
+  A failing check is fixed on the spot, and `Keel baseline:` does not advance until both pass.
+- The release linter checks all three contracts (checks 13, 14 and 15); eval scenarios E28, E29
+  and E30.
+
+**Minor update. Reconciliation (mandatory):** `MANIFEST.md` Table 3, v7.3.0. No new file, no new
+card line; the two standing checks merge the flag into `.claude/settings.local.json` and migrate an
+undecided `max_workers`; refresh the portability lock.
+
+## 7.3.1
+
+### Fixed
+
+- **The session clock measures parallel development.** `scripts/keel-time slice-start` closed every
+  other open slice before opening the new one, so with parallel writers each slice kept only the
+  minutes until the coordinator's next boundary: a real project measured 22 finished slices estimated
+  at 48.25 h as 2.92 h (−94 %) inside a 4.86 h session, and the deviation and projection followed.
+  Slice intervals now overlap; `slice-end` closes only its own slice; single-writer projects keep an
+  explicit exclusive mode that writes its closes into the log. A slice a worker built is recorded at
+  integration from the worker's own `started_at`/`finished_at`/`paused_seconds` (`slice-record`).
+- **The session report shows wall-clock and summed slice hours apart**, with maximum concurrency and
+  throughput (estimated hours finished per active wall-clock hour). The remaining-time projection uses
+  cumulative throughput when work runs in parallel and the effort pace otherwise, and states its basis.
+  `keel-verify`, `keel-close` and the stop hook accept overlapping intervals.
+
+### Added
+
+- `scripts/keel_clock.py` — the canonical, standard-library interval arithmetic, copied to projects as
+  `scripts/keel-clock`; `tests/test_session_clock.py`; release-linter check 16.
+
+**Patch update. Reconciliation:** `MANIFEST.md` Table 3, v7.3.1. One new script (`scripts/keel-clock`),
+regenerate `scripts/keel-time`, four new `docs/sessions.md` columns, no new card line; refresh the
+portability lock.
+
+## 7.3.2
+
+### Fixed
+
+- **Parallel workers no longer run test suites.** Each writing worker ran its tests — browser suites
+  included — and the coordinator re-ran affected tests at every integration, so a sprint with many
+  workers ran many suites at once: memory and CPU saturated, everything slowed down and sessions
+  failed or stalled, making parallel development slower than serial. Workers now develop and run only
+  cheap static checks over their own paths (lint, syntax, types); they still write the tests their
+  criteria need. Integration checks run the cheap checks over the combination.
+- **The full suite runs once per batch.** When no worker is in flight, the coordinator runs the
+  project's full verification once on a clean checkout at the integration head. A failure is fixed by
+  the coordinator when that is faster, or by relaunching only the necessary workers as fix slices,
+  and the batch runs again. A sprint closes only on a verified batch.
+
+### Added
+
+- `scripts/keel-parallel verify-batch` — runs the full verification once, refuses while any worker is
+  in flight, and records `keel.batch-evidence/1` (commit, covered slices, pass or fail, log) in the run.
+- A per-repository test lane: `verify-integration` and `verify-batch` never run two suites at once.
+- `scripts/keel-parallel status` and `reconcile` report `batch.state` (`verified`, `pending`, `failed`,
+  `nothing-integrated`); `reconcile` clears an interrupted batch.
+
+**Patch update. Reconciliation:** `MANIFEST.md` Table 3, v7.3.2. Copy the new helper over
+`scripts/keel-parallel`; no new file, no new card line; refresh the portability lock.
+
+## 7.4.0
+
+### Added
+
+- **Parallels as the playground host.** Where `prlctl` works, a project that would run on an ordinary
+  hosting account gets an isolated site on one shared `keel-development` VM instead of its own
+  machine. Several PHP versions run side by side. A project that needs its own server gets a linked
+  clone. Docker stays the complete path without Parallels (`references/parallels-development.md`).
+- **`scripts/keel-site` contract**, generated for projects on the shared VM: provision, create,
+  start/stop, url, wp/sql, test, reset, retire, list, doctor.
+- **Connected sites.** Isolation separates files, databases and users, never the network. An API, a
+  licence manager and a client reach each other through `*.keel.test` names over HTTPS with a local
+  certificate authority, because WordPress refuses private addresses and other ports in the requests
+  its updater uses.
+- **`scripts/keel-parallel reap-worktrees`.** Reports the worktrees safe to retire and removes them
+  only with `--apply`: merged, clean, unlocked, unowned and idle. It never forces.
+- **Docker migration through the reconciliation**, per project, with the user's OK. Docker resources
+  are deleted only after verification on the new host, and only that project's.
+- **Project card line `Playground host:`**, a playground-host row in Phase 2 §4, and `keel-doctor`
+  rows for Parallels, the VM, retirable worktrees and build caches.
+
+### Changed
+
+- **New rule: leave no dead traces.** What a session or worker creates and no longer needs is removed
+  when that work ends, verified and never forced.
+- **Worktrees are retired** at every verified batch, at sprint close and at reconciliation. Nothing
+  retired them before.
+- **Reconciliation gains standing check 3**: playground host, migration proposal and worktree retirement.
+- **Security audits that execute code run in a throwaway clone**, never on the shared VM.
+- **Parallels' default sharing of iCloud and Dropbox is closed** before anything runs on the VM.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v7.4.0.
+
+## 7.5.0
+
+### Added
+
+- **Cleanup contract in the lock block.** Whoever creates something removes it as soon as its use
+  ends, in the same session: a worktree as soon as its work is integrated, a machine as soon as it is
+  no longer needed. Every project's assistants read it, not only sessions that loaded the skill.
+- **Machines contract, for Parallels and Docker alike.** Machines for specific tests are never
+  accumulated. Each declares a `keel-lease` when created, the session that created one for a job
+  deletes it when the job ends, and each project decides on its own machines.
+- **`scripts/keel-parallel sweep`.** A machine-wide safety net for sessions that die before cleaning
+  up. It removes clean, idle worktrees whose commits a branch holds, releases locks left by dead
+  processes, and only reports machines.
+- **`sweep-hook` and `sweep-install`.** A session-start entry that reports the last sweep and runs a
+  new one in the background at most every 24 hours.
+
+### Changed
+
+- **Integration retires its worktrees.** Removing them is now part of the integration transaction,
+  no longer something left for the sprint close.
+- **The dead-traces rule fires when the use ends**, and binds every session and isolated agent.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v7.5.0.
+
+## 7.6.0
+
+### Added
+
+- **REST, a third launcher verdict: chaining no longer loops on empty sessions** (issue #30). Before
+  claiming any brake, `scripts/keel-continue` reads `queue.workable` from `docs/.keel/plan.json`. With
+  nothing workable it opens nothing: it prints the prompt, notifies once what the queue waits on, and
+  releases the lane. Slices gain `waiting_on`; the hand-off gains `Handover: idle: waiting on …`,
+  which decides only where no plan exists. A `blocked`/`idle` label over a workable queue still fires.
+- **Idle-link breaker.** Two consecutive fires from sessions that committed nothing outside the
+  bookkeeping files rest the chain, whatever the labels said; one productive session resets it.
+- **`docs/machines/` in every repository that uses a machine** — a shared-VM site, a dedicated VM or
+  clone, Docker, `wp-env`. It holds `recipe.md` and the files and scripts it uses: enough for an
+  assistant with no memory to rebuild the machine from a fresh clone. On the shared VM each repository
+  carries the VM's documents, never the VM, tied to the VM's `keel-base-rev`. Kept current in the same
+  session as any change; `scripts/keel-verify` fails a machine-definition commit the recipe does not
+  contain. Each recipe says whether a rebuild has proven it.
+- **Nothing a machine depends on lives in a temporary directory or only beside the VM.**
+- Reconciliation standing check 4, `keel-chain-check` row 7c, anti-patterns 12aa and 12ab, self-audit
+  17q and 17r, release-linter checks 18 and 19.
+
+### Changed
+
+- **The closed list of reasons a chain may refuse has five entries**, the idle queue and the
+  idle-link breaker among them.
+- **The launch command `exec`s `claude`**, so leaving a chained chat with `/exit` ends its shell too.
+
+**Minor update. Reconciliation:** `MANIFEST.md` Table 3, v7.6.0.

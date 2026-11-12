@@ -27,11 +27,14 @@
 
 name: CI
 
+# CI runs on: main (D-122). develop is checked locally by .githooks/pre-push before every push;
+# version tags always fire (they build the release).
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 permissions:
   contents: read

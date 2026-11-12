@@ -1973,3 +1973,27 @@ sound; this one was never planted against anything.
 from none. A convenience that makes a defect unreachable is not a convenience — it is the L-026
 shape, a harness repairing the thing under test. Where a harness must inject something, it injects it
 only when the caller did not.
+
+## L-052 — A failed probe left a mount; the retry stacked a second one, and the cleanup recursed through the first (2026-11-12)
+
+**What happened.** Probing overlayfs on the shared VM, the first command ran under `set -e`, failed on
+an unrelated `ls` (permission) and exited BEFORE its `umount` — leaving the overlay mounted. The retry
+mounted again on the same path (stacking), unmounted only the top one, and its `rm -rf` of the probe
+directory then walked into the still-mounted overlay, producing hundreds of "Directory not empty"
+lines across the merged view of the repository. No damage: the lower layer is a read-only share and
+overlayfs never writes to its lower layer — deletions became whiteouts in a throwaway upper dir —
+and `git status` on the host was confirmed unchanged.
+**Rule.** Never `rm -rf` a directory that has ever been a mount point without first checking
+`mountpoint -q` (and, for a probe, check `mount | grep <path>` before the RETRY, not only after).
+Clean up in a `trap … EXIT`, not at the end of a `set -e` script.
+
+**Also measured on the same day — two Linux-vs-macOS differences the host could never show:**
+- `SafeHttpTest` "hex loopback": on Linux (glibc) `http://0x7f000001/` is refused as
+  `host_does_not_resolve`, on macOS as `private_or_reserved_address`. Still refused on both; the test
+  asserts the REASON, which is platform-dependent. Production hosting is overwhelmingly Linux, so the
+  host-only suite was asserting a macOS behaviour (anti-pattern 12t's shape). Recorded as deferred
+  item S-702, not fixed here.
+- The HTTP test harness binds fixed ports from 8101; on a shared machine other tenants own them. The
+  harness refused correctly ("would test a server it did not start"); `KLYTOS_TEST_PORT_OFFSET`
+  already existed and `scripts/keel-site test` now sets it.
+

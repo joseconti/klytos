@@ -197,3 +197,6 @@ docs/klytos-cms-redesign/
 /search-index.json
 /x402-gate.php
 /index.html.md
+
+# keel-site (D-121): machine-local SSH-forward PIDs, never committed
+.keel-site/

@@ -808,6 +808,236 @@ different question; here, an empty result answers no question at all and is read
 ---
 
 
+### 12v. The guard keyed to the artifact the system deliberately deletes
+
+**The trap.** A mechanism gets an anti-duplicate guard, and the guard is keyed to the thing the
+action is *about*: one launch per hand-off, one email per order, one retry per job file. It is the
+obvious key, it is the meaningful key, and it works — for as long as the artifact outlives the
+window in which a duplicate can occur. Elsewhere in the same system, a second rule deletes that
+artifact on purpose, for its own good reasons. The two rules never meet in one file, and both are
+correct where they are written. The guard now has nothing to recognise, and its answer to "have we
+already done this?" is not "yes" and not "no" — it is a fresh, empty, unclaimed key.
+
+**Why it happens.** The deletion is usually a fix, and a good one. Keel's own case: a hand-off that
+outlives its commit is worse than no hand-off, so `.githooks/post-commit` deletes it — which makes
+the stale-courier bug structurally impossible and is exactly the right shape of fix (a rule made
+unnecessary rather than enforced). Nothing in that change is wrong. What is invisible from inside it
+is that the deleted artifact was also carrying an identity somebody else's brake depended on. Second
+contributor: the guard's owner reasons about ONE caller. When a later version adds a second caller —
+here, a `Stop` hook firing the same launcher at a different moment — the new caller is told the
+guard is already handled downstream, and the sentence is even true, in the state the writer
+pictured.
+
+**What it costs.** Measured on two of this skill's own projects, at every single close: two chats.
+`scripts/keel-close` fired the launcher and claimed the receipt for hand-off H; the close-out's last
+commit deleted H; the stop hook fired the same launcher minutes later, found no hand-off, correctly
+took the DEGRADE row (fire on `docs/PROGRESS.md` — a Keel artifact in a bad state must never stop
+the work), and opened a second window against no receipt at all. Every component behaved to
+specification. The user got two windows per close on two repositories and no error anywhere,
+because **on the degraded path there was no identity to claim, so the brake was not bypassed — it
+was never reachable.**
+
+**The rule.** **A brake is keyed to something that outlives every path the braked action can take,
+and the ACTOR always outlives the artifact.** Key the guard to the session, the process, the run —
+and keep the artifact-keyed one as well, because the two answer different questions ("has this
+continuation already fired" and "has this session already fired"). Two tells, both cheap: for any
+guard, ask what deletes its key and whether the deleter knows the guard exists; and for any action
+with more than one caller, ask which of them claims the brake — **if the answer is "the other one
+does", the brake is a coincidence, not a mechanism.** And the fallback path is where to look first:
+a degraded, best-effort or error branch that skips the identity is a branch that skips every guard
+built on it, which is the reverse of what a fallback is for. Make the degraded path claim a degraded
+identity, defined in the contract rather than invented by whoever generates the script (entry 3).
+
+---
+
+
+### 12w. The plan that only exists for one entry point
+
+**The trap.** A project keeps a plan — sprints, slices, hours — and the plan is created and updated
+by ONE phase of the process: the development phase's kickoff and close. Every other way work enters
+the project (an audit, a forge issue, a hotfix, a maintenance touch, an adoption, a reconciliation)
+never passes through that phase, so it is done with no slice to mark, and the remaining time is
+recomputed only at a close that this work never reaches. The plan does not become wrong at any
+single moment. It simply stops describing the project, one unplanned task at a time.
+
+**Why it happens.** The plan was designed where planning is most visible — the start of a build —
+and every rule about it was written inside that phase's reference, where it reads as complete.
+Nobody decides that audits are exempt; audits are simply never told. And "what is left?" looks like
+a status question the plan obviously answers, so nobody writes down how it is answered — which lets
+a session read it as a nudge to carry on and answer it by starting the next task.
+
+**What it costs.** Measured on Keel projects: audits and fixes run with no sprint file, and the
+user's direct question "what is left and how long will it take?" was answered with "starting the
+audit". The one number the plan exists to provide — the remaining time — was unavailable exactly
+when it was asked for, and on a client project that number is a commercial commitment.
+
+**The rule.** **A plan is a ledger of ALL work or it is decoration.** Any unit of work, whatever
+entered it, becomes a slice with its hours before the first change; the commit that finishes it
+records `done` and its real hours and regenerates the derived view; the status question is answered
+from the derived file and never by acting; and only the user's explicit statement switches it off,
+on the record (SKILL.md, "Sprints are the ledger of all work"). The mechanical check is ancestry:
+the newest commit that touched anything other than the bookkeeping files must be contained in the
+newest commit that touched the plan — `scripts/keel-verify` fails otherwise, and the stop hook
+blocks the turn. The tell, for any tracking artifact: list every entry point by which work reaches
+the project, and ask which of them writes to it.
+
+### 12x. The hours nobody measured
+
+**The trap.** The plan carries estimated hours per slice, and the actual hours are written by the
+session that did the work, from its own impression of how long it took. A model has no sense of
+elapsed time — it does not know what time it is, and it cannot tell a ten-minute slice from a
+two-hour one — so the "actual" is a second estimate wearing the label of a measurement, and the
+deviation between two estimates is noise.
+
+**Why it happens.** Writing a number is one step and reading a clock at both ends of the work is
+three, the second of which happens at a moment nobody is thinking about time. And the number looks
+plausible: it is close to the estimate, because the estimate is the only figure in context.
+
+**What it costs.** The user asked for absolute control of time and got a plan whose actuals always
+land near its estimates, so no estimate ever looked wrong and none was ever corrected. On a client
+project the deviation is the figure that decides whether the next quote is honest.
+
+**The rule.** Time is READ, by a script, at every boundary — session start and end, slice start
+and end, every pause for the person — and `actual_hours` is computed from those intervals, never
+typed (SKILL.md, "Session time — measured, never remembered"). The session opens by stating what
+is left and what it plans, with hours, and closes with done against estimated and the deviation.
+Where no clock can be read, the figure says `estimated`. The mechanical check: a `measured` slice
+that no `docs/sessions.md` row lists, or a row whose deviation is not the difference of its own
+columns, fails `scripts/keel-verify`.
+
+**The variant: a clock that assumes one slice at a time.** A `slice-start` that closes every other
+open slice is correct for one writer and wrong the moment work runs in parallel: each slice keeps
+only the minutes until the coordinator's next boundary. Measured on a real project with six writer
+agents: 22 finished slices estimated at 48.25 h were recorded as 2.92 h (−94 %) inside a 4.86 h
+session, and the pace projection built on them was wrong with it. The rule: each slice is measured
+from its OWN intervals, intervals may overlap, a worker's slice is recorded from the worker's own
+start and end, and the report shows wall-clock and summed slice hours apart and projects parallel
+work from throughput, naming the basis. The arithmetic is the shipped `scripts/keel-clock`, covered by
+`tests/test_session_clock.py`, so no project re-derives it.
+
+### 12y. The whole suite as the price of every push
+
+**The trap.** Every push runs every test. It is correct on day one, when the suite takes seconds,
+and it is never revisited: the suite grows with every slice, and by the time a push costs many
+minutes the flow commits and pushes dozens of times a sprint, so testing becomes the bottleneck of
+all the work — or, worse, the pressure it creates makes someone skip it.
+
+**Why it happens.** "Run everything" is the only rule that needs no thought, and a rule that cannot
+be wrong in a small project is never examined in a large one.
+
+**What it costs.** Hours per sprint spent re-running tests that exercise code the change never
+reached, which can therefore not have been broken by it — and a push loop so slow that it starts
+being batched, which is the one outcome that genuinely lets defects through.
+
+**The rule.** Every test is written; not every test runs every time. Test points and pushes run the
+selection derived from the diff — the changed files' tests, their reverse dependencies, the changed
+tests, and a closed widening list for global changes — enforced by `.githooks/pre-push`; the entire
+suite runs at every release, on the candidate (`references/test-automation.md`, "Which tests run
+when"). The mechanical checks: an empty selection for a diff that touches source fails the script
+instead of passing, every test-point row carries its `scope:` line, and the Phase 7 record must show
+`scope: full` with the suite's total count.
+
+---
+
+
+### 12z. The shared script adapted to the tool the session happens to be running in
+
+**The trap.** One script serves every assistant on the project, and the facts that differ between
+assistants — the marker each is recognised by, the CLI name, the launch invocation and its flags,
+whether a model may be passed, whether a hook's schema is that tool's — are written into it as
+branches: `if [ "$TOOL" = "codex" ]`. A session working in one assistant finds its own close-out or
+its own launch broken, and fixes it in the file every other assistant also reads.
+
+**Why it happens.** The registry of what each tool may do was prose, and prose cannot be sourced, so
+the only way to act on it was to compile it into code by hand. And the edit looks local: the session
+is fixing its own tool, touching only its own branch, in a file it has every right to edit.
+
+**What it costs.** Measured, on a project running Claude Code and OpenAI Codex against one checkout:
+each assistant's repairs landed in the other's file, so changing assistant meant repairing the new
+one and breaking the last one — and the next Keel update regenerated the shared script from the
+template and took both sets of repairs with it. The failure is silent in the direction that matters:
+the tool the session is running in works, so nothing in that session ever reports the damage.
+
+**The sibling, and it is the one that bites hardest.** The same shape appears one step away: a
+generated script is REGISTERED as a native hook in an assistant whose output contract nobody
+confirmed — `.codex/hooks.json` pointed at `scripts/keel-stop-hook`, whose JSON is deliberately
+Claude Code's `Stop` schema. Codex rejects it (`invalid stop hook JSON output`) and ends the very
+turn the hook exists to keep open. The session then meets the error in ITS tool and reaches for the
+payload, which is the wrong half: **the repair is to remove the registration from the tool that
+rejects it, never to change the output and break the assistant where it already works** — an
+assistant that is not running, so nothing in this session will report the damage, and the session's
+own tool stops complaining, which reads exactly like success.
+
+**The rule.** The registry is DATA, one row file per assistant — `scripts/keel-tools/<tool>.sh` —
+and a session may create or edit only the row of the tool it is itself running in
+(`references/project-state.md`, "The registry is DATA"). Shared scripts resolve the detected tool's
+row, source it, and use the fields; adding an assistant is adding a file, and it cannot touch the
+assistants already there. The mechanical check is the one that catches the regression rather than
+the symptom: `scripts/keel-verify` fails when a shared `scripts/keel-*` matches a registry tool name
+outside a comment — because the prose rule forbidding per-tool branches already existed, was marked
+in the same file as the contract it governs, and was compiled into branches anyway. For the sibling
+the check is `KEEL_TOOL_HOOK_FILE` against `KEEL_TOOL_STOP_HOOK`: the hook is registered where the
+row says `yes` and nowhere else, and the check reads the container from the row rather than knowing
+any tool's path, since a check that hardcodes one is the same trap inside the detector.
+
+---
+
+### 12aa. The continuation with nothing to continue
+
+**The trap.** A mechanism that hands work on is given a closed list of reasons to refuse, and every
+reason on the list is a failure: a missing capability, a wrong place, a second window. "There is
+nothing to hand on" is not a failure, so it is not on the list, so it resolves to the default, and
+the default is to hand on.
+
+**Why it happens.** The list was written to stop a session from talking itself out of continuing,
+which was the real and measured problem. Every row added since then answered "what can go wrong",
+and an empty queue is not something going wrong. The stop rule and the launch rule also live in
+different places: the stop hook correctly lets a session stop when nothing independent remains, and
+the launcher never asks that question at all.
+
+**What it costs.** Measured on a project under `Chaining: start`: ten chained sessions in three and
+a half hours, nine finishing nothing, then a chat that lived twenty-seven seconds and fired the
+next. Windows piled up overnight until the user could not tell which session was live, and the fire
+ledger filled with entries from dead sessions.
+
+**The rule.** A mechanism that repeats work needs a verdict for "nothing to do", and it reads that
+from a fact, not a label: the plan's workable count (`queue.workable` in `docs/.keel/plan.json`),
+with the hand-off's own `idle`/`blocked` only where no plan exists. Behind it, a breaker that does
+not trust any of those: two consecutive links that produced nothing outside bookkeeping stop the
+loop whatever they claimed (`references/project-state.md`, "When the queue is idle"). The check is
+`scripts/keel-chain-check` row 7c. The general tell: for any loop, ask what it does when the queue
+is empty, and if the answer is "the same as when it is full", it will spin.
+
+---
+
+### 12ab. The machine that exists only as itself
+
+**The trap.** A VM, a container stack or a site is built by hand over a few sessions: a package
+here, a config line there, a PHP version added for one test. It works, so nothing about it is
+written down except the machine itself. The repository holds the code; the knowledge of how to
+rebuild the environment the code is tested in lives on one disk.
+
+**Why it happens.** Each change is small and urgent, and the machine is the obvious record of it.
+"Provisioning is a script" was already a rule for the shared VM, but the script lived in a kit
+folder beside the VM, on the same disk, so it shared the machine's fate.
+
+**What it costs.** A reinstalled system, a dead disk or a deleted VM turns every one of those small
+changes into archaeology: which PHP versions, which extensions, which mounts, which hosts entries,
+which seed. The rebuild takes days instead of minutes, and what it produces is a different machine
+whose test results no longer compare with the old ones.
+
+**The rule.** Every project that uses a machine keeps `docs/machines/` — the recipe plus every file
+and script it uses, the shared VM's base layer included — committed, current, and complete enough
+that an assistant with no memory rebuilds the machine from a fresh clone alone; nothing it depends on
+sits in a temporary directory or only beside the VM
+(`references/parallels-development.md`, "The machine recipe"). A change to a machine updates the
+recipe in the same session, and a commit that touches a machine definition without touching the
+recipe fails `scripts/keel-verify`. The recipe is not proven until a rebuild has followed it, and it
+says so until one has.
+
+---
+
+
 ## WordPress and WooCommerce
 
 ### 13. The user-facing string that skipped i18n
@@ -1058,6 +1288,13 @@ recollection** — an answer given from memory is not an answer, it is the trap 
 17i. Does every entry in `docs/decisions.md` that asserts an impossibility ("cannot", "there is no", "not possible", "does not support") carry a `Not checked:` line naming an avenue that was not examined — and has every such entry the user has contradicted since been RE-MEASURED rather than restated?
 17j. Does every test name state an OUTCOME rather than a mechanism — and for any name that does state a mechanism ("X is last", "Y comes first"), is there a cited source making that mechanism a requirement rather than an assumption?
 17k. For every probe a guard acts on, can the caller tell "found nothing" from "could not tell" — and has the parser been run against the input shapes that are not the common case (for `git status --porcelain`: a rename and a quoted path)?
+17l. For every at-most-once guard, what deletes the key it is claimed against, and does the deleter know the guard exists — and where the action has more than one caller, does EACH caller claim the brake itself rather than relying on another one having done it?
+17m. Unless the card says `Sprints: off` with a real D-entry: is the newest commit touching anything other than the bookkeeping files contained in the newest commit touching `docs/sprints/` — does every `done` slice carry `actual_hours` — and for every way work entered this project since the last audit (issue, audit, hotfix, maintenance, reconciliation), is there a slice that records it?
+17n. Unless the card says `Sprints: off`: did every session since the last audit open with `scripts/keel-time start` and close with `scripts/keel-time end` — does every `done` slice marked `measured` appear in a `docs/sessions.md` row, does every row's deviation equal its actual minus its estimate, does every new row name its projection basis (`throughput` whenever `Max concurrency` is above 1 unless `Notes` says why not), does `scripts/keel-time slice-start` leave other open slices open unless the project is single-writer, and is `docs/.keel/clock.jsonl` gitignored?
+17o. Do `scripts/keel-affected-tests` and `.githooks/pre-push` exist with `core.hooksPath` set — does a diff touching an uncovered source file make the script widen or fail rather than select nothing and pass — does every test-point row carry its `scope:` line — and does the last release record show `scope: full` with the suite's total count?
+17p. Where the project generates `scripts/keel-tools/`: does every accepted tool have a row file with every field declared — does a grep of the shared `scripts/keel-*` for the registry's tool names return nothing outside comments — and does each tool's `KEEL_TOOL_HOOK_FILE` mention `scripts/keel-stop-hook` exactly when its `KEEL_TOOL_STOP_HOOK` is `yes`?
+17q. Where the project uses a machine (a shared-VM site, a dedicated VM or clone, a Docker or Compose stack, `wp-env`): does `docs/machines/recipe.md` exist — is the newest commit touching a machine definition contained in the newest commit touching the recipe — did anything change inside a machine since the last audit that the recipe does not say — and does its `Last rebuilt from this recipe:` line state a real rebuild or `never — unproven`?
+17r. On a chaining project: does `scripts/keel-continue` read `queue.workable` from `docs/.keel/plan.json` and keep the idle-link breaker — and does every slice parked on a person or an event carry `waiting_on`, so the launcher can see it?
 18. (WordPress) Does `wp i18n make-pot` report zero untranslated or wrongly-domained user-facing strings?
 19. (WordPress) Does uninstall remove every option, table, meta key and scheduled event the plugin creates?
 20. (WordPress) Does every entry point — admin, AJAX, REST, bulk, CLI — check its capability and its nonce?

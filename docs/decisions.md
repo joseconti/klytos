@@ -3453,3 +3453,57 @@ lint on `blocks.php` **2 warnings → 0** · catalogue parity PASS at **1567** k
 
 **The 8 skips in that run are the `DatabaseStorage` tier**, skipping because the Docker daemon was
 not running — the designed behaviour verified in D-117, not a regression.
+
+## D-121 — The playground gains a tenant on the shared Parallels VM `keel-development` (2026-11-12)
+
+**Asked by the user** ("añade para las pruebas la instalación a Parallels a la MV común").
+**Hosting test:** Klytos passes — it is built to run on an ordinary hosting account (files under a
+vhost, optionally a database, nothing that needs root, no global configuration) — so it is a tenant of
+the shared VM, never a VM of its own. `Playground host: parallels-shared`. Nothing was migrated off
+Docker because the playground never ran on Docker: it ran on the host's `php -S` (Docker only ever
+appeared as the optional `DatabaseStorage` tier's MariaDB, and as a port squatter, L-021).
+
+**Shape.** Tenant `klytos` (PHP 8.3, VM port 8121, host `127.0.0.1:18121` through an SSH forward),
+real Apache + mod_rewrite + PHP-FPM, its own Unix user, pool, `open_basedir`, database and user.
+`scripts/keel-site` implements the Keel contract; recipe in `docs/machines/recipe.md`; the shared VM's
+documents in `docs/machines/keel-development/` at the revision this change raised,
+`keel-base-rev=2026-11-12-1` (VM description updated in the same session).
+
+**A synced COPY, not a mount — measured, not assumed.** Klytos writes into its own tree at runtime
+(`installer/config`, `data`, `public`, `backups`), so the read-only bind mount plugins use cannot
+serve it. Tried first: overlayfs with the share as the lower layer — it mounts and isolates writes, but
+the tenant user is denied READ (`cat .../installer/VERSION: Permission denied`), because prl_fsd
+exports the share as `keel:0500` and the overlay keeps that mode. Rejected: `bindfs` (a package on the
+shared VM for one project — the shared configuration belongs to no project) and running the pool as
+`keel` (the VM's sudo user; destroys tenant isolation). Chosen: rsync of exactly the host's
+`git ls-files -co --exclude-standard` list, before every command; ignored runtime state is never copied
+from the host and never deleted on the VM. Rsync's own `.gitignore` merge was rejected because rsync
+reads `!` as "clear the filter list" and Klytos's `.gitignore` uses negations.
+Not checked: an idmapped mount (`mount --map-users`) over the share, which might make the overlay
+readable; whether prl_fsd honours `uid=`/`umask=` mount options for one share only.
+
+**Second tenant, disposable:** `klytos-install` (port 8122) for the standalone installer in the sibling
+repository `klytos-installer`, created for one test and retired in the same session.
+
+**What stays on the host for now:** the browser tier (`tests/E2E/`), because its fixtures execute PHP
+locally against the host's `installer/data` and read logs there. Moving it is planned work (S-701), not
+part of this decision. The host playground stays fully supported.
+
+**Evidence:** `docs/machines/recipe.md` §9 (gate zero, real login, MCP 206 tools, integration 280/1601
+identical to the host, the installer run).
+
+## D-122 — Keel reconciliation v5.13.0 → v7.6.0: the user's answers (2026-11-12)
+
+Asked in one batch at the start of the reconciliation; the rest of the delta needs no question.
+- **`CI runs on: main`** (the recommended default, v5.16.0). The repository is PUBLIC, so the reason is
+  signal-to-noise, not metered minutes: in automatic mode Keel pushes to `develop` many times per
+  sprint after running the affected tests locally. Cost accepted: a break only CI's clean environment
+  would surface is found at the merge to `main` instead of at the commit that caused it. Version tags
+  still fire on every value.
+- **`Parallel development: auto; max_workers: max`** (v7.0.0, standing check 2). The effective cap is
+  resolved at each kickoff from the observed limits.
+- **`Chaining model: claude-opus-5-5`** (was `claude-opus-5`; the current Opus).
+- Embedded copies `.claude/skills/keel/` and `.agents/skills/keel/` replaced from the installed v7.6.0
+  (rsync of the whole tree, `diff -rq` 0 against the source and against each other); both lock blocks
+  rewritten from the canonical v7.6.0 block (text changed, not only the stamp).
+

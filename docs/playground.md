@@ -70,6 +70,43 @@ for and never touches anything tracked.
 
 ---
 
+## On the shared Parallels VM — `scripts/keel-site` (D-121, since 2026-11-12)
+
+Klytos has a tenant on the shared `keel-development` VM: **real Apache 2.4 + mod_rewrite + PHP-FPM 8.3**,
+so `installer/.htaccess` — the production access controls — is exercised for real instead of being
+re-implemented by `scripts/dev/router.php`. Recipe: `docs/machines/recipe.md`.
+
+```bash
+./scripts/keel-site start                 # syncs the working tree into the tenant, opens the SSH forward
+./scripts/keel-site url                   # http://127.0.0.1:18121
+./scripts/keel-site reset                 # wipe runtime state + seed (run before the suites, L-028)
+./scripts/keel-site test --testsuite integration   # PHPUnit inside the tenant, as its own user
+./scripts/keel-site php cli.php ...       # any PHP inside the tenant (cwd = the tenant's repo copy)
+./scripts/keel-site logs                  # the tenant's PHP and Apache error logs
+./scripts/keel-site doctor                # VM, disk, shared-VM revision, tenant health
+./scripts/keel-site stop                  # closes the forward; the VM is shared and stays up
+```
+
+- Same URLs as below with `KPORT=18121`: admin `/installer/admin/`, MCP `/installer/mcp`. Same
+  seeded users and passwords (§ Credentials). The MCP application password is printed by
+  `create`/`reset` and lives in the TENANT's `installer/config/.playground-access`.
+- The tenant holds a **copy** of the working tree (not a mount — Klytos writes its own tree); every
+  command syncs first, so what runs is what is on disk on the host. Ignored runtime state is never
+  copied from the host and never deleted on the VM.
+- Unlike `php -S`, responses carry `Server: Apache/2.4.58 (Ubuntu)`. On THIS host that header means
+  the tenant answered, not a squatter (the L-011 tell inverts here).
+- **Not yet on the VM: the browser tier.** `tests/E2E/` runs PHP fixtures on the host against the
+  host's `installer/data` and reads logs there, so it still runs against the host playground below.
+  Moving it is slice S-701 (planned, not done).
+- **Standalone installer test** (sibling repo `../klytos-installer`): a disposable empty web root,
+  retired in the same session —
+  `./scripts/keel-site --site klytos-install create && ./scripts/keel-site --site klytos-install install-test`,
+  drive `http://127.0.0.1:18122/installer.php`, then `./scripts/keel-site --site klytos-install retire`.
+
+The host playground below stays fully supported and is what the browser tier uses today.
+
+---
+
 ## Requirements
 
 Verified present on 2026-07-18: PHP 8.3.12 CLI with `openssl`, `json`, `mbstring`, `curl`, `zip`.
