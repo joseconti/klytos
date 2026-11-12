@@ -1,3 +1,125 @@
+---
+# Plan data for this sprint (Keel references/project-state.md, "Sprint files"). The prose below the
+# closing '---' is the historical record and was not changed when this frontmatter was added during
+# the Keel v5.13.0 -> v7.6.0 reconciliation (D-122, 2026-11-12).
+# original_hours: this sprint's file never carried per-slice hours; each figure is the MIDPOINT of the
+# slice's own line in docs/estimate.md (v6 for slices 1-3, v7 for slice 4), recorded in `migration`.
+# v6's planning (kickoff re-validation) and review segments were never attributed to a slice and are
+# not re-attributed here. actual_hours on done slices is a BACKFILLED ESTIMATE (actual_source:
+# estimated): no clock existed, so it is set to the approved midpoint and claims no deviation.
+schema: keel.sprint/2
+sprint: 6
+goal: "Hardening — the abuse-bounding controls bound abuse, and suspension means suspension"
+status: in-progress
+slices:
+  - id: S-601
+    title: "Slice 1 — the counters are atomic, and the login endpoint has a ceiling"
+    status: done
+    original_hours: 5.0
+    residual_hours: 0
+    change_kind: added
+    parent_slice: null
+    owns: [NEW-40, NEW-20, NEW-44]
+    estimate_changes: []
+    actual_hours: 5.0
+    actual_source: estimated
+    depends_on: []
+    waiting_on: null
+    criteria: [NEW-40, NEW-20, NEW-44]
+    migration: "original_hours from docs/estimate.md v6, slice 1 line 4.0–6.0 h (midpoint); no legacy hours field existed"
+  - id: S-602
+    title: "Slice 2 — suspension takes effect on OAuth too"
+    status: done
+    original_hours: 2.0
+    residual_hours: 0
+    change_kind: added
+    parent_slice: null
+    owns: [NEW-41]
+    estimate_changes: []
+    actual_hours: 2.0
+    actual_source: estimated
+    depends_on: []
+    waiting_on: null
+    criteria: [NEW-41]
+    migration: "original_hours from docs/estimate.md v6, slice 2 line 1.5–2.5 h (midpoint); no legacy hours field existed"
+  - id: S-603
+    title: "Slice 3 — the passkey assertion path"
+    status: done
+    original_hours: 3.25
+    residual_hours: 0
+    change_kind: added
+    parent_slice: null
+    owns: [NEW-42]
+    estimate_changes: []
+    actual_hours: 3.25
+    actual_source: estimated
+    depends_on: []
+    waiting_on: null
+    criteria: [NEW-42]
+    migration: "original_hours from docs/estimate.md v6, slice 3 line 2.5–4.0 h (midpoint); no legacy hours field existed"
+  - id: S-604
+    title: "Slice 4 — the three anonymous login surfaces verify CSRF (D-061)"
+    status: done
+    original_hours: 5.875
+    residual_hours: 0
+    change_kind: added
+    parent_slice: null
+    owns: [NEW-47, NEW-26, NEW-50, NEW-51, NEW-52]
+    estimate_changes: []
+    actual_hours: 5.875
+    actual_source: estimated
+    depends_on: []
+    waiting_on: null
+    criteria: [NEW-47, NEW-26, NEW-50, NEW-51, NEW-52]
+    migration: "original_hours from docs/estimate.md v7, total 4.25–7.5 h (midpoint; v7 was written after the slice); no legacy hours field existed"
+  - id: S-605
+    title: "Sprint close — the fresh-context playground-QA pass on the sprint's flows (acceptance 8)"
+    status: not-started
+    original_hours: 1.5
+    residual_hours: 1.5
+    change_kind: added
+    parent_slice: null
+    owns: []
+    estimate_changes: []
+    actual_hours: null
+    actual_source: null
+    depends_on: [S-601, S-602, S-603, S-604]
+    waiting_on: null
+    criteria: []
+    reconciliation_status: unreconciled
+    execution:
+      write_paths: [docs/05-test-points.md]
+      contracts:
+        reads: []
+        writes: []
+      exclusive_resources: [host-playground]
+      parallel: eligible
+      serial_reason: null
+  - id: S-606
+    title: "Sprint close — the user's own recorded test verdict on the sprint's flows (acceptance 9)"
+    status: not-started
+    original_hours: 1.0
+    residual_hours: 1.0
+    change_kind: added
+    parent_slice: null
+    owns: []
+    estimate_changes: []
+    actual_hours: null
+    actual_source: null
+    depends_on: [S-605]
+    waiting_on: "José's own test verdict on Sprint 6's flows, from the try-it script (owed since 2026-07-27)"
+    criteria: []
+    reconciliation_status: unreconciled
+    execution:
+      write_paths: [docs/sprints/sprint-6.md, docs/05-test-points.md]
+      contracts:
+        reads: []
+        writes: []
+      exclusive_resources: []
+      parallel: eligible
+      serial_reason: null
+---
+
 # Sprint 6 — Hardening: the abuse-bounding controls actually bound abuse, and suspension means suspension
 
 - **Planned:** 2026-07-26 (plan mode, approved by the user). Kickoff re-validation ran in the

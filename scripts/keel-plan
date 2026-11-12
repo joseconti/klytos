@@ -1,0 +1,621 @@
+#!/usr/bin/env python3
+"""keel-plan — generate docs/.keel/plan.json and docs/sprints/INDEX.md from the sprint plan.
+
+Keel references/project-state.md, "The sprint plan — one plan, three layers, one job each".
+
+  Authority (human-edited):  docs/sprints/sprint-<N>.md frontmatter (keel.sprint/1 or keel.sprint/2)
+  Backlog   (human-edited):  docs/sprints/deferred.md frontmatter (keel.deferred/1)
+  Derived   (never edited):  docs/.keel/plan.json (keel.plan/1) + docs/sprints/INDEX.md
+
+Every figure in the derived files is computed here, at generation time, from hours. Percentages are
+never stored in the sources. The unit is AI working time plus supervision; contingency and the
+deferred backlog are excluded from every total.
+
+Usage:
+  scripts/keel-plan            regenerate both derived files (exit 0), or print the violations (exit 2)
+  scripts/keel-plan --check    exit 1 when either derived file differs from what its sources produce
+                               (drift), 2 on a source violation, 0 when current. Writes nothing.
+  scripts/keel-plan --json     print the plan to stdout, writing nothing
+
+Standard library only (Python 3.9+). The frontmatter parser reads the YAML subset the sprint files
+use (maps, block lists of maps, inline [a, b] lists, scalars, comments); a construct outside it is a
+violation, never a guess.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SPRINTS_DIR = ROOT / "docs" / "sprints"
+PLAN_JSON = ROOT / "docs" / ".keel" / "plan.json"
+INDEX_MD = SPRINTS_DIR / "INDEX.md"
+
+PLAN_SCHEMA = "keel.plan/1"
+SPRINT_SCHEMAS = {"keel.sprint/1", "keel.sprint/2"}
+DEFERRED_SCHEMA = "keel.deferred/1"
+STATUSES = {"not-started", "in-progress", "done", "dropped"}
+CHANGE_KINDS = {"added", "extracted", "re-estimated"}
+ACTUAL_SOURCES = {"measured", "estimated"}
+RECONCILIATION = {"reconciled", "unreconciled"}
+PARALLEL = {"eligible", "serial"}
+UNIT = "hours of AI working time plus supervision"
+EPS = 1e-9
+
+
+class PlanError(Exception):
+    pass
+
+
+# ---- The YAML subset -------------------------------------------------------
+
+def _strip_comment(text: str) -> str:
+    quote = None
+    for index, char in enumerate(text):
+        if quote:
+            if char == "\\" and quote == '"':
+                continue
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+        elif char == "#" and (index == 0 or text[index - 1] in " \t"):
+            return text[:index].rstrip()
+    return text.rstrip()
+
+
+def _split_inline(body: str) -> list[str]:
+    parts, current, quote = [], "", None
+    for char in body:
+        if quote:
+            current += char
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+            current += char
+        elif char == ",":
+            parts.append(current.strip())
+            current = ""
+        else:
+            current += char
+    if current.strip():
+        parts.append(current.strip())
+    return parts
+
+
+def _scalar(text: str, where: str):
+    text = text.strip()
+    if text in ("", "null", "~"):
+        return None
+    if text == "true":
+        return True
+    if text == "false":
+        return False
+    if text == "{}":
+        return {}
+    if text.startswith("[") and text.endswith("]"):
+        return [_scalar(part, where) for part in _split_inline(text[1:-1])]
+    if text.startswith('"'):
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise PlanError(f"{where}: bad double-quoted string {text!r}") from exc
+    if text.startswith("'") and text.endswith("'"):
+        return text[1:-1].replace("''", "'")
+    if re.fullmatch(r"-?\d+", text):
+        return int(text)
+    if re.fullmatch(r"-?\d+\.\d+", text):
+        return float(text)
+    if text[0] in "{&*!|>%@`":
+        raise PlanError(f"{where}: YAML construct outside the supported subset: {text!r}")
+    return text
+
+
+KEY = re.compile(r"^([A-Za-z0-9_.-]+):(?:\s+(.*))?$")
+
+
+def parse_yaml(text: str, where: str):
+    lines = []
+    for number, raw in enumerate(text.splitlines(), 1):
+        if "\t" in raw[: len(raw) - len(raw.lstrip())]:
+            raise PlanError(f"{where}:{number}: tab indentation")
+        body = _strip_comment(raw)
+        if body.strip():
+            lines.append((len(body) - len(body.lstrip(" ")), body.strip(), number))
+
+    def block(i: int, indent: int):
+        if i >= len(lines):
+            return None, i
+        if lines[i][1].startswith("- ") or lines[i][1] == "-":
+            out = []
+            while i < len(lines) and lines[i][0] == indent and (lines[i][1].startswith("- ") or lines[i][1] == "-"):
+                rest = lines[i][1][1:].strip()
+                if KEY.match(rest):
+                    lines[i] = (indent + 2, rest, lines[i][2])
+                    value, i = mapping(i, indent + 2)
+                elif rest:
+                    value, i = _scalar(rest, f"{where}:{lines[i][2]}"), i + 1
+                else:
+                    value, i = block(i + 1, lines[i + 1][0]) if i + 1 < len(lines) else (None, i + 1)
+                out.append(value)
+            return out, i
+        return mapping(i, indent)
+
+    def mapping(i: int, indent: int):
+        out = {}
+        while i < len(lines) and lines[i][0] == indent:
+            _, body, number = lines[i]
+            match = KEY.match(body)
+            if not match:
+                raise PlanError(f"{where}:{number}: expected 'key: value', got {body!r}")
+            key, rest = match.group(1), match.group(2)
+            if key in out:
+                raise PlanError(f"{where}:{number}: duplicate key {key!r}")
+            if rest is None or rest == "":
+                if i + 1 < len(lines) and lines[i + 1][0] > indent:
+                    out[key], i = block(i + 1, lines[i + 1][0])
+                elif i + 1 < len(lines) and lines[i + 1][0] == indent and lines[i + 1][1].startswith("- "):
+                    out[key], i = block(i + 1, indent)
+                else:
+                    out[key], i = None, i + 1
+            else:
+                out[key], i = _scalar(rest, f"{where}:{number}"), i + 1
+        if i < len(lines) and lines[i][0] > indent:
+            raise PlanError(f"{where}:{lines[i][2]}: unexpected indentation")
+        return out, i
+
+    if not lines:
+        return {}
+    value, end = block(0, lines[0][0])
+    if end != len(lines):
+        raise PlanError(f"{where}:{lines[end][2]}: could not parse from here")
+    return value
+
+
+def frontmatter(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        raise PlanError(f"{path.relative_to(ROOT)}: no YAML frontmatter")
+    end = text.find("\n---\n", 4)
+    if end < 0:
+        raise PlanError(f"{path.relative_to(ROOT)}: frontmatter is not closed by '---'")
+    data = parse_yaml(text[4:end], str(path.relative_to(ROOT)))
+    if not isinstance(data, dict):
+        raise PlanError(f"{path.relative_to(ROOT)}: frontmatter root must be a map")
+    return data
+
+
+# ---- Sources ---------------------------------------------------------------
+
+def sprint_files() -> list[Path]:
+    found = []
+    for path in SPRINTS_DIR.glob("sprint-*.md"):
+        match = re.fullmatch(r"sprint-(\d+)\.md", path.name)
+        if match:
+            found.append((int(match.group(1)), path))
+    return [path for _, path in sorted(found)]
+
+
+def num(value):
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def validate_item(item: dict, where: str, errors: list[str], deferred: bool = False) -> None:
+    sid = item.get("id")
+    if not isinstance(sid, str) or not re.fullmatch(r"S-\d{3,}", sid):
+        errors.append(f"{where}: slice id {sid!r} is not of the form S-<nnn>")
+        return
+    if item.get("status") not in STATUSES:
+        errors.append(f"{where} {sid}: status {item.get('status')!r} not in {sorted(STATUSES)}")
+    for key in ("original_hours", "residual_hours"):
+        value = num(item.get(key))
+        if value is None or value < 0:
+            errors.append(f"{where} {sid}: {key} must be a non-negative number")
+    if item.get("status") in ("done", "dropped") and (num(item.get("residual_hours")) or 0) > EPS:
+        errors.append(f"{where} {sid}: a {item.get('status')} slice carries a non-zero residual")
+    if item.get("change_kind") not in CHANGE_KINDS:
+        errors.append(f"{where} {sid}: change_kind {item.get('change_kind')!r} not in {sorted(CHANGE_KINDS)}")
+    if item.get("change_kind") == "extracted":
+        if not item.get("parent_slice"):
+            errors.append(f"{where} {sid}: an extracted slice must name its parent_slice")
+        if not item.get("owns"):
+            errors.append(f"{where} {sid}: an extracted slice must own its requirements exclusively")
+    elif item.get("parent_slice") not in (None, ""):
+        errors.append(f"{where} {sid}: parent_slice is only for extracted slices")
+    for key in ("owns", "depends_on", "criteria", "estimate_changes"):
+        if not isinstance(item.get(key, []), list):
+            errors.append(f"{where} {sid}: {key} must be a list")
+    if item.get("actual_source") not in ACTUAL_SOURCES | {None}:
+        errors.append(f"{where} {sid}: actual_source {item.get('actual_source')!r} not in {sorted(ACTUAL_SOURCES)}")
+    actual = item.get("actual_hours")
+    if actual is not None and (num(actual) is None or num(actual) < 0):
+        errors.append(f"{where} {sid}: actual_hours must be null or a non-negative number")
+    if actual is not None and item.get("actual_source") is None:
+        errors.append(f"{where} {sid}: actual_hours without actual_source")
+    if item.get("status") == "done" and num(actual) is None:
+        errors.append(f"{where} {sid}: a done slice must carry a numeric actual_hours")
+    if item.get("status") not in ("done", "dropped") and item.get("reconciliation_status") not in RECONCILIATION:
+        errors.append(f"{where} {sid}: an open slice needs reconciliation_status in {sorted(RECONCILIATION)}")
+    if item.get("reconciliation_status") == "reconciled" and not item.get("owns"):
+        errors.append(f"{where} {sid}: reconciled, yet owns no requirement")
+    waiting = item.get("waiting_on")
+    if waiting is not None and (not isinstance(waiting, str) or "\n" in waiting or not waiting.strip()):
+        errors.append(f"{where} {sid}: waiting_on must be null or ONE line")
+    residual_moves = 0.0
+    for change in item.get("estimate_changes") or []:
+        if not isinstance(change, dict):
+            errors.append(f"{where} {sid}: estimate_changes entries must be maps")
+            continue
+        for key in ("before_residual_hours", "after_residual_hours", "reason", "date", "reference"):
+            if change.get(key) in (None, ""):
+                errors.append(f"{where} {sid}: estimate change lacks {key}")
+        before, after = num(change.get("before_residual_hours")), num(change.get("after_residual_hours"))
+        if before is not None and after is not None:
+            residual_moves += after - before
+    execution = item.get("execution")
+    if execution is not None:
+        if not isinstance(execution, dict) or execution.get("parallel") not in PARALLEL:
+            errors.append(f"{where} {sid}: execution.parallel must be one of {sorted(PARALLEL)}")
+        elif execution.get("parallel") == "serial" and not execution.get("serial_reason"):
+            errors.append(f"{where} {sid}: a serial slice needs serial_reason")
+    if deferred:
+        if "target" not in item or "reason" not in item or not item.get("reason"):
+            errors.append(f"{where} {sid}: a deferred item needs target (or null) and reason")
+
+
+def load_sources() -> tuple[list[dict], dict, list[Path]]:
+    errors: list[str] = []
+    sprints, paths = [], []
+    for path in sprint_files():
+        rel = str(path.relative_to(ROOT))
+        paths.append(path)
+        try:
+            data = frontmatter(path)
+        except PlanError as exc:
+            errors.append(str(exc))
+            continue
+        if data.get("schema") not in SPRINT_SCHEMAS:
+            errors.append(f"{rel}: schema {data.get('schema')!r} is not one of {sorted(SPRINT_SCHEMAS)}")
+            continue
+        if data.get("status") not in STATUSES:
+            errors.append(f"{rel}: sprint status {data.get('status')!r} not in {sorted(STATUSES)}")
+        if not isinstance(data.get("sprint"), int):
+            errors.append(f"{rel}: sprint must be an integer")
+        slices = data.get("slices") or []
+        if not isinstance(slices, list):
+            errors.append(f"{rel}: slices must be a list")
+            slices = []
+        for item in slices:
+            if not isinstance(item, dict):
+                errors.append(f"{rel}: every slice must be a map")
+                continue
+            validate_item(item, rel, errors)
+        data["_file"] = rel
+        data["slices"] = [s for s in slices if isinstance(s, dict)]
+        sprints.append(data)
+
+    deferred_path = SPRINTS_DIR / "deferred.md"
+    deferred = {"items": [], "_file": str(deferred_path.relative_to(ROOT))}
+    if deferred_path.is_file():
+        paths.append(deferred_path)
+        try:
+            data = frontmatter(deferred_path)
+            if data.get("schema") != DEFERRED_SCHEMA:
+                errors.append(f"docs/sprints/deferred.md: schema must be {DEFERRED_SCHEMA}")
+            items = data.get("items") or []
+            for item in items:
+                if isinstance(item, dict):
+                    validate_item(item, "docs/sprints/deferred.md", errors, deferred=True)
+            deferred["items"] = [i for i in items if isinstance(i, dict)]
+        except PlanError as exc:
+            errors.append(str(exc))
+    else:
+        errors.append("docs/sprints/deferred.md is missing (the one backlog file)")
+
+    # One id namespace across every sprint and the backlog.
+    seen: dict[str, str] = {}
+    order: dict[str, int] = {}
+    for sprint in sprints:
+        for item in sprint["slices"]:
+            sid = item.get("id")
+            if sid in seen:
+                errors.append(f"{sid} appears twice ({seen[sid]} and {sprint['_file']})")
+            seen[sid] = sprint["_file"]
+            order[sid] = sprint.get("sprint", 0)
+    deferred_ids = set()
+    for item in deferred["items"]:
+        sid = item.get("id")
+        if sid in seen:
+            errors.append(f"{sid} appears twice ({seen[sid]} and docs/sprints/deferred.md)")
+        seen[sid] = "docs/sprints/deferred.md"
+        deferred_ids.add(sid)
+
+    for sprint in sprints:
+        for item in sprint["slices"]:
+            for dep in item.get("depends_on") or []:
+                if dep in deferred_ids:
+                    errors.append(f"{item['id']} depends on {dep}, which is still in deferred.md")
+                elif dep not in order:
+                    errors.append(f"{item['id']} depends on {dep}, which does not exist")
+                elif order[dep] > sprint.get("sprint", 0):
+                    errors.append(f"{item['id']} depends on {dep}, which sits in a LATER sprint")
+            if item.get("change_kind") == "extracted" and item.get("parent_slice") not in order:
+                errors.append(f"{item['id']}: parent_slice {item.get('parent_slice')!r} does not exist")
+
+    # Counted open slices may never own the same requirement twice.
+    owners: dict[str, str] = {}
+    for sprint in sprints:
+        for item in sprint["slices"]:
+            if item.get("status") in ("done", "dropped") or (num(item.get("residual_hours")) or 0) <= EPS:
+                continue
+            for req in item.get("owns") or []:
+                if req in owners:
+                    errors.append(f"requirement {req} owned by both {owners[req]} and {item['id']}")
+                owners[req] = item["id"]
+
+    # Every recorded reconciliation balances.
+    for sprint in sprints:
+        for rec in sprint.get("scope_reconciliations") or []:
+            values = [num(rec.get(k)) for k in ("remaining_before", "completed_residual", "added_scope",
+                                                 "explicit_residual_reestimates", "remaining_after")]
+            if any(v is None for v in values):
+                errors.append(f"{sprint['_file']}: a scope_reconciliation lacks a balance figure")
+                continue
+            before, completed, added, reest, after = values
+            if abs(before - completed + added + reest - after) > 0.005:
+                errors.append(f"{sprint['_file']}: scope_reconciliation does not balance "
+                              f"({before} - {completed} + {added} + {reest} != {after})")
+
+    if errors:
+        raise PlanError("\n".join(errors))
+    return sprints, deferred, paths
+
+
+# ---- Derivation ------------------------------------------------------------
+
+def summarize(slices: list[dict]) -> dict:
+    counted = [s for s in slices if s.get("status") != "dropped"]
+    done = [s for s in counted if s.get("status") == "done"]
+    open_ = [s for s in counted if s.get("status") != "done"]
+    original = sum(num(s.get("original_hours")) or 0 for s in counted)
+    completed_original = sum(num(s.get("original_hours")) or 0 for s in done)
+    actual = sum(num(s.get("actual_hours")) or 0 for s in done)
+    remaining = sum(num(s.get("residual_hours")) or 0 for s in open_)
+    spent_open = sum(num(s.get("actual_hours")) or 0 for s in open_)
+    unreconciled = [s["id"] for s in open_ if s.get("reconciliation_status") != "reconciled"]
+    delta = {"added_hours": 0.0, "extracted_hours": 0.0, "explicit_residual_reestimates_hours": 0.0}
+    for s in counted:
+        if s.get("change_kind") == "added":
+            delta["added_hours"] += num(s.get("original_hours")) or 0
+        elif s.get("change_kind") == "extracted":
+            delta["extracted_hours"] += num(s.get("original_hours")) or 0
+        for change in s.get("estimate_changes") or []:
+            delta["explicit_residual_reestimates_hours"] += ((num(change.get("after_residual_hours")) or 0)
+                                                             - (num(change.get("before_residual_hours")) or 0))
+    return {
+        "slices_total": len(counted),
+        "slices_done": len(done),
+        "slices_open": len(open_),
+        "original_estimated_hours": original,
+        "completed_original_hours": completed_original,
+        "actual_hours": actual,
+        "actual_hours_estimated_source": sum(num(s.get("actual_hours")) or 0 for s in done
+                                             if s.get("actual_source") == "estimated"),
+        "remaining_hours": remaining,
+        "spent_on_unfinished_hours": spent_open,
+        "deviation_hours": actual - completed_original,
+        "percent_done": round(completed_original / original * 100, 2) if original > 0 else None,
+        "reconciliation_status": "unreconciled" if unreconciled else "reconciled",
+        "unreconciled_slices": unreconciled,
+        "scope_delta": delta,
+    }
+
+
+def pace(all_slices: list[dict]) -> dict:
+    eligible = [s for s in all_slices if s.get("status") == "done" and s.get("actual_source") == "measured"
+                and (num(s.get("original_hours")) or 0) > 0 and num(s.get("actual_hours")) is not None
+                and num(s.get("actual_hours")) >= 0]
+    est = sum(num(s["original_hours"]) for s in eligible)
+    act = sum(num(s["actual_hours"]) for s in eligible)
+    factor = act / est if eligible and est > 0 else None
+    return {"pace_factor": factor, "sample": {"slices": len(eligible), "original_hours": est, "actual_hours": act,
+                                               "provisional": len(eligible) < 5}}
+
+
+def project(remaining: float, factor):
+    if remaining <= EPS:
+        return 0.0, None
+    if factor is None:
+        return None, "unavailable — no measured completed work"
+    return remaining * factor, None
+
+
+def slice_view(item: dict, status_of: dict) -> dict:
+    deps = list(item.get("depends_on") or [])
+    open_ = item.get("status") in ("not-started", "in-progress")
+    waiting = item.get("waiting_on")
+    workable = open_ and waiting is None and all(status_of.get(d) == "done" for d in deps)
+    view = {key: item.get(key) for key in (
+        "id", "title", "status", "original_hours", "residual_hours", "actual_hours", "actual_source",
+        "change_kind", "parent_slice", "owns", "depends_on", "waiting_on", "criteria",
+        "reconciliation_status", "estimate_changes", "execution")}
+    view["workable"] = bool(workable)
+    view["waiting"] = bool(open_ and waiting is not None)
+    view["blocked_by"] = [d for d in deps if status_of.get(d) != "done"] if open_ else []
+    return view
+
+
+def build() -> dict:
+    sprints, deferred, paths = load_sources()
+    all_slices = [s for sprint in sprints for s in sprint["slices"]]
+    status_of = {s["id"]: s.get("status") for s in all_slices}
+    measured_pace = pace(all_slices)
+    factor = measured_pace["pace_factor"]
+
+    out_sprints = []
+    for sprint in sprints:
+        summary = summarize(sprint["slices"])
+        projected, reason = project(summary["remaining_hours"], factor)
+        summary.update(pace_factor=factor, projected_remaining_hours=projected, projection_reason=reason)
+        out_sprints.append({
+            "sprint": sprint.get("sprint"),
+            "schema": sprint.get("schema"),
+            "file": sprint["_file"],
+            "goal": sprint.get("goal"),
+            "status": sprint.get("status"),
+            "slices": [slice_view(s, status_of) for s in sprint["slices"]],
+            "scope_reconciliations": sprint.get("scope_reconciliations") or [],
+            "totals": summary,
+        })
+
+    totals = summarize(all_slices)
+    projected, reason = project(totals["remaining_hours"], factor)
+    totals.update(pace_factor=factor, pace_sample=measured_pace["sample"],
+                  projected_remaining_hours=projected, projection_reason=reason)
+    if totals["reconciliation_status"] == "unreconciled":
+        totals["balance_label"] = ("unreconciled baseline — open slices without exclusive requirement "
+                                   "ownership; not a reliable completion estimate")
+    else:
+        totals["balance_label"] = "reconciled"
+
+    views = [v for sprint in out_sprints for v in sprint["slices"]]
+    queue = {
+        "workable": sum(1 for v in views if v["workable"]),
+        "waiting": sum(1 for v in views if v["waiting"]),
+        "blocked_by_dependencies": sum(1 for v in views if v["status"] in ("not-started", "in-progress")
+                                       and not v["workable"] and not v["waiting"]),
+        "workable_ids": [v["id"] for v in views if v["workable"]],
+        "waiting_on": [{"id": v["id"], "waiting_on": v["waiting_on"]} for v in views if v["waiting"]],
+    }
+    deferred_items = [slice_view(i, status_of) | {"target": i.get("target"), "reason": i.get("reason")}
+                      for i in deferred["items"]]
+    for item in deferred_items:
+        item["workable"] = False
+    digest = hashlib.sha256()
+    for path in paths:
+        digest.update(str(path.relative_to(ROOT)).encode() + b"\0" + path.read_bytes() + b"\0")
+    return {
+        "schema": PLAN_SCHEMA,
+        "unit": UNIT,
+        "contingency_included": False,
+        "deferred_included_in_totals": False,
+        "generated_by": "scripts/keel-plan",
+        "sources": [str(p.relative_to(ROOT)) for p in paths],
+        "sources_sha256": digest.hexdigest(),
+        "sprints": out_sprints,
+        "deferred": {"file": deferred["_file"], "items": deferred_items,
+                     "hours": sum(num(i.get("residual_hours")) or 0 for i in deferred["items"])},
+        "totals": totals,
+        "remaining_hours": totals["remaining_hours"],
+        "pace_factor": factor,
+        "projected_remaining_hours": projected,
+        "queue": queue,
+    }
+
+
+def fmt(hours) -> str:
+    if hours is None:
+        return "—"
+    return f"{hours:.2f}".rstrip("0").rstrip(".") + " h"
+
+
+def render_index(plan: dict) -> str:
+    lines = [
+        "# Sprint plan — index",
+        "",
+        "> GENERATED by `scripts/keel-plan` from `docs/sprints/sprint-<N>.md` and `docs/sprints/deferred.md`.",
+        "> Never edit by hand: edit the frontmatter of the sprint files and regenerate. Unit: " + UNIT + ";",
+        "> contingency and the deferred backlog are excluded from every total.",
+        "",
+        "| Sprint | Goal | Status | Slices done | Original h | Remaining h | Done % | Reconciliation |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for sprint in plan["sprints"]:
+        t = sprint["totals"]
+        pct = "—" if t["percent_done"] is None else f"{t['percent_done']:.1f} %"
+        lines.append(f"| [{sprint['sprint']}]({Path(sprint['file']).name}) | {sprint['goal']} | {sprint['status']} | "
+                     f"{t['slices_done']} / {t['slices_total']} | {fmt(t['original_estimated_hours'])} | "
+                     f"{fmt(t['remaining_hours'])} | {pct} | {t['reconciliation_status']} |")
+    t = plan["totals"]
+    pct = "—" if t["percent_done"] is None else f"{t['percent_done']:.1f} %"
+    lines += [
+        f"| **Total** | | | {t['slices_done']} / {t['slices_total']} | {fmt(t['original_estimated_hours'])} | "
+        f"**{fmt(t['remaining_hours'])}** | {pct} | {t['reconciliation_status']} |",
+        "",
+        f"- Done so far: {fmt(t['completed_original_hours'])} estimated, {fmt(t['actual_hours'])} actual "
+        f"({fmt(t['actual_hours_estimated_source'])} of it backfilled estimates, not measured).",
+        f"- Projection if the observed pace continues: "
+        + (fmt(t["projected_remaining_hours"]) + f" (factor {t['pace_factor']:.4f}; "
+           f"{t['pace_sample']['slices']} measured slices)" if t["pace_factor"] is not None
+           else (t["projection_reason"] or fmt(t["projected_remaining_hours"]))),
+        f"- Balance: {t['balance_label']}.",
+        f"- Queue: {plan['queue']['workable']} workable, {plan['queue']['waiting']} waiting on a person or "
+        f"event, {plan['queue']['blocked_by_dependencies']} blocked by unfinished dependencies.",
+        f"- Deferred backlog (not in the totals): {len(plan['deferred']['items'])} items, "
+        f"{fmt(plan['deferred']['hours'])} — [deferred.md](deferred.md).",
+        "",
+        "## Open slices",
+        "",
+        "| Id | Sprint | Title | Status | Residual h | Queue | Waiting on / blocked by |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for sprint in plan["sprints"]:
+        for s in sprint["slices"]:
+            if s["status"] in ("done", "dropped"):
+                continue
+            queue = "workable" if s["workable"] else ("waiting" if s["waiting"] else "blocked")
+            why = s["waiting_on"] or (", ".join(s["blocked_by"]) if s["blocked_by"] else "")
+            lines.append(f"| {s['id']} | {sprint['sprint']} | {s['title']} | {s['status']} | "
+                         f"{fmt(s['residual_hours'])} | {queue} | {why} |")
+    return "\n".join(lines) + "\n"
+
+
+def serialize(plan: dict) -> str:
+    return json.dumps(plan, indent=2, ensure_ascii=False) + "\n"
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--check", action="store_true", help="fail on drift; write nothing")
+    parser.add_argument("--json", action="store_true", help="print the plan; write nothing")
+    args = parser.parse_args(argv)
+    try:
+        plan = build()
+    except PlanError as exc:
+        print("keel-plan: the sources violate the plan contract:", file=sys.stderr)
+        for line in str(exc).splitlines():
+            print(f"  - {line}", file=sys.stderr)
+        return 2
+    plan_text, index_text = serialize(plan), render_index(plan)
+    if args.json:
+        sys.stdout.write(plan_text)
+        return 0
+    if args.check:
+        drift = []
+        for path, text in ((PLAN_JSON, plan_text), (INDEX_MD, index_text)):
+            if not path.is_file() or path.read_text(encoding="utf-8") != text:
+                drift.append(str(path.relative_to(ROOT)))
+        if drift:
+            print("keel-plan: DRIFT — regenerate with scripts/keel-plan: " + ", ".join(drift))
+            return 1
+        print("keel-plan: plan.json and INDEX.md match their sources")
+        return 0
+    PLAN_JSON.parent.mkdir(parents=True, exist_ok=True)
+    PLAN_JSON.write_text(plan_text, encoding="utf-8")
+    INDEX_MD.write_text(index_text, encoding="utf-8")
+    t = plan["totals"]
+    print(f"keel-plan: wrote docs/.keel/plan.json and docs/sprints/INDEX.md — "
+          f"{t['slices_done']}/{t['slices_total']} slices done, {fmt(t['remaining_hours'])} left "
+          f"({UNIT}; {t['reconciliation_status']}), queue {plan['queue']['workable']} workable / "
+          f"{plan['queue']['waiting']} waiting")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

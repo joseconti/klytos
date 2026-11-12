@@ -1,0 +1,1727 @@
+{
+  "schema": "keel.plan/1",
+  "unit": "hours of AI working time plus supervision",
+  "contingency_included": false,
+  "deferred_included_in_totals": false,
+  "generated_by": "scripts/keel-plan",
+  "sources": [
+    "docs/sprints/sprint-6.md",
+    "docs/sprints/sprint-7.md",
+    "docs/sprints/sprint-8.md",
+    "docs/sprints/deferred.md"
+  ],
+  "sources_sha256": "69c6070777735f39b61096043cf76df8938128a85ee527e056813ae296b9acc8",
+  "sprints": [
+    {
+      "sprint": 6,
+      "schema": "keel.sprint/2",
+      "file": "docs/sprints/sprint-6.md",
+      "goal": "Hardening — the abuse-bounding controls bound abuse, and suspension means suspension",
+      "status": "in-progress",
+      "slices": [
+        {
+          "id": "S-601",
+          "title": "Slice 1 — the counters are atomic, and the login endpoint has a ceiling",
+          "status": "done",
+          "original_hours": 5.0,
+          "residual_hours": 0,
+          "actual_hours": 5.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "NEW-40",
+            "NEW-20",
+            "NEW-44"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "NEW-40",
+            "NEW-20",
+            "NEW-44"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-602",
+          "title": "Slice 2 — suspension takes effect on OAuth too",
+          "status": "done",
+          "original_hours": 2.0,
+          "residual_hours": 0,
+          "actual_hours": 2.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "NEW-41"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "NEW-41"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-603",
+          "title": "Slice 3 — the passkey assertion path",
+          "status": "done",
+          "original_hours": 3.25,
+          "residual_hours": 0,
+          "actual_hours": 3.25,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "NEW-42"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "NEW-42"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-604",
+          "title": "Slice 4 — the three anonymous login surfaces verify CSRF (D-061)",
+          "status": "done",
+          "original_hours": 5.875,
+          "residual_hours": 0,
+          "actual_hours": 5.875,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "NEW-47",
+            "NEW-26",
+            "NEW-50",
+            "NEW-51",
+            "NEW-52"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "NEW-47",
+            "NEW-26",
+            "NEW-50",
+            "NEW-51",
+            "NEW-52"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-605",
+          "title": "Sprint close — the fresh-context playground-QA pass on the sprint's flows (acceptance 8)",
+          "status": "not-started",
+          "original_hours": 1.5,
+          "residual_hours": 1.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [],
+          "depends_on": [
+            "S-601",
+            "S-602",
+            "S-603",
+            "S-604"
+          ],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "docs/05-test-points.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "host-playground"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-606",
+          "title": "Sprint close — the user's own recorded test verdict on the sprint's flows (acceptance 9)",
+          "status": "not-started",
+          "original_hours": 1.0,
+          "residual_hours": 1.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [],
+          "depends_on": [
+            "S-605"
+          ],
+          "waiting_on": "José's own test verdict on Sprint 6's flows, from the try-it script (owed since 2026-07-27)",
+          "criteria": [],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "docs/sprints/sprint-6.md",
+              "docs/05-test-points.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": false,
+          "waiting": true,
+          "blocked_by": [
+            "S-605"
+          ]
+        }
+      ],
+      "scope_reconciliations": [],
+      "totals": {
+        "slices_total": 6,
+        "slices_done": 4,
+        "slices_open": 2,
+        "original_estimated_hours": 18.625,
+        "completed_original_hours": 16.125,
+        "actual_hours": 16.125,
+        "actual_hours_estimated_source": 16.125,
+        "remaining_hours": 2.5,
+        "spent_on_unfinished_hours": 0,
+        "deviation_hours": 0.0,
+        "percent_done": 86.58,
+        "reconciliation_status": "unreconciled",
+        "unreconciled_slices": [
+          "S-605",
+          "S-606"
+        ],
+        "scope_delta": {
+          "added_hours": 18.625,
+          "extracted_hours": 0.0,
+          "explicit_residual_reestimates_hours": 0.0
+        },
+        "pace_factor": null,
+        "projected_remaining_hours": null,
+        "projection_reason": "unavailable — no measured completed work"
+      }
+    },
+    {
+      "sprint": 7,
+      "schema": "keel.sprint/2",
+      "file": "docs/sprints/sprint-7.md",
+      "goal": "Phase 4 stage 7 (the unblocked screens) to the end, and Keel brought to v7.6.0",
+      "status": "in-progress",
+      "slices": [
+        {
+          "id": "S-701",
+          "title": "Move the browser tier (tests/E2E) onto the keel-site tenant",
+          "status": "not-started",
+          "original_hours": 3.5,
+          "residual_hours": 3.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [],
+          "depends_on": [
+            "S-703"
+          ],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "tests/E2E/",
+              "playwright.config.js",
+              "scripts/keel-site",
+              "docs/playground.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "klytos-tenant",
+              "host-playground"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-703",
+          "title": "Keel v7.6.0 reconciliation, part 1 — embedded copies, lock blocks, card lines, the Parallels tenant, docs/machines/ (D-121, D-122; 4a9b1ba)",
+          "status": "done",
+          "original_hours": 6.0,
+          "residual_hours": 0,
+          "actual_hours": 6.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "KEEL-RECON-7.6.0-PART1"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-704",
+          "title": "Keel v7.6.0 reconciliation — remaining rows",
+          "status": "in-progress",
+          "original_hours": 12.0,
+          "residual_hours": 9.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [],
+          "depends_on": [
+            "S-703"
+          ],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "scripts/",
+              "docs/keel-conformance.md",
+              "docs/sessions.md",
+              "docs/sprints/",
+              "docs/.keel/",
+              ".githooks/"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "keel-bookkeeping"
+            ],
+            "parallel": "serial",
+            "serial_reason": "Coordinator work on the Keel scripts and bookkeeping every other slice reads"
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-705",
+          "title": "Keel standing check 1 — the agent-teams flag in .claude/settings.local.json",
+          "status": "not-started",
+          "original_hours": 0.25,
+          "residual_hours": 0.25,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "KEEL-STANDING-CHECK-1"
+          ],
+          "depends_on": [],
+          "waiting_on": "José to apply the agent-teams flag to .claude/settings.local.json — the auto-mode classifier refuses the edit (as at D-081)",
+          "criteria": [],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": true,
+          "blocked_by": []
+        },
+        {
+          "id": "S-706",
+          "title": "Stage 7 slice 1 — entry 44 (Dashboard), first overview-stats consumer (D-110, D-113)",
+          "status": "done",
+          "original_hours": 4.0,
+          "residual_hours": 0,
+          "actual_hours": 4.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-44"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-44"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-707",
+          "title": "Stage 7 slice 2 — entry 13 (Tasks) (D-111, D-113)",
+          "status": "done",
+          "original_hours": 3.0,
+          "residual_hours": 0,
+          "actual_hours": 3.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-13"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-13"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-708",
+          "title": "Stage 7 slice 3 — entry 18 (Agent payments) and the admin's chart pattern (D-112, D-113)",
+          "status": "done",
+          "original_hours": 3.5,
+          "residual_hours": 0,
+          "actual_hours": 3.5,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-18"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-18"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-709",
+          "title": "Stage 7 slice 4 — entry 7 (Analytics) (D-114)",
+          "status": "done",
+          "original_hours": 3.5,
+          "residual_hours": 0,
+          "actual_hours": 3.5,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-7"
+          ],
+          "depends_on": [
+            "S-708"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-7"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-710",
+          "title": "Stage 7 slice 5 — entry 4 (Assets), first gallery-grid consumer, server and browser tiers (D-118, D-119)",
+          "status": "done",
+          "original_hours": 5.0,
+          "residual_hours": 0,
+          "actual_hours": 5.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-4"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-4"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-711",
+          "title": "Stage 7 slice 6 — entry 21 (Blocks), second gallery-grid consumer (D-120)",
+          "status": "done",
+          "original_hours": 3.0,
+          "residual_hours": 0,
+          "actual_hours": 3.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-21"
+          ],
+          "depends_on": [
+            "S-710"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-21"
+          ],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-712",
+          "title": "The storage-identity defect class — listWithIds() (D-115, L-050)",
+          "status": "done",
+          "original_hours": 5.0,
+          "residual_hours": 0,
+          "actual_hours": 5.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "D-115"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-713",
+          "title": "Form data belongs to the Forms plugin (D-116)",
+          "status": "done",
+          "original_hours": 3.0,
+          "residual_hours": 0,
+          "actual_hours": 3.0,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "D-116"
+          ],
+          "depends_on": [
+            "S-712"
+          ],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-714",
+          "title": "The database backend gets a test tier; D-115's VERIFY discharged (D-117)",
+          "status": "done",
+          "original_hours": 2.5,
+          "residual_hours": 0,
+          "actual_hours": 2.5,
+          "actual_source": "estimated",
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "D-117"
+          ],
+          "depends_on": [
+            "S-712"
+          ],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": null,
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-715",
+          "title": "Stage 7 slice 7 — entry 31 (Templates), third gallery-grid consumer",
+          "status": "not-started",
+          "original_hours": 2.5,
+          "residual_hours": 2.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-31"
+          ],
+          "depends_on": [
+            "S-711"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-31"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/templates.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-716",
+          "title": "Stage 7 slice 8 — entry 20 (Translations), first editor-split consumer",
+          "status": "not-started",
+          "original_hours": 3.5,
+          "residual_hours": 3.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-20"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-20"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/translations.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-717",
+          "title": "Stage 7 slice 9 — entry 29 (AI images), editor-split",
+          "status": "not-started",
+          "original_hours": 2.5,
+          "residual_hours": 2.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-29"
+          ],
+          "depends_on": [
+            "S-716"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-29"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/ai-images.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-716"
+          ]
+        },
+        {
+          "id": "S-718",
+          "title": "Stage 7 slice 10 — entry 40 (Block data), editor-split",
+          "status": "not-started",
+          "original_hours": 2.5,
+          "residual_hours": 2.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-40"
+          ],
+          "depends_on": [
+            "S-716"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-40"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/block-data.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-716"
+          ]
+        },
+        {
+          "id": "S-719",
+          "title": "Stage 7 slice 11 — entry 10 (Log in), first auth-centered consumer",
+          "status": "not-started",
+          "original_hours": 3.5,
+          "residual_hours": 3.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-10"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-10"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/login.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-720",
+          "title": "Stage 7 slice 12 — entry 43 (Reset password), auth-centered",
+          "status": "not-started",
+          "original_hours": 2.0,
+          "residual_hours": 2.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-43"
+          ],
+          "depends_on": [
+            "S-719"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-43"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/reset-password.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-719"
+          ]
+        },
+        {
+          "id": "S-721",
+          "title": "Stage 7 slice 13 — entry 8 (MCP), record-form",
+          "status": "not-started",
+          "original_hours": 3.0,
+          "residual_hours": 3.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-8"
+          ],
+          "depends_on": [],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-8"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/mcp.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": true,
+          "waiting": false,
+          "blocked_by": []
+        },
+        {
+          "id": "S-722",
+          "title": "Stage 7 slice 14 — entry 38 (Plugin page pattern), record-form",
+          "status": "not-started",
+          "original_hours": 2.5,
+          "residual_hours": 2.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-38"
+          ],
+          "depends_on": [
+            "S-721"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-38"
+          ],
+          "reconciliation_status": "reconciled",
+          "estimate_changes": [],
+          "execution": {
+            "write_paths": [
+              "installer/admin/plugin-page.php",
+              "installer/admin/assets/css/",
+              "installer/lang/",
+              "tests/",
+              "docs/BUILD-SPEC.md"
+            ],
+            "contracts": {
+              "reads": [],
+              "writes": []
+            },
+            "exclusive_resources": [
+              "lang-catalogues",
+              "admin-component-css"
+            ],
+            "parallel": "eligible",
+            "serial_reason": null
+          },
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-721"
+          ]
+        },
+        {
+          "id": "S-723",
+          "title": "Stage 4 batch B — the seven unbuilt list-table surfaces (entries 5, 15, 30, 33, 34, 35, 36)",
+          "status": "not-started",
+          "original_hours": 17.5,
+          "residual_hours": 17.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-5",
+            "ENTRY-15",
+            "ENTRY-30",
+            "ENTRY-33",
+            "ENTRY-34",
+            "ENTRY-35",
+            "ENTRY-36"
+          ],
+          "depends_on": [],
+          "waiting_on": "Design's answer to DR-006 (column widths for the list-table surfaces; sent 2026-07-29, unanswered)",
+          "criteria": [
+            "ENTRY-5",
+            "ENTRY-15",
+            "ENTRY-30",
+            "ENTRY-33",
+            "ENTRY-34",
+            "ENTRY-35",
+            "ENTRY-36"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": true,
+          "blocked_by": []
+        }
+      ],
+      "scope_reconciliations": [],
+      "totals": {
+        "slices_total": 22,
+        "slices_done": 10,
+        "slices_open": 12,
+        "original_estimated_hours": 93.75,
+        "completed_original_hours": 38.5,
+        "actual_hours": 38.5,
+        "actual_hours_estimated_source": 38.5,
+        "remaining_hours": 52.25,
+        "spent_on_unfinished_hours": 0,
+        "deviation_hours": 0.0,
+        "percent_done": 41.07,
+        "reconciliation_status": "unreconciled",
+        "unreconciled_slices": [
+          "S-701",
+          "S-704",
+          "S-723"
+        ],
+        "scope_delta": {
+          "added_hours": 93.75,
+          "extracted_hours": 0.0,
+          "explicit_residual_reestimates_hours": 0.0
+        },
+        "pace_factor": null,
+        "projected_remaining_hours": null,
+        "projection_reason": "unavailable — no measured completed work"
+      }
+    },
+    {
+      "sprint": 8,
+      "schema": "keel.sprint/2",
+      "file": "docs/sprints/sprint-8.md",
+      "goal": "The roadmap to v1 after Phase 4 — coarse backlog, to be re-sliced at kickoff",
+      "status": "not-started",
+      "slices": [
+        {
+          "id": "S-801",
+          "title": "Roadmap 1 — the .gitattributes review (NEW-27, NEW-28, H-02)",
+          "status": "not-started",
+          "original_hours": 1.5,
+          "residual_hours": 1.5,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "NEW-27",
+            "NEW-28",
+            "H-02"
+          ],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "NEW-27",
+            "NEW-28",
+            "H-02"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-802",
+          "title": "Roadmap 0b — entry 17 Setup wizard: install.php from three steps to seven, non-destructive in a checkout (NEW-04)",
+          "status": "not-started",
+          "original_hours": 6.0,
+          "residual_hours": 6.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-17"
+          ],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-17"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-803",
+          "title": "Roadmap 0b — entry 11 Verify, paired with NEW-38 (OAuth consent screen 2FA)",
+          "status": "not-started",
+          "original_hours": 4.0,
+          "residual_hours": 4.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-11",
+            "NEW-38"
+          ],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-11",
+            "NEW-38"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-804",
+          "title": "Roadmap 0b — entry 14 Comments: a new admin screen over comment-manager",
+          "status": "not-started",
+          "original_hours": 5.0,
+          "residual_hours": 5.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-14"
+          ],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-14"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-805",
+          "title": "Roadmap 0b — entry 22 Health: the data source first, then the screen",
+          "status": "not-started",
+          "original_hours": 5.0,
+          "residual_hours": 5.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-22"
+          ],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-22"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-806",
+          "title": "Roadmap 0b — entry 42 Template preview: preview endpoint, DOM check runner, default-template store (D-104)",
+          "status": "not-started",
+          "original_hours": 8.0,
+          "residual_hours": 8.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "ENTRY-42"
+          ],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "ENTRY-42"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-807",
+          "title": "Roadmap 0c — the stage-5 cards Phase 4 does not build (D-088)",
+          "status": "not-started",
+          "original_hours": 20.0,
+          "residual_hours": 20.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [],
+          "depends_on": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ],
+          "waiting_on": null,
+          "criteria": [],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-715",
+            "S-716",
+            "S-717",
+            "S-718",
+            "S-719",
+            "S-720",
+            "S-721",
+            "S-722",
+            "S-723"
+          ]
+        },
+        {
+          "id": "S-808",
+          "title": "Roadmap 2 — finish the hardening: NEW-17, NEW-32, NEW-35, NEW-13, NEW-34 and the LOW tail",
+          "status": "not-started",
+          "original_hours": 12.0,
+          "residual_hours": 12.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "NEW-17",
+            "NEW-32",
+            "NEW-35",
+            "NEW-13",
+            "NEW-34"
+          ],
+          "depends_on": [
+            "S-801"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "NEW-17",
+            "NEW-32",
+            "NEW-35",
+            "NEW-13",
+            "NEW-34"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-801"
+          ]
+        },
+        {
+          "id": "S-809",
+          "title": "Roadmap 3 — accessibility (A-01…A-07, D-007)",
+          "status": "not-started",
+          "original_hours": 20.0,
+          "residual_hours": 20.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "A-01",
+            "A-02",
+            "A-03",
+            "A-04",
+            "A-05",
+            "A-06",
+            "A-07"
+          ],
+          "depends_on": [
+            "S-808"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "A-01",
+            "A-02",
+            "A-03",
+            "A-04",
+            "A-05",
+            "A-06",
+            "A-07"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-808"
+          ]
+        },
+        {
+          "id": "S-810",
+          "title": "Roadmap 4 — the theme package (D-023, D-024, F-01, D-06, NEW-04, NEW-23, the comment form)",
+          "status": "not-started",
+          "original_hours": 24.0,
+          "residual_hours": 24.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "D-023",
+            "D-024",
+            "F-01",
+            "D-06",
+            "NEW-23"
+          ],
+          "depends_on": [
+            "S-809"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "D-023",
+            "D-024",
+            "F-01",
+            "D-06",
+            "NEW-23"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-809"
+          ]
+        },
+        {
+          "id": "S-811",
+          "title": "Roadmap 5 — Phase 6 documentation, incl. the bilingual in-product guides (D-01…D-05)",
+          "status": "not-started",
+          "original_hours": 16.0,
+          "residual_hours": 16.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "D-01",
+            "D-02",
+            "D-03",
+            "D-04",
+            "D-05"
+          ],
+          "depends_on": [
+            "S-810"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "D-01",
+            "D-02",
+            "D-03",
+            "D-04",
+            "D-05"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-810"
+          ]
+        },
+        {
+          "id": "S-812",
+          "title": "Roadmap 6 — Phase 7 release gate (H-01, H-03, H-05, H-07, T-03, T-04, D-038, D-027)",
+          "status": "not-started",
+          "original_hours": 8.0,
+          "residual_hours": 8.0,
+          "actual_hours": null,
+          "actual_source": null,
+          "change_kind": "added",
+          "parent_slice": null,
+          "owns": [
+            "H-01",
+            "H-03",
+            "H-05",
+            "H-07",
+            "T-03",
+            "T-04"
+          ],
+          "depends_on": [
+            "S-802",
+            "S-803",
+            "S-804",
+            "S-805",
+            "S-806",
+            "S-807",
+            "S-811"
+          ],
+          "waiting_on": null,
+          "criteria": [
+            "H-01",
+            "H-03",
+            "H-05",
+            "H-07",
+            "T-03",
+            "T-04"
+          ],
+          "reconciliation_status": "unreconciled",
+          "estimate_changes": [],
+          "execution": null,
+          "workable": false,
+          "waiting": false,
+          "blocked_by": [
+            "S-802",
+            "S-803",
+            "S-804",
+            "S-805",
+            "S-806",
+            "S-807",
+            "S-811"
+          ]
+        }
+      ],
+      "scope_reconciliations": [],
+      "totals": {
+        "slices_total": 12,
+        "slices_done": 0,
+        "slices_open": 12,
+        "original_estimated_hours": 129.5,
+        "completed_original_hours": 0,
+        "actual_hours": 0,
+        "actual_hours_estimated_source": 0,
+        "remaining_hours": 129.5,
+        "spent_on_unfinished_hours": 0,
+        "deviation_hours": 0,
+        "percent_done": 0.0,
+        "reconciliation_status": "unreconciled",
+        "unreconciled_slices": [
+          "S-801",
+          "S-802",
+          "S-803",
+          "S-804",
+          "S-805",
+          "S-806",
+          "S-807",
+          "S-808",
+          "S-809",
+          "S-810",
+          "S-811",
+          "S-812"
+        ],
+        "scope_delta": {
+          "added_hours": 129.5,
+          "extracted_hours": 0.0,
+          "explicit_residual_reestimates_hours": 0.0
+        },
+        "pace_factor": null,
+        "projected_remaining_hours": null,
+        "projection_reason": "unavailable — no measured completed work"
+      }
+    }
+  ],
+  "deferred": {
+    "file": "docs/sprints/deferred.md",
+    "items": [
+      {
+        "id": "S-702",
+        "title": "SafeHttpTest hex-loopback asserts a macOS-only refusal reason; on Linux it is host_does_not_resolve (still refused)",
+        "status": "not-started",
+        "original_hours": 0.5,
+        "residual_hours": 0.5,
+        "actual_hours": null,
+        "actual_source": null,
+        "change_kind": "added",
+        "parent_slice": null,
+        "owns": [],
+        "depends_on": [],
+        "waiting_on": null,
+        "criteria": [],
+        "reconciliation_status": "unreconciled",
+        "estimate_changes": [],
+        "execution": null,
+        "workable": false,
+        "waiting": false,
+        "blocked_by": [],
+        "target": null,
+        "reason": "Found running the suite on the Linux tenant (D-121). The address is refused on both platforms; only the asserted reason differs, so it is a test-portability defect, not a security one."
+      },
+      {
+        "id": "S-901",
+        "title": "Phase 8 — the klytos.io website",
+        "status": "not-started",
+        "original_hours": 12.0,
+        "residual_hours": 12.0,
+        "actual_hours": null,
+        "actual_source": null,
+        "change_kind": "added",
+        "parent_slice": null,
+        "owns": [],
+        "depends_on": [],
+        "waiting_on": null,
+        "criteria": [],
+        "reconciliation_status": "unreconciled",
+        "estimate_changes": [],
+        "execution": null,
+        "workable": false,
+        "waiting": false,
+        "blocked_by": [],
+        "target": null,
+        "reason": "Website intent is yes, but Phase 8 is deferred until the user requests it (D-012)."
+      }
+    ],
+    "hours": 12.5
+  },
+  "totals": {
+    "slices_total": 40,
+    "slices_done": 14,
+    "slices_open": 26,
+    "original_estimated_hours": 241.875,
+    "completed_original_hours": 54.625,
+    "actual_hours": 54.625,
+    "actual_hours_estimated_source": 54.625,
+    "remaining_hours": 184.25,
+    "spent_on_unfinished_hours": 0,
+    "deviation_hours": 0.0,
+    "percent_done": 22.58,
+    "reconciliation_status": "unreconciled",
+    "unreconciled_slices": [
+      "S-605",
+      "S-606",
+      "S-701",
+      "S-704",
+      "S-723",
+      "S-801",
+      "S-802",
+      "S-803",
+      "S-804",
+      "S-805",
+      "S-806",
+      "S-807",
+      "S-808",
+      "S-809",
+      "S-810",
+      "S-811",
+      "S-812"
+    ],
+    "scope_delta": {
+      "added_hours": 241.875,
+      "extracted_hours": 0.0,
+      "explicit_residual_reestimates_hours": 0.0
+    },
+    "pace_factor": null,
+    "pace_sample": {
+      "slices": 0,
+      "original_hours": 0,
+      "actual_hours": 0,
+      "provisional": true
+    },
+    "projected_remaining_hours": null,
+    "projection_reason": "unavailable — no measured completed work",
+    "balance_label": "unreconciled baseline — open slices without exclusive requirement ownership; not a reliable completion estimate"
+  },
+  "remaining_hours": 184.25,
+  "pace_factor": null,
+  "projected_remaining_hours": null,
+  "queue": {
+    "workable": 7,
+    "waiting": 3,
+    "blocked_by_dependencies": 16,
+    "workable_ids": [
+      "S-605",
+      "S-701",
+      "S-704",
+      "S-715",
+      "S-716",
+      "S-719",
+      "S-721"
+    ],
+    "waiting_on": [
+      {
+        "id": "S-606",
+        "waiting_on": "José's own test verdict on Sprint 6's flows, from the try-it script (owed since 2026-07-27)"
+      },
+      {
+        "id": "S-705",
+        "waiting_on": "José to apply the agent-teams flag to .claude/settings.local.json — the auto-mode classifier refuses the edit (as at D-081)"
+      },
+      {
+        "id": "S-723",
+        "waiting_on": "Design's answer to DR-006 (column widths for the list-table surfaces; sent 2026-07-29, unanswered)"
+      }
+    ]
+  }
+}
