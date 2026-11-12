@@ -520,3 +520,21 @@ nothing in the code review would have said so, because the call *was* there. Bud
 work until something underneath it is fixed too" as a real possibility on any slice that adds a check
 to a path nobody was checking before; this project has now hit that shape in NEW-16 (slice 7),
 NEW-36 (Sprint 4) and here.
+
+## Estimate v8 — the whole plan, derived from `docs/.keel/plan.json` (2026-11-12, D-123)
+
+From Keel v5.17.0 on, the per-slice hours in `docs/sprints/` ARE the estimate; this section only
+states their sum, and `scripts/keel-plan --check` keeps the two from drifting. All figures are **AI
+working time plus the developer's supervision time**, contingency excluded — never human-team time.
+
+| Line | Hours |
+|---|---|
+| Phase 5 — Σ `original_hours` over sprints 6–8 | **241.875** |
+| of which done (backfilled `estimated` actuals, no measured pace yet) | 54.625 |
+| remaining (residual) | **184.25** — sprint 6: 2.5 · sprint 7: 52.25 · sprint 8: 129.5 |
+| deferred backlog (`docs/sprints/deferred.md`), NOT in the total | 12.5 |
+
+**Status: unreconciled baseline.** Sprint 8 holds the roadmap steps to v1 (D-062) as coarse
+placeholders without requirement ownership, so 129.5 h is an order of magnitude, not a commitment.
+The remaining-time projection is unavailable until measured slices finish (`scripts/keel-time`).
+Previous estimates (v1–v7) are history and are not summed into this one.

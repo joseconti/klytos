@@ -28,7 +28,7 @@
 - Chaining: **start** — chosen 2026-08-09 (D-081), the maximum tier `Autonomy: automatic` recommends and this project's gates allow (macOS, `claude` on PATH verified, single-lane lock now implemented). `scripts/keel-continue` generated; the end-to-end fire is unexercised (see Keel baseline note above).
 - Chaining model: **claude-opus-5-5** — changed 2026-11-12 by the user (D-122; was `claude-opus-5`, D-082). Every chained `start` launch passes `--model claude-opus-5-5`.
 - Chain verified: **not yet proven** — no `--smoke` run has been recorded, and that single row is the ONLY thing standing between this project and `VERDICT: READY`. As of 2026-08-09 `scripts/keel-chain-check` reports **11 of 12 rows OK**; B5 is the outstanding one. It certifies that the launcher has been *observed* to run, which no amount of reading can establish — see D-082.
-- Reconciliation pending v5.13.0 → v7.6.0: **IN PROGRESS since 2026-11-12 (D-122)** — `Keel baseline:` below stays v5.13.0 until every row of `docs/keel-conformance.md` and all four standing checks pass. Done so far: embedded copies + lock, card lines, the Parallels tenant (standing check 3) and `docs/machines/` (standing check 4). Standing check 1 (agent-teams flag in `.claude/settings.local.json`) is BLOCKED on the user: the auto-mode classifier refuses edits to that file, as it did at D-081.
+- Reconciliation pending v5.13.0 → v7.6.0: **IN PROGRESS since 2026-11-12 (D-122)** — `Keel baseline:` below stays v5.13.0 until every row of `docs/keel-conformance.md` and all four standing checks pass. Done so far: embedded copies + lock, card lines, the Parallels tenant (standing check 3) and `docs/machines/` (standing check 4). Standing check 1 (agent-teams flag) PASSES since 2026-11-12: the user pasted the merged `.claude/settings.local.json` (the auto-mode classifier refuses Claude's own edits to that file, as at D-081); verified valid JSON, `CLAUDE_CODE_EXPERIMENTAL_AGENTS_TEAMS: "1"`, the 8 new script allow entries, PATH literal with `/usr/bin`, deny block intact, gitignored. Takes effect at the next Claude Code start.
 - Playground host: **parallels-shared** — tenant `klytos` on `keel-development` (D-121), `scripts/keel-site`, recipe `docs/machines/recipe.md`; the browser tier still uses the host playground until S-701.
 - Sprints: **on** (never asked — the default since Keel v5.21.0).
 - Push test scope: **affected** (never asked — the default since Keel v6.0.0; `full` only on explicit request).
@@ -56,6 +56,10 @@
 
 ## Current position
 
+- **NOW (2026-11-12): S-704 — Keel v7.6.0 reconciliation, remaining rows** (sprint 7, `docs/sprints/sprint-7.md`).
+  Then **S-715** (stage 7 slice 7, entry 31 Templates) and on down the queue in `docs/.keel/plan.json`;
+  the route to v1 is `docs/roadmap.md` (D-062), planned as sprint 8. Sprint 6's close is S-605 (QA pass)
+  and S-606 (the user's verdict, waiting). Machines: `docs/machines/recipe.md`.
 - **Phase 5 — Development. Sprint 6 (hardening) has all four slices CLOSED**; what remains is the
   sprint close itself. Audit findings closed by this sprint: **NEW-40**, **NEW-20**, **NEW-44**
   (slice 1, D-059); **NEW-41** (slice 2, D-060); **NEW-47**, **NEW-26**, **NEW-50**, **NEW-51**,

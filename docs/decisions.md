@@ -3507,3 +3507,27 @@ Asked in one batch at the start of the reconciliation; the rest of the delta nee
   (rsync of the whole tree, `diff -rq` 0 against the source and against each other); both lock blocks
   rewritten from the canonical v7.6.0 block (text changed, not only the stamp).
 
+## D-123 — The sprint plan becomes data; keel-verify's end-of-block checks bite only at the close (2026-11-12)
+
+Part of the v5.13.0 → v7.6.0 reconciliation (D-122), built by a parallel writing worker and integrated
+by the coordinator.
+- **Plan.** `docs/sprints/sprint-6.md` gained `keel.sprint/2` frontmatter (prose byte-identical);
+  `sprint-7.md` (current: the reconciliation, stage 7 slices 7–14, S-701, the DR-006 batch waiting on
+  Design) and `sprint-8.md` (the roadmap steps to v1 as COARSE, unreconciled placeholders) are new;
+  `deferred.md` holds S-702 and Phase 8. Ids are `S-<sprint><nn>`; requirement ownership uses
+  `ENTRY-<n>` (manifest entries) where it is mapped. Generator `scripts/keel-plan` (the contract names
+  none) writes `docs/.keel/plan.json` and `docs/sprints/INDEX.md`; `--check` fails on drift.
+- **History is labelled, never invented.** Every `done` slice carries `actual_source: estimated` with
+  actual = original (backfilled, so it claims no deviation and gives no pace sample). Sprint 6's hours
+  are the midpoints of Estimates v6/v7 (the file had no hours). Sprints 1–5 and Phase 4 stages 1–6 are
+  not backfilled. Estimate v8 states the sum.
+- **Session time.** `scripts/keel-time` + `scripts/keel-clock` (byte copy of the skill's
+  `keel_clock.py`, SHA-256 `82e0c0a7…2992`) + `docs/sessions.md`. `KEEL_TIME_NOW` overrides the clock
+  for scratch tests only. The session that ran this reconciliation started the clock only at
+  2026-11-12 15:30 CET; its earlier part is unmeasured and its row says so.
+- **keel-verify `--close`.** "The working tree is clean" and "nothing is stranded" describe the END of
+  a block, so they FAIL only under `--close` (which `scripts/keel-close` passes) and WARN otherwise —
+  mid-block, and inside `KeelVerifyTest`, a dirty tree is the normal state, not a defect.
+- **`Not checked:`** is required from D-121 on; D-001…D-120 predate the rule and are listed as a WARN
+  backlog, reviewed when touched.
+

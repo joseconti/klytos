@@ -1684,6 +1684,127 @@ if ( $guides === null ) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Keel v5.5.0 / v5.6.0 — nothing stranded, nothing uncommitted (D-123).
+// These two describe the END of a block, so they FAIL only under `--close`
+// (scripts/keel-close runs keel-verify that way, after its commit). Mid-block —
+// a test point, or KeelVerifyTest running on a tree being edited — they WARN,
+// because a dirty tree there is the normal state, not a defect.
+// ─────────────────────────────────────────────────────────────
+{
+    $closeMode = in_array( '--close', $argv, true );
+    $porcelain = keel_git( 'status --porcelain' );
+    $dirty     = $porcelain === null ? [ 'git unavailable — tree state not established' ]
+        : array_map( static fn ( string $l ): string => 'uncommitted: ' . $l, array_filter( $porcelain ) );
+    $upstream  = keel_git( 'rev-parse --abbrev-ref --symbolic-full-name @{u}' );
+    $stranded  = [];
+    if ( $upstream === null ) {
+        $stranded[] = 'the current branch has no upstream — its commits exist only on this machine';
+    } else {
+        $ahead = keel_git( 'rev-list --count @{u}..HEAD' );
+        if ( $ahead !== null && (int) ( $ahead[0] ?? 0 ) > 0 ) {
+            $stranded[] = (int) $ahead[0] . ' commit(s) not pushed to ' . ( $upstream[0] ?? '@{u}' );
+        }
+    }
+    $branch = keel_git( 'rev-parse --abbrev-ref HEAD' );
+    if ( $branch !== null && in_array( $branch[0] ?? '', [ 'main', 'master' ], true ) ) {
+        $stranded[] = 'work is on the release branch `' . $branch[0] . '` (Git flow: develop integrates, main is the user\'s)';
+    }
+    if ( $closeMode ) {
+        keel_report( 'the working tree is clean', array_values( $dirty ) );
+        keel_report( 'nothing is stranded on this machine', $stranded );
+    } else {
+        keel_warn( 'the working tree is clean (FAILS only under --close)', array_values( $dirty ) );
+        keel_warn( 'nothing is stranded on this machine (FAILS only under --close)', $stranded );
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keel v5.19.0 — every recorded negative carries its scope. An entry asserting an
+// impossibility must name at least one avenue NOT examined (`Not checked:`).
+// Entries written before v5.19.0 (D-001 … D-120) predate the rule: they are
+// listed as a WARN backlog, never silently passed; from D-121 on it FAILS.
+// ─────────────────────────────────────────────────────────────
+{
+    $decisions = @file_get_contents( $repoRoot . '/docs/decisions.md' );
+    $fail      = [];
+    $legacy    = [];
+    if ( $decisions === false ) {
+        $fail[] = 'docs/decisions.md is unreadable';
+    } else {
+        $parts = preg_split( '/^(?=## D-\d+)/m', $decisions );
+        foreach ( $parts as $part ) {
+            if ( ! preg_match( '/^## (D-(\d+))/', $part, $m ) ) {
+                continue;
+            }
+            $negative = preg_match( '/\b(cannot|there is no|not possible|impossible|does not support)\b/i', $part );
+            if ( $negative && ! preg_match( '/^\s*\**Not checked:?\**/mi', $part ) && stripos( $part, 'Not checked:' ) === false ) {
+                if ( (int) $m[2] >= 121 ) {
+                    $fail[] = $m[1] . ' asserts an impossibility and has no `Not checked:` line';
+                } else {
+                    $legacy[] = $m[1];
+                }
+            }
+        }
+    }
+    keel_report( 'every recorded negative carries its scope (D-121 onward)', $fail );
+    keel_warn(
+        'recorded negatives before the rule existed (D-001…D-120, review on touch)',
+        $legacy === [] ? [] : [ count( $legacy ) . ' legacy entr' . ( count( $legacy ) === 1 ? 'y' : 'ies' ) . ' without `Not checked:` — ' . implode( ', ', array_slice( $legacy, 0, 12 ) ) . ( count( $legacy ) > 12 ? ', …' : '' ) ]
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keel v7.6.0 — the machine recipe is not behind the machine definitions.
+// The newest commit touching a machine definition must be an ancestor of (or
+// equal to) the newest commit touching docs/machines/recipe.md.
+// ─────────────────────────────────────────────────────────────
+{
+    $problems = [];
+    if ( ! is_file( $repoRoot . '/docs/machines/recipe.md' ) ) {
+        $problems[] = 'docs/machines/recipe.md is missing (the project uses the shared VM tenant — D-121)';
+    } else {
+        $defs = keel_git( "log -1 --format=%H -- 'docker-compose*.yml' 'compose*.yml' 'Dockerfile*' '.wp-env*.json' scripts/keel-site docs/machines ':(exclude)docs/machines/recipe.md'" );
+        $rec  = keel_git( 'log -1 --format=%H -- docs/machines/recipe.md' );
+        if ( $defs !== null && $rec !== null && ( $defs[0] ?? '' ) !== '' ) {
+            if ( ( $rec[0] ?? '' ) === '' ) {
+                $problems[] = 'docs/machines/recipe.md has never been committed';
+            } elseif ( $defs[0] !== $rec[0] && keel_git( 'merge-base --is-ancestor ' . escapeshellarg( $defs[0] ) . ' ' . escapeshellarg( $rec[0] ) ) === null ) {
+                $problems[] = 'machine definitions changed in ' . substr( $defs[0], 0, 7 ) . ' after the recipe was last updated (' . substr( $rec[0], 0, 7 ) . ')';
+            }
+        }
+    }
+    keel_report( 'docs/machines/ recipe is not behind the machine definitions', $problems );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keel v4.0.0 — code fences are balanced in every committed document (an
+// unclosed fence silently swallows the rest of the page when rendered).
+// ─────────────────────────────────────────────────────────────
+{
+    $problems = [];
+    $files    = keel_git( "ls-files -- 'docs/*.md' 'docs/**/*.md' README.md INSTALL.md CLAUDE.md AGENTS.md" ) ?? [];
+    foreach ( $files as $rel ) {
+        if ( str_starts_with( $rel, 'docs/old/' ) ) {
+            continue;
+        }
+        $text = @file_get_contents( $repoRoot . '/' . $rel );
+        if ( $text === false ) {
+            continue;
+        }
+        $open = 0;
+        foreach ( preg_split( '/\R/', $text ) as $line ) {
+            if ( preg_match( '/^\s{0,3}(```|~~~)/', $line ) ) {
+                $open ^= 1;
+            }
+        }
+        if ( $open ) {
+            $problems[] = $rel . ' has an unclosed code fence';
+        }
+    }
+    keel_report( 'code fences are balanced in every committed document', $problems );
+}
+
+// ─────────────────────────────────────────────────────────────
 
 echo "\n";
 

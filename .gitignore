@@ -200,3 +200,6 @@ docs/klytos-cms-redesign/
 
 # keel-site (D-121): machine-local SSH-forward PIDs, never committed
 .keel-site/
+.claude/worktrees/
+docs/.keel/clock.jsonl
+docs/.keel/parallel/
